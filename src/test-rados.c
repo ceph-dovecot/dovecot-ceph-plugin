@@ -104,6 +104,26 @@ static void test_dict_set_get_delete(void) {
 	i_free(result.error);
 }
 
+static void test_dict_atomic_inc(void) {
+	struct dict_transaction_context * ctx;
+	struct dict_commit_result result;
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	test_dict_r->v.atomic_inc(ctx, OMAP_KEY, 10);
+
+	i_zero(&result);
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result.ret == DICT_COMMIT_RET_OK);
+	i_free(result.error);
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	test_dict_r->v.unset(ctx, OMAP_KEY);
+	i_zero(&result);
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result.ret == DICT_COMMIT_RET_OK);
+	i_free(result.error);
+}
+
 static void test_dict_iterate(void) {
 	struct dict_transaction_context * ctx;
 	struct dict_commit_result result;
@@ -160,6 +180,7 @@ int main(int argc, char **argv) {
 		test_setup,
 		test_dict_init,
 		test_dict_set_get_delete,
+		test_dict_atomic_inc,
 		test_dict_iterate,
 		test_dict_deinit,
 		test_teardown,

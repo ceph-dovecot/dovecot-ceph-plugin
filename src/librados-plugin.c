@@ -336,11 +336,11 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 
 static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
+	i_debug("rados_atomic_inc(%s,%lld)", key, diff);
 
 	if (ctx->op) {
 		string_t *str = t_str_new(strlen(key) + 64);
 		str_printfa(str, "%s;%lld", key, diff);
-
 		rados_write_op_exec(ctx->op, "rmb", "atomic_inc", (const char *) str_data(str), str_len(str) + 1, NULL); // store complete cstr
 		_ctx->changed = TRUE;
 	}
