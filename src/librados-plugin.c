@@ -178,20 +178,20 @@ static void rados_dict_deinit(struct dict *_dict) {
 
 static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r, const char **error_r) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
-	rados_omap_iter_t iter_vals;
+	rados_omap_iter_t iter;
 	int r_val = -1;
-	int ret = 0;
+	int ret = DICT_COMMIT_RET_NOTFOUND;
 	*value_r = NULL;
 	*error_r = NULL;
 
 	i_debug("rados_dict_lookup(%s)", key);
 
 	rados_write_op_t rop = rados_create_read_op();
-	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter_vals, &r_val);
+	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
 	int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
 
 	if (err < 0) {
-		ret = -1;
+		ret = DICT_COMMIT_RET_FAILED;
 		*error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
 	} else {
 		if (r_val == 0) {
@@ -201,19 +201,65 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 			size_t err;
 
 			do {
-				err = rados_omap_get_next(iter_vals, &omap_key, &omap_val, &omap_val_len);
-				if (!err && key && strcmp(key, omap_key) == 0 && omap_val) {
-					*value_r = p_strndup(pool, omap_val, omap_val_len);
-					ret = 1;
+				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
+				if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
+				&& strcmp(key, omap_key) == 0 && omap_val != NULL) {
+					*value_r = p_strndup(pool, omap_val, omap_val_len - 1);
+					ret = DICT_COMMIT_RET_OK;
 				}
-			} while (err || !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
+			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
 		} else {
-			ret = -1;
+			ret = DICT_COMMIT_RET_FAILED;
 			*error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
 		}
 	}
-	rados_omap_get_end(iter_vals);
 
+	rados_release_read_op(rop);
+	return ret;
+}
+
+static int rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context) {
+	struct rados_dict *dict = (struct rados_dict *) _dict;
+	rados_omap_iter_t iter;
+	int r_val = -1;
+	int ret = DICT_COMMIT_RET_NOTFOUND;
+
+	i_debug("rados_dict_lookup(%s)", key);
+
+	rados_write_op_t rop = rados_create_read_op();
+	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
+
+	rados_completion_t completion;
+	rados_aio_create_completion(NULL, NULL, NULL, &completion);
+
+	int err = rados_aio_read_op_operate(rop, dict->io, completion, dict->oid, LIBRADOS_OPERATION_NOFLAG);
+
+	rados_aio_wait_for_complete(completion);
+	rados_aio_get_return_value(completion);
+	rados_aio_release(completion);
+
+	if (err < 0) {
+		ret = DICT_COMMIT_RET_FAILED;
+	} else {
+		if (r_val == 0) {
+			char *omap_key = NULL;
+			char *omap_val = NULL;
+			size_t omap_val_len = 0;
+			size_t err;
+
+			do {
+				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
+				if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
+				&& strcmp(key, omap_key) == 0 && omap_val != NULL) {
+					ret = DICT_COMMIT_RET_OK;
+				}
+			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
+		} else {
+			ret = DICT_COMMIT_RET_FAILED;
+		}
+	}
+
+	rados_release_read_op(rop);
 	return ret;
 }
 
@@ -274,6 +320,7 @@ static void rados_set(struct dict_transaction_context *_ctx, const char *key, co
 	if (ctx->op) {
 		const size_t len = strlen(value) + 1;  // store complete cstr
 		rados_write_op_omap_set(ctx->op, &key, &value, &len, 1);
+		_ctx->changed = TRUE;
 	}
 }
 
@@ -283,6 +330,7 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 
 	if (ctx->op) {
 		rados_write_op_omap_rm_keys(ctx->op, &key, 1);
+		_ctx->changed = TRUE;
 	}
 }
 
@@ -294,6 +342,7 @@ static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *
 		str_printfa(str, "%s;%lld", key, diff);
 
 		rados_write_op_exec(ctx->op, "rmb", "atomic_inc", (const char *) str_data(str), str_len(str) + 1, NULL); // store complete cstr
+		_ctx->changed = TRUE;
 	}
 }
 
@@ -375,12 +424,23 @@ static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx, const cha
 	return ret;
 }
 
-struct dict dict_driver_rados = { .name = "rados", { .init = rados_dict_init, .deinit = rados_dict_deinit, .wait = NULL, .lookup =
-		rados_dict_lookup, .iterate_init = rados_dict_iterate_init, .iterate = rados_dict_iterate, .iterate_deinit =
-		rados_dict_iterate_deinit, .transaction_init = rados_transaction_init, .transaction_commit = rados_transaction_commit,
-		.transaction_rollback = rados_transaction_rollback, .set = rados_set, .unset = rados_unset, .atomic_inc = rados_atomic_inc,
-		.lookup_async =
-		NULL, .switch_ioloop = NULL, .set_timestamp = NULL } };
+struct dict dict_driver_rados = { .name = "rados", {
+		.init = rados_dict_init,
+		.deinit = rados_dict_deinit,
+		.wait = NULL,
+		.lookup = rados_dict_lookup,
+		.iterate_init = rados_dict_iterate_init,
+		.iterate = rados_dict_iterate,
+		.iterate_deinit = rados_dict_iterate_deinit,
+		.transaction_init = rados_transaction_init,
+		.transaction_commit = rados_transaction_commit,
+		.transaction_rollback = rados_transaction_rollback,
+		.set = rados_set,
+		.unset = rados_unset,
+		.atomic_inc = rados_atomic_inc,
+		.lookup_async = NULL,
+		.switch_ioloop = NULL,
+		.set_timestamp = NULL } };
 
 static int refcount = 0;
 
