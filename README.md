@@ -5,7 +5,7 @@ Dovecot RADOS Plugin
 
 ./autogen.sh
 
-./configure --with-dovecot=<path to dovecot source tree>
+./configure --with-dovecot=path_to_dovecot_source_tree
 
 make
 
