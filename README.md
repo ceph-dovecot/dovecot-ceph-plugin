@@ -1,22 +1,12 @@
-Libsodium password hashing schemes plugin
-=========================================
-
-Requires installed libsodium: https://download.libsodium.org/doc/installation/
-
+Dovecot RADOS Plugin
+====================
 
 **Configure, Compile, Install the plugin:**
 
 ./autogen.sh
 
-./configure
+./configure --with-dovecot=<path to dovecot source tree>
 
 make
 
 sudo make install
-
-
-**Test the plugin:**
-
-doveadm pw -s scrypt
-
-doveadm pw -s argon2
