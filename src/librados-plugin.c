@@ -36,6 +36,8 @@ struct rados_dict_iterate_context {
 	char *error;
 };
 
+static rados_t cluster = NULL;
+
 static const char *rados_escape_username(const char *username) {
 	const char *p;
 	string_t *str = t_str_new(64);
@@ -97,8 +99,9 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	if (ret >= 0) {
 		uint64_t flags = 0;
+		if (cluster)
 		err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
-		i_debug("rados_create2()=%d", err);
+		i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
 			ret = -1;
@@ -107,7 +110,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	if (ret >= 0) {
 		err = rados_conf_read_file(dict->cluster, (const char *) dict->config);
-		i_debug("rados_conf_read_file()=%d", err);
+		i_debug("rados_conf_read_file(file=%s)=%d", dict->config, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
 			ret = -1;
@@ -125,7 +128,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	if (ret >= 0) {
 		err = rados_ioctx_create(dict->cluster, dict->pool, &dict->io);
-		i_debug("rados_ioctx_create()=%d", err);
+		i_debug("rados_ioctx_create(pool=%s)=%d", dict->pool, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->pool, strerror(-err));
 			rados_shutdown(dict->cluster);
@@ -152,7 +155,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	rados_ioctx_set_namespace(dict->io, (const char *) dict->username);
-	i_debug("rados_ioctx_set_namespace()");
+	i_debug("rados_ioctx_set_namespace(%s)", dict->username);
 
 	*dict_r = &dict->dict;
 	return 0;
@@ -189,16 +192,14 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	rados_write_op_t rop = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
 	int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
+	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val,
+			strerror(-r_val));
 
-	if (err < 0) {
-		ret = DICT_COMMIT_RET_FAILED;
-		*error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
-	} else {
+	if (err == 0) {
 		if (r_val == 0) {
 			char *omap_key = NULL;
 			char *omap_val = NULL;
 			size_t omap_val_len = 0;
-			size_t err;
 
 			do {
 				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
@@ -212,6 +213,12 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 			ret = DICT_COMMIT_RET_FAILED;
 			*error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
 		}
+	}
+	if (err == -ENOENT) {
+		ret = DICT_COMMIT_RET_NOTFOUND;
+	} else {
+		ret = DICT_COMMIT_RET_FAILED;
+		*error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
 	}
 
 	rados_release_read_op(rop);
@@ -263,8 +270,7 @@ static int rados_dict_lookup_async(struct dict *_dict, const char *key, dict_loo
 	return ret;
 }
 
-static struct dict_transaction_context *
-rados_transaction_init(struct dict *_dict) {
+static struct dict_transaction_context *rados_transaction_init(struct dict *_dict) {
 	struct rados_dict_transaction_context *ctx;
 
 	ctx = i_new(struct rados_dict_transaction_context, 1);
@@ -294,7 +300,6 @@ static void rados_transaction_commit(struct dict_transaction_context *_ctx, bool
 				result.ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
 			else
 				result.ret = DICT_COMMIT_RET_OK;
-
 		}
 	}
 

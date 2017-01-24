@@ -104,6 +104,13 @@ static void test_dict_set_get_delete(void) {
 	i_free(result.error);
 }
 
+static void test_dict_get(void) {
+	const char *value_r;
+	const char *error_r;
+	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "XXX", &value_r, &error_r);
+	test_assert(err == 0);
+}
+
 static void test_dict_atomic_inc(void) {
 	struct dict_transaction_context * ctx;
 	struct dict_commit_result result;
@@ -179,6 +186,7 @@ int main(int argc, char **argv) {
 	void (*tests[])(void) = {
 		test_setup,
 		test_dict_init,
+		test_dict_get,
 		test_dict_set_get_delete,
 		test_dict_atomic_inc,
 		test_dict_iterate,
