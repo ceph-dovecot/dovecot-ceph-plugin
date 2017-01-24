@@ -99,7 +99,6 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	if (ret >= 0) {
 		uint64_t flags = 0;
-		if (cluster)
 		err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
 		i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
 		if (err < 0) {
