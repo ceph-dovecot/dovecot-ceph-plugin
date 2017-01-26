@@ -1,0 +1,290 @@
+Storing Email on Ceph: A Project Proposal
+=========================================
+Wido den Hollander <wido@42on.com>; Peter Mauritius <p.mauritius@tallence.com>
+v1.0.1, 2016-09-07: Added forecast of RGW implementation efforts and a comparision with _librmb_; minor changes and additions
+:icons: font
+:numbered!:
+:pdf-page-size: A4
+
+[abstract]
+== Abstract
+Deutsche Telekom currently runs two projects, both looking for efficiently storing mails within a Dovecot email server environment.
+
+. USD4e (Unlimited Storage Duration for eMail), phase 3
+. PAN-IP-eMail
+
+During the design session/workshop of September 1st in Darmstadt multiple solutions for storing email data on Ceph were discussed and looked at.
+
+*	Using Ceph's native filesystem: Ceph Filesystem
+*	Storing email via the S3-compatible Ceph Object Gateway
+*	Writing a custom library, _librmb_ (librados mailbox)
+
+This document is to compare the various routes which can be taken to store email on Ceph where the preference is _librmb_.
+
+*Summary:* _librmb_ will be *_faster_*, *_cheaper_* and *_easier_* to scale than any existing solution for larger installations. For smaller numbers of managed emails the other solutions might be applicable.
+
+<<<
+== Ceph Object Storage
+Ceph is a fully Open Source distributed storage system. It is a software based solution for distributed storage of objects.
+
+Internally Ceph only thinks in objects. This is done by the heart of Ceph: RADOS (Reliable Autonomous Distributed Object Store).
+
+On top of RADOS these components are available making it a Unified storage solution:
+
+*	Ceph Object Gateway
+*	Ceph Block Device (RBD)
+*	Ceph File System (CephFS)
+
+All these applications are built on top of *librados*, a _userspace library_ which is the client for Ceph.
+
+[ditaa, "ceph-stack", round-corners=true, separation=false]
+----
+                +-----+             +-------+           +-----+             +------+
+                | APP |             |HOST/VM|           | APP |             |CLIENT|
+                +--+--+             +---+---+           +--+--+             +---+--+
+                   |                    |                  |                    |
+                   |                    |                  |                    |
+                   |                    v                  v                    v
+                   |          +-------------------+-------------------+-------------------+
+                   |          | CEPH BLOCK DEVICE |CEPH OBJECT GATEWAY| CEPH FILE SYSTEM  |
+                   |          |                   |                   |                   |
+                   v          | A reliable and    | A bucket+based    | A POSIX-compliant |
+         +--------------------+ fully-distributed | REST gateway,     | distrbuted file   |
+         | LIBRADOS           | block device with | compatible with   | system, with a    |
+         |                    | a Linux kernel    | S3 and Swift      | Linux kernel      |
+         | A library allowing | client and        |                   | client and support|
+         | apps to directly   | QEMU/KVM driver   |                   | for FUSE          |
+         | access RADOS       |                   |                   |                   |
+         | with support for C,|                   |                   |                   |
+         | C++, Java, Python, |               cEEE|               cDDD|               cEEE|
+         | Ruby and PHP       +-------------------+-------------------+-------------------+
+       +-+                                                                                +-+
+       | |                                                                            c9DE| |
+       | +--------------------------------------------------------------------------------+ |
+       |                                                                                    |
+       | RADOS                                                                              |
+       |                                                                                    |
+       | A software+based, reliable, autonomous, distributed object store comprised of      |
+       | self+healing, self+managing, intelligent storage nodes and lightweight monitors.   |
+       |                                                                                cF87|
+       +------------------------------------------------------------------------------------+
+----
+
+Once an object is stored, Ceph takes full responsibility for that object to make sure it is safe and stays consistent.
+
+The maximum performance of Ceph is achieved by using parallel I/O.
+All clients directly communicate with the machines storing the data.
+
+<<<
+== Ceph File System
+One of the options being looked at is using Ceph File System (CephFS).
+This is a POSIX compliant shared filesystem like NFS.
+Using this filesystem emails could be stored on Ceph like they would be with NFS, as regular files.
+
+*Advantages*
+
+*	Low deployment time. Replace NFS by CephFS
+*	Scaling: CephFS scales when the Ceph cluster scales
+
+*Disadvantages*
+
+*	POSIX layer adds additional complexity
+*	CephFS requires a additional servers called the Ceph MetaData Server (MDS)
+**	Additional daemon to maintain
+**	Additional servers to run
+**	Additional component which can fail
+*	Dovecot heavily uses file locking which is heavy for the Ceph MDS
+*	Scalability limited by Ceph MDS
+**	Number of metadata I/O becomes a bottleneck
+*	Additional storage I/O required due to translation of POSIX semantics to objects
+*	POSIX does not provide transactions
+
+<<<
+== Ceph Object Gateway
+The Ceph Object Gateway, also known as RADOS Gateway (RGW), abstracts OpenStack Swift and Amazon S3 on top of Ceph.
+It's another application build on top of librados where it abstracts buckets, users and objects on top of RADOS.
+
+Dovecot Pro already has a plugin available which is able to talk to Amazon S3 to store email. If Dovecot Pro is not an option a new S3/Swift based storage layer for Dovecot OSS has to be implemented.
+
+*Advantages*
+
+*	Easy deployment by using Dovecot Pro plugin
+*	Ceph Object Gateway scales with Ceph system
+*	Ceph Object Gateway exposes HTTP API which can be loadbalanced using any HTTP loadbalancer
+*   Using S3/Swift would help to avoid a vendor lock-in assuming that there are more S3/Swift than Ceph storage vendors.
+
+*Disadvantages*
+
+*	Number of objects in a bucket are limited to roughly 50M due to bucket index sharding
+*	Ceph Object Gateway becomes a throttle/bottleneck where all data needs to go through
+*	Ceph Object Gateway adds additional I/O to the system by abstracting S3/Swift on top of RADOS
+**	Ceph Object Gateway keeps track of quotas, ACLs and other semantics which cannot be turned off
+*	S3/Swift do not support transactions
+*	Additional daemon has to be maintained
+*	Additional servers have to be maintained: Ceph Object Gateways and loadbalancers
+*	Requires development of a S3/Swift based storage layer for Dovecot OSS if Dovecot Pro is not an option.
+**	~ 12 months of development and testing
+
+== Ceph Block Device
+
+Using the Ceph Block Device (RBD) virtual machines can be presented a virtual block device to store the data on.
+
+We do not consider this solution to be viable due to the sizing of this environment and the user sharding and movement which needs to be done.
+
+<<<
+== librmb
+The proposal which came up is to develop the library librados mailbox (_librmb_).
+This library will directly link to librados and abstract mailboxes on top of RADOS objects.
+
+[ditaa, "librmb-stack", round-corners=true, separation=false]
+----
+                +-----+             +-------+           +-----+             +------+             +-------+
+                | APP |             |  MUA  |           | APP |             |CLIENT|             |HOST/VM|
+                +--+--+             +---+---+           +--+--+             +---+--+             +---+---+
+                   |                    |                  |                    |                    |
+                   |                    |                  |                    |                    |
+                   |                    v                  |                    |                    |
+                   |          +-------------------+        |                    |                    |
+                   |          | DOVECOT           |        |                    |                    |
+                   |          |                   |        v                    v                    v
+                   |          +-------------------+-------------------+-------------------+-------------------+
+                   |          | LIBRMB            |CEPH OBJECT GATEWAY| CEPH FILE SYSTEM  | CEPH BLOCK DEVICE |
+                   |          |                   |                   |                   |                   |
+                   v          | Email and mailbox | A bucket+based    | A POSIX-compliant | A reliable and    |
+         +--------------------+ abstraction on top| REST gateway,     | distrbuted file   | fully-distributed |
+         | LIBRADOS           | of librados       | compatible with   | system, with a    | block device with |
+         |                    | with a Dovecot    | S3 and Swift      | Linux kernel      | a Linux kernel    |
+         | A library allowing | storage layer     |                   | client and support| client and        |
+         | apps to directly   |                   |                   | for FUSE          | client and        |
+         | access RADOS       |                   |                   |                   | QEMU/KVM driver   |
+         | with support for C,|                   |                   |                   |                   |
+         | C++, Java, Python, |               cF84|               cDDD|               cEEE|               cDDD|
+         | Ruby and PHP       +-------------------+-------------------+-------------------+-------------------+
+       +-+                                                                                                    +-+
+       | |                                                                                                c9DE| |
+       | +----------------------------------------------------------------------------------------------------+ |
+       |                                                                                                        |
+       | RADOS                                                                                                  |
+       |                                                                                                        |
+       | A software+based, reliable, autonomous, distributed object store comprised of                          |
+       | self+healing, self+managing, intelligent storage nodes and lightweight monitors.                       |
+       |                                                                                                    cF87|
+       +--------------------------------------------------------------------------------------------------------+
+----
+
+Dovecot needs to be expanded to include a new storage layer, which hooks into _librmb_ and stores mailboxes and emails on Ceph.
+
+The library _librmb_ will abstract mailboxes on top of RADOS. Using the semantics of RADOS emails can be stored directly as objects and the same goes for indexes.
+
+[ditaa, "librmb-dovecot", round-corners=true, separation=false]
+----
+   +-----------------+
+   | Mail User Agent |
+   +--------+--------+
+            |
+            | IMAP/POP
+            v
+ +----------+----------+
+ |Ceph Client          |
+ | +-----------------+ |
+ | |     Dovecot     | |
+ | +-----------------+ |
+ | |  storage plugin | |
+ | +-----------------+ |
+ | |     librmb  cF84| |
+ | +-----------------+ |
+ | |    librados c9DE| |
+ | +-----------------+ |
+ |                 cEEE|
+ +----------+----------+
+            |
+            | Ceph Storage Cluster Protocol
+            v
+ +----------+----------+
+ | RADOS               |
+ |                 cF87|
+ +---------------------+
+----
+
+Ceph provides two ways for storing data:
+
+*	Replication (3x by default)
+*	Erasure Coding
+
+With 3x replication storing a 1M object will consume 3M of storage.
+With EC this 1M will use between 1.5M and 1.8M of storage.
+
+The downside for EC however is that EC objects can't be partially overwritten due to the nature of EC.
+When storing emails as Objects they are never changed afterwards however.
+Emails are Write Once, Read Many (WORM) ans can take advantage of ES.
+
+*Advantages*
+
+*	Easy scaling of email storage by scaling Ceph
+**	_librmb_ talks directly to RADOS without additional layers and/or daemons
+*	Lower latency by eliminating additional RGW or CephFS layers
+**	No additional to layers and/or daemons
+*	Allows for storing email on Erasure Coded pools
+**	Saves large amount of storage
+*	Less I/O on backing storage due to the lack of overhead from additional layers
+*	Possibility to directly interface with _librmb_ to access email without IMAP/POP3 via Dovecot.
+    This allows for example high performance REST APIs for WebMail access.
+
+*Disadvantages*
+
+*	Requires development of _librmb_
+**	~ 9 months of development and testing
+*	Dovecot needs to be modified to talk to _librmb_
+
+This proposal has already been reported as Ceph project http://tracker.ceph.com/issues/12430 . This project is supported by _Sage Weil_, who is the head Ceph developer and creator.
+
+<<<
+== Comparision of S3/Swift to _librmb_
+
+Comparing the costs for the development of a S3/Swift based storage layer for Dovecot OSS with the _librmb_ and the Dovecot OSS integration, you will face a higher complexity and a longer development time with the S3/Swift based solution.
+
+Due to the much higher latency of S3/Swift a far more aggressive caching locally at the Dovecot side has to be implemented. Just caching recently used objects in memory will not be sufficient. This is especially relevant for the index and metadata.
+
+An additional complexity arises from the fact that the number of objects per S3 bucket using Ceph is limited to approximately 50M due to bucket index sharding. With native Ceph access as planned for the _librmb_ we have almost no limit on the number and size of objects and have no need to introduce sharing by userId to access more buckets.
+
+Dovecot recently introduced tags for the director functionality which will help to circumvent this. But the tag per user has to be stored and managed in the user database. Furthermore the users will have to be balance between buckets to achieve an equal load and volume for the bucktets and the backend servers. You have to relocate mailboxes from one bucket to another which leads to more administrative tasks and a more complexity during designing and developing the solution.
+
+The size limitation will already be a problem with fairly small installations. With 3M users and 15 emails per user a Ceph S3 bucket will be at its limits.
+
+<<<
+== About the Authors
+
+*{author}* is a Ceph consultant who has been working with Ceph since 2010.
+He is actively involved in the development and the Ceph community.
+
+He has written various pieces inside Ceph and the eco-system surrounding Ceph.
+
+Since 2011 he has been contacting Dovecot for native RADOS support.
+This summer he tried to start a Google Summer of Code project for mailstorage on RADOS but that didn't proceed due to the lack of applicants.
+
+You can contact {author} at {email}.
+
+
+*{author_2}* from https://tallence.com[Tallence Consulting] is working on the design and development of Deutsche Telekom email infrastructure since 2001 and a lot of other Deutsche Telekom backend services since 1998.
+The Deutsche Telekom email servers are Dovecot based since 2011.
+
+You can contact {author_2} at {email_2}.
+
+<<<
+== Versions
+[grid="cols", options="header", cols="1,3,1,1"]
+|===
+| Version | Description | Date | Author
+
+| 1.0.0
+| Initial release
+| 2016-09-05
+| Wido den Hollander, Peter Mauritius
+
+| 1.0.1
+| Added forecast of RGW implementation efforts and a comparision with _librmb_; minor changes and additions
+| 2016-09-07
+| Peter Mauritius, Wido den Hollander
+
+|===
+
