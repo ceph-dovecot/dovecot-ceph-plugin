@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE([no-define foreign tar-ustar])
 AM_MAINTAINER_MODE
 
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LIBTOOL
 	 
@@ -21,7 +22,7 @@ AC_SUBST(LIBDOVECOT_INCLUDE)
 
 AC_CHECK_HEADER(rados/librados.h, [
   have_librados=yes
-  AC_DEFINE(HAVE_LIBSODIUM,, [Define if you have the RADOS library])
+  AC_DEFINE(HAVE_LIBRADOS,, [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
 ], [
     AC_ERROR([Can't build with RADOS support: librados.h not found])
