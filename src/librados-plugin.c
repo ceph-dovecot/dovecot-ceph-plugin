@@ -178,13 +178,13 @@ static void rados_dict_deinit(struct dict *_dict) {
 	i_free(dict);
 }
 
-static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r, const char **error_r) {
+static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
 	rados_omap_iter_t iter;
 	int r_val = -1;
 	int ret = DICT_COMMIT_RET_NOTFOUND;
 	*value_r = NULL;
-	*error_r = NULL;
+	// TODO 2.3 *error_r = NULL;
 
 	i_debug("rados_dict_lookup(%s)", key);
 
@@ -210,14 +210,17 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
 		} else {
 			ret = DICT_COMMIT_RET_FAILED;
-			*error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
+			// TODO 2.3 *error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
 		}
 	}
-	if (err == -ENOENT) {
-		ret = DICT_COMMIT_RET_NOTFOUND;
-	} else {
-		ret = DICT_COMMIT_RET_FAILED;
-		*error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
+
+	if (err != 0) {
+		if (err == -ENOENT) {
+			ret = DICT_COMMIT_RET_NOTFOUND;
+		} else {
+			ret = DICT_COMMIT_RET_FAILED;
+			// TODO 2.3 *error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
+		}
 	}
 
 	rados_release_read_op(rop);
@@ -279,14 +282,11 @@ static struct dict_transaction_context *rados_transaction_init(struct dict *_dic
 	return &ctx->ctx;
 }
 
-static void rados_transaction_commit(struct dict_transaction_context *_ctx, bool async_ATTR_UNUSED,
-		dict_transaction_commit_callback_t *callback, void *context) {
+static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,
+		void *context) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 	struct rados_dict *dict = (struct rados_dict *) _ctx->dict;
-	struct dict_commit_result result;
-
-	i_zero(&result);
-	result.ret = DICT_COMMIT_RET_OK;
+	int ret = DICT_COMMIT_RET_OK;
 
 	if (ctx->op) {
 		if (_ctx->changed) {
@@ -294,17 +294,20 @@ static void rados_transaction_commit(struct dict_transaction_context *_ctx, bool
 			rados_release_write_op(ctx->op);
 
 			if (err < 0)
-				result.ret = DICT_COMMIT_RET_FAILED;
+				ret = DICT_COMMIT_RET_FAILED;
 			else if (ctx->atomic_inc_not_found)
-				result.ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
+				ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
 			else
-				result.ret = DICT_COMMIT_RET_OK;
+				ret = DICT_COMMIT_RET_OK;
 		}
 	}
 
-	callback(&result, context);
+	if (callback != NULL)
+		callback(ret, context);
 
 	i_free(ctx);
+
+	return ret;
 }
 
 static void rados_transaction_rollback(struct dict_transaction_context *_ctx) {
@@ -364,17 +367,18 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter = i_new(struct rados_dict_iterate_context, 1);
 	iter->ctx.dict = _dict;
 	iter->flags = flags;
+	iter->error = NULL;
 
 	rados_read_op_t op = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
 	int err = rados_read_op_operate(op, dict->io, dict->oid, 0);
 
 	if (err < 0) {
-		iter->error = t_strdup_printf("rados_read_op_operate() failed: %d", err);
+		iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
 	}
 
 	if (rval < 0) {
-		iter->error = t_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
+		iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
 	}
 
 	if (op != NULL) {
@@ -418,10 +422,10 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	return TRUE;
 }
 
-static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx, const char **error_r) {
+static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
 	int ret = iter->error != NULL ? -1 : 0;
-	*error_r = t_strdup(iter->error);
+	// TODO 2.3  *error_r = t_strdup(iter->error);
 
 	i_free(iter->error);
 	i_free(iter);
