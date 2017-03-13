@@ -3,10 +3,18 @@ Dovecot RADOS Plugin
 
 **Configure, Compile, Install the plugin:**
 
+*** Standard Installation in /usr/local ***
 ./autogen.sh
 
-./configure --with-dovecot=path_to_dovecot_source_tree
+./configure
 
 make
 
 sudo make install
+
+*** User Installation in ~/dovecot ***
+./autogen.sh
+
+./configure --prefix=/home/user/dovecot
+
+make install
