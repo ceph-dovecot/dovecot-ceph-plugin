@@ -1,0 +1,3 @@
+[submodule "dovecot"]
+	path = dovecot
+	url = https://github.com/dovecot/core.git
