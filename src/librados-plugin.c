@@ -8,6 +8,7 @@
 #include "ostream.h"
 #include "connection.h"
 #include "module-dir.h"
+#include "config.h"
 
 #include "librados-plugin.h"
 #include "DictRados.h"
