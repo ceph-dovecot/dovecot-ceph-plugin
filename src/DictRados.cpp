@@ -25,17 +25,61 @@ extern "C" {
 
 }
 
-#include <rados/librados.hpp>
+//#include <rados/librados.hpp>
+
+#include <string>
+#include <set>
 
 using namespace librados;
+using namespace std;
+
 
 DictRados::DictRados() {
-// TODO Auto-generated constructor stub
-
 }
 
 DictRados::~DictRados() {
-// TODO Auto-generated destructor stub
+}
+
+int DictRados::initCluster(const char *const name, const char *const clustername, uint64_t flags) {
+	int err;
+	err = cluster.init2(name, clustername, flags);
+	return err;
+}
+
+int DictRados::readConfigFile(const char * path) {
+	int err;
+	err = cluster.conf_read_file(path);
+	return err;
+}
+
+int DictRados::parseArguments(int argc, const char ** argv) {
+	int err;
+	err = cluster.conf_parse_argv(argc, argv);
+	return err;
+}
+
+int DictRados::connect() {
+	int err;
+	err = cluster.connect();
+	return err;
+}
+
+void DictRados::shutdown() {
+	cluster.shutdown();
+}
+
+int DictRados::createIOContext(const char *name) {
+	int err;
+	err = cluster.ioctx_create(name, io_ctx);
+	return err;
+}
+
+void DictRados::closeIOContext() {
+	io_ctx.close();
+}
+
+void DictRados::setIOContextNamespace(const char *nspace) {
+	io_ctx.set_namespace(nspace);
 }
 
 ///////////////////////////// C API //////////////////////////////
@@ -46,8 +90,8 @@ struct rados_dict {
 	struct dict dict;
 	char *username;
 	char *cluster_name, *cluster_user, *pool, *oid, *config;
-	rados_ioctx_t io;
-	rados_t cluster;
+	//rados_ioctx_t io;
+	//rados_t cluster;
 	DictRados * dr;
 };
 
@@ -125,10 +169,12 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	int err;
 
-	if (ret >= 0) {
+ 	if (ret >= 0) {
 		uint64_t flags = 0;
-		err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
-		i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
+		err = dict->dr->initCluster(dict->cluster_user, dict->cluster_name, flags);
+		i_debug("initCluster(cluster_user=%s,cluster_name%s)=%d", dict->cluster_user, dict->cluster_name, err);
+		//err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
+		//i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
 			ret = -1;
@@ -136,8 +182,10 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret >= 0) {
-		err = rados_conf_read_file(dict->cluster, (const char *) dict->config);
-		i_debug("rados_conf_read_file(file=%s)=%d", dict->config, err);
+		//err = rados_conf_read_file(dict->cluster, (const char *) dict->config);
+		//i_debug("rados_conf_read_file(file=%s)=%d", dict->config, err);
+		err = dict->dr->readConfigFile(dict->config);
+		i_debug("readConfigFile(file=%s)=%d", dict->config, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
 			ret = -1;
@@ -145,8 +193,10 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret >= 0) {
-		err = rados_connect(dict->cluster);
-		i_debug("rados_connect()=%d", err);
+		//err = rados_connect(dict->cluster);
+		//i_debug("rados_connect()=%d", err);
+		err = dict->dr->connect();
+		i_debug("connect()=%d", err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot connect to cluster: %s", strerror(-err));
 			ret = -1;
@@ -154,11 +204,14 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret >= 0) {
-		err = rados_ioctx_create(dict->cluster, dict->pool, &dict->io);
-		i_debug("rados_ioctx_create(pool=%s)=%d", dict->pool, err);
+		//err = rados_ioctx_create(dict->cluster, dict->pool, &dict->io);
+		//i_debug("rados_ioctx_create(pool=%s)=%d", dict->pool, err);
+		err = dict->dr->createIOContext(dict->pool);
+		i_debug("createIOContext(pool=%s)=%d", dict->pool, err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->pool, strerror(-err));
-			rados_shutdown(dict->cluster);
+			//rados_shutdown(dict->cluster);
+			dict->dr->shutdown();
 			ret = -1;
 		}
 	}
@@ -181,8 +234,10 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 		dict->username = i_strdup(rados_escape_username(set->username));
 	}
 
-	rados_ioctx_set_namespace(dict->io, (const char *) dict->username);
-	i_debug("rados_ioctx_set_namespace(%s)", dict->username);
+	//rados_ioctx_set_namespace(dict->io, (const char *) dict->username);
+	//i_debug("rados_ioctx_set_namespace(%s)", dict->username);
+	dict->dr->setIOContextNamespace(dict->username);
+	i_debug("setIOContextNamespace(%s)", dict->username);
 
 	*dict_r = &dict->dict;
 	return 0;
@@ -193,9 +248,11 @@ static void rados_dict_deinit(struct dict *_dict) {
 
 	i_debug("rados_dict_deinit");
 
-	rados_ioctx_destroy(dict->io);
+	//rados_ioctx_destroy(dict->io);
+	dict->dr->closeIOContext();
 
-	rados_shutdown(dict->cluster);
+	//rados_shutdown(dict->cluster);
+	dict->dr->shutdown();
 
 	i_free(dict->config);
 	i_free(dict->pool);
@@ -209,24 +266,33 @@ static void rados_dict_deinit(struct dict *_dict) {
 	i_free(dict);
 }
 
-static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r, const char **error_r) {
+static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
 	rados_omap_iter_t iter;
 	int r_val = -1;
 	int ret = DICT_COMMIT_RET_NOTFOUND;
 	*value_r = NULL;
-	*error_r = NULL;
+	// TODO 2.3 *error_r = NULL;
 
 	i_debug("rados_dict_lookup(%s)", key);
 
-	rados_write_op_t rop = rados_create_read_op();
+	rados_read_op_t rop = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
-	int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
-	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val,
-			strerror(-r_val));
+	//int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
+	//i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val, strerror(-r_val));
 
-	switch (-err) {
-	case 0:
+	ObjectReadOperation oro;
+	set<string> keys;
+	keys.insert(key);
+	std::map<std::string, bufferlist> map;
+	bufferlist bl;
+	bl.append("Hello World!");
+	map.insert(std::pair<string, bufferlist>(key, bl));
+	oro.omap_get_vals_by_keys(keys, &map, &r_val);
+	i_debug("oro.omap_get_vals_by_keys=%d, map=%d", r_val, map.size());
+	int err = -1; //!
+
+	if (err == 0) {
 		if (r_val == 0) {
 			char *omap_key = NULL;
 			char *omap_val = NULL;
@@ -234,6 +300,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 
 			do {
 				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
+				i_debug("Key = %s, Value = %s", omap_key, omap_val);
 				if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
 				&& strcmp(key, omap_key) == 0 && omap_val != NULL) {
 					*value_r = p_strndup(pool, omap_val, omap_val_len - 1);
@@ -242,14 +309,17 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
 		} else {
 			ret = DICT_COMMIT_RET_FAILED;
-			*error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
+			// TODO 2.3 *error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
 		}
-		break;
-	case ENOENT:
-		ret = DICT_COMMIT_RET_NOTFOUND;
-		break;
-	default:
-		ret = DICT_COMMIT_RET_FAILED;
+	}
+
+	if (err != 0) {
+		if (err == -ENOENT) {
+			ret = DICT_COMMIT_RET_NOTFOUND;
+		} else {
+			ret = DICT_COMMIT_RET_FAILED;
+			// TODO 2.3 *error_r = t_strdup_printf("rados_read_op_operate() failed: %d", err);
+		}
 	}
 
 	rados_release_read_op(rop);
@@ -270,7 +340,7 @@ static int rados_dict_lookup_async(struct dict *_dict, const char *key, dict_loo
 	rados_completion_t completion;
 	rados_aio_create_completion(NULL, NULL, NULL, &completion);
 
-	int err = rados_aio_read_op_operate(rop, dict->io, completion, dict->oid, LIBRADOS_OPERATION_NOFLAG);
+	int err = -1; // rados_aio_read_op_operate(rop, dict->io, completion, dict->oid, LIBRADOS_OPERATION_NOFLAG);
 
 	rados_aio_wait_for_complete(completion);
 	rados_aio_get_return_value(completion);
@@ -311,32 +381,32 @@ static struct dict_transaction_context *rados_transaction_init(struct dict *_dic
 	return &ctx->ctx;
 }
 
-static void rados_transaction_commit(struct dict_transaction_context *_ctx, bool async_ATTR_UNUSED,
-		dict_transaction_commit_callback_t *callback, void *context) {
+static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,
+		void *context) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 	struct rados_dict *dict = (struct rados_dict *) _ctx->dict;
-	struct dict_commit_result result;
-
-	i_zero(&result);
-	result.ret = DICT_COMMIT_RET_OK;
+	int ret = DICT_COMMIT_RET_OK;
 
 	if (ctx->op) {
 		if (_ctx->changed) {
-			int err = rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
+			int err = -1; //rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
 			rados_release_write_op(ctx->op);
 
 			if (err < 0)
-				result.ret = DICT_COMMIT_RET_FAILED;
+				ret = DICT_COMMIT_RET_FAILED;
 			else if (ctx->atomic_inc_not_found)
-				result.ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
+				ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
 			else
-				result.ret = DICT_COMMIT_RET_OK;
+				ret = DICT_COMMIT_RET_OK;
 		}
 	}
 
-	callback(&result, context);
+	if (callback != NULL)
+		callback(ret, context);
 
 	i_free(ctx);
+
+	return ret;
 }
 
 static void rados_transaction_rollback(struct dict_transaction_context *_ctx) {
@@ -382,7 +452,7 @@ static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *
 	}
 }
 
-struct dict_iterate_context *
+static struct dict_iterate_context *
 rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict_iterate_flags flags) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
 	struct rados_dict_iterate_context *iter;
@@ -396,17 +466,18 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter = i_new(struct rados_dict_iterate_context, 1);
 	iter->ctx.dict = _dict;
 	iter->flags = flags;
+	iter->error = NULL;
 
 	rados_read_op_t op = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
-	int err = rados_read_op_operate(op, dict->io, dict->oid, 0);
+	int err = -1; //rados_read_op_operate(op, dict->io, dict->oid, 0);
 
 	if (err < 0) {
-		iter->error = (char *) t_strdup_printf("rados_read_op_operate() failed: %d", err);
+		iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
 	}
 
 	if (rval < 0) {
-		iter->error = (char *) t_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
+		iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
 	}
 
 	if (op != NULL) {
@@ -450,10 +521,10 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	return TRUE;
 }
 
-static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx, const char **error_r) {
+static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
 	int ret = iter->error != NULL ? -1 : 0;
-	*error_r = t_strdup(iter->error);
+	// TODO 2.3  *error_r = t_strdup(iter->error);
 
 	i_free(iter->error);
 	i_free(iter);
