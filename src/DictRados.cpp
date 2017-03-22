@@ -101,6 +101,9 @@ struct rados_dict_iterate_context {
 	rados_read_op_t omap_iter;
 	enum dict_iterate_flags flags;
 	char *error;
+
+	map<string, bufferlist> objMap;
+	typename map<string, bufferlist>::iterator map_iter;
 };
 
 static const char *rados_escape_username(const char *username) {
@@ -494,9 +497,23 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter->error = NULL;
 
 	rados_read_op_t op = rados_create_read_op();
-	//rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
-	int err = 0; //rados_read_op_operate(op, dict->io, dict->oid, 0);
-	rval = 0;
+	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+	//int err = rados_read_op_operate(op, dict->io, dict->oid, 0);
+
+	ObjectReadOperation oro;
+	set<string> keys;
+	while (*paths) {
+		keys.insert(*paths);
+	    paths++;
+	}
+	iter->objMap.clear();
+	oro.omap_get_vals_by_keys(keys, &iter->objMap, &rval);
+	bufferlist bl;
+	int err = dict->dr->getIOContext()->operate(dict->oid, &oro, &bl);
+
+	if (err == 0) {
+		iter->map_iter = iter->objMap.begin();
+	}
 
 	if (err < 0) {
 		iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
@@ -519,10 +536,18 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	if (iter->error != NULL || iter->omap_iter == NULL)
 		return FALSE;
 
-	char *omap_key, *omap_val = NULL;
+	char *omap_key = NULL, *omap_val = NULL;
 	size_t omap_val_len = 0;
 
-	int err = rados_omap_get_next(iter->omap_iter, &omap_key, &omap_val, &omap_val_len);
+	int err = 0; //rados_omap_get_next(iter->omap_iter, &omap_key, &omap_val, &omap_val_len);
+
+	if (iter->map_iter != iter->objMap.end()) {
+		omap_key = iter->map_iter->first.c_str();
+		string val = iter->map_iter->second.to_str();
+		i_debug("Found key = '%s', value = '%s'", omap_key, val.c_str());
+		omap_val = val.c_str();
+		iter->map_iter++;
+	}
 
 	if (err < 0) {
 		iter->error = i_strdup_printf("Failed to perform RADOS omap iteration: %d", err);
