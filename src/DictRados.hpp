@@ -20,8 +20,7 @@ public:
 	void shutdown();
 
 	int createIOContext(const char *name);
-	void closeIOContext();
-	void setIOContextNamespace(const char *nspace);
+	librados::IoCtx* getIOContext() {return &io_ctx;}
 
 };
 

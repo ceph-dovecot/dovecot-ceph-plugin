@@ -27,8 +27,11 @@ extern "C" {
 
 //#include <rados/librados.hpp>
 
-#include <string>
+#include <iostream>
+#include <iterator>
+#include <map>
 #include <set>
+#include <string>
 
 using namespace librados;
 using namespace std;
@@ -72,14 +75,6 @@ int DictRados::createIOContext(const char *name) {
 	int err;
 	err = cluster.ioctx_create(name, io_ctx);
 	return err;
-}
-
-void DictRados::closeIOContext() {
-	io_ctx.close();
-}
-
-void DictRados::setIOContextNamespace(const char *nspace) {
-	io_ctx.set_namespace(nspace);
 }
 
 ///////////////////////////// C API //////////////////////////////
@@ -236,7 +231,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	//rados_ioctx_set_namespace(dict->io, (const char *) dict->username);
 	//i_debug("rados_ioctx_set_namespace(%s)", dict->username);
-	dict->dr->setIOContextNamespace(dict->username);
+	dict->dr->getIOContext()->set_namespace(dict->username);
 	i_debug("setIOContextNamespace(%s)", dict->username);
 
 	*dict_r = &dict->dict;
@@ -249,7 +244,7 @@ static void rados_dict_deinit(struct dict *_dict) {
 	i_debug("rados_dict_deinit");
 
 	//rados_ioctx_destroy(dict->io);
-	dict->dr->closeIOContext();
+	dict->dr->getIOContext()->close();
 
 	//rados_shutdown(dict->cluster);
 	dict->dr->shutdown();
@@ -277,23 +272,35 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	i_debug("rados_dict_lookup(%s)", key);
 
 	rados_read_op_t rop = rados_create_read_op();
-	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
+	//rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
 	//int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
 	//i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val, strerror(-r_val));
 
 	ObjectReadOperation oro;
 	set<string> keys;
 	keys.insert(key);
-	std::map<std::string, bufferlist> map;
-	bufferlist bl;
-	bl.append("Hello World!");
-	map.insert(std::pair<string, bufferlist>(key, bl));
+	map<std::string, bufferlist> map;
 	oro.omap_get_vals_by_keys(keys, &map, &r_val);
-	i_debug("oro.omap_get_vals_by_keys=%d, map=%d", r_val, map.size());
-	int err = -1; //!
+	bufferlist bl;
+	int err = dict->dr->getIOContext()->operate(dict->oid, &oro, &bl);
+	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val, strerror(-r_val));
 
 	if (err == 0) {
 		if (r_val == 0) {
+
+			//typename map<string, bufferlist>::iterator it = map.find(key); //map.begin();
+			auto it = map.find(key); //map.begin();
+			if (it != map.end())
+			{
+				string val = it->second.to_str();
+				//cout << "Found Key = " << it->first << ", Value = " << val << endl;
+				i_debug("Found key = '%s', value = '%s'", it->first.c_str(), val.c_str());
+
+				*value_r = p_strndup(pool, val.c_str(), val.length());
+				ret = DICT_COMMIT_RET_OK;
+			}
+
+/*
 			char *omap_key = NULL;
 			char *omap_val = NULL;
 			size_t omap_val_len = 0;
@@ -301,12 +308,16 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 			do {
 				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
 				i_debug("Key = %s, Value = %s", omap_key, omap_val);
-				if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
-				&& strcmp(key, omap_key) == 0 && omap_val != NULL) {
+				if (err == 0
+						&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
+						&& strcmp(key, omap_key) == 0
+						&& omap_val != NULL)
+				{
 					*value_r = p_strndup(pool, omap_val, omap_val_len - 1);
 					ret = DICT_COMMIT_RET_OK;
 				}
 			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
+*/
 		} else {
 			ret = DICT_COMMIT_RET_FAILED;
 			// TODO 2.3 *error_r = t_strdup_printf("rados_read_op_omap_get_vals_by_keys(%s) failed: %d", key, r_val);
@@ -389,7 +400,7 @@ static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool 
 
 	if (ctx->op) {
 		if (_ctx->changed) {
-			int err = -1; //rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
+			int err = 0; //rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
 			rados_release_write_op(ctx->op);
 
 			if (err < 0)
@@ -427,6 +438,14 @@ static void rados_set(struct dict_transaction_context *_ctx, const char *key, co
 		const size_t len = strlen(value) + 1;  // store complete cstr
 		rados_write_op_omap_set(ctx->op, &key, &value, &len, 1);
 		_ctx->changed = TRUE;
+
+		struct rados_dict *dict = (struct rados_dict *) ctx->ctx.dict;
+		std::map<std::string, bufferlist> map;
+		bufferlist bl;
+		bl.append(value);
+		map.insert(pair<string, bufferlist>(key, bl));
+		int err = dict->dr->getIOContext()->omap_set(dict->oid, map);
+		//cout << endl << "omap_set=" << err << endl;
 	}
 }
 
@@ -437,6 +456,12 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 	if (ctx->op) {
 		rados_write_op_omap_rm_keys(ctx->op, &key, 1);
 		_ctx->changed = TRUE;
+
+		struct rados_dict *dict = (struct rados_dict *) ctx->ctx.dict;
+		set<string> keys;
+		keys.insert(key);
+		int err = dict->dr->getIOContext()->omap_rm_keys(dict->oid, keys);
+		//cout << endl << "omap_set=" << err << endl;
 	}
 }
 
@@ -469,8 +494,9 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter->error = NULL;
 
 	rados_read_op_t op = rados_create_read_op();
-	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
-	int err = -1; //rados_read_op_operate(op, dict->io, dict->oid, 0);
+	//rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+	int err = 0; //rados_read_op_operate(op, dict->io, dict->oid, 0);
+	rval = 0;
 
 	if (err < 0) {
 		iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
