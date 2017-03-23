@@ -25,8 +25,6 @@ extern "C" {
 
 }
 
-//#include <rados/librados.hpp>
-
 #include <iostream>
 #include <iterator>
 #include <map>
@@ -41,30 +39,23 @@ DictRados::DictRados() {
 }
 
 DictRados::~DictRados() {
+	i_debug("DictRados::~DictRados()");
 }
 
 int DictRados::initCluster(const char *const name, const char *const clustername, uint64_t flags) {
-	int err;
-	err = cluster.init2(name, clustername, flags);
-	return err;
+	return cluster.init2(name, clustername, flags);
 }
 
 int DictRados::readConfigFile(const char * path) {
-	int err;
-	err = cluster.conf_read_file(path);
-	return err;
+	return cluster.conf_read_file(path);
 }
 
 int DictRados::parseArguments(int argc, const char ** argv) {
-	int err;
-	err = cluster.conf_parse_argv(argc, argv);
-	return err;
+	return cluster.conf_parse_argv(argc, argv);
 }
 
 int DictRados::connect() {
-	int err;
-	err = cluster.connect();
-	return err;
+	return cluster.connect();
 }
 
 void DictRados::shutdown() {
@@ -72,9 +63,23 @@ void DictRados::shutdown() {
 }
 
 int DictRados::createIOContext(const char *name) {
-	int err;
-	err = cluster.ioctx_create(name, io_ctx);
-	return err;
+	return cluster.ioctx_create(name, io_ctx);
+}
+
+void DictRados::clearReaderMap() {
+	readerMap.clear();
+}
+
+void DictRados::incrementReaderMapIterator() {
+	readerMapIter++;;
+}
+
+void DictRados::beginReaderMapIterator() {
+	readerMapIter = readerMap.begin();
+}
+
+bool DictRados::isEndReaderMapIterator() {
+	return (readerMapIter == readerMap.end());
 }
 
 ///////////////////////////// C API //////////////////////////////
@@ -83,8 +88,8 @@ int DictRados::createIOContext(const char *name) {
 
 struct rados_dict {
 	struct dict dict;
-	char *username;
-	char *cluster_name, *cluster_user, *pool, *oid, *config;
+	//char *username;
+	//char *cluster_name, *cluster_user, *pool, *oid, *config;
 	//rados_ioctx_t io;
 	//rados_t cluster;
 	DictRados * dr;
@@ -102,8 +107,8 @@ struct rados_dict_iterate_context {
 	enum dict_iterate_flags flags;
 	char *error;
 
-	map<string, bufferlist> objMap;
-	typename map<string, bufferlist>::iterator map_iter;
+//	map<string, bufferlist> objMap;
+//	typename map<string, bufferlist>::iterator map_iter;
 };
 
 static const char *rados_escape_username(const char *username) {
@@ -137,28 +142,34 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	dict->dr = new DictRados();
 
-	dict->config = i_strdup("/etc/ceph/ceph.conf");
+/*
 	dict->cluster_name = i_strdup("ceph");
 	dict->cluster_user = i_strdup("client.admin");
+	dict->config = i_strdup("/etc/ceph/ceph.conf");
 	dict->pool = i_strdup("librmb");
+*/
+	dict->dr->setClusterName("ceph");
+	dict->dr->setClusterUser("client.admin");
+	dict->dr->setConfig("/etc/ceph/ceph.conf");
+	dict->dr->setPool("librmb");
 
 	args = t_strsplit(uri, ":");
 	for (; *args != NULL; args++) {
 		if (strncmp(*args, "oid=", 4) == 0) {
-			i_free(dict->oid);
-			dict->oid = i_strdup(*args + 4);
+			//i_free(dict->oid);
+			dict->dr->setOid(*args + 4);
 		} else if (strncmp(*args, "config=", 7) == 0) {
-			i_free(dict->config);
-			dict->config = i_strdup(*args + 7);
+			//i_free(dict->config);
+			dict->dr->setConfig(*args + 7);
 		} else if (strncmp(*args, "pool=", 5) == 0) {
-			i_free(dict->pool);
-			dict->pool = i_strdup(*args + 5);
+			//i_free(dict->pool);
+			dict->dr->setPool(*args + 5);
 		} else if (strncmp(*args, "cluster_name=", 13) == 0) {
-			i_free(dict->cluster_name);
-			dict->cluster_name = i_strdup(*args + 13);
+			//i_free(dict->cluster_name);
+			dict->dr->setClusterName(*args + 13);
 		} else if (strncmp(*args, "cluster_user=", 13) == 0) {
-			i_free(dict->cluster_user);
-			dict->cluster_user = i_strdup(*args + 13);
+			//i_free(dict->cluster_user);
+			dict->dr->setClusterUser(*args + 13);
 		} else {
 			*error_r = t_strdup_printf("Unknown parameter: %s", *args);
 			ret = -1;
@@ -169,8 +180,8 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
  	if (ret >= 0) {
 		uint64_t flags = 0;
-		err = dict->dr->initCluster(dict->cluster_user, dict->cluster_name, flags);
-		i_debug("initCluster(cluster_user=%s,cluster_name%s)=%d", dict->cluster_user, dict->cluster_name, err);
+		err = dict->dr->initCluster(dict->dr->getClusterUser().c_str(), dict->dr->getClusterName().c_str(), flags);
+		i_debug("initCluster(cluster_user=%s,cluster_name%s)=%d", dict->dr->getClusterUser().c_str(), dict->dr->getClusterName().c_str(), err);
 		//err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
 		//i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
 		if (err < 0) {
@@ -182,8 +193,8 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	if (ret >= 0) {
 		//err = rados_conf_read_file(dict->cluster, (const char *) dict->config);
 		//i_debug("rados_conf_read_file(file=%s)=%d", dict->config, err);
-		err = dict->dr->readConfigFile(dict->config);
-		i_debug("readConfigFile(file=%s)=%d", dict->config, err);
+		err = dict->dr->readConfigFile(dict->dr->getConfig().c_str());
+		i_debug("readConfigFile(file=%s)=%d", dict->dr->getConfig().c_str(), err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
 			ret = -1;
@@ -204,10 +215,10 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	if (ret >= 0) {
 		//err = rados_ioctx_create(dict->cluster, dict->pool, &dict->io);
 		//i_debug("rados_ioctx_create(pool=%s)=%d", dict->pool, err);
-		err = dict->dr->createIOContext(dict->pool);
-		i_debug("createIOContext(pool=%s)=%d", dict->pool, err);
+		err = dict->dr->createIOContext(dict->dr->getPool().c_str());
+		i_debug("createIOContext(pool=%s)=%d", dict->dr->getPool().c_str(), err);
 		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->pool, strerror(-err));
+			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->dr->getPool().c_str(), strerror(-err));
 			//rados_shutdown(dict->cluster);
 			dict->dr->shutdown();
 			ret = -1;
@@ -215,27 +226,29 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret < 0) {
-		i_free(dict->config);
-		i_free(dict->pool);
-		i_free(dict->cluster_name);
-		i_free(dict->cluster_user);
+		//i_free(dict->config);
+		//i_free(dict->pool);
+		//i_free(dict->cluster_name);
+		//i_free(dict->cluster_user);
 		i_free(dict);
 		return -1;
 	}
 
 	dict->dict = *driver;
 
-	if (strchr(set->username, DICT_USERNAME_SEPARATOR) == NULL)
-		dict->username = i_strdup(set->username);
-	else {
+	if (strchr(set->username, DICT_USERNAME_SEPARATOR) == NULL) {
+		//dict->username = i_strdup(set->username);
+		dict->dr->setUsername(set->username);
+	} else {
 		/* escape the username */
-		dict->username = i_strdup(rados_escape_username(set->username));
+		//dict->username = i_strdup(rados_escape_username(set->username));
+		dict->dr->setUsername(rados_escape_username(set->username));
 	}
 
 	//rados_ioctx_set_namespace(dict->io, (const char *) dict->username);
 	//i_debug("rados_ioctx_set_namespace(%s)", dict->username);
-	dict->dr->getIOContext()->set_namespace(dict->username);
-	i_debug("setIOContextNamespace(%s)", dict->username);
+	dict->dr->getIOContext()->set_namespace(dict->dr->getUsername());
+	i_debug("setIOContextNamespace(%s)", dict->dr->getUsername().c_str());
 
 	*dict_r = &dict->dict;
 	return 0;
@@ -252,12 +265,12 @@ static void rados_dict_deinit(struct dict *_dict) {
 	//rados_shutdown(dict->cluster);
 	dict->dr->shutdown();
 
-	i_free(dict->config);
-	i_free(dict->pool);
-	i_free(dict->cluster_name);
-	i_free(dict->cluster_user);
+	//i_free(dict->config);
+	//i_free(dict->pool);
+	//i_free(dict->cluster_name);
+	//i_free(dict->cluster_user);
 
-	i_free(dict->username);
+	//i_free(dict->username);
 
 	delete dict->dr;
 
@@ -285,8 +298,8 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	map<std::string, bufferlist> map;
 	oro.omap_get_vals_by_keys(keys, &map, &r_val);
 	bufferlist bl;
-	int err = dict->dr->getIOContext()->operate(dict->oid, &oro, &bl);
-	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val, strerror(-r_val));
+	int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), &oro, &bl);
+	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->dr->getUsername().c_str(), dict->dr->getOid().c_str(), err, strerror(-err), r_val, strerror(-r_val));
 
 	if (err == 0) {
 		if (r_val == 0) {
@@ -447,7 +460,7 @@ static void rados_set(struct dict_transaction_context *_ctx, const char *key, co
 		bufferlist bl;
 		bl.append(value);
 		map.insert(pair<string, bufferlist>(key, bl));
-		int err = dict->dr->getIOContext()->omap_set(dict->oid, map);
+		int err = dict->dr->getIOContext()->omap_set(dict->dr->getOid(), map);
 		//cout << endl << "omap_set=" << err << endl;
 	}
 }
@@ -463,7 +476,7 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 		struct rados_dict *dict = (struct rados_dict *) ctx->ctx.dict;
 		set<string> keys;
 		keys.insert(key);
-		int err = dict->dr->getIOContext()->omap_rm_keys(dict->oid, keys);
+		int err = dict->dr->getIOContext()->omap_rm_keys(dict->dr->getOid(), keys);
 		//cout << endl << "omap_set=" << err << endl;
 	}
 }
@@ -506,13 +519,14 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 		keys.insert(*paths);
 	    paths++;
 	}
-	iter->objMap.clear();
-	oro.omap_get_vals_by_keys(keys, &iter->objMap, &rval);
+	dict->dr->clearReaderMap();
+	oro.omap_get_vals_by_keys(keys, &dict->dr->getReaderMap(), &rval);
 	bufferlist bl;
-	int err = dict->dr->getIOContext()->operate(dict->oid, &oro, &bl);
+	int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), &oro, &bl);
 
 	if (err == 0) {
-		iter->map_iter = iter->objMap.begin();
+		dict->dr->beginReaderMapIterator();
+		//iter->map_iter = iter->objMap.begin();
 	}
 
 	if (err < 0) {
@@ -541,12 +555,23 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 
 	int err = 0; //rados_omap_get_next(iter->omap_iter, &omap_key, &omap_val, &omap_val_len);
 
+/*
 	if (iter->map_iter != iter->objMap.end()) {
 		omap_key = iter->map_iter->first.c_str();
 		string val = iter->map_iter->second.to_str();
 		i_debug("Found key = '%s', value = '%s'", omap_key, val.c_str());
 		omap_val = val.c_str();
 		iter->map_iter++;
+	}
+*/
+
+	struct rados_dict *dict = (struct rados_dict *) ctx->dict;
+	if (!dict->dr->isEndReaderMapIterator()) {
+		omap_key = dict->dr->getReaderMapIter()->first.c_str();
+		string val = dict->dr->getReaderMapIter()->second.to_str();
+		i_debug("Found key = '%s', value = '%s'", omap_key, val.c_str());
+		omap_val = val.c_str();
+		dict->dr->incrementReaderMapIterator();
 	}
 
 	if (err < 0) {
