@@ -99,6 +99,8 @@ struct rados_dict_transaction_context {
 	struct dict_transaction_context ctx;
 	rados_write_op_t op;
 	bool atomic_inc_not_found;
+
+	ObjectWriteOperation *write_op;
 };
 
 struct rados_dict_iterate_context {
@@ -106,6 +108,8 @@ struct rados_dict_iterate_context {
 	rados_read_op_t omap_iter;
 	enum dict_iterate_flags flags;
 	char *error;
+
+	ObjectReadOperation *read_op;
 
 //	map<string, bufferlist> objMap;
 //	typename map<string, bufferlist>::iterator map_iter;
@@ -287,7 +291,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 
 	i_debug("rados_dict_lookup(%s)", key);
 
-	rados_read_op_t rop = rados_create_read_op();
+	//rados_read_op_t rop = rados_create_read_op();
 	//rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
 	//int err = rados_read_op_operate(rop, dict->io, dict->oid, LIBRADOS_OPERATION_NOFLAG);
 	//i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->username, dict->oid, err, strerror(-err), r_val, strerror(-r_val));
@@ -298,6 +302,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	map<std::string, bufferlist> map;
 	oro.omap_get_vals_by_keys(keys, &map, &r_val);
 	bufferlist bl;
+	oro.set_op_flags2(OPERATION_NOFLAG);
 	int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), &oro, &bl);
 	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->dr->getUsername().c_str(), dict->dr->getOid().c_str(), err, strerror(-err), r_val, strerror(-r_val));
 
@@ -349,7 +354,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 		}
 	}
 
-	rados_release_read_op(rop);
+	//rados_release_read_op(rop);
 	return ret;
 }
 
@@ -405,6 +410,8 @@ static struct dict_transaction_context *rados_transaction_init(struct dict *_dic
 	ctx->ctx.dict = _dict;
 	ctx->op = rados_create_write_op();
 
+	ctx->write_op = new ObjectWriteOperation();
+
 	return &ctx->ctx;
 }
 
@@ -414,18 +421,21 @@ static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool 
 	struct rados_dict *dict = (struct rados_dict *) _ctx->dict;
 	int ret = DICT_COMMIT_RET_OK;
 
-	if (ctx->op) {
-		if (_ctx->changed) {
-			int err = 0; //rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
-			rados_release_write_op(ctx->op);
+	//if (ctx->op) {
+	if (ctx->write_op && _ctx->changed) {
+		//int err = rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
+		ctx->write_op->set_op_flags2(OPERATION_NOFLAG);
+		int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), ctx->write_op);
+		//rados_release_write_op(ctx->op);
+		delete ctx->write_op;
+		ctx->write_op = NULL;
 
-			if (err < 0)
-				ret = DICT_COMMIT_RET_FAILED;
-			else if (ctx->atomic_inc_not_found)
-				ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
-			else
-				ret = DICT_COMMIT_RET_OK;
-		}
+		if (err < 0)
+			ret = DICT_COMMIT_RET_FAILED;
+		else if (ctx->atomic_inc_not_found)
+			ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
+		else
+			ret = DICT_COMMIT_RET_OK;
 	}
 
 	if (callback != NULL)
@@ -460,7 +470,8 @@ static void rados_set(struct dict_transaction_context *_ctx, const char *key, co
 		bufferlist bl;
 		bl.append(value);
 		map.insert(pair<string, bufferlist>(key, bl));
-		int err = dict->dr->getIOContext()->omap_set(dict->dr->getOid(), map);
+		//int err = dict->dr->getIOContext()->omap_set(dict->dr->getOid(), map);
+		ctx->write_op->omap_set(map);
 		//cout << endl << "omap_set=" << err << endl;
 	}
 }
@@ -476,8 +487,9 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 		struct rados_dict *dict = (struct rados_dict *) ctx->ctx.dict;
 		set<string> keys;
 		keys.insert(key);
-		int err = dict->dr->getIOContext()->omap_rm_keys(dict->dr->getOid(), keys);
-		//cout << endl << "omap_set=" << err << endl;
+		//int err = dict->dr->getIOContext()->omap_rm_keys(dict->dr->getOid(), keys);
+		ctx->write_op->omap_rm_keys(keys);
+		//cout << endl << "omap_rm_keys=" << err << endl;
 	}
 }
 
@@ -509,20 +521,22 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter->flags = flags;
 	iter->error = NULL;
 
-	rados_read_op_t op = rados_create_read_op();
-	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+//	rados_read_op_t op = rados_create_read_op();
+//	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
 	//int err = rados_read_op_operate(op, dict->io, dict->oid, 0);
 
-	ObjectReadOperation oro;
+	//ObjectReadOperation oro;
+	iter->read_op = new ObjectReadOperation();
 	set<string> keys;
 	while (*paths) {
 		keys.insert(*paths);
 	    paths++;
 	}
 	dict->dr->clearReaderMap();
-	oro.omap_get_vals_by_keys(keys, &dict->dr->getReaderMap(), &rval);
+	//oro.omap_get_vals_by_keys(keys, &dict->dr->getReaderMap(), &rval);
+	iter->read_op->omap_get_vals_by_keys(keys, &dict->dr->getReaderMap(), &rval);
 	bufferlist bl;
-	int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), &oro, &bl);
+	int err = dict->dr->getIOContext()->operate(dict->dr->getOid(), iter->read_op, &bl);
 
 	if (err == 0) {
 		dict->dr->beginReaderMapIterator();
@@ -537,9 +551,14 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 		iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
 	}
 
+/*
 	if (op != NULL) {
 		rados_release_read_op(op);
 	}
+*/
+
+	delete iter->read_op;
+	iter->read_op = NULL;
 
 	return &iter->ctx;
 }
@@ -547,7 +566,7 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, const char **value_r) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
 
-	if (iter->error != NULL || iter->omap_iter == NULL)
+	if (iter->error != NULL) // || iter->omap_iter == NULL)
 		return FALSE;
 
 	char *omap_key = NULL, *omap_val = NULL;
@@ -581,7 +600,7 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 
 	if (omap_key == NULL && omap_val == NULL && omap_val_len == 0) {
 		// end of list
-		rados_omap_get_end(iter->omap_iter);
+		//rados_omap_get_end(iter->omap_iter);
 		iter->omap_iter = NULL;
 		return FALSE;
 	}
