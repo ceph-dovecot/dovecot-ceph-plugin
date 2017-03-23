@@ -19,12 +19,15 @@ private:
 	std::map<std::string, librados::bufferlist> readerMap;
 	typename std::map<std::string, librados::bufferlist>::iterator readerMapIter;
 
+	static const std::vector<std::string> explode(const std::string& str, const char& sep);
+
 public:
 	DictRados();
 	virtual ~DictRados();
 
 	int initCluster(const char *const name, const char *const clustername, uint64_t flags);
-	int readConfigFile(const char * path);
+	int readConfigFromUri(const char *uri);
+	int readConfigFile(const char *path);
 	int parseArguments(int argc, const char **argv);
 	int connect();
 	void shutdown();

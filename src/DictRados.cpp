@@ -29,7 +29,9 @@ extern "C" {
 #include <iterator>
 #include <map>
 #include <set>
+#include <sstream>
 #include <string>
+#include <vector>
 
 using namespace librados;
 using namespace std;
@@ -44,6 +46,31 @@ DictRados::~DictRados() {
 
 int DictRados::initCluster(const char *const name, const char *const clustername, uint64_t flags) {
 	return cluster.init2(name, clustername, flags);
+}
+
+int DictRados::readConfigFromUri(const char *uri) {
+	int ret = 0;
+	vector<string> props(explode(uri, ':'));
+	for (vector<string>::iterator it = props.begin() ; it != props.end(); ++it) {
+	//for (string p : props) {
+		if (it->compare(0, 4, "oid=") == 0) {
+			setOid(it->substr(4));
+		} else if (it->compare(0, 7, "config=") == 0) {
+			setConfig(it->substr(7));
+		} else if (it->compare(0, 5, "pool=") == 0) {
+			setPool(it->substr(5));
+		} else if (it->compare(0, 13, "cluster_name=") == 0) {
+			setClusterName(it->substr(13));
+		} else if (it->compare(0, 13, "cluster_user=") == 0) {
+			setClusterUser(it->substr(13));
+		} else {
+			//*error_r = t_strdup_printf("Unknown parameter: %s", *args);
+			ret = -1;
+			break;
+		}
+	}
+
+	return ret;
 }
 
 int DictRados::readConfigFile(const char * path) {
@@ -80,6 +107,36 @@ void DictRados::beginReaderMapIterator() {
 
 bool DictRados::isEndReaderMapIterator() {
 	return (readerMapIter == readerMap.end());
+}
+
+static const vector<string> DictRados::explode(const string& str, const char& sep) {
+	vector<string> v;
+/*
+	string buff{""};
+
+	for (auto n : str)
+	{
+		if (n != sep) {
+			buff+=n;
+		} else if (n == sep && buff != "") {
+			v.push_back(buff);
+			buff = "";
+		}
+	}
+
+	if (buff != "") {
+		v.push_back(buff);
+	}
+*/
+
+	stringstream ss(str); // Turn the string into a stream.
+	string tok;
+
+	while(getline(ss, tok, sep)) {
+		v.push_back(tok);
+	}
+
+	return v;
 }
 
 ///////////////////////////// C API //////////////////////////////
@@ -157,6 +214,9 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	dict->dr->setConfig("/etc/ceph/ceph.conf");
 	dict->dr->setPool("librmb");
 
+	ret = dict->dr->readConfigFromUri(uri);
+
+/*
 	args = t_strsplit(uri, ":");
 	for (; *args != NULL; args++) {
 		if (strncmp(*args, "oid=", 4) == 0) {
@@ -179,13 +239,14 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 			ret = -1;
 		}
 	}
+*/
 
 	int err;
 
  	if (ret >= 0) {
 		uint64_t flags = 0;
 		err = dict->dr->initCluster(dict->dr->getClusterUser().c_str(), dict->dr->getClusterName().c_str(), flags);
-		i_debug("initCluster(cluster_user=%s,cluster_name%s)=%d", dict->dr->getClusterUser().c_str(), dict->dr->getClusterName().c_str(), err);
+		i_debug("initCluster(cluster_user=%s,cluster_name=%s)=%d", dict->dr->getClusterUser().c_str(), dict->dr->getClusterName().c_str(), err);
 		//err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
 		//i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
 		if (err < 0) {
