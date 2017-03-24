@@ -1,4 +1,5 @@
 #include "lib.h"
+#include "config.h"
 #include "array.h"
 #include "fs-api.h"
 #include "istream.h"
@@ -11,7 +12,7 @@
 
 #include <rados/librados.h>
 
-#include "librados-plugin.h"
+#include "libdict-rados-plugin.h"
 
 #define DICT_USERNAME_SEPARATOR '/'
 
@@ -452,21 +453,21 @@ struct dict dict_driver_rados = { .name = "rados", {
 
 static int refcount = 0;
 
-void rados_plugin_init(struct module *module ATTR_UNUSED) {
-	i_debug("rados_plugin_init refcount=%d", refcount);
+void dict_rados_plugin_init(struct module *module) {
+	i_debug("dict_rados_plugin_init refcount=%d", refcount);
 	if (refcount++ > 0)
 		return;
-	i_debug("rados_plugin_init registers dict_driver_rados ");
+	i_debug("dict_rados_plugin_init registers dict_driver_rados ");
 	dict_driver_register(&dict_driver_rados);
 }
 
-void rados_plugin_deinit(void) {
-	i_debug("rados_plugin_deinit refcount=%d)", refcount);
+void dict_rados_plugin_deinit(void) {
+	i_debug("dict_rados_plugin_deinit refcount=%d)", refcount);
 	if (--refcount > 0)
 		return;
-	i_debug("rados_plugin_deinit unregisters dict_driver_rados ");
+	i_debug("dict_rados_plugin_deinit unregisters dict_driver_rados ");
 	dict_driver_unregister(&dict_driver_rados);
 }
 
-const char *rados_plugin_version = DOVECOT_ABI_VERSION;
+const char *dict_rados_plugin_version = DOVECOT_ABI_VERSION;
 
