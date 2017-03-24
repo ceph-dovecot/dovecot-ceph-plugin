@@ -28,7 +28,7 @@ To compile the plugin you need a configured or installed dovecot.
 
 ### Dict RADOS Plugin
 
-The name of the dict driver is `rados`. Add the plugin for example to 10-mail.conf as mail_location. See [Mail location](http://wiki.dovecot.org/MailLocation) for details.  
+The name of the dict driver is `rados`. Add the plugin for example to 10-mail.conf as mail\_attribute\_dict. See [Mail location](http://wiki.dovecot.org/Dictionary) for details.  
 
     mail_attribute_dict = rados:oid=metadata:pool=librmb-index:config=/home/user/dovecot/etc/ceph/ceph.conf
 
