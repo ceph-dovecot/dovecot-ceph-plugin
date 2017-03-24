@@ -26,6 +26,7 @@ public:
 	virtual ~DictRados();
 
 	int initCluster(const char *const name, const char *const clustername, uint64_t flags);
+	int initCluster(uint64_t flags);
 	int readConfigFromUri(const char *uri);
 	int readConfigFile(const char *path);
 	int parseArguments(int argc, const char **argv);
@@ -33,7 +34,12 @@ public:
 	void shutdown();
 
 	int createIOContext(const char *name);
-	librados::IoCtx* getIOContext() {return &io_ctx;}
+	void ioContextClose();
+	void ioContextSetNamspace(const std::string& nspace);
+    int ioContextReadOperate(const std::string& oid, librados::ObjectReadOperation *op, librados::bufferlist *pbl);
+    int ioContextReadOperate(librados::ObjectReadOperation *op, librados::bufferlist *pbl);
+    int ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation *op);
+    int ioContextWriteOperate(librados::ObjectWriteOperation *op);
 
 	void clearReaderMap();
 	void incrementReaderMapIterator();
@@ -92,8 +98,15 @@ public:
 		return readerMap;
 	}
 
+/*
 	std::map<std::string, librados::bufferlist>& getReaderMap() {
 		return readerMap;
+	}
+
+*/
+	void setReaderMap(
+			const std::map<std::string, librados::bufferlist>& readerMap) {
+		this->readerMap = readerMap;
 	}
 
 	typename std::map<std::string, librados::bufferlist>::iterator getReaderMapIter() const {
