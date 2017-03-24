@@ -14,7 +14,7 @@
 #include "dict.h"
 #include "dict-private.h"
 
-#include "librados-plugin.h"
+#include "libdict-rados-plugin.h"
 
 static const char* OMAP_KEY = "key";
 static const char* OMAP_NO_KEY = "no_key";
@@ -53,7 +53,7 @@ static void lookup_callback(const struct dict_lookup_result *result, void *conte
 static void test_setup(void) {
 	test_pool = pool_alloconly_create(MEMPOOL_GROWING "mcp test pool", 128);
 	test_ioloop = io_loop_create();
-	rados_plugin_init(NULL);
+	dict_rados_plugin_init(NULL);
 }
 
 static void test_dict_init(void) {
@@ -167,7 +167,7 @@ static void test_dict_deinit(void) {
 }
 
 static void test_teardown(void) {
-	rados_plugin_deinit();
+	dict_rados_plugin_deinit();
 	io_loop_destroy(&test_ioloop);
 	pool_unref(&test_pool);
 }
