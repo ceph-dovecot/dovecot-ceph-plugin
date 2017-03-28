@@ -27,7 +27,7 @@ struct dict dict_driver_rados = { .name = "rados", {
 		.set = rados_set,
 		.unset = rados_unset,
 		.atomic_inc = rados_atomic_inc,
-		.lookup_async = NULL,
+		.lookup_async = rados_dict_lookup_async,
 		.switch_ioloop = NULL,
 		.set_timestamp = NULL } };
 
