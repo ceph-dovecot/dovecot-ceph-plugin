@@ -16,7 +16,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 void rados_dict_deinit(struct dict *_dict);
 
 int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r);
-int rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context);
+void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context);
 
 struct dict_transaction_context *rados_transaction_init(struct dict *_dict);
 int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,

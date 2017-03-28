@@ -32,12 +32,16 @@ public:
 	int parseArguments(int argc, const char **argv);
 	int connect();
 	void shutdown();
+	librados::AioCompletion* createCompletion();
+	librados::AioCompletion* createCompletion(void *cb_arg, librados::callback_t cb_complete, librados::callback_t cb_safe);
 
 	int createIOContext(const char *name);
 	void ioContextClose();
 	void ioContextSetNamspace(const std::string& nspace);
     int ioContextReadOperate(const std::string& oid, librados::ObjectReadOperation *op, librados::bufferlist *pbl);
     int ioContextReadOperate(librados::ObjectReadOperation *op, librados::bufferlist *pbl);
+    int ioContextAioReadOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op, int flags, librados::bufferlist *pbl);
+    int ioContextAioReadOperate(librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op, int flags, librados::bufferlist *pbl);
     int ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation *op);
     int ioContextWriteOperate(librados::ObjectWriteOperation *op);
 

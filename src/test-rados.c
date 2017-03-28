@@ -46,8 +46,12 @@ static void lookup_callback(const struct dict_lookup_result *result, void *conte
 		i_error("%s", result->error);
 	else if (result->ret == 0)
 		i_info("not found");
-	else
+	else {
 		i_info("%s", result->value);
+		if (context != NULL) {
+			*((char**) context) = result->value;
+		}
+	}
 	pending--;
 }
 
@@ -88,9 +92,10 @@ static void test_dict_set_get_delete(void) {
 	test_assert(err == 1);
 	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
 
-	// err = dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY, lookup_callback, NULL);
-	// test_assert(err == 1);
-	// test_assert(strcmp(OMAP_VALUE, value_r) == 0);
+	value_r = "";
+	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY, lookup_callback, &value_r);
+	//test_assert(err == 1);
+	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
 	test_dict_r->v.unset(ctx, OMAP_KEY);
