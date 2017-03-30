@@ -1,4 +1,5 @@
 #include "lib.h"
+#include "config.h"
 #include "array.h"
 #include "fs-api.h"
 #include "istream.h"
@@ -10,7 +11,7 @@
 #include "module-dir.h"
 #include "config.h"
 
-#include "librados-plugin.h"
+#include "libdict-rados-plugin.h"
 #include "DictRados.h"
 
 struct dict dict_driver_rados = { .name = "rados", {
@@ -33,32 +34,20 @@ struct dict dict_driver_rados = { .name = "rados", {
 
 static int refcount = 0;
 
-void rados_plugin_init(struct module *module ATTR_UNUSED) {
-	i_debug("rados_plugin_init refcount=%d", refcount);
+void dict_rados_plugin_init(struct module *module) {
+	i_debug("dict_rados_plugin_init refcount=%d", refcount);
 	if (refcount++ > 0)
 		return;
-	i_debug("rados_plugin_init registers dict_driver_rados ");
+	i_debug("dict_rados_plugin_init registers dict_driver_rados ");
 	dict_driver_register(&dict_driver_rados);
 }
 
-void rados_plugin_deinit(void) {
-	i_debug("rados_plugin_deinit refcount=%d)", refcount);
+void dict_rados_plugin_deinit(void) {
+	i_debug("dict_rados_plugin_deinit refcount=%d", refcount);
 	if (--refcount > 0)
 		return;
-	i_debug("rados_plugin_deinit unregisters dict_driver_rados ");
+	i_debug("dict_rados_plugin_deinit unregisters dict_driver_rados ");
 	dict_driver_unregister(&dict_driver_rados);
 }
 
-
-void __cyg_profile_func_enter(void *this_fn, void *call_site) __attribute__((no_instrument_function));
-void __cyg_profile_func_enter(void *this_fn, void *call_site) {
-	i_debug("ENTER: %p, from %p\n", this_fn, call_site);
-} /* __cyg_profile_func_enter */
-
-void __cyg_profile_func_exit(void *this_fn, void *call_site) __attribute__((no_instrument_function));
-void __cyg_profile_func_exit(void *this_fn, void *call_site) {
-	i_debug("EXIT:  %p, from %p\n", this_fn, call_site);
-} /* __cyg_profile_func_enter */
-
-const char *rados_plugin_version = DOVECOT_ABI_VERSION;
-
+const char *dict_rados_plugin_version = DOVECOT_ABI_VERSION;
