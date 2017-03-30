@@ -299,6 +299,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 		err = dict->dr->connect();
 		i_debug("connect()=%d", err);
 		if (err < 0) {
+			i_debug("Cannot connect to cluster: %s", strerror(-err));
 			*error_r = t_strdup_printf("Cannot connect to cluster: %s", strerror(-err));
 			ret = -1;
 		}
@@ -486,6 +487,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	i_debug("rados_aio_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)",
 			dict->dr->getUsername().c_str(), dict->dr->getOid().c_str(), err, strerror(-err), r_val, strerror(-r_val));
 	struct dict_lookup_result result;
+	result.error = nullptr;
 
 	if (err < 0) {
 		result.ret = DICT_COMMIT_RET_FAILED;
@@ -499,7 +501,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 				i_debug("Found key = '%s', value = '%s'", it->first.c_str(), val.c_str());
 
 				result.ret = DICT_COMMIT_RET_OK;
-				result.value = val.c_str();
+				result.value = i_strdup(val.c_str());
  			} else {
  				result.ret = DICT_COMMIT_RET_NOTFOUND;
  			}
@@ -733,10 +735,9 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 
 	struct rados_dict *dict = (struct rados_dict *) ctx->dict;
 	if (!dict->dr->isEndReaderMapIterator()) {
-		omap_key = dict->dr->getReaderMapIter()->first.c_str();
-		string val = dict->dr->getReaderMapIter()->second.to_str();
-		i_debug("Found key = '%s', value = '%s'", omap_key, val.c_str());
-		omap_val = val.c_str();
+		omap_key = i_strdup(dict->dr->getReaderMapIter()->first.c_str());
+		omap_val = i_strdup(dict->dr->getReaderMapIter()->second.to_str().c_str());
+		i_debug("Found key = '%s', value = '%s'", omap_key, omap_val);
 		dict->dr->incrementReaderMapIterator();
 	}
 

@@ -1,0 +1,967 @@
+= Storing Email on Ceph: Design of librmb and Dovecot Integration
+Peter Mauritius <p.mauritius@tallence.com>
+v1.1.0, 2016-12-30: WIP
+:icons: font
+:numbered!:
+:pdf-page-size: A4
+:docinfo: shared,private-footer
+:blockdiag: /usr/local/bin/blockdiag
+
+[colophon]
+== Legal Notice
+Project Id:: DTAG411w
+Order:: 936 / 4200013130
+
+All information in this document has been compiled in good faith and with due care. The contents has been checked through as well. Nevertheless, errors or omissions can not be excluded. The information and illustrations contained in this document are not associated with any obligation or guarantee of any kind. Data used in examples herein are fictitious unless otherwise noted. All trade names, logos, names, etc. are used without guarantee of free usability and may be particularly protected.
+
+All rights, including reproduction, translation and storage into electronic systems, reserved, unless appropriate use agreement has been concluded. This document and the information contained therein may only be disclosed with the express consent of the third party Tallence GmbH.
+
+Copyright (C) 2016 http://www.tallence.com[Tallence AG], Herrenstr. 26, D-76133 Karlsruhe,
+
+<<<
+[abstract]
+== Abstract
+Deutsche Telekom currently runs two projects, both looking for efficiently storing mails within a Dovecot email server environment.
+
+. USD4e (Unlimited Storage Duration for eMail), phase 3
+. PAN-IP-eMail
+
+During the design session/workshop of September 1st in Darmstadt multiple solutions for storing email data on Ceph were discussed and looked at.
+
+*	Using Ceph's native filesystem: Ceph Filesystem
+*	Storing email via the S3-compatible Ceph Object Gateway
+*	Writing a custom library, _librmb_ (librados mailbox)
+
+This document describes the design of a slotution that stores emails on Ceph using the library librados mailbox (_librmb_) and an integration into Dovecot.
+
+*Summary:* _librmb_ will be *_faster_*, *_cheaper_* and *_easier_* to scale than any existing solution for larger installations.
+
+<<<
+== Overview
+=== Ceph Object Storage
+Ceph is a fully Open Source distributed storage system. It is a software based solution for distributed storage of objects.
+
+Internally Ceph only thinks in objects. This is done by the heart of Ceph: RADOS (Reliable Autonomous Distributed Object Store).
+
+On top of RADOS these components are available making it a Unified storage solution:
+
+*	Ceph Object Gateway
+*	Ceph Block Device (RBD)
+*	Ceph File System (CephFS)
+
+All these applications are built on top of *librados*, a _userspace library_ which is the client for Ceph.
+
+[ditaa, "ceph-stack", round-corners=true, separation=false]
+----
+                +-----+             +-------+           +-----+             +------+
+                | APP |             |HOST/VM|           | APP |             |CLIENT|
+                +--+--+             +---+---+           +--+--+             +---+--+
+                   |                    |                  |                    |
+                   |                    |                  |                    |
+                   |                    v                  v                    v
+                   |          +-------------------+-------------------+-------------------+
+                   |          | CEPH BLOCK DEVICE |CEPH OBJECT GATEWAY| CEPH FILE SYSTEM  |
+                   |          |                   |                   |                   |
+                   v          | A reliable and    | A bucket+based    | A POSIX-compliant |
+         +--------------------+ fully-distributed | REST gateway,     | distrbuted file   |
+         | LIBRADOS           | block device with | compatible with   | system, with a    |
+         |                    | a Linux kernel    | S3 and Swift      | Linux kernel      |
+         | A library allowing | client and        |                   | client and support|
+         | apps to directly   | QEMU/KVM driver   |                   | for FUSE          |
+         | access RADOS       |                   |                   |                   |
+         | with support for C,|                   |                   |                   |
+         | C++, Java, Python, |               cEEE|               cDDD|               cEEE|
+         | Ruby and PHP       +-------------------+-------------------+-------------------+
+       +-+                                                                                +-+
+       | |                                                                            c9DE| |
+       | +--------------------------------------------------------------------------------+ |
+       |                                                                                    |
+       | RADOS                                                                              |
+       |                                                                                    |
+       | A software+based, reliable, autonomous, distributed object store comprised of      |
+       | self+healing, self+managing, intelligent storage nodes and lightweight monitors.   |
+       |                                                                                cF87|
+       +------------------------------------------------------------------------------------+
+----
+
+Once an object is stored, Ceph takes full responsibility for that object to make sure it is safe and stays consistent.
+
+The maximum performance of Ceph is achieved by using parallel I/O. All clients directly communicate with the machines storing the data.
+
+<<<
+=== librmb
+The proposal which came up is to develop the library librados mailbox (_librmb_).
+This library will directly link to librados and abstract mailboxes on top of RADOS objects.
+
+[ditaa, "librmb-stack", round-corners=true, separation=false]
+----
+                +-----+             +-------+           +-----+             +------+             +-------+
+                | APP |             |  MUA  |           | APP |             |CLIENT|             |HOST/VM|
+                +--+--+             +---+---+           +--+--+             +---+--+             +---+---+
+                   |                    |                  |                    |                    |
+                   |                    |                  |                    |                    |
+                   |                    v                  |                    |                    |
+                   |          +-------------------+        |                    |                    |
+                   |          | DOVECOT           |        |                    |                    |
+                   |          |                   |        v                    v                    v
+                   |          +-------------------+-------------------+-------------------+-------------------+
+                   |          | LIBRMB            |CEPH OBJECT GATEWAY| CEPH FILE SYSTEM  | CEPH BLOCK DEVICE |
+                   |          |                   |                   |                   |                   |
+                   v          | Email and mailbox | A bucket+based    | A POSIX-compliant | A reliable and    |
+         +--------------------+ abstraction on top| REST gateway,     | distrbuted file   | fully-distributed |
+         | LIBRADOS           | of librados       | compatible with   | system, with a    | block device with |
+         |                    | with a Dovecot    | S3 and Swift      | Linux kernel      | a Linux kernel    |
+         | A library allowing | storage layer     |                   | client and support| client and        |
+         | apps to directly   |                   |                   | for FUSE          | client and        |
+         | access RADOS       |                   |                   |                   | QEMU/KVM driver   |
+         | with support for C,|                   |                   |                   |                   |
+         | C++, Java, Python, |               cF84|               cDDD|               cEEE|               cDDD|
+         | Ruby and PHP       +-------------------+-------------------+-------------------+-------------------+
+       +-+                                                                                                    +-+
+       | |                                                                                                c9DE| |
+       | +----------------------------------------------------------------------------------------------------+ |
+       |                                                                                                        |
+       | RADOS                                                                                                  |
+       |                                                                                                        |
+       | A software+based, reliable, autonomous, distributed object store comprised of                          |
+       | self+healing, self+managing, intelligent storage nodes and lightweight monitors.                       |
+       |                                                                                                    cF87|
+       +--------------------------------------------------------------------------------------------------------+
+----
+
+Ceph provides two ways for storing data:
+
+*	Replication (3x by default)
+*	Erasure Coding
+
+With 3x replication storing a 1M object will consume 3M of storage.
+With EC this 1M will use between 1.5M and 1.8M of storage.
+
+The downside for EC however is that EC objects can't be partially overwritten due to the nature of EC.
+When storing emails as Objects they are never changed afterwards however.
+Emails are Write Once, Read Many (WORM) ans can take advantage of ES.
+
+*Advantages*
+
+*	Easy scaling of email storage by scaling Ceph
+**	_librmb_ talks directly to RADOS without additional layers and/or daemons
+*	Lower latency by eliminating additional RGW or CephFS layers
+**	No additional to layers and/or daemons
+*	Allows for storing email on Erasure Coded pools
+**	Saves large amount of storage
+*	Less I/O on backing storage due to the lack of overhead from additional layers
+*	Possibility to directly interface with _librmb_ to access email without IMAP/POP3 via Dovecot.
+    This allows for example high performance REST APIs for WebMail access.
+
+*Disadvantages*
+
+*	Requires development of _librmb_
+**	~ 9 months of development and testing
+*	Dovecot needs to be modified to talk to _librmb_
+
+<<<
+=== Dovecot Integration
+Dovecot needs to be expanded to include a new storage layer, which hooks into _librmb_ and stores mailboxes and emails on Ceph.
+
+The library _librmb_ will abstract mailboxes on top of RADOS. Using the semantics of RADOS emails can be stored directly as objects and the same goes for indexes.
+
+[ditaa, "librmb-dovecot", round-corners=true, separation=false]
+----
+   +-----------------+
+   | Mail User Agent |
+   +--------+--------+
+            |
+            | IMAP/POP
+            v
+ +----------+----------+
+ |Ceph Client          |
+ | +-----------------+ |
+ | |     Dovecot     | |
+ | +-----------------+ |
+ | |  storage plugin | |
+ | +-----------------+ |
+ | |     librmb  cF84| |
+ | +-----------------+ |
+ | |    librados c9DE| |
+ | +-----------------+ |
+ |                 cEEE|
+ +----------+----------+
+            |
+            | Ceph Storage Cluster Protocol
+            v
+ +----------+----------+
+ | RADOS               |
+ |                 cF87|
+ +---------------------+
+----
+
+<<<
+== Requirements
+
+The high level goals of the project are as follows
+
+* Allow a mail server to run solely on Ceph without any local file system for volume data.
+* Volume data is defined as any data scaled by number of objects and users
+** Mails
+** Mailboxes
+** Metadata
+** Index data
+** Key/Value data
+** Full text indexes
+
+User data and credentials storage are no subject for the librmb right now, because we are targeting huge installations that have usually a solution in place for this data.
+
+=== Static Analysis of Dovecots Internal Plugin APIs
+
+Because Dovecot is a major mail server and the first integration target for th librmb, we will have a closer look at the internal storgae relates APIs of Dovecot.
+
+Some of the following information has been extracted from the http://wiki.dovecot.org/FrontPage[Dovecot Wiki] or the Dovecot source code.
+
+==== Mail Storage
+[quote, Timo Sirainen, http://wiki.dovecot.org/Design/Storage/MailStorage ]
+--
+Mail storage is mainly about being a common container for its mailboxes. For example with multi-dbox each storage has one directory where all the message bodies are written to, while the per-mailbox directories only contain index files. With other mailbox formats mail storage doesn't do much else than allow allocating mailboxes.
+
+The only public functions for mail storage are:
+
+mail_storage_purge():: frees disk space used by expunged messages. Currently the only mailbox format that uses this is multi-dbox.
+mail_storage_get_settings():: returns mail storage settings.
+mail_storage_set_callbacks():: can be used to specify "OK" and "NO" callbacks, which are called when a long running operation wants to send a status update. For example "OK Stale mailbox lock file detected, will override in n seconds" or "NO Mailbox is locked, will abort in n seconds".
+
+Methods that mail storage backends need to implement are:
+
+get_setting_parser_info():: Returns storage-specific settings parser information.
+alloc():: Allocate memory for a storage and set its virtual functions.
+create(ns): Initialize the storage based on given namespace settings. The same storage can be used by other namespaces, but they don't call create() again. This function typically shouldn't fail, except when storage can't handle the wanted namespace settings.
+destroy(): Destroys the storage.
+add_list(list):: Called every time the storage is attached to a new namespace / mailbox list.
+get_list_settings(ns, set):: Used to get storage's default settings.
+autodetect(ns, set):: Returns TRUE if based on the given settings it looks like this storage should be handling the namespace. This is done when mail_location doesn't explicitly specify the mailbox format.
+mailbox_alloc():: Allocate memory for mailbox.
+--
+[source, c]
+.Dovecot lib-storage/mail-storage.h Storage Functions
+----
+struct mail_storage_vfuncs {
+	const struct setting_parser_info *(*get_setting_parser_info)(void);
+	struct mail_storage *(*alloc)(void);
+	int (*create)(struct mail_storage *storage, struct mail_namespace *ns,
+		      const char **error_r);
+	void (*destroy)(struct mail_storage *storage);
+	void (*add_list)(struct mail_storage *storage,
+			 struct mailbox_list *list);
+	void (*get_list_settings)(const struct mail_namespace *ns,
+				  struct mailbox_list_settings *set);
+	bool (*autodetect)(const struct mail_namespace *ns,
+			   struct mailbox_list_settings *set);
+	struct mailbox *(*mailbox_alloc)(struct mail_storage *storage,
+					 struct mailbox_list *list,
+					 const char *vname,
+					 enum mailbox_flags flags);
+	int (*purge)(struct mail_storage *storage);
+};
+----
+
+==== Mailbox
+[quote, Timo Sirainen, http://wiki.dovecot.org/Design/Storage/Mailbox ]
+--
+src/lib-storage/mail-storage.h and mail-storage-private.h describes mailbox API, among others. Mailbox life cycle often goes like:
+
+mailbox_alloc():: allocates memory for the mailbox and initializes some internal settings, but doesn't actually try to open it.
+mailbox_open():: opens the mailbox. Instead of opening a mailbox, you can also create it with mailbox_create(). If you're immediately syncing the mailbox, you don't need to open it, because it's done implicitly. This reduces your code and error handling a bit.
+mailbox_close():: closes the mailbox, so that it needs to be opened again if it's wanted to be accessed. This is rarely needed.
+mailbox_free():: closes and frees the mailbox.
+
+There are a lot of functions to deal with mailboxes. The most important ones are:
+
+mailbox_get_status():: to get a summary of mailbox, such as number of messages in it.
+Syncing: mailbox_sync_*():: to synchronize changes from the backend to memory.
+Transactions:: mailbox_transaction_*() for transaction handling. All message reads and writes are done in a transaction.
+Searching:: mailbox_search_*() is used for searching messages. Even simple operations like "get all messages" go through this API, it'll then simply do "search all".
+Saving:: mailbox_save_*() and mailbox_copy() is used for saving/copying new messages to mailbox.
+--
+[source, c]
+.Dovecot lib-storage/mail-storage.h Mailbox Functions
+----
+struct mailbox_vfuncs {
+	bool (*is_readonly)(struct mailbox *box);
+	int (*enable)(struct mailbox *box, enum mailbox_feature features);
+	int (*exists)(struct mailbox *box, bool auto_boxes,
+		      enum mailbox_existence *existence_r);
+	int (*open)(struct mailbox *box);
+	void (*close)(struct mailbox *box);
+	void (*free)(struct mailbox *box);
+	int (*create_box)(struct mailbox *box,
+			  const struct mailbox_update *update, bool directory);
+	int (*update_box)(struct mailbox *box,
+			  const struct mailbox_update *update);
+	int (*delete_box)(struct mailbox *box);
+	int (*rename_box)(struct mailbox *src, struct mailbox *dest);
+	int (*get_status)(struct mailbox *box, enum mailbox_status_items items,
+			  struct mailbox_status *status_r);
+	int (*get_metadata)(struct mailbox *box,
+			    enum mailbox_metadata_items items,
+			    struct mailbox_metadata *metadata_r);
+	int (*set_subscribed)(struct mailbox *box, bool set);
+	int (*attribute_set)(struct mailbox_transaction_context *t,
+			     enum mail_attribute_type type, const char *key,
+			     const struct mail_attribute_value *value);
+	int (*attribute_get)(struct mailbox *box,
+			     enum mail_attribute_type type, const char *key,
+			     struct mail_attribute_value *value_r);
+	struct mailbox_attribute_iter *
+		(*attribute_iter_init)(struct mailbox *box,
+				       enum mail_attribute_type type,
+				       const char *prefix);
+	const char *(*attribute_iter_next)(struct mailbox_attribute_iter *iter);
+	int (*attribute_iter_deinit)(struct mailbox_attribute_iter *iter);
+	/* Lookup sync extension record and figure out if it mailbox has
+	   changed since. Returns 1 = yes, 0 = no, -1 = error. if quick==TRUE,
+	   return 1 if it's too costly to find out exactly. */
+	int (*list_index_has_changed)(struct mailbox *box,
+				      struct mail_index_view *list_view,
+				      uint32_t seq, bool quick);
+	/* Update the sync extension record. */
+	void (*list_index_update_sync)(struct mailbox *box,
+				       struct mail_index_transaction *trans,
+				       uint32_t seq);
+	struct mailbox_sync_context *
+		(*sync_init)(struct mailbox *box,
+			     enum mailbox_sync_flags flags);
+	bool (*sync_next)(struct mailbox_sync_context *ctx,
+			  struct mailbox_sync_rec *sync_rec_r);
+	int (*sync_deinit)(struct mailbox_sync_context *ctx,
+			   struct mailbox_sync_status *status_r);
+	/* Called once for each expunge. Called one or more times for
+	   flag/keyword changes. Once the sync is finished, called with
+	   uid=0 and sync_type=0. */
+	void (*sync_notify)(struct mailbox *box, uint32_t uid,
+			    enum mailbox_sync_type sync_type);
+	void (*notify_changes)(struct mailbox *box);
+	struct mailbox_transaction_context *
+		(*transaction_begin)(struct mailbox *box,
+				     enum mailbox_transaction_flags flags);
+	int (*transaction_commit)(struct mailbox_transaction_context *t,
+				  struct mail_transaction_commit_changes *changes_r);
+	void (*transaction_rollback)(struct mailbox_transaction_context *t);
+	enum mail_flags (*get_private_flags_mask)(struct mailbox *box);
+	struct mail *
+		(*mail_alloc)(struct mailbox_transaction_context *t,
+			      enum mail_fetch_field wanted_fields,
+			      struct mailbox_header_lookup_ctx *wanted_headers);
+	struct mail_search_context *
+	(*search_init)(struct mailbox_transaction_context *t,
+		       struct mail_search_args *args,
+		       const enum mail_sort_type *sort_program,
+		       enum mail_fetch_field wanted_fields,
+		       struct mailbox_header_lookup_ctx *wanted_headers);
+	int (*search_deinit)(struct mail_search_context *ctx);
+	bool (*search_next_nonblock)(struct mail_search_context *ctx,
+				     struct mail **mail_r, bool *tryagain_r);
+	/* Internal search function which updates ctx->seq */
+	bool (*search_next_update_seq)(struct mail_search_context *ctx);
+	struct mail_save_context *
+		(*save_alloc)(struct mailbox_transaction_context *t);
+	int (*save_begin)(struct mail_save_context *ctx, struct istream *input);
+	int (*save_continue)(struct mail_save_context *ctx);
+	int (*save_finish)(struct mail_save_context *ctx);
+	void (*save_cancel)(struct mail_save_context *ctx);
+	int (*copy)(struct mail_save_context *ctx, struct mail *mail);
+	/* Called during transaction commit/rollback if saving was done */
+	int (*transaction_save_commit_pre)(struct mail_save_context *save_ctx);
+	void (*transaction_save_commit_post)
+		(struct mail_save_context *save_ctx,
+		 struct mail_index_transaction_commit_result *result_r);
+	void (*transaction_save_rollback)(struct mail_save_context *save_ctx);
+	bool (*is_inconsistent)(struct mailbox *box);
+};
+----
+
+==== Mailbox List
+[quote, Timo Sirainen, http://wiki.dovecot.org/Design/Storage/MailboxList ]
+--
+src/lib-storage/mailbox-list.h and mailbox-list-private.h describes mailbox list. The purpose of mailbox list is to manage mailbox storage name <-> physical directory path mapping. Its most important functions are:
+
+* listing existing mailboxes,
+* creating directories for new mailboxes (but not the mailboxes themselves, that's storage's job),
+* deleting mailboxes,
+* renaming mailboxes and
+* managing mailbox subscriptions.
+
+Mailbox list code also internally creates and updates mailbox changelog (in dovecot.mailbox.log file), which keeps track of mailbox deletions, renames and subscription changes. This is primarily useful for dsync utility.
+
+Mailbox list is configured by mail_location setting, which fills struct mailbox_list_settings:
+
+root_dir:: The root mail directory (e.g. with mail_location=maildir:~/Maildir it would be the ~/Maildir).
+index_dir:: Directory under which index files are written to. Empty string means in-memory indexes. Defaults to root_dir.
+control_dir:: Directory under which control files are written to. Control files are files that contain some important metadata information about mailbox so (unlike index files) they should never be deleted. For example subscriptions file is a control file. Defaults to root_dir.
+alt_dir:: This is currently dbox-specific setting.
+inbox_path:: Path to INBOX mailbox. This exists mainly because with mbox format INBOX is often in a different location than other mailboxes.
+subscription_fname:: Filename used by subscriptions file.
+dir_guid_fname:: Filename used to store directories' (not mailboxes') global UIDs. Directory GUIDs are mainly useful for dsync.
+maildir_name:: Directory name under which the actual mailboxes are stored in, such as dbox-Mails/ with dbox. See the .h file for more detailed description.
+mailbox_dir_name:: If non-empty, store all mailboxes under root_dir/mailbox_dir_name/. +
+
+*Listing mailboxes*
+
+First the list operation is initialized with one of the init functions:
+
+mailbox_list_iter_init():: lists mailboxes that match the given pattern.
+mailbox_list_iter_init_multiple():: lists mailboxes that match any of the given patterns list.
+mailbox_list_iter_init_namespaces():: lists matching mailboxes from all namespaces. MAILBOX_LIST_ITER_SKIP_ALIASES flag skips namespaces that have alias_for set. You usually want to set this flag to avoid processing the same mailbox multiple times.
+
+The patterns are IMAP-style patterns with '%' and '\*' wildcards as described by RFC 3501: '%' matches only up to next hierarchy separator, while '*' matches the rest of the string.
+
+These flags control what mailboxes are returned:
+
+MAILBOX_LIST_ITER_NO_AUTO_INBOX:: doesn't list INBOX unless it physically exists. Normally INBOX is listed, because INBOX doesn't need to be (and cannot be) explicitly created. It can always be opened and messages can be saved to it, it's just automatically created when it doesn't exist.
+MAILBOX_LIST_ITER_SELECT_SUBSCRIBED:: lists only subscribed mailboxes.
+MAILBOX_LIST_ITER_SELECT_RECURSIVEMATCH:: is currently only useful when combined with _SELECT_SUBSCRIBED flag. Then it adds MAILBOX_CHILD_SUBSCRIBED flags for mailboxes whose children are subscribed. It also lists mailboxes that aren't themselves subscribed, but have children that do.
+
+These flags control what is returned for matching mailboxes:
+
+MAILBOX_LIST_ITER_RETURN_NO_FLAGS:: can be set when you don't care about mailbox flags. They're then set only if it can be done without any additional disk I/O.
+MAILBOX_LIST_ITER_RETURN_SUBSCRIBED:: returns mailbox's subscription state.
+MAILBOX_LIST_ITER_RETURN_CHILDREN:: sets "has child mailboxes" or "doesn't have child mailboxes" flag.
+
+Other flags:
+
+MAILBOX_LIST_ITER_RAW_LIST:: should usually be avoided. It ignores ACLs and just returns everything.
+MAILBOX_LIST_ITER_VIRTUAL_NAMES:: enables listing to use virtual names instead of storage names in patterns and returned mailbox names.
+
+Once listing is initialized, mailbox_list_iter_next() can be called until it returns NULL. The returned mailbox_info struct contains:
+
+name:: Mailbox's name, either virtual or storage name depending on _VIRTUAL_NAMES flag.
+ns:: Mailbox's namespace. This is useful only when mailboxes are listed using mailbox_list_iter_init_namespaces().
+flags:: Mailbox flags:
+MAILBOX_NOSELECT::: Mailbox exists, but can't be selected. It's possible that it can be created and then it becomes selectable. For example with mbox and FS layout the directories aren't selectable mailboxes.
+MAILBOX_NONEXISTENT::: Mailbox doesn't exist. It's listed only because it has child mailboxes that do exist but don't match the pattern. +
+  Example: "foo/bar" exists, but "foo" doesn't. "%", "foo" or "\*o" pattern would list "foo", because it matches the pattern but its child doesn't. Then again "\*", "\*bar" or "%/%" wouldn't list "foo", because "foo/bar" matches the pattern (and is also listed). Something like "\*asd*" wouldn't match either "foo" or "foo/bar" so neither is returned.
+MAILBOX_CHILDREN and MAILBOX_NOCHILDREN::: Mailbox has or doesn't have children. If neither of these flags are set, it's not known if mailbox has children.
+MAILBOX_NOINFERIORS::: Mailbox doesn't have children and none can ever be created. For example with mbox and FS layout the mailboxes have this flag set, because files can't be created under files.
+MAILBOX_MARKED and MAILBOX_UNMARKED::: Mailbox has or doesn't have messages with \Recent flags. If neither is set, the state is unknown. Because this check is done in a very cheap way, having MAILBOX_MARKED doesn't always mean that there are \Recent flags. However, if MAILBOX_UNMARKED is returned it is guaranteed to be correct. (False positives are ok, false negatives are not ok.)
+MAILBOX_SUBSCRIBED::: Mailbox is subscribed.
+MAILBOX_CHILD_SUBSCRIBED::: Mailbox has a child that is subscribed (and _SELECT_RECURSIVEMATCH flag was set).
+
+Finally the listing is deinitalized with mailbox_list_iter_deinit(). If it returns -1, it means that some mailboxes perhaps weren't listed due to some internal error.
+
+If you wish to get mailbox_info flags only for a single mailbox, you can use mailbox_list_mailbox(). +
+ +
+
+*Directory permissions*
+
+mailbox_list_get_permissions() and mailbox_list_get_dir_permissions() can be used to get wanted permissions for newly created files and directories.
+
+* For global files, give NULL as the mailbox name. The permissions are then based on the root_dir. If root_dir doesn't exist, it returns 0700/0600 mode.
+* For per-mailbox files, give the mailbox name. The permissions are then based on the mailbox's directory.
+
+The returned permissions are:
+
+mode:: Creation mode, like 0600.
+gid:: Group that should be set, unless it's (gid_t)-1. There are 3 reasons why it could be that:
+* directory has g+s bit set, so the wanted group is set automatically
+* group is the same as process's effective GID, so it gets set automatically
+* mode's group permissions are the same as world permissions, so group doesn't matter.
+gid_origin:: This string points to the directory where the group (and permissions in general) was based on, or "defaults" for internal defaults.
+
+If changing the group fails with EPERM, eperm_error_get_chgrp() can be used to log a nice and understandable error message.
+--
+[source, c]
+.Dovecot lib-storage/mailbox-list.h Functions
+----
+struct mailbox_list_vfuncs {
+	struct mailbox_list *(*alloc)(void);
+	int (*init)(struct mailbox_list *list, const char **error_r);
+	void (*deinit)(struct mailbox_list *list);
+	int (*get_storage)(struct mailbox_list **list, const char *vname,
+			   struct mail_storage **storage_r);
+	char (*get_hierarchy_sep)(struct mailbox_list *list);
+	const char *(*get_vname)(struct mailbox_list *list,
+				 const char *storage_name);
+	const char *(*get_storage_name)(struct mailbox_list *list,
+					const char *vname);
+	int (*get_path)(struct mailbox_list *list, const char *name,
+			enum mailbox_list_path_type type, const char **path_r);
+	const char *(*get_temp_prefix)(struct mailbox_list *list, bool global);
+	const char *(*join_refpattern)(struct mailbox_list *list,
+				       const char *ref, const char *pattern);
+	struct mailbox_list_iterate_context *
+		(*iter_init)(struct mailbox_list *list,
+			     const char *const *patterns,
+			     enum mailbox_list_iter_flags flags);
+	const struct mailbox_info *
+		(*iter_next)(struct mailbox_list_iterate_context *ctx);
+	int (*iter_deinit)(struct mailbox_list_iterate_context *ctx);
+	int (*get_mailbox_flags)(struct mailbox_list *list,
+				 const char *dir, const char *fname,
+				 enum mailbox_list_file_type type,
+				 enum mailbox_info_flags *flags_r);
+	/* Returns TRUE if name is mailbox's internal file/directory.
+	   If it does, mailbox deletion assumes it can safely delete it. */
+	bool (*is_internal_name)(struct mailbox_list *list, const char *name);
+	/* Read subscriptions from src_list, but place them into
+	   dest_list->subscriptions. Set errors to dest_list. */
+	int (*subscriptions_refresh)(struct mailbox_list *src_list,
+				     struct mailbox_list *dest_list);
+	int (*set_subscribed)(struct mailbox_list *list,
+			      const char *name, bool set);
+	int (*delete_mailbox)(struct mailbox_list *list, const char *name);
+	int (*delete_dir)(struct mailbox_list *list, const char *name);
+	int (*delete_symlink)(struct mailbox_list *list, const char *name);
+	int (*rename_mailbox)(struct mailbox_list *oldlist, const char *oldname,
+			      struct mailbox_list *newlist, const char *newname);
+	int (*notify_init)(struct mailbox_list *list,
+			   enum mailbox_list_notify_event mask,
+			   struct mailbox_list_notify **notify_r);
+	int (*notify_next)(struct mailbox_list_notify *notify,
+			   const struct mailbox_list_notify_rec **rec_r);
+	void (*notify_deinit)(struct mailbox_list_notify *notify);
+	void (*notify_wait)(struct mailbox_list_notify *notify,
+			    void (*callback)(void *context), void *context);
+};
+----
+
+==== Mail Plugins
+[quote, Timo Sirainen, http://wiki.dovecot.org/Design/Storage/Plugins]
+--
+Typically plugins add hooks in their init() function by calling mail_storage_hooks_add(), and remove the hooks at deinit() with mail_storage_hooks_remove(). Hooks that are currently supported:
+
+mail_user_created:: A new mail user was created. It doesn't yet have any namespaces.
+mail_storage_created:: A new mail storage was created. It's not connected to any namespaces/mailbox lists yet.
+mailbox_list_created:: A new mailbox list was created. It's not connected to any storages yet. Because of this, some internal virtual methods haven't been overridden by the storage yet, so plugins rarely want to use this hook. Instead they should use:
+mail_namespace_storage_added:: Storage was connected to its first namespace/mailbox list. This hook should usually be used if plugin wants to override mailbox_list's methods.
+mail_namespaces_created:: User's all namespaces have been created. This hook is called only per user at startup. More internal namespaces may be created later when using shared mailboxes.
+mailbox_allocated:: mailbox_alloc() was called.
+mailbox_opened: Mailbox (and its index) was actually opened, either explicitly with mailbox_open() or implicitly by some other function. +
+
+*Overriding methods*
+
+When the hook gets called, you usually want to override some method of the created object. This is the easy part, for example:
+
+[source, c]
+....
+static void plugin_mailbox_allocated(struct mailbox *box)
+..
+        box->v.transaction_begin = plugin_transaction_begin;
+....
+
+The problem is that once plugin_transaction_begin() is called, it should call the original transaction_begin(). There may also be multiple plugins that want to override the same method, so the idea is to just have each plugin call the previous transaction_begin(). The next problem is where do you save the previous value? Most objects have a module_contexts array for storing per-plugin pointers for this purpose. There are several helper functions to make setting and accessing them in a quite safe way.
+
+Easiest way to set up the module context is to just copy&paste code from an existing plugin that sets the same context. Here's some documentation about it anyway:
+
+First you start by creating register for the plugin. There are different registers for different types of objects:
+
+mail_user_module_register:: For mail_user.
+mailbox_list_module_register:: For mailbox_list.
+mail_storage_module_register:: For mail_storage, mailbox, mailbox_transaction and mail_search.
+mail_module_register:: For mail.
+
+We'll assume you want to use mail_storage_module_register:
+
+[source, c]
+----
+static MODULE_CONTEXT_DEFINE_INIT(plugin_storage_module, &mail_storage_module_register);
+----
+
+If you need to make it external, use:
+
+[source, c]
+----
+extern MODULE_CONTEXT_DEFINE(plugin_storage_module, &mail_storage_module_register);
+struct plugin_storage_module plugin_storage_module =
+        MODULE_CONTEXT_INIT(&mail_storage_module_register);
+----
+
+Next you'll need to allocate memory for the structure you want to place in the context. If you only want to override some methods, you can use:
+
+[source, c]
+----
+union mailbox_module_context *mbox;
+struct mailbox_vfuncs *v = box->vlast;
+
+mbox = p_new(box->pool, union mailbox_module_context, 1);
+mbox->super = *v;
+box->vlast = &mbox->super;
+
+v->transaction_begin = plugin_transaction_begin;
+MODULE_CONTEXT_SET_SELF(box, plugin_storage_module, mbox);
+----
+
+If you want to store some more plugin-specific data to the object instead of just the super methods, you can do:
+
+[source, c]
+----
+struct plugin_mailbox {
+        /* must be called module_ctx */
+        union mailbox_module_context module_ctx;
+};
+/* .. */
+
+struct plugin_mailbox *mbox;
+struct mailbox_vfuncs *v = box->vlast;
+
+mbox = p_new(box->pool, struct plugin_mailbox, 1);
+mbox->module_ctx.super = *v;
+box->vlast = &mbox->super;
+
+v->transaction_begin = plugin_transaction_begin;
+MODULE_CONTEXT_SET(box, plugin_storage_module, mbox);
+----
+Note that when using union directly you use MODULE_CONTEXT_SET_SELF(), while when it's inside a struct you use MODULE_CONTEXT_SET().
+
+Once all this initialization is done, you can look up the module context with:
+
+[source, c]
+----
+#define PLUGIN_CONTEXT(obj) MODULE_CONTEXT(obj, plugin_storage_module)
+/* .. */
+struct plugin_mailbox *mbox = PLUGIN_CONTEXT(box);
+----
+--
+
+<<<
+==== Dictionary API
+[quote, Timo Sirainen, http://wiki.dovecot.org/Dictionary]
+--
+Dovecot's lib-dict can be used to access simple key-value databases. This is used by for example quota-dict, passdb&userdb, last-login plugin, METADATA, etc. The dictionaries can be accessed either directly by the mail processes or they can be accessed via dict proxy processes.
+
+Currently supported dict backends are:
+
+* Flat files
+* FS (lib-fs wrapper)
+* Memcached (ASCII protocol)
+* Memcached (Binary protocol)
+* Redis
+* Proxy
+* SQL
+** mysql
+** pgsql
+** sqlite
+** cassandra
+* LDAP
+--
+[source, c]
+.Dovecot lib-dict Functions
+----
+struct dict_vfuncs {
+	int (*init)(struct dict *dict_driver, const char *uri,
+		    const struct dict_settings *set,
+		    struct dict **dict_r, const char **error_r);
+	void (*deinit)(struct dict *dict);
+	void (*wait)(struct dict *dict);
+	int (*lookup)(struct dict *dict, pool_t pool,
+		      const char *key, const char **value_r,
+		      const char **error_r);
+	struct dict_iterate_context *
+		(*iterate_init)(struct dict *dict, const char *const *paths,
+				enum dict_iterate_flags flags);
+	bool (*iterate)(struct dict_iterate_context *ctx,
+			const char **key_r, const char **value_r);
+	int (*iterate_deinit)(struct dict_iterate_context *ctx,
+			      const char **error_r);
+	struct dict_transaction_context *(*transaction_init)(struct dict *dict);
+	/* call the callback before returning if non-async commits */
+	void (*transaction_commit)(struct dict_transaction_context *ctx,
+				   bool async,
+				   dict_transaction_commit_callback_t *callback,
+				   void *context);
+	void (*transaction_rollback)(struct dict_transaction_context *ctx);
+	void (*set)(struct dict_transaction_context *ctx,
+		    const char *key, const char *value);
+	void (*unset)(struct dict_transaction_context *ctx,
+		      const char *key);
+	void (*atomic_inc)(struct dict_transaction_context *ctx,
+			   const char *key, long long diff);
+	void (*lookup_async)(struct dict *dict, const char *key,
+			     dict_lookup_callback_t *callback, void *context);
+	bool (*switch_ioloop)(struct dict *dict);
+};
+----
+
+<<<
+==== File System API
+
+The File System API is the internal abstraction for a POSIX filesystem. It can be overridden by plugins to support requirements like caching etc.
+
+[source, c]
+.Dovecot lib-fs Functions
+----
+struct fs_vfuncs {
+	struct fs *(*alloc)(void);
+	int (*init)(struct fs *fs, const char *args,
+		    const struct fs_settings *set);
+	void (*deinit)(struct fs *fs);
+	enum fs_properties (*get_properties)(struct fs *fs);
+	struct fs_file *(*file_init)(struct fs *fs, const char *path,
+				     enum fs_open_mode mode,
+				     enum fs_open_flags flags);
+	void (*file_deinit)(struct fs_file *file);
+	void (*file_close)(struct fs_file *file);
+	const char *(*get_path)(struct fs_file *file);
+	void (*set_async_callback)(struct fs_file *file,
+				   fs_file_async_callback_t *callback,
+				   void *context);
+	void (*wait_async)(struct fs *fs);
+	void (*set_metadata)(struct fs_file *file, const char *key,
+			     const char *value);
+	int (*get_metadata)(struct fs_file *file,
+			    const ARRAY_TYPE(fs_metadata) **metadata_r);
+	bool (*prefetch)(struct fs_file *file, uoff_t length);
+	ssize_t (*read)(struct fs_file *file, void *buf, size_t size);
+	struct istream *(*read_stream)(struct fs_file *file,
+				       size_t max_buffer_size);
+	int (*write)(struct fs_file *file, const void *data, size_t size);
+	void (*write_stream)(struct fs_file *file);
+	/* After write_stream_finish() is called once, all the following
+	   (async) calls will have success==TRUE. */
+	int (*write_stream_finish)(struct fs_file *file, bool success);
+	int (*lock)(struct fs_file *file, unsigned int secs,
+		    struct fs_lock **lock_r);
+	void (*unlock)(struct fs_lock *lock);
+	int (*exists)(struct fs_file *file);
+	int (*stat)(struct fs_file *file, struct stat *st_r);
+	int (*copy)(struct fs_file *src, struct fs_file *dest);
+	int (*rename)(struct fs_file *src, struct fs_file *dest);
+	int (*delete_file)(struct fs_file *file);
+	struct fs_iter *(*iter_init)(struct fs *fs, const char *path,
+				     enum fs_iter_flags flags);
+	const char *(*iter_next)(struct fs_iter *iter);
+	int (*iter_deinit)(struct fs_iter *iter);
+	bool (*switch_ioloop)(struct fs *fs);
+	int (*get_nlinks)(struct fs_file *file, nlink_t *nlinks_r);
+};
+----
+
+==== Full Text Search Indexing
+
+Most FTS solutions included with Dovecot are using external systems for indexing and search. The only implementation that is file system based is the since v2.1+ deprecated http://wiki.dovecot.org/Plugins/FTS/Squat[Squat Full Text Search Indexing].
+
+Because _Squat_ is the only RFC compliant implementation within Dovecot and fits well to Cephs object storage model, it should be migrated to Ceph.
+
+<<<
+== librmb Design Ideas
+
+For the design of the data model we make some assumptions
+
+Ceph is fast:: It is not necessary to cache any data on local disk. This does not mean that local caches on SSD are not helpful or prohibited. But in the first guess we assume that Ceph will be fast enough to work without local caches.
+No revovery:: Any mail belongs to a mailbox (see below) as log as their relationship is stored. Like other popular mail storage formats like http://wiki2.dovecot.org/MailboxFormat/dbox[dbox] or http://www.washington.edu/imap/documentation/mixfmt.txt.html[MIX] the integrity of the mailbox relies on the mailbox indexes. If they get lost it will be hard or impossible to reconstruct a mailbox.
+Object Names:: The visible names of objects are subject to changes by the user and therefore can not be directly used in the name of the Ceph objects to prevent the copying of objects. The visible names of users, folders etc. are attributes of the responsible Ceph objects of their collections. The technical names will be UUIDs that are prefixed with userId and type.
+
+=== 1st Naive Mail Data Model
+
+==== Mails
+Mails are the smallest objects managed in this model. Any mail belongs to a mailbox, as collection or directory of mails. Mails are stored independently of mailboxes within the users namespace but contain an attribute pointing back to their mailbox they belong to. This allows move operations relocating a mail from one mailbox to another without copying.
+
+Mails are read only objects regarding their RFC2822 content. Mails bear attributes that are stored as omap key-values. The parsed MIME structure will be stored as omap key-values.
+
+Mails must be addressed internally independently of the IMAP UIDs to prevent copies when mails are moved between mailboxes.
+
+WARNING: TODO attribute details
+
+==== Mailboxes
+Mailboxes represent a list of references to mails, stored as omap key-values. A mailbox owns a name within a users namespace. A mailbox stores a list of references to the mails belonging to a mailbox.
+
+The mailbox object contains the index data for the mailbox in omap key-values.
+
+==== Mailbox List
+Because we are not able to express object hierarchies with Ceph we maintain an object, listing all mailboxes belonging to a user.
+
+The visible mailbox names are used as key to an omap while the values contain the UUID referencing the mailbox objects.
+
+
+==== Object Mapping
+.Mapping of mail objects to Ceph objects
+[ditaa, "rmb-mail", separation=true, shadow=true]
+----
+ +----------+       +-----------+
+ |mail      |------>|object     |
+ +-+--------++      +-+---------+-+
+   |RFC2822  |------->|byte array |
+   +---------+        +-----------+
+   |MIME data|------->|omap       |
+   +---------+        +-----------+
+   |metadata |------->|omap       |
+   +---------+        +-----------+
+
+ +-----------+       +-----------+
+ |mailbox    |------>|object     |
+ +-+---------++      +-+---------+-+
+   |index     |------->|omap       |
+   +----------+        +-----------+
+   |flags     |------->|omap       |
+   +----------+        +-----------+
+   |headers   |------->|omap       |
+   +----------+        +-----------+
+
+ +-----------+       +-----------+
+ |mailboxlist|------>|object     |
+ +-+---------++      +-+---------+-+
+   |list      |------->|omap       |
+   +----------+        +-----------+
+   |attributes|------->|omap       |
+   +----------+        +-----------+
+   |metadata  |------->|omap       |
+   +----------+        +-----------+
+----
+
+
+==== Object Names
+.Object Names
+[ditaa, "rmb-mailbox-layout", separation=false]
+----
+/mail/%d/%n/-+-> mails/                                  |
+             |      |                                    |
+             |      +-> 07A228668CA449B5A27DB47E1A224CAF | ①
+             |      +-> 49C74568A0A24DD8B0BDBB28DB662FFA | ①
+             |      |   ...                              |
+             |      +-> 71251FBFAC454032B4BA37CCE6B43E8C | ①
+             |                                           |
+             +-> mailboxes/                              | ②
+                    |                                    |
+                    +-> 3C5B706DA45D40D98D9E65C643D0F921 | ③
+                    +-> 225A9A35FC5244CD80CCAB2EF6CEC5D8 | ③
+                    |   ...                              |
+                    +-> ABAF8D271DC94FD1930455BE277BBC52 | ③
+                                                         |
+----
+
+<1> mail object
+<2> mailbox list object
+<3> mailbox object
+
+In the above example the placeholders stand for
+
+%d:: domain id
+%n:: user id
+
+The example assumes using a single pool.
+
+A typical configuration for a Dovecot mail location using the librmb would look like
+
+ mail_location = rmb:/dovecot/%d/%n:pool=storage
+
+=== Dictionaries
+
+A mail server accessible by IMAP has to store more than mail and mailboxes. Therefore the librmb offers a very simple key-value store, hiding the details of librados. Each dictionary is one object identified by an object name which has to be unique. The key-values are stored as omap key/value pairs.
+
+Inspired by Dovecots dictionaries a dictionary is specified by
+
+pool:: The pool to store the dictionary objects
+name:: An object name for the dictionary object
+
+A typical configuration for a Dovecot dictionary using the librmb would look like
+
+ metadata_dict = rmb:name=/dovecot/%d/%n/metadata:pool=storage
+
+== Next Steps
+
+=== Dictionaries - Learning librados & Dovecot
+
+To get familiar with development of librados clients and Dovecot storage backends a Dovecot dictionary implementation will be a good exercise.
+
+=== Mails - Hybrid RMB
+Based on the http://wiki.dovecot.org/MailboxFormat/Cydir[Cydir] code a hybrid storage should be implemented to gather experience with Dovecots mail API. The hybrid storage will use Ceph for storing mail but linger on with the file system based indexes.
+
+=== Towards librmb
+The code should be refactored to get a librmb for mail handling that is independent of the Dovecot code.
+
+=== More to come
+
+== Performance
+To be able to judge the impacts of design or implementation decisions and changes it is necessary to know the anatomy of typical IMAP. LMTP or LDA operations.
+
+=== Measure
+We have to define a set of typical mail operations and record the calls to the backend that are performed during their execution. Typical operations might be
+
+* New mail delivery
+* INBOX check
+* Read mail
+* Delete Mail
+* Search mail
+* Set flags
+
+=== Scale
+To get am impression of the change rate for the whole system, mailboxes and mails we should analyse a real large scale Dovecot installation. Key performance indicators are
+
+* Number of incoming mails overall (or for one storage node) per time unit
+* Number of deleted mails overall (or for one storage node) per time unit
+* Number of incoming mails per mailbox per time unit
+* Number of deleted mails per mailbox per time unit
+* Number of read mails per mailbox per time unit
+* Number of metadata/flag changes per mailbox per time unit
+* Size of mails
+* Size of attachments
+* MIME structures
+
+
+=== Test
+Using the above data we should build examples mailboxes, functional tests and load tests using eg. http://www.imapwiki.org/ImapTest[ImapTest] or a similar tool.
+
+<<<
+== Further Reading
+
+=== Mailbox Formats
+
+==== Supported by Dovecot
+* http://wiki.dovecot.org/MailboxFormat[Mailbox Formats]
+** http://wiki.dovecot.org/MailboxFormat/Cydir[Cydir]: _Its code is small and simple, so it can also act as an example for writing new mail storage backends._
+** http://wiki.dovecot.org/MailboxFormat/imapc[imapc]
+** http://wiki.dovecot.org/MailboxFormat/Maildir[Maildir]
+** http://wiki.dovecot.org/MailboxFormat/mbox[mbox]
+** http://wiki.dovecot.org/MailboxFormat/dbox[dbox]
+** obox
+*** https://oxpedia.org/wiki/index.php?title=Dovecot:Main_Page_Dovecot#dovecotbackendconf[Dovecot Pro Backend Configuration]
+*** https://software.open-xchange.com/products/dovecot/doc/Dovecot-EE-repository-and-object-storage-installation-manual_v1.9.pdf[Object Storage and Enterprise Repository Installation manual]
+*** https://www.heinlein-support.de/sites/default/files/dovecot_recent_and_future_development.pdf[Presentation by Timo ]
+*** http://www.admin-magazine.com/Archive/2015/26/Scalable-mail-storage-with-Dovecot-and-Amazon-S3[Scalable mail storage with Dovecot and Amazon S3]
+
+==== Supported by Other
+* http://www.washington.edu/imap/documentation/mixfmt.txt.html[UW IMAP Server MIX]
+
+=== Dovecot Internals
+* http://wiki.dovecot.org/Design/Storage/Plugins[Storage Plugins]
+** https://github.com/posteo/scrambler-plugin[Dovecot encryption plugin]
+* http://wiki2.dovecot.org/Dictionary[Dictionary]
+* http://wiki2.dovecot.org/Design/Indexes[Indexes]
+
+=== Other Solutions
+* https://lists.andrew.cmu.edu/pipermail/cyrus-devel/2015-September/003468.html[OpenIO: open source object storage for Cyrus]
+* https://sys4.de/de/blog/2013/06/06/postfix-dovecot-ceph-cluster-storage/[CEPH Cluster für Dovecot MDBOX und Postfix]
+
+=== API Inspirations
+* http://www.dovecot.fi/dovecot-launches-a-gmail-api-compatible-rest-api-to-enable-third-party-developers-to-join-its-global-email-ecosystem/[Welcome to Dovecot: home to the world's most successful open source IMAP software]
+* https://developers.google.com/gmail/api/guides/[Gmail API]
+* https://msdn.microsoft.com/office/office365/api/mail-rest-operations[Outlook Mail REST API reference]
+
+=== Project References
+
+* https://trello.com/c/ao7wxVE5/120-dovecot-libradosmail[Sage Weil] im Ceph Backlog
+
+<<<
+== About the Project
+This proposal has already been reported as Ceph project http://tracker.ceph.com/issues/12430[FEATURE #12430] . This project is supported by _Sage Weil_, who is the head Ceph developer and creator.
+
+
+== About the Authors
+*{author}* from https://tallence.com[Tallence Consulting] is working on the design and development of Deutsche Telekom email infrastructure since 2001 and a lot of other Deutsche Telekom backend services since 1998. The Deutsche Telekom email servers are Dovecot based since 2011.
+
+You can contact {author} at {email}.
+
+<<<
+== Versions
+[grid="cols", options="header", cols="1,3,1,1"]
+|===
+| Version | Description | Date | Author
+
+| 1.0.0
+| Initial release
+| 2016-12-14
+| Peter Mauritius
+
+| 1.1.0
+| WIP
+| 2016-12-30
+| Peter Mauritius
+
+
+|===

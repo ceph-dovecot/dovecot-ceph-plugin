@@ -1,8 +1,8 @@
-AC_INIT([librados-plugin], [1.0], [p.mauritius@tallence.com])
+AC_INIT([dovecot-rados-plugin], [1.0], [p.mauritius@tallence.com])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADERS([librados-plugin-config.h])
+AC_CONFIG_HEADERS([dovecot-rados-plugin-config.h])
 
 AM_INIT_AUTOMAKE([no-define foreign tar-ustar])
 
@@ -31,6 +31,8 @@ AC_CHECK_HEADER(rados/librados.h, [
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/dict-rados/Makefile
+src/storage-rados/Makefile
 ])
 
 AC_OUTPUT
