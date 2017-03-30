@@ -14,7 +14,7 @@
 #include "dict.h"
 #include "dict-private.h"
 
-#include "librados-plugin.h"
+#include "libdict-rados-plugin.h"
 
 static const char* OMAP_KEY = "key";
 static const char* OMAP_NO_KEY = "no_key";
@@ -27,7 +27,7 @@ static struct ioloop *test_ioloop = NULL;
 static pool_t test_pool;
 
 static char * uri = "oid=metadata:pool=librmb-index:config=/home/peter/dovecot/etc/ceph/ceph.conf";
-//static char * uri = "oid=metadata:pool=rbd:config=/home/peter/dovecot/etc/ceph/ceph.conf";
+//static char * uri = "oid=metadata:pool=rbd:config=/home/peter/dovecot/etc/ceph/own/ceph.conf";
 
 extern struct dict dict_driver_rados;
 
@@ -49,7 +49,7 @@ static void lookup_callback(const struct dict_lookup_result *result, void *conte
 	else {
 		i_info("%s", result->value);
 		if (context != NULL) {
-			*((char**) context) = result->value;
+			*((char**) context) = i_strdup(result->value);
 		}
 	}
 	pending--;
@@ -58,7 +58,7 @@ static void lookup_callback(const struct dict_lookup_result *result, void *conte
 static void test_setup(void) {
 	test_pool = pool_alloconly_create(MEMPOOL_GROWING "mcp test pool", 128);
 	test_ioloop = io_loop_create();
-	rados_plugin_init(NULL);
+	dict_rados_plugin_init(NULL);
 }
 
 static void test_dict_init(void) {
@@ -173,7 +173,7 @@ static void test_dict_deinit(void) {
 }
 
 static void test_teardown(void) {
-	rados_plugin_deinit();
+	dict_rados_plugin_deinit();
 	io_loop_destroy(&test_ioloop);
 	pool_unref(&test_pool);
 }
