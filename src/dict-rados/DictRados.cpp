@@ -137,6 +137,14 @@ int DictRados::ioContextWriteOperate(librados::ObjectWriteOperation *op) {
 	return ioContextWriteOperate(sOid, op);
 }
 
+int DictRados::ioContextAioWriteOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags) {
+	return io_ctx.aio_operate(oid, aioCompletion, op, flags);
+}
+
+int DictRados::ioContextAioWriteOperate(librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags) {
+	return ioContextAioWriteOperate(sOid, aioCompletion, op, flags);
+}
+
 void DictRados::clearReaderMap() {
 	readerMap.clear();
 }
@@ -197,6 +205,14 @@ struct rados_dict_iterate_context {
 //	map<string, bufferlist> objMap;
 //	typename map<string, bufferlist>::iterator map_iter;
 };
+
+void ack_callback(rados_completion_t comp, void *arg) {
+	i_debug("**** ack_callback ****");
+}
+
+void commit_callback(rados_completion_t comp, void *arg) {
+	i_debug("**** commit_callback ****");
+}
 
 static const char *rados_escape_username(const char *username) {
 	const char *p;
@@ -476,7 +492,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	oro.omap_get_vals_by_keys(keys, &map, &r_val);
 	bufferlist bl;
 
-	AioCompletion* completion = dict->dr->createCompletion();
+	AioCompletion* completion = dict->dr->createCompletion(&map, ack_callback, commit_callback);
 
 	int fl = 0;
 	int err = dict->dr->ioContextAioReadOperate(completion, &oro, LIBRADOS_OPERATION_NOFLAG, &bl);
@@ -558,9 +574,10 @@ static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool 
 		//int err = rados_write_op_operate(ctx->op, dict->io, dict->oid, NULL, LIBRADOS_OPERATION_NOFLAG);
 		ctx->write_op->set_op_flags2(OPERATION_NOFLAG);
 		int err = dict->dr->ioContextWriteOperate(ctx->write_op);
+
 		//rados_release_write_op(ctx->op);
 		delete ctx->write_op;
-		ctx->write_op = NULL;
+		ctx->write_op = nullptr;
 
 		if (err < 0)
 			ret = DICT_COMMIT_RET_FAILED;

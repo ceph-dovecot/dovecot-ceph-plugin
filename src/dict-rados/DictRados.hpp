@@ -44,8 +44,10 @@ public:
     int ioContextAioReadOperate(librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op, int flags, librados::bufferlist *pbl);
     int ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation *op);
     int ioContextWriteOperate(librados::ObjectWriteOperation *op);
+    int ioContextAioWriteOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags);
+    int ioContextAioWriteOperate(librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags);
 
-	void clearReaderMap();
+    void clearReaderMap();
 	void incrementReaderMapIterator();
 	void beginReaderMapIterator();
 	bool isEndReaderMapIterator();
