@@ -11,7 +11,7 @@
 <option id="host" value=""/>
 <option id="build" value=""/>
 <option id="target" value=""/>
-<option id="prefix" value="$HOME/dovecot"/>
+<option id="prefix" value=""/>
 <option id="exec-prefix" value=""/>
 <option id="libdir" value=""/>
 <option id="bindir" value=""/>
@@ -30,9 +30,9 @@
 <option id="program-suffix" value=""/>
 <option id="program-transform-name" value=""/>
 <option id="env_vars" value=""/>
-<option id="enable-maintainer-mode" value="true"/>
+<option id="enable-maintainer-mode" value="false"/>
 <flag id="CFLAGS" value="CFLAGS|CXXFLAGS">
-<flagvalue id="cflags-debug" value="true"/>
+<flagvalue id="cflags-debug" value="false"/>
 <flagvalue id="cflags-gprof" value="false"/>
 <flagvalue id="cflags-gcov" value="false"/>
 </flag>
@@ -51,7 +51,7 @@
 <option id="host" value=""/>
 <option id="build" value=""/>
 <option id="target" value=""/>
-<option id="prefix" value="$HOME/dovecot"/>
+<option id="prefix" value=""/>
 <option id="exec-prefix" value=""/>
 <option id="libdir" value=""/>
 <option id="bindir" value=""/>
@@ -70,13 +70,13 @@
 <option id="program-suffix" value=""/>
 <option id="program-transform-name" value=""/>
 <option id="env_vars" value=""/>
-<option id="enable-maintainer-mode" value="true"/>
+<option id="enable-maintainer-mode" value="false"/>
 <flag id="CFLAGS" value="CFLAGS|CXXFLAGS">
-<flagvalue id="cflags-debug" value="true"/>
+<flagvalue id="cflags-debug" value="false"/>
 <flagvalue id="cflags-gprof" value="false"/>
 <flagvalue id="cflags-gcov" value="false"/>
 </flag>
-<option id="user" value="CFLAGS=&apos;-g -O0&apos;"/>
+<option id="user" value="CFLAGS=&apos;-g -O0&apos; CXXFLAGS=&apos;-g -O0&apos;"/>
 <option id="autogen" value="autogen.sh"/>
 <option id="autogenOpts" value=""/>
 </configuration>
