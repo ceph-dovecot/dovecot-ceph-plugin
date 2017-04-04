@@ -22,7 +22,7 @@ AC_SUBST(LIBDOVECOT_INCLUDE)
 
 AC_CHECK_HEADER(rados/librados.h, [
   have_librados=yes
-  AC_DEFINE(HAVE_LIBSODIUM,, [Define if you have the RADOS library])
+  AC_DEFINE(HAVE_LIBRADOS,, [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
 ], [
     AC_ERROR([Can't build with RADOS support: librados.h not found])
