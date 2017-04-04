@@ -50,8 +50,12 @@ static void lookup_callback(const struct dict_lookup_result *result, void *conte
 		i_error("%s", result->error);
 	else if (result->ret == 0)
 		i_info("not found");
-	else
+	else {
 		i_info("%s", result->value);
+		if (context != NULL) {
+			*((char**) context) = i_strdup(result->value);
+		}
+	}
 	pending--;
 }
 
