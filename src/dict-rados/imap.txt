@@ -1,0 +1,4 @@
+a login "t" "t"
+a GETMETADATA "INBOX" /private/comment
+a SETMETADATA INBOX (/private/comment "My new comment")
+a GETMETADATA "INBOX" /private/comment
