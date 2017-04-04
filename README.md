@@ -1,7 +1,7 @@
 Dovecot RADOS Plugins
 =====================
 
-## Compile, Install the Plugins
+## Compile and install the Plugins
 
 To compile the plugin you need a configured or installed dovecot.
 
@@ -23,6 +23,13 @@ To compile the plugin you need a configured or installed dovecot.
     ./autogen.sh   
     ./configure --with-dovecot=/home/user/workspace/core 
     make install
+
+## Testing the Plugins
+
+The source sirectories contain test applications named test-*. They use the configuration in the same directory. The configurations assumes a Ceph cluster running locally without _cephx_ that has for example been created using _vstart.sh_ as decribed in [DEVELOPER GUIDE (QUICK)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md). 
+
+    ../src/vstart.sh -d -X -n -l 
+
 
 ## Configure the Plugins
 

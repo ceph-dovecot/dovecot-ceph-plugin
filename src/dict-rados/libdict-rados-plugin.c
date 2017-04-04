@@ -9,6 +9,7 @@
 #include "ostream.h"
 #include "connection.h"
 #include "module-dir.h"
+#include "var-expand.h"
 
 #include <rados/librados.h>
 
@@ -19,7 +20,7 @@
 struct rados_dict {
 	struct dict dict;
 	char *username;
-	char *cluster_name, *cluster_user, *pool, *oid, *config;
+	char *pool, *oid;
 	rados_ioctx_t io;
 	rados_t cluster;
 };
@@ -36,8 +37,6 @@ struct rados_dict_iterate_context {
 	enum dict_iterate_flags flags;
 	char *error;
 };
-
-static rados_t cluster = NULL;
 
 static const char *rados_escape_username(const char *username) {
 	const char *p;
@@ -68,9 +67,6 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	dict = i_new(struct rados_dict, 1);
 
-	dict->config = i_strdup("/etc/ceph/ceph.conf");
-	dict->cluster_name = i_strdup("ceph");
-	dict->cluster_user = i_strdup("client.admin");
 	dict->pool = i_strdup("librmb");
 
 	args = t_strsplit(uri, ":");
@@ -78,18 +74,9 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 		if (strncmp(*args, "oid=", 4) == 0) {
 			i_free(dict->oid);
 			dict->oid = i_strdup(*args + 4);
-		} else if (strncmp(*args, "config=", 7) == 0) {
-			i_free(dict->config);
-			dict->config = i_strdup(*args + 7);
 		} else if (strncmp(*args, "pool=", 5) == 0) {
 			i_free(dict->pool);
 			dict->pool = i_strdup(*args + 5);
-		} else if (strncmp(*args, "cluster_name=", 13) == 0) {
-			i_free(dict->cluster_name);
-			dict->cluster_name = i_strdup(*args + 13);
-		} else if (strncmp(*args, "cluster_user=", 13) == 0) {
-			i_free(dict->cluster_user);
-			dict->cluster_user = i_strdup(*args + 13);
 		} else {
 			*error_r = t_strdup_printf("Unknown parameter: %s", *args);
 			ret = -1;
@@ -100,8 +87,8 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 
 	if (ret >= 0) {
 		uint64_t flags = 0;
-		err = rados_create2(&dict->cluster, dict->cluster_name, dict->cluster_user, flags);
-		i_debug("rados_create2(cluster_name=%s,cluster_user=%s)=%d", dict->cluster_name, dict->cluster_user, err);
+		err = rados_create(&dict->cluster, NULL);
+		i_debug("rados_create()=%d", err);
 		if (err < 0) {
 			*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
 			ret = -1;
@@ -109,10 +96,19 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret >= 0) {
-		err = rados_conf_read_file(dict->cluster, (const char *) dict->config);
-		i_debug("rados_conf_read_file(file=%s)=%d", dict->config, err);
+		err = rados_conf_parse_env(dict->cluster, NULL);
+		i_debug("rados_conf_parse_env()=%d", err);
 		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
+			*error_r = t_strdup_printf("rados_conf_parse_env: %s", strerror(-err));
+			ret = -1;
+		}
+	}
+
+	if (ret >= 0) {
+		err = rados_conf_read_file(dict->cluster, NULL);
+		i_debug("rados_conf_read_file()=%d", err);
+		if (err < 0) {
+			*error_r = t_strdup_printf("rados_conf_read_file: %s", strerror(-err));
 			ret = -1;
 		}
 	}
@@ -137,10 +133,7 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	}
 
 	if (ret < 0) {
-		i_free(dict->config);
 		i_free(dict->pool);
-		i_free(dict->cluster_name);
-		i_free(dict->cluster_user);
 		i_free(dict);
 		return -1;
 	}
@@ -170,11 +163,7 @@ static void rados_dict_deinit(struct dict *_dict) {
 
 	rados_shutdown(dict->cluster);
 
-	i_free(dict->config);
 	i_free(dict->pool);
-	i_free(dict->cluster_name);
-	i_free(dict->cluster_user);
-
 	i_free(dict->username);
 	i_free(dict);
 }
@@ -188,6 +177,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	// TODO 2.3 *error_r = NULL;
 
 	i_debug("rados_dict_lookup(%s)", key);
+	i_assert(dict != NULL);
 
 	rados_write_op_t rop = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
@@ -235,6 +225,7 @@ static int rados_dict_lookup_async(struct dict *_dict, const char *key, dict_loo
 	int ret = DICT_COMMIT_RET_NOTFOUND;
 
 	i_debug("rados_dict_lookup(%s)", key);
+	i_assert(dict != NULL);
 
 	rados_write_op_t rop = rados_create_read_op();
 	rados_read_op_omap_get_vals_by_keys(rop, &key, 1, &iter, &r_val);
@@ -361,9 +352,9 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	int rval = -1;
 
 	/* these flags are not supported for now */
-	i_assert((flags & DICT_ITERATE_FLAG_RECURSE) == 0);
+	// i_assert((flags & DICT_ITERATE_FLAG_RECURSE) == 0);
 	i_assert((flags & DICT_ITERATE_FLAG_EXACT_KEY) == 0);
-	i_assert((flags & (DICT_ITERATE_FLAG_SORT_BY_KEY | DICT_ITERATE_FLAG_SORT_BY_VALUE)) == 0);
+	i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_VALUE) == 0);
 
 	iter = i_new(struct rados_dict_iterate_context, 1);
 	iter->ctx.dict = _dict;
@@ -371,7 +362,14 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	iter->error = NULL;
 
 	rados_read_op_t op = rados_create_read_op();
-	rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+
+	if ((iter->flags & DICT_ITERATE_FLAG_RECURSE) != 0) {
+		// rados_read_op_omap_get_vals(op, "", str_array_length(paths), &iter->omap_iter, &rval);
+		rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+	} else {
+		rados_read_op_omap_get_vals_by_keys(op, paths, str_array_length(paths), &iter->omap_iter, &rval);
+	}
+
 	int err = rados_read_op_operate(op, dict->io, dict->oid, 0);
 
 	if (err < 0) {
@@ -399,7 +397,6 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	size_t omap_val_len = 0;
 
 	int err = rados_omap_get_next(iter->omap_iter, &omap_key, &omap_val, &omap_val_len);
-
 	if (err < 0) {
 		iter->error = i_strdup_printf("Failed to perform RADOS omap iteration: %d", err);
 		return FALSE;
