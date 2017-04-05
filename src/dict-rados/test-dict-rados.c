@@ -94,7 +94,7 @@ static void test_dict_set_get_delete(void) {
 
 	value_r = "";
 	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY, lookup_callback, &value_r);
-	//test_assert(err == 1);
+	sleep(1); // Waiting a second...
 	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);

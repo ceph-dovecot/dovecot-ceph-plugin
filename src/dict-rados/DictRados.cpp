@@ -208,6 +208,20 @@ struct rados_dict_iterate_context {
 
 void ack_callback(rados_completion_t comp, void *arg) {
 	i_debug("**** ack_callback ****");
+
+	DictRados *dr = (DictRados *) arg;
+	map<std::string, bufferlist> *pmap = &dr->getReaderMap();
+
+	i_debug("**** map size = %d", pmap->size());
+	i_debug("**** key      = %s", dr->getLookupKey().c_str());
+	string value = pmap->find(dr->getLookupKey())->second.to_str();
+	i_debug("**** value    = %s", value.c_str());
+
+	struct dict_lookup_result result;
+	result.error = nullptr;
+	result.ret = DICT_COMMIT_RET_OK;
+	result.value = i_strdup(value.c_str());
+	dr->getCallback()(&result, dr->getContext());
 }
 
 void commit_callback(rados_completion_t comp, void *arg) {
@@ -465,11 +479,12 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 
 static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
+	DictRados *pdr = dict->dr;
 	rados_omap_iter_t iter;
 	int r_val = -1;
 	int ret = DICT_COMMIT_RET_NOTFOUND;
 
-	i_debug("rados_dict_lookup(%s)", key);
+	i_debug("rados_dict_lookup_async_1(%s)", key);
 
 /*
 	rados_write_op_t rop = rados_create_read_op();
@@ -485,17 +500,35 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	rados_aio_release(completion);
 */
 
-	ObjectReadOperation oro;
+	//ObjectReadOperation *poro = new ObjectReadOperation;
 	set<string> keys;
 	keys.insert(key);
-	map<std::string, bufferlist> map;
-	oro.omap_get_vals_by_keys(keys, &map, &r_val);
-	bufferlist bl;
+	pdr->setLookupKey(key);
 
-	AioCompletion* completion = dict->dr->createCompletion(&map, ack_callback, commit_callback);
+	i_debug("Context = %s", *(char **) context);
+	pdr->setContext(context);
+	pdr->setCallback(callback);
+
+	//map<std::string, bufferlist> *pmap = new map<std::string, bufferlist>();
+	//poro->omap_get_vals_by_keys(keys, pmap, &r_val);
+
+	pdr->getReadOperation().omap_get_vals_by_keys(keys, &pdr->getReaderMap(), &r_val);
+	//bufferlist bl;
+	//bufferlist *bl = new bufferlist;
+
+	i_debug("rados_dict_lookup_async_2(%s)", key);
+
+	//AioCompletion* completion = dict->dr->createCompletion(pmap, ack_callback, commit_callback);
+	AioCompletion* completion = pdr->createCompletion(dict->dr, ack_callback, commit_callback);
+
+	i_debug("rados_dict_lookup_async_3(%s)", key);
 
 	int fl = 0;
-	int err = dict->dr->ioContextAioReadOperate(completion, &oro, LIBRADOS_OPERATION_NOFLAG, &bl);
+	int err = pdr->ioContextAioReadOperate(completion, &pdr->getReadOperation(), LIBRADOS_OPERATION_NOFLAG, &pdr->getBufferList());
+
+	i_debug("rados_dict_lookup_async_4(%d)", err);
+
+/*
 	completion->wait_for_complete();
 	ret = completion->get_return_value();
 	completion->release();
@@ -522,7 +555,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
  				result.ret = DICT_COMMIT_RET_NOTFOUND;
  			}
 
-			/*
+
 			char *omap_key = NULL;
 			char *omap_val = NULL;
 			size_t omap_val_len = 0;
@@ -535,7 +568,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 					ret = DICT_COMMIT_RET_OK;
 				}
 			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
-*/
+
 		} else {
 			result.ret = DICT_COMMIT_RET_FAILED;
 			ret = DICT_COMMIT_RET_FAILED;
@@ -543,6 +576,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	}
 
 	callback(&result, context);
+*/
 
 /*
 	rados_release_read_op(rop);
