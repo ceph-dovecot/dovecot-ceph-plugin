@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
 
 	ret = rados_connect(rados);
 	if (ret < 0) {
-		printf("couldn't connect to cluster! error %d\n", ret);
+		printf("couldn't connect to cluster! error %d (%s)\n", ret, strerror(-ret));
 		ret = EXIT_FAILURE;
 		goto out;
 	}
