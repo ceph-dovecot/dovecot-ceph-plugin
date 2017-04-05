@@ -21,6 +21,7 @@ extern "C" {
 #include "module-dir.h"
 
 #include <rados/librados.h>
+
 #include "DictRados.h"
 
 }
@@ -529,12 +530,7 @@ static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *
 	i_debug("rados_atomic_inc(%s,%lld)", key, diff);
 
 	if (ctx->write_op) {
-		string_t *str = t_str_new(strlen(key) + 64);
-		str_printfa(str, "%s;%lld", key, diff);
-
-		bufferlist inbl;
-		inbl.append((const char *) str_data(str), str_len(str) + 1);
-		ctx->write_op->exec("rmb", "atomic_inc", inbl);
+		// TODO implement
 		_ctx->changed = TRUE;
 	}
 }
@@ -592,7 +588,7 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	*key_r = NULL;
 	*value_r = NULL;
 
-	if (iter->error != NULL) // || iter->omap_iter == NULL)
+	if (iter->error != NULL)
 		return FALSE;
 
 	struct rados_dict *dict = (struct rados_dict *) ctx->dict;
@@ -602,7 +598,7 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 		i_debug("Iterator found key = '%s', value = '%s'", dict->dr->getReaderMapIter()->first.c_str(),
 				dict->dr->getReaderMapIter()->second.to_str().c_str());
 		*key_r = i_strdup(dict->dr->getReaderMapIter()->first.c_str());
-		if ((iter->flags & DICT_ITERATE_FLAG_NO_VALUE) != 0) {
+		if ((iter->flags & DICT_ITERATE_FLAG_NO_VALUE) == 0) {
 			*value_r = i_strdup(dict->dr->getReaderMapIter()->second.to_str().c_str());
 		}
 		dict->dr->incrementReaderMapIterator();
