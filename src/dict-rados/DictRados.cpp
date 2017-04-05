@@ -406,6 +406,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	//map<std::string, bufferlist> *pmap = new map<std::string, bufferlist>();
 	//poro->omap_get_vals_by_keys(keys, pmap, &r_val);
 
+	pdr->clearReaderMap();
 	pdr->getReadOperation().omap_get_vals_by_keys(keys, &pdr->getReaderMap(), &r_val);
 	//bufferlist bl;
 	//bufferlist *bl = new bufferlist;
