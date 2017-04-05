@@ -1,11 +1,20 @@
 #ifndef SRC_DICTRADOS_HPP_
 #define SRC_DICTRADOS_HPP_
 
+extern "C" {
+#include "lib.h"
+#include "dict-private.h"
+}
+
 #include <rados/librados.hpp>
 
 class DictRados {
 
 private:
+
+	DictRados(const DictRados& that);
+	DictRados& operator=(const DictRados& that);
+
 	librados::Rados cluster;
 	librados::IoCtx io_ctx;
 
@@ -15,6 +24,12 @@ private:
 
 	std::map<std::string, librados::bufferlist> readerMap;
 	typename std::map<std::string, librados::bufferlist>::iterator readerMapIter;
+
+	librados::ObjectReadOperation readOperation;
+	librados::bufferlist bufferList;
+	std::string lookupKey;
+	void *context;
+	dict_lookup_callback_t *callback;
 
 	static const std::vector<std::string> explode(const std::string& str, const char& sep);
 
@@ -78,18 +93,49 @@ public:
 		return readerMap;
 	}
 
-	/*
-	 std::map<std::string, librados::bufferlist>& getReaderMap() {
-	 return readerMap;
-	 }
+	std::map<std::string, librados::bufferlist>& getReaderMap() {
+		return readerMap;
+	}
 
-	 */
-	void setReaderMap(const std::map<std::string, librados::bufferlist>& readerMap) {
+	void setReaderMap(
+			const std::map<std::string, librados::bufferlist>& readerMap) {
 		this->readerMap = readerMap;
 	}
 
 	typename std::map<std::string, librados::bufferlist>::iterator getReaderMapIter() const {
 		return readerMapIter;
+	}
+
+	librados::bufferlist& getBufferList() {
+		return bufferList;
+	}
+
+	librados::ObjectReadOperation& getReadOperation() {
+		return readOperation;
+	}
+
+	const std::string& getLookupKey() const {
+		return lookupKey;
+	}
+
+	void setLookupKey(const std::string& lookupKey) {
+		this->lookupKey = lookupKey;
+	}
+
+	void* getContext() const {
+		return context;
+	}
+
+	void setContext(void* context) {
+		this->context = context;
+	}
+
+	dict_lookup_callback_t* getCallback() const {
+		return callback;
+	}
+
+	void setCallback(dict_lookup_callback_t* callback) {
+		this->callback = callback;
 	}
 
 	const librados::Rados& getCluster() const {
@@ -99,6 +145,7 @@ public:
 	const librados::IoCtx& getIoCtx() const {
 		return io_ctx;
 	}
+
 };
 
 #endif /* SRC_DICTRADOS_HPP_ */
