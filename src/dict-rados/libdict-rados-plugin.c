@@ -9,6 +9,9 @@
 #include "ostream.h"
 #include "connection.h"
 #include "module-dir.h"
+#include "var-expand.h"
+#include "config.h"
+#include "config.h"
 #include "config.h"
 
 #include "libdict-rados-plugin.h"
