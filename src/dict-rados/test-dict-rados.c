@@ -162,7 +162,7 @@ static void test_dict_iterate(void) {
 	const char *error_r;
 
 	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEYS,
-			DICT_ITERATE_FLAG_NO_VALUE);
+			DICT_ITERATE_FLAG_SORT_BY_KEY);
 
 	const char *k, *v;
 	char *error;
@@ -171,6 +171,49 @@ static void test_dict_iterate(void) {
 	while (dict_iterate(iter, &k, &v)) {
 		test_assert(strcmp(k, OMAP_ITERATE_KEYS[i]) == 0);
 		test_assert(strcmp(v, OMAP_ITERATE_VALUES[i]) == 0);
+		i++;
+	}
+	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	for (i = 0; i < 4; i++) {
+		test_dict_r->v.unset(ctx, OMAP_ITERATE_KEYS[i]);
+	}
+	result = DICT_COMMIT_RET_NOTFOUND;
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+
+	test_end();
+}
+
+static void test_dict_iterate_no_value(void) {
+	struct dict_transaction_context * ctx;
+	int result;
+	int i;
+
+	test_begin("test_dict_iterate_no_value");
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	for (i = 0; i < 4; i++) {
+		test_dict_r->v.set(ctx, OMAP_ITERATE_KEYS[i], OMAP_ITERATE_VALUES[i]);
+	}
+	result = DICT_COMMIT_RET_NOTFOUND;
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+
+	const char *value_r;
+	const char *error_r;
+
+	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEYS,
+			DICT_ITERATE_FLAG_NO_VALUE);
+
+	const char *k, *v;
+	char *error;
+	i = 0;
+
+	while (dict_iterate(iter, &k, &v)) {
+		test_assert(strcmp(k, OMAP_ITERATE_KEYS[i]) == 0);
+		test_assert(v == 0);
 		i++;
 	}
 	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
@@ -253,6 +296,7 @@ int main(int argc, char **argv) {
 		test_dict_set_get_delete,
 		test_dict_atomic_inc,
 		test_dict_iterate,
+		test_dict_iterate_no_value,
 		test_dict_iterate_rec,
 		test_dict_deinit,
 		test_teardown,
