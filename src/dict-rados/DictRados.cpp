@@ -1,10 +1,3 @@
-/*
- * DictRados.cpp
- *
- *  Created on: Jan 24, 2017
- *      Author: peter
- */
-
 #include "DictRados.hpp"
 
 extern "C" {
@@ -19,9 +12,6 @@ extern "C" {
 #include "ostream.h"
 #include "connection.h"
 #include "module-dir.h"
-
-#include <rados/librados.h>
-
 #include "DictRados.h"
 
 }
@@ -34,121 +24,13 @@ extern "C" {
 #include <string>
 #include <vector>
 
+#include <rados/librados.hpp>
+#include "DictRados.hpp"
+
 using namespace librados;
 using namespace std;
 
-DictRados::DictRados() {
-	setPool("librmb");
-
-}
-
-DictRados::~DictRados() {
-	i_debug("DictRados::~DictRados()");
-}
-
-int DictRados::readConfigFromUri(const char *uri) {
-	int ret = 0;
-	vector<string> props(explode(uri, ':'));
-	for (vector<string>::iterator it = props.begin(); it != props.end(); ++it) {
-		//for (string p : props) {
-		if (it->compare(0, 4, "oid=") == 0) {
-			setOid(it->substr(4));
-		} else if (it->compare(0, 5, "pool=") == 0) {
-			setPool(it->substr(5));
-		} else {
-			//*error_r = t_strdup_printf("Unknown parameter: %s", *args);
-			ret = -1;
-			break;
-		}
-	}
-
-	return ret;
-}
-
-int DictRados::parseArguments(int argc, const char ** argv) {
-	return cluster.conf_parse_argv(argc, argv);
-}
-
-int DictRados::connect() {
-	return cluster.connect();
-}
-
-void DictRados::shutdown() {
-	cluster.shutdown();
-}
-
-AioCompletion* DictRados::createCompletion() {
-	return cluster.aio_create_completion();
-}
-
-AioCompletion* DictRados::createCompletion(void *cb_arg, callback_t cb_complete, callback_t cb_safe) {
-	return cluster.aio_create_completion(cb_arg, cb_complete, cb_safe);
-}
-
-int DictRados::createIOContext(const char *name) {
-	return cluster.ioctx_create(name, io_ctx);
-}
-
-void DictRados::ioContextClose() {
-	io_ctx.close();
-}
-
-void DictRados::ioContextSetNamspace(const std::string& nspace) {
-	io_ctx.set_namespace(nspace);
-}
-
-int DictRados::ioContextReadOperate(const std::string& oid, librados::ObjectReadOperation *op, librados::bufferlist *pbl) {
-	return io_ctx.operate(oid, op, pbl);
-}
-
-int DictRados::ioContextReadOperate(librados::ObjectReadOperation *op, librados::bufferlist *pbl) {
-	return ioContextReadOperate(sOid, op, pbl);
-}
-
-int DictRados::ioContextAioReadOperate(const std::string& oid, librados::AioCompletion* aioCompletion,
-		librados::ObjectReadOperation *op, int flags, librados::bufferlist *pbl) {
-	return io_ctx.aio_operate(oid, aioCompletion, op, flags, pbl);
-}
-
-int DictRados::ioContextAioReadOperate(librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op, int flags,
-		librados::bufferlist *pbl) {
-	return ioContextAioReadOperate(sOid, aioCompletion, op, flags, pbl);
-}
-
-int DictRados::ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation *op) {
-	return io_ctx.operate(oid, op);
-}
-
-int DictRados::ioContextWriteOperate(librados::ObjectWriteOperation *op) {
-	return ioContextWriteOperate(sOid, op);
-}
-
-int DictRados::ioContextAioWriteOperate(const std::string& oid, librados::AioCompletion* aioCompletion,
-		librados::ObjectWriteOperation *op, int flags) {
-	return io_ctx.aio_operate(oid, aioCompletion, op, flags);
-}
-
-int DictRados::ioContextAioWriteOperate(librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags) {
-	return ioContextAioWriteOperate(sOid, aioCompletion, op, flags);
-}
-
-void DictRados::clearReaderMap() {
-	readerMap.clear();
-}
-
-void DictRados::incrementReaderMapIterator() {
-	readerMapIter++;
-}
-
-void DictRados::beginReaderMapIterator() {
-	readerMapIter = readerMap.begin();
-}
-
-bool DictRados::isEndReaderMapIterator() {
-	return (readerMapIter == readerMap.end());
-}
-
-static const vector<string> DictRados::explode(const string& str, const char& sep) {
+static const vector<string> explode(const string& str, const char& sep) {
 	vector<string> v;
 	stringstream ss(str); // Turn the string into a stream.
 	string tok;
@@ -160,19 +42,46 @@ static const vector<string> DictRados::explode(const string& str, const char& se
 	return v;
 }
 
+DictRados::DictRados() :
+		pool("librmb"), callback(nullptr), context(nullptr) {
+}
+
+DictRados::~DictRados() {
+}
+
+int DictRados::read_config_from_uri(const char *uri) {
+	int ret = 0;
+	vector<string> props(explode(uri, ':'));
+	for (vector<string>::iterator it = props.begin(); it != props.end(); ++it) {
+		if (it->compare(0, 4, "oid=") == 0) {
+			oid = it->substr(4);
+		} else if (it->compare(0, 5, "pool=") == 0) {
+			pool = it->substr(5);
+		} else {
+			//*error_r = t_strdup_printf("Unknown parameter: %s", *args);
+			ret = -1;
+			break;
+		}
+	}
+
+	return ret;
+}
+
 ///////////////////////////// C API //////////////////////////////
 
 #define DICT_USERNAME_SEPARATOR '/'
 
+static Rados cluster;
+static int cluster_ref_count;
+
 struct rados_dict {
 	struct dict dict;
-	DictRados *dr;
+	DictRados *d;
 };
 
 struct rados_dict_transaction_context {
 	struct dict_transaction_context ctx;
 	bool atomic_inc_not_found;
-
 	ObjectWriteOperation *write_op;
 };
 
@@ -181,25 +90,26 @@ struct rados_dict_iterate_context {
 	enum dict_iterate_flags flags;
 	char *error;
 
-	ObjectReadOperation *read_op;
+	std::map<std::string, bufferlist> *readerMap;
+	typename std::map<std::string, bufferlist>::iterator readerMapIter;
 };
 
 void ack_callback(rados_completion_t comp, void *arg) {
 	i_debug("**** ack_callback ****");
 
-	DictRados *dr = (DictRados *) arg;
-	map<std::string, bufferlist> *pmap = &dr->getReaderMap();
+	DictRados *d = (DictRados *) arg;
+	map<std::string, bufferlist> *pmap = &d->readerMap;
 
-	i_debug("**** map size = %d", pmap->size());
-	i_debug("**** key      = %s", dr->getLookupKey().c_str());
-	string value = pmap->find(dr->getLookupKey())->second.to_str();
+	i_debug("**** map size = %ld", pmap->size());
+	i_debug("**** key      = %s", d->lookupKey.c_str());
+	string value = pmap->find(d->lookupKey)->second.to_str();
 	i_debug("**** value    = %s", value.c_str());
 
 	struct dict_lookup_result result;
 	result.error = nullptr;
 	result.ret = DICT_COMMIT_RET_OK;
 	result.value = i_strdup(value.c_str());
-	dr->getCallback()(&result, dr->getContext());
+	d->callback(&result, d->context);
 }
 
 void commit_callback(rados_completion_t comp, void *arg) {
@@ -225,69 +135,76 @@ static const char *rados_escape_username(const char *username) {
 	return str_c(str);
 }
 
-static int rados_dict_init(struct dict *driver, const char *uri, const struct dict_settings *set, struct dict **dict_r,
+int rados_dict_init(struct dict *driver, const char *uri, const struct dict_settings *set, struct dict **dict_r,
 		const char **error_r) {
 	struct rados_dict *dict;
 	const char * const *args;
 	int ret = 0;
 	int err = 0;
 
-	i_debug("rados_dict_init(uri=%s)", uri);
+	i_debug("rados_dict_init(uri=%s), cluster_ref_count=%d", uri, cluster_ref_count);
 
 	dict = i_new(struct rados_dict, 1);
-	dict->dr = new DictRados();
+	dict->d = new DictRados();
+	DictRados *d = dict->d;
 
-	ret = dict->dr->readConfigFromUri(uri);
+	ret = d->read_config_from_uri(uri);
 
-	if (ret >= 0) {
-		err = dict->dr->getCluster().init(nullptr);
-		i_debug("initCluster()=%d", err);
-		if (err < 0) {
-			*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
-			ret = -1;
+	if (cluster_ref_count == 0) {
+		if (ret >= 0) {
+			err = cluster.init(nullptr);
+			i_debug("initCluster()=%d", err);
+			if (err < 0) {
+				*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.conf_parse_env(nullptr);
+			i_debug("conf_parse_env()=%d", err);
+			if (err < 0) {
+				*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.conf_read_file(nullptr);
+			i_debug("readConfigFile()=%d", err);
+			if (err < 0) {
+				*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.connect();
+			i_debug("connect()=%d", err);
+			if (err < 0) {
+				i_debug("Cannot connect to cluster: %s", strerror(-err));
+				*error_r = t_strdup_printf("Cannot connect to cluster: %s", strerror(-err));
+				ret = -1;
+			} else {
+				cluster_ref_count++;
+			}
 		}
 	}
 
 	if (ret >= 0) {
-		err = dict->dr->getCluster().conf_parse_env(nullptr);
-		i_debug("conf_parse_env()=%d", err);
+		err = cluster.ioctx_create(dict->d->pool.c_str(), dict->d->io_ctx);
+		i_debug("createIOContext(pool=%s)=%d", dict->d->pool.c_str(), err);
 		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
-			ret = -1;
-		}
-	}
-
-	if (ret >= 0) {
-		err = dict->dr->getCluster().conf_read_file(nullptr);
-		i_debug("readConfigFile()=%d", err);
-		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
-			ret = -1;
-		}
-	}
-
-	if (ret >= 0) {
-		err = dict->dr->connect();
-		i_debug("connect()=%d", err);
-		if (err < 0) {
-			i_debug("Cannot connect to cluster: %s", strerror(-err));
-			*error_r = t_strdup_printf("Cannot connect to cluster: %s", strerror(-err));
-			ret = -1;
-		}
-	}
-
-	if (ret >= 0) {
-		err = dict->dr->createIOContext(dict->dr->getPool().c_str());
-		i_debug("createIOContext(pool=%s)=%d", dict->dr->getPool().c_str(), err);
-		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->dr->getPool().c_str(), strerror(-err));
-			dict->dr->shutdown();
+			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->d->pool.c_str(), strerror(-err));
+			cluster.shutdown();
+			cluster_ref_count--;
 			ret = -1;
 		}
 	}
 
 	if (ret < 0) {
-		delete dict->dr;
+		delete dict->d;
+		dict->d = nullptr;
 		i_free(dict);
 		return -1;
 	}
@@ -295,36 +212,41 @@ static int rados_dict_init(struct dict *driver, const char *uri, const struct di
 	dict->dict = *driver;
 
 	if (strchr(set->username, DICT_USERNAME_SEPARATOR) == NULL) {
-		dict->dr->setUsername(set->username);
+		dict->d->username = set->username;
 	} else {
 		/* escape the username */
-		dict->dr->setUsername(rados_escape_username(set->username));
+		dict->d->username = rados_escape_username(set->username);
 	}
 
-	dict->dr->ioContextSetNamspace(dict->dr->getUsername());
-	i_debug("setIOContextNamespace(%s)", dict->dr->getUsername().c_str());
+	dict->d->io_ctx.set_namespace(dict->d->username);
+	i_debug("setIOContextNamespace(%s)", dict->d->username.c_str());
 
 	*dict_r = &dict->dict;
 	return 0;
 }
 
-static void rados_dict_deinit(struct dict *_dict) {
+void rados_dict_deinit(struct dict *_dict) {
 	struct rados_dict *dict = (struct rados_dict *) _dict;
+	DictRados *d = ((struct rados_dict *) _dict)->d;
 
-	i_debug("rados_dict_deinit");
+	i_debug("rados_dict_deinit(), cluster_ref_count=%d", cluster_ref_count);
 
-	if (dict->dr != nullptr) {
-		dict->dr->ioContextClose();
-		dict->dr->shutdown();
-		delete dict->dr;
-		dict->dr = nullptr;
+	d->io_ctx.close();
+	delete dict->d;
+	dict->d = nullptr;
+
+	i_free(_dict);
+
+	if (cluster_ref_count > 0) {
+		cluster_ref_count--;
+		if (cluster_ref_count == 0) {
+			cluster.shutdown();
+		}
 	}
-
-	i_free(dict);
 }
 
-static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r) {
-	struct rados_dict *dict = (struct rados_dict *) _dict;
+int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r) {
+	DictRados *d = ((struct rados_dict *) _dict)->d;
 	int r_val = -1;
 	int ret = DICT_COMMIT_RET_NOTFOUND;
 	*value_r = NULL;
@@ -339,10 +261,10 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	bufferlist bl;
 	oro.set_op_flags2(OPERATION_NOFLAG);
 
-	int err = dict->dr->ioContextReadOperate(&oro, &bl);
+	int err = d->io_ctx.operate(d->oid, &oro, &bl);
 
-	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->dr->getUsername().c_str(), dict->dr->getOid().c_str(),
-			err, strerror(-err), r_val, strerror(-r_val));
+	i_debug("rados_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", d->username.c_str(), d->oid.c_str(), err, strerror(-err),
+			r_val, strerror(-r_val));
 
 	if (err == 0) {
 		if (r_val == 0) {
@@ -352,7 +274,7 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 				string val = it->second.to_str();
 				i_debug("Found key = '%s', value = '%s'", it->first.c_str(), val.c_str());
 
-				*value_r = p_strndup(pool, val.c_str(), val.length());
+				*value_r = p_strndup(pool, (const void *) val.c_str(), (size_t) val.length());
 				ret = DICT_COMMIT_RET_OK;
 			}
 		} else {
@@ -371,9 +293,8 @@ static int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, c
 	return ret;
 }
 
-static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context) {
-	struct rados_dict *dict = (struct rados_dict *) _dict;
-	DictRados *pdr = dict->dr;
+void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_callback_t *callback, void *context) {
+	DictRados *d = ((struct rados_dict *) _dict)->d;
 	rados_omap_iter_t iter;
 	int r_val = -1;
 	int ret = DICT_COMMIT_RET_NOTFOUND;
@@ -397,79 +318,78 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	//ObjectReadOperation *poro = new ObjectReadOperation;
 	set<string> keys;
 	keys.insert(key);
-	pdr->setLookupKey(key);
+	d->lookupKey = key;
 
 	i_debug("Context = %s", *(char **) context);
-	pdr->setContext(context);
-	pdr->setCallback(callback);
+	d->context = context;
+	d->callback = callback;
 
 	//map<std::string, bufferlist> *pmap = new map<std::string, bufferlist>();
 	//poro->omap_get_vals_by_keys(keys, pmap, &r_val);
 
-	pdr->clearReaderMap();
-	pdr->getReadOperation().omap_get_vals_by_keys(keys, &pdr->getReaderMap(), &r_val);
+	d->readerMap.clear();
+	d->readOperation.omap_get_vals_by_keys(keys, &d->readerMap, &r_val);
 	//bufferlist bl;
 	//bufferlist *bl = new bufferlist;
 
 	i_debug("rados_dict_lookup_async_2(%s)", key);
 
-	//AioCompletion* completion = dict->dr->createCompletion(pmap, ack_callback, commit_callback);
-	AioCompletion* completion = pdr->createCompletion(dict->dr, ack_callback, commit_callback);
+	AioCompletion* completion = cluster.aio_create_completion(d, ack_callback, commit_callback);
 
 	i_debug("rados_dict_lookup_async_3(%s)", key);
 
 	int fl = 0;
-	int err = pdr->ioContextAioReadOperate(completion, &pdr->getReadOperation(), LIBRADOS_OPERATION_NOFLAG, &pdr->getBufferList());
+	int err = d->io_ctx.aio_operate(d->oid, completion, &d->readOperation, LIBRADOS_OPERATION_NOFLAG, &d->bufferList);
 
 	i_debug("rados_dict_lookup_async_4(%d)", err);
 
-/*
-	completion->wait_for_complete();
-	ret = completion->get_return_value();
-	completion->release();
+	/*
+	 completion->wait_for_complete();
+	 ret = completion->get_return_value();
+	 completion->release();
 
-	i_debug("rados_aio_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->dr->getUsername().c_str(),
-			dict->dr->getOid().c_str(), err, strerror(-err), r_val, strerror(-r_val));
-	struct dict_lookup_result result;
-	result.error = nullptr;
+	 i_debug("rados_aio_read_op_operate(namespace=%s,oid=%s)=%d(%s),%d(%s)", dict->d->sUsername.c_str(),
+	 dict->d->sOid.c_str(), err, strerror(-err), r_val, strerror(-r_val));
+	 struct dict_lookup_result result;
+	 result.error = nullptr;
 
-	if (err < 0) {
-		result.ret = DICT_COMMIT_RET_FAILED;
-		ret = DICT_COMMIT_RET_FAILED;
-	} else {
-		if (r_val == 0) {
-			auto it = map.find(key);
-			if (it != map.end()) {
-				string val = it->second.to_str();
-				i_debug("Found key = '%s', value = '%s'", it->first.c_str(), val.c_str());
+	 if (err < 0) {
+	 result.ret = DICT_COMMIT_RET_FAILED;
+	 ret = DICT_COMMIT_RET_FAILED;
+	 } else {
+	 if (r_val == 0) {
+	 auto it = map.find(key);
+	 if (it != map.end()) {
+	 string val = it->second.to_str();
+	 i_debug("Found key = '%s', value = '%s'", it->first.c_str(), val.c_str());
 
-				result.ret = DICT_COMMIT_RET_OK;
-				result.value = i_strdup(val.c_str());
-			} else {
-				result.ret = DICT_COMMIT_RET_NOTFOUND;
-			}
+	 result.ret = DICT_COMMIT_RET_OK;
+	 result.value = i_strdup(val.c_str());
+	 } else {
+	 result.ret = DICT_COMMIT_RET_NOTFOUND;
+	 }
 
-			char *omap_key = NULL;
-			char *omap_val = NULL;
-			size_t omap_val_len = 0;
-			size_t err;
+	 char *omap_key = NULL;
+	 char *omap_val = NULL;
+	 size_t omap_val_len = 0;
+	 size_t err;
 
-			do {
-				err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
-				if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
-				&& strcmp(key, omap_key) == 0 && omap_val != NULL) {
-					ret = DICT_COMMIT_RET_OK;
-				}
-			} while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
+	 do {
+	 err = rados_omap_get_next(iter, &omap_key, &omap_val, &omap_val_len);
+	 if (err == 0&& !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL)
+	 && strcmp(key, omap_key) == 0 && omap_val != NULL) {
+	 ret = DICT_COMMIT_RET_OK;
+	 }
+	 } while (err == 0 && !(omap_val_len == 0 && omap_key == NULL && omap_val == NULL));
 
-		} else {
-			result.ret = DICT_COMMIT_RET_FAILED;
-			ret = DICT_COMMIT_RET_FAILED;
-		}
-	}
+	 } else {
+	 result.ret = DICT_COMMIT_RET_FAILED;
+	 ret = DICT_COMMIT_RET_FAILED;
+	 }
+	 }
 
-	callback(&result, context);
-*/
+	 callback(&result, context);
+	 */
 
 	/*
 	 rados_release_read_op(rop);
@@ -478,7 +398,7 @@ static void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lo
 	 */
 }
 
-static struct dict_transaction_context *rados_transaction_init(struct dict *_dict) {
+struct dict_transaction_context *rados_transaction_init(struct dict *_dict) {
 	struct rados_dict_transaction_context *ctx;
 
 	ctx = i_new(struct rados_dict_transaction_context, 1);
@@ -488,15 +408,16 @@ static struct dict_transaction_context *rados_transaction_init(struct dict *_dic
 	return &ctx->ctx;
 }
 
-static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,
+int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,
 		void *context) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
-	struct rados_dict *dict = (struct rados_dict *) _ctx->dict;
+	DictRados *d = ((struct rados_dict *) _ctx->dict)->d;
+
 	int ret = DICT_COMMIT_RET_OK;
 
 	if (ctx->write_op && _ctx->changed) {
 		ctx->write_op->set_op_flags2(OPERATION_NOFLAG);
-		int err = dict->dr->ioContextWriteOperate(ctx->write_op);
+		int err = d->io_ctx.operate(d->oid, ctx->write_op);
 
 		delete ctx->write_op;
 		ctx->write_op = nullptr;
@@ -517,18 +438,16 @@ static int rados_transaction_commit(struct dict_transaction_context *_ctx, bool 
 	return ret;
 }
 
-static void rados_transaction_rollback(struct dict_transaction_context *_ctx) {
+void rados_transaction_rollback(struct dict_transaction_context *_ctx) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 
-	if (ctx->write_op) {
-		delete ctx->write_op;
-		ctx->write_op = nullptr;
-	}
+	delete ctx->write_op;
+	ctx->write_op = nullptr;
 
 	i_free(ctx);
 }
 
-static void rados_set(struct dict_transaction_context *_ctx, const char *key, const char *value) {
+void rados_set(struct dict_transaction_context *_ctx, const char *key, const char *value) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 	i_debug("rados_set(%s,%s)", key, value);
 
@@ -545,7 +464,7 @@ static void rados_set(struct dict_transaction_context *_ctx, const char *key, co
 	}
 }
 
-static void rados_unset(struct dict_transaction_context *_ctx, const char *key) {
+void rados_unset(struct dict_transaction_context *_ctx, const char *key) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 	i_debug("rados_unset(%s)", key);
 
@@ -559,7 +478,7 @@ static void rados_unset(struct dict_transaction_context *_ctx, const char *key) 
 	}
 }
 
-static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff) {
+void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff) {
 	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
 	i_debug("rados_atomic_inc(%s,%lld)", key, diff);
 
@@ -569,10 +488,9 @@ static void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *
 	}
 }
 
-static struct dict_iterate_context *
+struct dict_iterate_context *
 rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict_iterate_flags flags) {
-	struct rados_dict *dict = (struct rados_dict *) _dict;
-	struct rados_dict_iterate_context *iter;
+	DictRados *d = ((struct rados_dict *) _dict)->d;
 	int rval = -1;
 
 	/* these flags are not supported for now */
@@ -580,43 +498,43 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 	i_assert((flags & DICT_ITERATE_FLAG_EXACT_KEY) == 0);
 	i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_VALUE) == 0);
 
-	iter = i_new(struct rados_dict_iterate_context, 1);
+	struct rados_dict_iterate_context *iter = i_new(struct rados_dict_iterate_context, 1);
 	iter->ctx.dict = _dict;
 	iter->flags = flags;
 	iter->error = NULL;
 
-	iter->read_op = new ObjectReadOperation();
+	ObjectReadOperation read_op;
+
 	set<string> keys;
 	while (*paths) {
 		keys.insert(*paths);
 		paths++;
 	}
-	dict->dr->clearReaderMap();
-	map<string, bufferlist> map;
-	iter->read_op->omap_get_vals_by_keys(keys, &map, &rval);
+
+	iter->readerMap = new std::map<std::string, bufferlist>();
+	read_op.omap_get_vals_by_keys(keys, iter->readerMap, &rval);
 	bufferlist bl;
-	int err = dict->dr->ioContextReadOperate(iter->read_op, &bl);
-	dict->dr->setReaderMap(map);
+	int err = d->io_ctx.operate(d->oid, &read_op, &bl);
 
 	if (err == 0) {
-		dict->dr->beginReaderMapIterator();
-	}
+		iter->readerMapIter = iter->readerMap->begin();
+	} else {
+		if (err < 0) {
+			iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
+		}
 
-	if (err < 0) {
-		iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
-	}
+		if (rval < 0) {
+			iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
+		}
 
-	if (rval < 0) {
-		iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
+		delete iter->readerMap;
+		iter->readerMap = nullptr;
 	}
-
-	delete iter->read_op;
-	iter->read_op = nullptr;
 
 	return &iter->ctx;
 }
 
-static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, const char **value_r) {
+bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, const char **value_r) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
 
 	*key_r = NULL;
@@ -625,25 +543,27 @@ static bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **ke
 	if (iter->error != NULL)
 		return FALSE;
 
-	struct rados_dict *dict = (struct rados_dict *) ctx->dict;
-	if (dict->dr->isEndReaderMapIterator()) {
+	if (iter->readerMapIter == iter->readerMap->end()) {
 		return FALSE;
 	} else {
-		i_debug("Iterator found key = '%s', value = '%s'", dict->dr->getReaderMapIter()->first.c_str(),
-				dict->dr->getReaderMapIter()->second.to_str().c_str());
-		*key_r = i_strdup(dict->dr->getReaderMapIter()->first.c_str());
+		i_debug("Iterator found key = '%s', value = '%s'", iter->readerMapIter->first.c_str(),
+				iter->readerMapIter->second.to_str().c_str());
+		*key_r = i_strdup(iter->readerMapIter->first.c_str());
 		if ((iter->flags & DICT_ITERATE_FLAG_NO_VALUE) == 0) {
-			*value_r = i_strdup(dict->dr->getReaderMapIter()->second.to_str().c_str());
+			*value_r = i_strdup(iter->readerMapIter->second.to_str().c_str());
 		}
-		dict->dr->incrementReaderMapIterator();
+		iter->readerMapIter++;
 	}
 
 	return TRUE;
 }
 
-static int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
+int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
 	int ret = iter->error != NULL ? -1 : 0;
+
+	delete iter->readerMap;
+	iter->readerMap = nullptr;
 
 	i_free(iter->error);
 	i_free(iter);
