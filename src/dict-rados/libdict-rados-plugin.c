@@ -14,7 +14,6 @@
 #include "config.h"
 #include "config.h"
 
-#include "libdict-rados-plugin.h"
 #include "DictRados.h"
 
 struct dict dict_driver_rados = { .name = "rados", {
@@ -35,20 +34,20 @@ struct dict dict_driver_rados = { .name = "rados", {
 		.switch_ioloop = NULL,
 		.set_timestamp = NULL } };
 
-static int refcount = 0;
+static int plugin_ref_count = 0;
 
 void dict_rados_plugin_init(struct module *module) {
 	(void)module; // suppress an unused parameter warning
-	i_debug("dict_rados_plugin_init refcount=%d", refcount);
-	if (refcount++ > 0)
+	i_debug("dict_rados_plugin_init refcount=%d", plugin_ref_count);
+	if (plugin_ref_count++ > 0)
 		return;
 	i_debug("dict_rados_plugin_init registers dict_driver_rados ");
 	dict_driver_register(&dict_driver_rados);
 }
 
 void dict_rados_plugin_deinit(void) {
-	i_debug("dict_rados_plugin_deinit refcount=%d", refcount);
-	if (--refcount > 0)
+	i_debug("dict_rados_plugin_deinit refcount=%d", plugin_ref_count);
+	if (--plugin_ref_count > 0)
 		return;
 	i_debug("dict_rados_plugin_deinit unregisters dict_driver_rados ");
 	dict_driver_unregister(&dict_driver_rados);
