@@ -33,3 +33,4 @@ public:
 };
 
 #endif /* SRC_DICTRADOS_HPP_ */
+
