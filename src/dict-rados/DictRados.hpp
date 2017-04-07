@@ -25,11 +25,12 @@ private:
 	std::map<std::string, librados::bufferlist> readerMap;
 	typename std::map<std::string, librados::bufferlist>::iterator readerMapIter;
 
+	librados::AioCompletion* completion;
 	librados::ObjectReadOperation readOperation;
 	librados::bufferlist bufferList;
 	std::string lookupKey;
-	void *context;
-	dict_lookup_callback_t *callback;
+	void* context;
+	dict_lookup_callback_t* callback;
 
 	static const std::vector<std::string> explode(const std::string& str, const char& sep);
 
@@ -37,33 +38,37 @@ public:
 	DictRados();
 	virtual ~DictRados();
 
-	int readConfigFromUri(const char *uri);
+	int init(const char* uri, const char** error_r);
+	void deinit();
 
-	int parseArguments(int argc, const char **argv);
+	int readConfigFromUri(const char* uri);
+	int parseArguments(int argc, const char** argv);
 	int connect();
-	void shutdown();
 	librados::AioCompletion* createCompletion();
-	librados::AioCompletion* createCompletion(void *cb_arg, librados::callback_t cb_complete, librados::callback_t cb_safe);
+	librados::AioCompletion* createCompletion(void* cb_arg, librados::callback_t cb_complete, librados::callback_t cb_safe);
 
-	int createIOContext(const char *name);
-	void ioContextClose();
+	int createIOContext(const char* name);
 	void ioContextSetNamspace(const std::string& nspace);
-	int ioContextReadOperate(const std::string& oid, librados::ObjectReadOperation *op, librados::bufferlist *pbl);
-	int ioContextReadOperate(librados::ObjectReadOperation *op, librados::bufferlist *pbl);
-	int ioContextAioReadOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op,
-			int flags, librados::bufferlist *pbl);
-	int ioContextAioReadOperate(librados::AioCompletion* aioCompletion, librados::ObjectReadOperation *op, int flags,
-			librados::bufferlist *pbl);
-	int ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation *op);
-	int ioContextWriteOperate(librados::ObjectWriteOperation *op);
-	int ioContextAioWriteOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op,
+	int ioContextReadOperate(const std::string& oid, librados::ObjectReadOperation* op, librados::bufferlist* pbl);
+	int ioContextReadOperate(librados::ObjectReadOperation* op, librados::bufferlist* pbl);
+	int ioContextAioReadOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectReadOperation* op,
+			int flags, librados::bufferlist* pbl);
+	int ioContextAioReadOperate(librados::AioCompletion* aioCompletion, librados::ObjectReadOperation* op, int flags,
+			librados::bufferlist* pbl);
+	int ioContextWriteOperate(const std::string& oid, librados::ObjectWriteOperation* op);
+	int ioContextWriteOperate(librados::ObjectWriteOperation* op);
+	int ioContextAioWriteOperate(const std::string& oid, librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation* op,
 			int flags);
-	int ioContextAioWriteOperate(librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation *op, int flags);
+	int ioContextAioWriteOperate(librados::AioCompletion* aioCompletion, librados::ObjectWriteOperation* op, int flags);
 
 	void clearReaderMap();
 	void incrementReaderMapIterator();
 	void beginReaderMapIterator();
 	bool isEndReaderMapIterator();
+
+	int waitForCompletion();
+
+	void clearBufferList();
 
 	const std::string& getOid() const {
 		return sOid;
@@ -136,14 +141,6 @@ public:
 
 	void setCallback(dict_lookup_callback_t* callback) {
 		this->callback = callback;
-	}
-
-	const librados::Rados& getCluster() const {
-		return cluster;
-	}
-
-	const librados::IoCtx& getIoCtx() const {
-		return io_ctx;
 	}
 
 };
