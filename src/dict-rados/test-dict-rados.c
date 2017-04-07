@@ -21,8 +21,8 @@ static const char* OMAP_KEY = "key";
 static const char* OMAP_NO_KEY = "no_key";
 static const char* OMAP_VALUE = "Artemis";
 
-static char* OMAP_ITERATE_KEYS[] = { "K1", "K2", "K3", "K4", NULL };
-static char* OMAP_ITERATE_VALUES[] = { "V1", "V2", "V3", "V4", NULL };
+static const char* OMAP_ITERATE_KEYS[] = { "K1", "K2", "K3", "K4", NULL };
+static const char* OMAP_ITERATE_VALUES[] = { "V1", "V2", "V3", "V4", NULL };
 
 static char* OMAP_ITERATE_REC_KEYS[] = { "A1", "A1/B1", "A/B1/C1", "A1/B1/C2", "A1/B2", "A2", NULL };
 static char* OMAP_ITERATE_REC_VALUES[] = { "V-A1", "V-A1/B1", "V-A/B1/C1", "V-A1/B1/C2", "V-A1/B2", "V-A2", NULL };
@@ -41,7 +41,6 @@ struct dict *test_dict_r = NULL;
 
 static void dict_transaction_commit_sync_callback(int ret, void *context) {
 	int *sync_result = context;
-
 	*sync_result = ret;
 }
 

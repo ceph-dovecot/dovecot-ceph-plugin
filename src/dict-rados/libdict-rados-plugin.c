@@ -37,6 +37,7 @@ struct dict dict_driver_rados = { .name = "rados", {
 static int plugin_ref_count = 0;
 
 void dict_rados_plugin_init(struct module *module) {
+	(void)module; // suppress an unused parameter warning
 	i_debug("dict_rados_plugin_init refcount=%d", plugin_ref_count);
 	if (plugin_ref_count++ > 0)
 		return;
