@@ -23,6 +23,7 @@ extern "C" {
 #include <sstream>
 #include <string>
 #include <vector>
+#include <limits.h>
 
 #include <rados/librados.hpp>
 #include "DictRados.hpp"
@@ -83,15 +84,6 @@ struct rados_dict_transaction_context {
 	struct dict_transaction_context ctx;
 	bool atomic_inc_not_found;
 	ObjectWriteOperation *write_op;
-};
-
-struct rados_dict_iterate_context {
-	struct dict_iterate_context ctx;
-	enum dict_iterate_flags flags;
-	char *error;
-
-	std::map<std::string, bufferlist> *readerMap;
-	typename std::map<std::string, bufferlist>::iterator readerMapIter;
 };
 
 void ack_callback(rados_completion_t comp, void *arg) {
@@ -488,47 +480,79 @@ void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, lo
 	}
 }
 
+class kv_map {
+public:
+	int rval = -1;
+	std::string key;
+	std::map<std::string, bufferlist> map;
+	typename std::map<std::string, bufferlist>::iterator map_iter;
+};
+
+class rados_dict_iterate_context {
+public:
+	struct dict_iterate_context ctx;
+	enum dict_iterate_flags flags;
+	bool failed = FALSE;
+
+	std::vector<kv_map> results;
+	typename std::vector<kv_map>::iterator results_iter;
+};
+
 struct dict_iterate_context *
 rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict_iterate_flags flags) {
 	DictRados *d = ((struct rados_dict *) _dict)->d;
-	int rval = -1;
+
+	i_debug("rados_dict_iterate_init()");
 
 	/* these flags are not supported for now */
-	i_assert((flags & DICT_ITERATE_FLAG_RECURSE) == 0);
-	i_assert((flags & DICT_ITERATE_FLAG_EXACT_KEY) == 0);
 	i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_VALUE) == 0);
+	i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_KEY) == 0);
+	i_assert((flags & DICT_ITERATE_FLAG_ASYNC) == 0);
 
-	struct rados_dict_iterate_context *iter = i_new(struct rados_dict_iterate_context, 1);
+	auto iter = new rados_dict_iterate_context();
+
 	iter->ctx.dict = _dict;
 	iter->flags = flags;
-	iter->error = NULL;
-
-	ObjectReadOperation read_op;
 
 	set<string> keys;
 	while (*paths) {
-		keys.insert(*paths);
-		paths++;
+		keys.insert(*paths++);
 	}
 
-	iter->readerMap = new std::map<std::string, bufferlist>();
-	read_op.omap_get_vals_by_keys(keys, iter->readerMap, &rval);
-	bufferlist bl;
-	int err = d->io_ctx.operate(d->oid, &read_op, &bl);
+	if (keys.size() != 0) {
+		ObjectReadOperation read_op;
 
-	if (err == 0) {
-		iter->readerMapIter = iter->readerMap->begin();
+		if (flags & DICT_ITERATE_FLAG_EXACT_KEY) {
+			iter->results.reserve(1);
+			iter->results.emplace_back();
+			read_op.omap_get_vals_by_keys(keys, &iter->results.back().map, &iter->results.back().rval);
+		} else {
+			iter->results.reserve(keys.size());
+			int i = 0;
+			for (auto k : keys) {
+				iter->results.emplace_back();
+				iter->results.back().key = k;
+				read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, nullptr, &iter->results.back().rval);
+			}
+		}
+
+		bufferlist bl;
+		int err = d->io_ctx.operate(d->oid, &read_op, &bl);
+
+		iter->failed = err < 0;
+		for (auto r : iter->results) {
+			iter->failed |= (r.rval < 0);
+		}
+
+		if (!iter->failed) {
+			auto ri = iter->results_iter = iter->results.begin();
+			iter->results_iter->map_iter = iter->results_iter->map.begin();
+		} else {
+			i_debug("rados_dict_iterate_init() failed");
+		}
 	} else {
-		if (err < 0) {
-			iter->error = i_strdup_printf("rados_read_op_operate() failed: %d", err);
-		}
-
-		if (rval < 0) {
-			iter->error = i_strdup_printf("rados_read_op_omap_get_vals_by_keys() failed: %d", rval);
-		}
-
-		delete iter->readerMap;
-		iter->readerMap = nullptr;
+		i_debug("rados_dict_iterate_init() no keys");
+		iter->failed = true;
 	}
 
 	return &iter->ctx;
@@ -536,23 +560,37 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 
 bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, const char **value_r) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
+	i_debug("rados_dict_iterate()");
 
 	*key_r = NULL;
 	*value_r = NULL;
 
-	if (iter->error != NULL)
+	if (iter->failed)
 		return FALSE;
 
-	if (iter->readerMapIter == iter->readerMap->end()) {
-		return FALSE;
+	while (iter->results_iter->map_iter == iter->results_iter->map.end()) {
+		if (++iter->results_iter == iter->results.end())
+			return FALSE;
+		iter->results_iter->map_iter = iter->results_iter->map.begin();
+	}
+
+	auto map_iter = iter->results_iter->map_iter++;
+
+	if ((iter->flags & DICT_ITERATE_FLAG_RECURSE) != 0) {
+		// match everything
+	} else if ((iter->flags & DICT_ITERATE_FLAG_EXACT_KEY) != 0) {
+		// prefiltered by query, match everything
 	} else {
-		i_debug("Iterator found key = '%s', value = '%s'", iter->readerMapIter->first.c_str(),
-				iter->readerMapIter->second.to_str().c_str());
-		*key_r = i_strdup(iter->readerMapIter->first.c_str());
-		if ((iter->flags & DICT_ITERATE_FLAG_NO_VALUE) == 0) {
-			*value_r = i_strdup(iter->readerMapIter->second.to_str().c_str());
+		if (map_iter->first.find('/', iter->results_iter->key.length()) != string::npos) {
+			return rados_dict_iterate(ctx, key_r, value_r);
 		}
-		iter->readerMapIter++;
+	}
+
+	i_debug("Iterator found key = '%s', value = '%s'", map_iter->first.c_str(), map_iter->second.to_str().c_str());
+	*key_r = i_strdup(map_iter->first.c_str());
+
+	if ((iter->flags & DICT_ITERATE_FLAG_NO_VALUE) == 0) {
+		*value_r = i_strdup(map_iter->second.to_str().c_str());
 	}
 
 	return TRUE;
@@ -560,12 +598,11 @@ bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, co
 
 int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
 	struct rados_dict_iterate_context *iter = (struct rados_dict_iterate_context *) ctx;
-	int ret = iter->error != NULL ? -1 : 0;
 
-	delete iter->readerMap;
-	iter->readerMap = nullptr;
+	int ret = iter->failed ? -1 : 0;
+	i_debug("rados_dict_iterate_deinit()=%d", ret);
 
-	i_free(iter->error);
-	i_free(iter);
+	delete iter;
+
 	return ret;
 }
