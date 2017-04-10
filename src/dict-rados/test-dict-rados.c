@@ -18,9 +18,9 @@
 #include <rados/librados.h>
 
 static const char* OMAP_KEY_PRIVATE = "priv/key";
+static const char* OMAP_VALUE_PRIVATE = "PRIVATE";
 static const char* OMAP_KEY_SHARED = "shared/key";
-static const char* OMAP_NO_KEY = "priv/no_key";
-static const char* OMAP_VALUE = "Artemis";
+static const char* OMAP_VALUE_SHARED = "SHARED";
 
 static const char* OMAP_ITERATE_EXACT_KEYS[] = { "priv/K1", "priv/K2", "priv/K3", "priv/K4", "shared/S1", NULL };
 static const char* OMAP_ITERATE_EXACT_VALUES[] = { "V1", "V2", "V3", "V4", "VS1", NULL };
@@ -71,11 +71,11 @@ static int pending = 0;
 
 static void lookup_callback(const struct dict_lookup_result *result, void *context) {
 	if (result->error != NULL)
-		i_error("%s", result->error);
-	else if (result->ret == 0)
-		i_info("not found");
+		i_error("lookup_callback(): error=%s", result->error);
+	else if (result->ret != DICT_COMMIT_RET_OK)
+		i_error("lookup_callback(): ret=%d", result->ret);
 	else {
-		i_info("%s", result->value);
+		i_debug("lookup_callback(): value=%s", result->value);
 		if (context != NULL) {
 			*((char**) context) = i_strdup(result->value);
 		}
@@ -141,14 +141,14 @@ static void test_dict_init(void) {
 	test_end();
 }
 
-static void test_dict_set_get_delete(void) {
+static void test_dict_lookup(void) {
 	struct dict_transaction_context * ctx;
 
 	test_begin("dict_lookup");
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE);
-	test_dict_r->v.set(ctx, OMAP_KEY_SHARED, OMAP_VALUE);
+	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE_PRIVATE);
+	test_dict_r->v.set(ctx, OMAP_KEY_SHARED, OMAP_VALUE_SHARED);
 
 	int result = 0;
 
@@ -159,12 +159,12 @@ static void test_dict_set_get_delete(void) {
 	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_PRIVATE, &value_r);
 	test_assert(err == DICT_COMMIT_RET_OK);
 	test_assert(value_r != NULL);
-	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
+	test_assert(strcmp(OMAP_VALUE_PRIVATE, value_r) == 0);
 
 	err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_SHARED, &value_r);
 	test_assert(err == DICT_COMMIT_RET_OK);
 	test_assert(value_r != NULL);
-	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
+	test_assert(strcmp(OMAP_VALUE_SHARED, value_r) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
 	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
@@ -182,20 +182,26 @@ static void test_dict_lookup_async(void) {
 	test_begin("dict_lookup_async");
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE);
+	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE_PRIVATE);
+	test_dict_r->v.set(ctx, OMAP_KEY_SHARED, OMAP_VALUE_SHARED);
 
 	int result = 0;
 
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
 
-	const char *value_r;
-	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY_PRIVATE, lookup_callback, &value_r);
+	const char *value_private;
+	const char *value_shared;
+	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY_PRIVATE, lookup_callback, &value_private);
+	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY_SHARED, lookup_callback, &value_shared);
 	sleep(1); // Waiting a second...
-	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
+	test_assert(strcmp(OMAP_VALUE_PRIVATE, value_private) == 0);
+	test_assert(strcmp(OMAP_VALUE_SHARED, value_shared) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
 	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
+	test_dict_r->v.unset(ctx, OMAP_KEY_SHARED);
+
 	i_zero(&result);
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
@@ -206,9 +212,12 @@ static void test_dict_get_not_found(void) {
 	const char *value_r;
 	const char *error_r;
 
-	test_begin("dict_get_not_found");
+	test_begin("dict_lookup_not_found");
 
-	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "priv/dict_get_not_found", &value_r);
+	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "priv/dict_lookup_not_found", &value_r);
+	test_assert(err == DICT_COMMIT_RET_NOTFOUND);
+
+	err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "shared/dict_lookup_not_found", &value_r);
 	test_assert(err == DICT_COMMIT_RET_NOTFOUND);
 
 	test_end();
@@ -419,7 +428,8 @@ int main(int argc, char **argv) {
 		test_dict_init,
 		test_dict_escape,
 		test_dict_get_not_found,
-		test_dict_set_get_delete,
+		test_dict_lookup,
+		test_dict_lookup_async,
 		test_dict_atomic_inc,
 		test_dict_iterate_exact_key,
 		test_dict_iterate_exact_no_value,
