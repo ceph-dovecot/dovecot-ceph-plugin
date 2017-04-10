@@ -15,15 +15,6 @@ public:
 
 	std::string pool;
 
-	std::map<std::string, librados::bufferlist> readerMap;
-	typename std::map<std::string, librados::bufferlist>::iterator readerMapIter;
-
-	librados::ObjectReadOperation readOperation;
-	librados::bufferlist bufferList;
-	std::string lookupKey;
-	void *context;
-	dict_lookup_callback_t *callback;
-
 	DictRados();
 	virtual ~DictRados();
 
@@ -47,6 +38,8 @@ public:
 	}
 
 	void set_username(const std::string& username);
+
+	librados::IoCtx& get_io_ctx(const std::string& key);
 
 private:
 	std::string oid;
