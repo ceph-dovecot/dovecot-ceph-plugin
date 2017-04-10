@@ -99,16 +99,25 @@ void complete_callback(rados_completion_t comp, void* arg) {
 
 	i_debug("**** map size = %ld", pmap->size());
 	i_debug("**** key      = %s", d->lookupKey.c_str());
-	string value = pmap->find(d->lookupKey)->second.to_str();
-	i_debug("**** value    = %s", value.c_str());
+	string value;
+	if (pmap->find(d->lookupKey) != pmap->end()) {
+		value = pmap->find(d->lookupKey)->second.to_str();
+		i_debug("**** value    = %s", value.c_str());
+	}
 
 	struct dict_lookup_result result;
 	result.error = nullptr;
 	result.ret = DICT_COMMIT_RET_OK;
 	result.value = i_strdup(value.c_str());
+
 	if (d->callback != nullptr) {
+		i_debug("call callback func...");
 		d->callback(&result, d->context);
+	} else {
+		*((char**) d->context) = i_strdup(value.c_str());
 	}
+
+	i_debug("**** complete callback end ****");
 }
 
 void safe_callback(rados_completion_t comp, void *arg) {
@@ -252,13 +261,14 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
 
 	i_debug("rados_dict_lookup(%s)", key);
 
-/*
 	rados_dict_lookup_async(_dict, key, nullptr, value_r);
-	dict->dr->waitForCompletion();
-	if (*value_r != NULL && strlen(*value_r) > 0) {
+	int err = d->completion->wait_for_complete();
+	i_debug("wait = %d, '%s'", err, *value_r);
+	if (err == 0 && *value_r != NULL && strlen(*value_r) > 0) {
 		ret = DICT_COMMIT_RET_OK;
-*/
+	}
 
+/*
 	ObjectReadOperation oro;
 	set<string> keys;
 	keys.insert(key);
@@ -295,6 +305,7 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
 			ret = DICT_COMMIT_RET_FAILED;
 		}
 	}
+*/
 
 	return ret;
 }
@@ -308,41 +319,23 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
 	i_debug("rados_dict_lookup_async_1(%s)", key);
 	set<string> keys;
 	keys.insert(key);
-/*
-	pdr->setLookupKey(key);
-	pdr->setContext(context);
-	pdr->setCallback(callback);
-	pdr->clearReaderMap();
-	pdr->getReadOperation().omap_get_vals_by_keys(keys, &pdr->getReaderMap(), &r_val);
-
-	AioCompletion* completion = pdr->createCompletion(dict->dr, complete_callback, safe_callback);
-	pdr->clearBufferList();
-	int err = pdr->ioContextAioReadOperate(completion, &pdr->getReadOperation(), LIBRADOS_OPERATION_NOFLAG, &pdr->getBufferList());
-	i_debug("rados_dict_lookup_async_2(%d)", err);
-*/
 
 	d->lookupKey = key;
-
 	i_debug("Context = %s", *(char **) context);
 	d->context = context;
 	d->callback = callback;
-
-	//map<std::string, bufferlist> *pmap = new map<std::string, bufferlist>();
-	//poro->omap_get_vals_by_keys(keys, pmap, &r_val);
-
 	d->readerMap.clear();
 	d->readOperation.omap_get_vals_by_keys(keys, &d->readerMap, &r_val);
-	//bufferlist bl;
-	//bufferlist *bl = new bufferlist;
-
 	i_debug("rados_dict_lookup_async_2(%s)", key);
 
-	AioCompletion* completion = cluster.aio_create_completion(d, complete_callback, safe_callback);
-
+	if (d->completion != nullptr) {
+		delete d->completion;
+	}
+	d->completion = cluster.aio_create_completion(d, complete_callback, safe_callback);
 	i_debug("rados_dict_lookup_async_3(%s)", key);
 
-	int fl = 0;
-	int err = d->io_ctx.aio_operate(d->oid, completion, &d->readOperation, LIBRADOS_OPERATION_NOFLAG, &d->bufferList);
+	d->bufferList.clear();
+	int err = d->io_ctx.aio_operate(d->oid, d->completion, &d->readOperation, LIBRADOS_OPERATION_NOFLAG, &d->bufferList);
 
 	i_debug("rados_dict_lookup_async_4(%d)", err);
 
