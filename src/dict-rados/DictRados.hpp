@@ -19,6 +19,7 @@ public:
 	std::map<std::string, librados::bufferlist> readerMap;
 	typename std::map<std::string, librados::bufferlist>::iterator readerMapIter;
 
+	librados::AioCompletion *completion;
 	librados::ObjectReadOperation readOperation;
 	librados::bufferlist bufferList;
 	std::string lookupKey;
