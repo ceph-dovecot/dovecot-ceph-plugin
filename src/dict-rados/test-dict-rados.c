@@ -17,17 +17,21 @@
 #include "libdict-rados-plugin.h"
 #include <rados/librados.h>
 
-static const char* OMAP_KEY = "key";
-static const char* OMAP_NO_KEY = "no_key";
+static const char* OMAP_KEY_PRIVATE = "priv/key";
+static const char* OMAP_KEY_SHARED = "shared/key";
+static const char* OMAP_NO_KEY = "priv/no_key";
 static const char* OMAP_VALUE = "Artemis";
 
-static const char* OMAP_ITERATE_KEYS[] = { "K1", "K2", "K3", "K4", NULL };
-static const char* OMAP_ITERATE_VALUES[] = { "V1", "V2", "V3", "V4", NULL };
+static const char* OMAP_ITERATE_EXACT_KEYS[] = { "priv/K1", "priv/K2", "priv/K3", "priv/K4", "shared/S1", NULL };
+static const char* OMAP_ITERATE_EXACT_VALUES[] = { "V1", "V2", "V3", "V4", "VS1", NULL };
 
-static char* OMAP_ITERATE_REC_KEYS[] = { "A1", "A1/B1", "A/B1/C1", "A1/B1/C2", "A1/B2", "A2", NULL };
-static char* OMAP_ITERATE_REC_VALUES[] = { "V-A1", "V-A1/B1", "V-A/B1/C1", "V-A1/B1/C2", "V-A1/B2", "V-A2", NULL };
-static char* OMAP_ITERATE_REC_KEY[] = { "A1", NULL };
-static char* OMAP_ITERATE_REC_RESULTS[] = { "V-A1", "V-A1/B1", "V-A1/B1/C2", "V-A1/B2", NULL };
+static char* OMAP_ITERATE_KEYS[] = { "priv/A1", "priv/A1/B1", "priv/A/B1/C1", "priv/A1/B1/C2", "priv/A1/B2", "priv/A2", "shared/S1",
+NULL };
+static char* OMAP_ITERATE_VALUES[] = { "V-A1", "V-A1/B1", "V-A/B1/C1", "V-A1/B1/C2", "V-A1/B2", "V-A2", "V-S1", NULL };
+static char* OMAP_ITERATE_KEY[] = { "priv/A1/", "shared/S1", NULL };
+static char* OMAP_ITERATE_RESULTS[] = { "V-A1/B1", "V-A1/B2", "V-S1", NULL };
+
+static char* OMAP_ITERATE_REC_RESULTS[] = { "V-A1/B1", "V-A1/B1/C2", "V-A1/B2", "V-S1", NULL };
 
 static const char *pool_name = "test_dict_rados";
 static struct ioloop *test_ioloop = NULL;
@@ -38,6 +42,25 @@ static char * uri = "oid=metadata:pool=test_dict_rados";
 extern struct dict dict_driver_rados;
 
 struct dict *test_dict_r = NULL;
+
+static const char *dict_escape_username(const char *username) {
+	const char *p;
+	string_t *str = t_str_new(64);
+
+	for (p = username; *p != '\0'; p++) {
+		switch (*p) {
+		case '/':
+			str_append(str, "\\-");
+			break;
+		case '\\':
+			str_append(str, "\\\\");
+			break;
+		default:
+			str_append_c(str, *p);
+		}
+	}
+	return str_c(str);
+}
 
 static void dict_transaction_commit_sync_callback(int ret, void *context) {
 	int *sync_result = context;
@@ -69,11 +92,48 @@ static void test_setup(void) {
 	test_end();
 }
 
+static void test_dict_escape(void) {
+	static const char *input[] = {
+			"",
+			"",
+			"foo",
+			"foo",
+			"foo\\",
+			"foo\\\\",
+			"foo\\bar",
+			"foo\\\\bar",
+			"\\bar",
+			"\\\\bar",
+			"foo/",
+			"foo\\|",
+			"foo/bar",
+			"foo\\|bar",
+			"/bar",
+			"\\|bar",
+			"////",
+			"\\|\\|\\|\\|",
+			"/",
+			"\\|" };
+	unsigned int i;
+
+	test_begin("dict_escape");
+
+	for (i = 0; i < N_ELEMENTS(input); i += 2) {
+		i_debug("#%s# -> #%s#, #%s#", input[i], input[i + 1], dict_escape_username(input[i]));
+		test_assert(strcmp(dict_escape_string(input[i]), input[i + 1]) == 0);
+		test_assert(strcmp(dict_unescape_string(input[i + 1]), input[i]) == 0);
+	}
+	test_assert(strcmp(dict_unescape_string("x\\"), "x") == 0);
+	test_assert(strcmp(dict_unescape_string("\\"), "") == 0);
+
+	test_end();
+}
+
 static void test_dict_init(void) {
 	const char *error_r;
 
 	struct dict_settings *set = i_new(struct dict_settings, 1);
-	set->username = "t";
+	set->username = "username";
 
 	test_begin("dict_init");
 	int err = dict_driver_rados.v.init(&dict_driver_rados, uri, set, &test_dict_r, &error_r);
@@ -84,10 +144,11 @@ static void test_dict_init(void) {
 static void test_dict_set_get_delete(void) {
 	struct dict_transaction_context * ctx;
 
-	test_begin("dict_set_get_delete");
+	test_begin("dict_lookup");
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.set(ctx, OMAP_KEY, OMAP_VALUE);
+	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE);
+	test_dict_r->v.set(ctx, OMAP_KEY_SHARED, OMAP_VALUE);
 
 	int result = 0;
 
@@ -95,20 +156,46 @@ static void test_dict_set_get_delete(void) {
 	test_assert(result == DICT_COMMIT_RET_OK);
 
 	const char *value_r;
-	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_NO_KEY, &value_r);
-	test_assert(err == 0);
-
-	err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY, &value_r);
-	test_assert(err == 1);
+	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_PRIVATE, &value_r);
+	test_assert(err == DICT_COMMIT_RET_OK);
+	test_assert(value_r != NULL);
 	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
 
-	value_r = "";
-	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY, lookup_callback, &value_r);
+	err = dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_SHARED, &value_r);
+	test_assert(err == DICT_COMMIT_RET_OK);
+	test_assert(value_r != NULL);
+	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
+	test_dict_r->v.unset(ctx, OMAP_KEY_SHARED);
+
+	i_zero(&result);
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+	test_end();
+}
+
+static void test_dict_lookup_async(void) {
+	struct dict_transaction_context * ctx;
+
+	test_begin("dict_lookup_async");
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	test_dict_r->v.set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE);
+
+	int result = 0;
+
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+
+	const char *value_r;
+	dict_driver_rados.v.lookup_async(test_dict_r, OMAP_KEY_PRIVATE, lookup_callback, &value_r);
 	sleep(1); // Waiting a second...
 	test_assert(strcmp(OMAP_VALUE, value_r) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.unset(ctx, OMAP_KEY);
+	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
 	i_zero(&result);
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
@@ -120,8 +207,10 @@ static void test_dict_get_not_found(void) {
 	const char *error_r;
 
 	test_begin("dict_get_not_found");
-	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "dict_get_not_found", &value_r);
+
+	int err = dict_driver_rados.v.lookup(test_dict_r, test_pool, "priv/dict_get_not_found", &value_r);
 	test_assert(err == DICT_COMMIT_RET_NOTFOUND);
+
 	test_end();
 }
 
@@ -131,13 +220,13 @@ static void test_dict_atomic_inc(void) {
 #if 0
 	test_begin("dict_atomic_inc");
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.atomic_inc(ctx, OMAP_KEY, 10);
+	test_dict_r->v.atomic_inc(ctx, OMAP_KEY_PRIVATE, 10);
 
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.unset(ctx, OMAP_KEY);
+	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
@@ -153,14 +242,14 @@ static void test_dict_iterate_exact_key(void) {
 	test_begin("dict_iterate_exact_key");
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (i = 0; i < 4; i++) {
-		test_dict_r->v.set(ctx, OMAP_ITERATE_KEYS[i], OMAP_ITERATE_VALUES[i]);
+	for (i = 0; OMAP_ITERATE_EXACT_KEYS[i] != NULL; i++) {
+		test_dict_r->v.set(ctx, OMAP_ITERATE_EXACT_KEYS[i], OMAP_ITERATE_EXACT_VALUES[i]);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
 
-	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEYS,
+	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_EXACT_KEYS,
 			DICT_ITERATE_FLAG_EXACT_KEY);
 
 	const char *k, *v;
@@ -168,15 +257,15 @@ static void test_dict_iterate_exact_key(void) {
 	i = 0;
 
 	while (dict_iterate(iter, &k, &v)) {
-		test_assert(strcmp(k, OMAP_ITERATE_KEYS[i]) == 0);
-		test_assert(strcmp(v, OMAP_ITERATE_VALUES[i]) == 0);
+		test_assert(strcmp(k, OMAP_ITERATE_EXACT_KEYS[i]) == 0);
+		test_assert(strcmp(v, OMAP_ITERATE_EXACT_VALUES[i]) == 0);
 		i++;
 	}
 	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (i = 0; i < 4; i++) {
-		test_dict_r->v.unset(ctx, OMAP_ITERATE_KEYS[i]);
+	for (i = 0; OMAP_ITERATE_EXACT_KEYS[i] != NULL; i++) {
+		test_dict_r->v.unset(ctx, OMAP_ITERATE_EXACT_KEYS[i]);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
@@ -185,7 +274,7 @@ static void test_dict_iterate_exact_key(void) {
 	test_end();
 }
 
-static void test_dict_iterate_no_value(void) {
+static void test_dict_iterate_exact_no_value(void) {
 	struct dict_transaction_context * ctx;
 	int result;
 	int i;
@@ -193,14 +282,14 @@ static void test_dict_iterate_no_value(void) {
 	test_begin("test_dict_iterate_no_value");
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (i = 0; i < 4; i++) {
-		test_dict_r->v.set(ctx, OMAP_ITERATE_KEYS[i], OMAP_ITERATE_VALUES[i]);
+	for (i = 0; OMAP_ITERATE_EXACT_KEYS[i] != NULL; i++) {
+		test_dict_r->v.set(ctx, OMAP_ITERATE_EXACT_KEYS[i], OMAP_ITERATE_EXACT_VALUES[i]);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
 	test_assert(result == DICT_COMMIT_RET_OK);
 
-	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEYS,
+	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_EXACT_KEYS,
 			DICT_ITERATE_FLAG_NO_VALUE | DICT_ITERATE_FLAG_EXACT_KEY);
 
 	const char *k, *v;
@@ -208,57 +297,15 @@ static void test_dict_iterate_no_value(void) {
 	i = 0;
 
 	while (dict_iterate(iter, &k, &v)) {
-		test_assert(strcmp(k, OMAP_ITERATE_KEYS[i]) == 0);
+		test_assert(strcmp(k, OMAP_ITERATE_EXACT_KEYS[i]) == 0);
 		test_assert(v == 0);
 		i++;
 	}
 	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (i = 0; i < 4; i++) {
-		test_dict_r->v.unset(ctx, OMAP_ITERATE_KEYS[i]);
-	}
-	result = DICT_COMMIT_RET_NOTFOUND;
-	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
-	test_assert(result == DICT_COMMIT_RET_OK);
-
-	test_end();
-}
-
-static void test_dict_iterate_recursive(void) {
-	struct dict_transaction_context * ctx;
-	int result;
-	int i;
-	const char** k;
-	const char** v;
-
-	test_begin("dict_iterate_recursive");
-
-	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	i = 0;
-	for (k = OMAP_ITERATE_REC_KEYS; *k != NULL; k++) {
-		test_dict_r->v.set(ctx, *k, OMAP_ITERATE_REC_VALUES[i++]);
-	}
-	result = DICT_COMMIT_RET_NOTFOUND;
-	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
-	test_assert(result == DICT_COMMIT_RET_OK);
-
-	const char *kr;
-	const char *vr;
-
-	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_REC_KEY,
-			DICT_ITERATE_FLAG_RECURSE);
-
-	i = 0;
-	while (dict_iterate(iter, &kr, &vr)) {
-		test_assert(strcmp(vr, OMAP_ITERATE_REC_RESULTS[i]) == 0);
-		i++;
-	}
-	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
-
-	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (k = OMAP_ITERATE_REC_KEYS; *k != NULL; k++) {
-		test_dict_r->v.unset(ctx, *k);
+	for (i = 0; OMAP_ITERATE_EXACT_KEYS[i] != NULL; i++) {
+		test_dict_r->v.unset(ctx, OMAP_ITERATE_EXACT_KEYS[i]);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
@@ -278,8 +325,8 @@ static void test_dict_iterate(void) {
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
 	i = 0;
-	for (k = OMAP_ITERATE_REC_KEYS; *k != NULL; k++) {
-		test_dict_r->v.set(ctx, *k, OMAP_ITERATE_REC_VALUES[i++]);
+	for (k = OMAP_ITERATE_KEYS; *k != NULL; k++) {
+		test_dict_r->v.set(ctx, *k, OMAP_ITERATE_VALUES[i++]);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
 	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
@@ -288,17 +335,61 @@ static void test_dict_iterate(void) {
 	const char *kr;
 	const char *vr;
 
-	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_REC_KEY, 0);
+	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEY, 0);
+
+	i = 0;
+	while (dict_iterate(iter, &kr, &vr)) {
+		test_assert(strcmp(vr, OMAP_ITERATE_RESULTS[i]) == 0);
+		i++;
+	}
+	test_assert(i == 3);
+	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	for (k = OMAP_ITERATE_KEYS; *k != NULL; k++) {
+		test_dict_r->v.unset(ctx, *k);
+	}
+	result = DICT_COMMIT_RET_NOTFOUND;
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+
+	test_end();
+}
+
+static void test_dict_iterate_recursive(void) {
+	struct dict_transaction_context * ctx;
+	int result;
+	int i;
+	const char** k;
+	const char** v;
+
+	test_begin("dict_iterate_recursive");
+
+	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+	i = 0;
+	for (k = OMAP_ITERATE_KEYS; *k != NULL; k++) {
+		test_dict_r->v.set(ctx, *k, OMAP_ITERATE_VALUES[i++]);
+	}
+	result = DICT_COMMIT_RET_NOTFOUND;
+	ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_sync_callback, &result);
+	test_assert(result == DICT_COMMIT_RET_OK);
+
+	const char *kr;
+	const char *vr;
+
+	struct dict_iterate_context * iter = dict_driver_rados.v.iterate_init(test_dict_r, OMAP_ITERATE_KEY, DICT_ITERATE_FLAG_RECURSE);
 
 	i = 0;
 	while (dict_iterate(iter, &kr, &vr)) {
 		test_assert(strcmp(vr, OMAP_ITERATE_REC_RESULTS[i]) == 0);
 		i++;
 	}
+	test_assert(i == 4);
+
 	test_assert(dict_driver_rados.v.iterate_deinit(iter) == 0);
 
 	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	for (k = OMAP_ITERATE_REC_KEYS; *k != NULL; k++) {
+	for (k = OMAP_ITERATE_KEYS; *k != NULL; k++) {
 		test_dict_r->v.unset(ctx, *k);
 	}
 	result = DICT_COMMIT_RET_NOTFOUND;
@@ -326,12 +417,13 @@ int main(int argc, char **argv) {
 	void (*tests[])(void) = {
 		test_setup,
 		test_dict_init,
+		test_dict_escape,
 		test_dict_get_not_found,
 		test_dict_set_get_delete,
 		test_dict_atomic_inc,
-		test_dict_iterate,
 		test_dict_iterate_exact_key,
-		test_dict_iterate_no_value,
+		test_dict_iterate_exact_no_value,
+		test_dict_iterate,
 		test_dict_iterate_recursive,
 		test_dict_deinit,
 		test_teardown,
