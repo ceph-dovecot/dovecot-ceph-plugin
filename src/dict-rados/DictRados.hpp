@@ -10,16 +10,11 @@ extern "C" {
 
 class DictRados {
 public:
-	librados::IoCtx private_ctx;
-	librados::IoCtx shared_ctx;
-
-	std::string pool;
-
 	DictRados();
 	virtual ~DictRados();
 
-	int read_config_from_uri(const char *uri);
-	int parse_arguments(int argc, const char **argv);
+	int init(const std::string uri, const std::string &username, std::string &error_r);
+	void deinit();
 
 	const std::string get_full_oid(const std::string& key);
 	const std::string get_shared_oid();
@@ -41,10 +36,39 @@ public:
 
 	librados::IoCtx& get_io_ctx(const std::string& key);
 
+	const std::string& get_pool() const {
+		return pool;
+	}
+
+	void set_pool(const std::string& pool) {
+		this->pool = pool;
+	}
+
+	const librados::IoCtx& get_private_ctx() const {
+		return private_ctx;
+	}
+
+	void set_private_ctx(const librados::IoCtx& privateCtx) {
+		private_ctx = privateCtx;
+	}
+
+	const librados::IoCtx& get_shared_ctx() const {
+		return shared_ctx;
+	}
+
+	void set_shared_ctx(const librados::IoCtx& sharedCtx) {
+		shared_ctx = sharedCtx;
+	}
+
 private:
+	std::string pool;
 	std::string oid;
-	std::string full_oid;
 	std::string username;
+
+	librados::IoCtx private_ctx;
+	librados::IoCtx shared_ctx;
+
+	int read_config_from_uri(const std::string &uri);
 
 };
 
