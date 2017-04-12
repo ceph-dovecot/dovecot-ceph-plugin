@@ -135,6 +135,7 @@ int rados_save_continue(struct mail_save_context *_ctx)
 
 	if (ctx->failed) {
 		debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue");
+		debug_print_mail_storage(storage, "rados-save::rados_save_continue");
 		return -1;
 	}
 
@@ -147,6 +148,7 @@ int rados_save_continue(struct mail_save_context *_ctx)
 			}
 			ctx->failed = TRUE;
 			debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue");
+			debug_print_mail_storage(storage, "rados-save::rados_save_continue");
 			return -1;
 		}
 		index_mail_cache_parse_continue(_ctx->dest_mail);
@@ -156,6 +158,7 @@ int rados_save_continue(struct mail_save_context *_ctx)
 		   one of the streams still having data in them. */
 	} while (i_stream_read(ctx->input) > 0);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue");
+	debug_print_mail_storage(storage, "rados-save::rados_save_continue");
 	return 0;
 }
 
@@ -207,6 +210,7 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path)
 	}
 	ctx->fd = -1;
 	debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_save_flush");
+	debug_print_mail_storage(storage, "rados-save::rados_save_continue");
 	return ret;
 }
 
