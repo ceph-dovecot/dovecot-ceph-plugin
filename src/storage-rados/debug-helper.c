@@ -103,14 +103,36 @@ void debug_print_index_mail_data(struct index_mail_data *indexMailData, const ch
 		i_debug("### %s", funcname);
 	}
 	if (indexMailData == NULL) {
-		i_debug("indexMailData = NULL");
+		i_debug("index_mail_data = NULL");
 	} else {
-		i_debug("indexMailData date = %ld", indexMailData->date);
-		i_debug("indexMailData received_date = %ld", indexMailData->received_date);
-		i_debug("indexMailData save_date = %ld", indexMailData->save_date);
+		i_debug("index_mail_data date = %ld", indexMailData->date);
+		i_debug("index_mail_data received_date = %ld", indexMailData->received_date);
+		i_debug("index_mail_data save_date = %ld", indexMailData->save_date);
 
-		i_debug("indexMailData virtual_size = %lu", indexMailData->virtual_size);
-		i_debug("indexMailData physical_size = %lu", indexMailData->physical_size);
+		i_debug("index_mail_data virtual_size = %lu", indexMailData->virtual_size);
+		i_debug("index_mail_data physical_size = %lu", indexMailData->physical_size);
+	}
+	if (funcname != NULL) {
+		i_debug("###\n");
+	}
+}
+
+void debug_print_mail_save_context(struct mail_save_context *mailSaveContext, const char *funcname) {
+	if (funcname != NULL) {
+		i_debug("### %s", funcname);
+	}
+	if (mailSaveContext == NULL) {
+		i_debug("mail_save_context = NULL");
+	} else {
+		i_debug("mail_save_context unfinished = %u", mailSaveContext->unfinished);
+		i_debug("mail_save_context finishing = %u", mailSaveContext->finishing);
+		i_debug("mail_save_context copying_via_save = %u", mailSaveContext->copying_via_save);
+		i_debug("mail_save_context saving = %u", mailSaveContext->saving);
+		i_debug("mail_save_context moving = %u", mailSaveContext->moving);
+		i_debug("mail_save_context copying_or_moving = %u", mailSaveContext->copying_or_moving);
+		i_debug("mail_save_context dest_mail_external = %u", mailSaveContext->dest_mail_external);
+		debug_print_mail(mailSaveContext->dest_mail, NULL);
+		debug_print_mail(mailSaveContext->copy_src_mail, NULL);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
