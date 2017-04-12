@@ -33,6 +33,9 @@ using namespace std;
 
 #define DICT_USERNAME_SEPARATOR '/'
 
+static Rados cluster;
+static int cluster_ref_count;
+
 static const vector<string> explode(const string& str, const char& sep) {
 	vector<string> v;
 	stringstream ss(str); // Turn the string into a stream.
@@ -52,7 +55,92 @@ DictRados::DictRados() :
 DictRados::~DictRados() {
 }
 
-int DictRados::read_config_from_uri(const char *uri) {
+int DictRados::init(const string uri, const string &username, string &error_r) {
+	const char * const *args;
+	int ret = 0;
+	int err = 0;
+
+	ret = read_config_from_uri(uri);
+
+	if (cluster_ref_count == 0) {
+		if (ret >= 0) {
+			err = cluster.init(nullptr);
+			i_debug("DictRados::init()=%d", err);
+			if (err < 0) {
+				error_r = "Couldn't create the cluster handle! " + string(strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.conf_parse_env(nullptr);
+			i_debug("conf_parse_env()=%d", err);
+			if (err < 0) {
+				error_r = "Cannot parse config environment! " + string(strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.conf_read_file(nullptr);
+			i_debug("conf_read_file()=%d", err);
+			if (err < 0) {
+				error_r = "Cannot read config file! " + string(strerror(-err));
+				ret = -1;
+			}
+		}
+
+		if (ret >= 0) {
+			err = cluster.connect();
+			i_debug("connect()=%d", err);
+			if (err < 0) {
+				error_r = "Cannot connect to cluster! " + string(strerror(-err));
+				ret = -1;
+			} else {
+				cluster_ref_count++;
+			}
+		}
+	}
+
+	if (ret >= 0) {
+		err = cluster.ioctx_create(pool.c_str(), private_ctx);
+		i_debug("ioctx_create(pool=%s)=%d", pool.c_str(), err);
+		shared_ctx.dup(private_ctx);
+		if (err < 0) {
+			error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
+			cluster.shutdown();
+			cluster_ref_count--;
+			ret = -1;
+		}
+	}
+
+	if (ret < 0) {
+		i_debug("DictRados::init(uri=%s)=%d/%s, cluster_ref_count=%d", uri.c_str(), -1, error_r.c_str(), cluster_ref_count);
+		return -1;
+	}
+
+	set_username(username);
+	private_ctx.set_namespace(username);
+
+	i_debug("DictRados::init(uri=%s)=%d, cluster_ref_count=%d", uri.c_str(), 0, cluster_ref_count);
+	return 0;
+}
+
+void DictRados::deinit() {
+	i_debug("DictRados::deinit(), cluster_ref_count=%d", cluster_ref_count);
+
+	private_ctx.close();
+	shared_ctx.close();
+
+	if (cluster_ref_count > 0) {
+		cluster_ref_count--;
+		if (cluster_ref_count == 0) {
+			cluster.shutdown();
+		}
+	}
+}
+
+int DictRados::read_config_from_uri(const string & uri) {
 	int ret = 0;
 	vector<string> props(explode(uri, ':'));
 	for (vector<string>::iterator it = props.begin(); it != props.end(); ++it) {
@@ -76,7 +164,6 @@ void DictRados::set_username(const std::string& username) {
 		/* escape the username */
 		this->username = dict_escape_string(username.c_str());
 	}
-	i_debug("set_username(%s)=%s", username.c_str(), this->username.c_str());
 }
 
 const string DictRados::get_full_oid(const std::string& key) {
@@ -110,9 +197,6 @@ const string DictRados::get_private_oid() {
 
 ///////////////////////////// C API //////////////////////////////
 
-static Rados cluster;
-static int cluster_ref_count;
-
 struct rados_dict {
 	struct dict dict;
 	DictRados *d;
@@ -122,8 +206,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 		const char **error_r) {
 	struct rados_dict *dict;
 	const char * const *args;
-	int ret = 0;
-	int err = 0;
 
 	i_debug("rados_dict_init(uri=%s), cluster_ref_count=%d", uri, cluster_ref_count);
 
@@ -131,68 +213,20 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 	dict->d = new DictRados();
 	DictRados *d = dict->d;
 
-	ret = d->read_config_from_uri(uri);
-
-	if (cluster_ref_count == 0) {
-		if (ret >= 0) {
-			err = cluster.init(nullptr);
-			if (err < 0) {
-				*error_r = t_strdup_printf("Couldn't create the cluster handle! %s", strerror(-err));
-				ret = -1;
-			}
-		}
-
-		if (ret >= 0) {
-			err = cluster.conf_parse_env(nullptr);
-			if (err < 0) {
-				*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
-				ret = -1;
-			}
-		}
-
-		if (ret >= 0) {
-			err = cluster.conf_read_file(nullptr);
-			if (err < 0) {
-				*error_r = t_strdup_printf("Cannot read config file: %s", strerror(-err));
-				ret = -1;
-			}
-		}
-
-		if (ret >= 0) {
-			err = cluster.connect();
-			if (err < 0) {
-				i_debug("Cannot connect to cluster: %s", strerror(-err));
-				*error_r = t_strdup_printf("Cannot connect to cluster: %s", strerror(-err));
-				ret = -1;
-			} else {
-				cluster_ref_count++;
-			}
-		}
-	}
-
-	if (ret >= 0) {
-		err = cluster.ioctx_create(dict->d->pool.c_str(), dict->d->private_ctx);
-		dict->d->shared_ctx.dup(dict->d->private_ctx);
-		if (err < 0) {
-			*error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", dict->d->pool.c_str(), strerror(-err));
-			cluster.shutdown();
-			cluster_ref_count--;
-			ret = -1;
-		}
-	}
+	string error_msg;
+	int ret = d->init(uri, set->username, error_msg);
 
 	if (ret < 0) {
 		delete dict->d;
 		dict->d = nullptr;
 		i_free(dict);
+		*error_r = t_strdup_printf(error_msg.c_str());
 		return -1;
 	}
 
 	dict->dict = *driver;
-	dict->d->set_username(set->username);
-	dict->d->private_ctx.set_namespace(dict->d->get_username());
-
 	*dict_r = &dict->dict;
+
 	return 0;
 }
 
@@ -202,19 +236,11 @@ void rados_dict_deinit(struct dict *_dict) {
 
 	i_debug("rados_dict_deinit(), cluster_ref_count=%d", cluster_ref_count);
 
-	d->private_ctx.close();
-	d->shared_ctx.close();
+	d->deinit();
 	delete dict->d;
 	dict->d = nullptr;
 
 	i_free(_dict);
-
-	if (cluster_ref_count > 0) {
-		cluster_ref_count--;
-		if (cluster_ref_count == 0) {
-			cluster.shutdown();
-		}
-	}
 }
 
 class rados_dict_lookup_context {
@@ -256,7 +282,7 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
 			auto it = lc.map.find(key);
 			if (it != lc.map.end()) {
 				lc.value = it->second.to_str();
-				i_debug("Found key = '%s', value = '%s'", it->first.c_str(), lc.value.c_str());
+				i_debug("rados_dict_lookup('%s')='%s'", it->first.c_str(), lc.value.c_str());
 
 				*value_r = i_strdup(lc.value.c_str());
 				ret = DICT_COMMIT_RET_OK;
@@ -277,7 +303,7 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
 	return ret;
 }
 
-static void complete_callback(rados_completion_t comp, void* arg) {
+static void rados_iterate_complete_callback(rados_completion_t comp, void* arg) {
 	rados_dict_lookup_context *lc = (rados_dict_lookup_context *) arg;
 
 	struct dict_lookup_result result;
@@ -289,7 +315,7 @@ static void complete_callback(rados_completion_t comp, void* arg) {
 		auto it = lc->map.find(lc->key);
 		if (it != lc->map.end()) {
 			lc->value = it->second.to_str();
-			i_debug("Found key = '%s', value = '%s'", it->first.c_str(), lc->value.c_str());
+			i_debug("rados_iterate_complete_callback('%s')='%s'", it->first.c_str(), lc->value.c_str());
 			result.value = i_strdup(lc->value.c_str());
 			result.ret = DICT_COMMIT_RET_OK;
 		}
@@ -326,7 +352,7 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
 	lc->callback = callback;
 	lc->read_op.omap_get_vals_by_keys(keys, &lc->map, &lc->r_val);
 	lc->read_op.set_op_flags2(OPERATION_NOFLAG);
-	lc->completion = librados::Rados::aio_create_completion(lc, complete_callback, nullptr);
+	lc->completion = librados::Rados::aio_create_completion(lc, rados_iterate_complete_callback, nullptr);
 
 	int err = d->get_io_ctx(key).aio_operate(d->get_full_oid(key), lc->completion, &lc->read_op, LIBRADOS_OPERATION_NOFLAG,
 			&lc->bufferlist);
@@ -383,7 +409,7 @@ int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, 
 			i_debug("rados_transaction_commit() operate(%s)", d->get_private_oid().c_str());
 
 			ctx->write_op_private.set_op_flags2(OPERATION_NOFLAG);
-			int err = d->private_ctx.operate(d->get_private_oid(), &ctx->write_op_private);
+			int err = d->get_private_ctx().operate(d->get_private_oid(), &ctx->write_op_private);
 
 			if (err < 0)
 				ret = DICT_COMMIT_RET_FAILED;
@@ -397,7 +423,7 @@ int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, 
 			i_debug("rados_transaction_commit() operate(%s)", d->get_shared_oid().c_str());
 
 			ctx->write_op_shared.set_op_flags2(OPERATION_NOFLAG);
-			int err = d->shared_ctx.operate(d->get_shared_oid(), &ctx->write_op_shared);
+			int err = d->get_shared_ctx().operate(d->get_shared_oid(), &ctx->write_op_shared);
 			if (err < 0)
 				ret = DICT_COMMIT_RET_FAILED;
 			else if (ctx->atomic_inc_not_found)
@@ -534,7 +560,7 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 			}
 
 			bufferlist bl;
-			int err = d->private_ctx.operate(d->get_full_oid(DICT_PATH_PRIVATE), &read_op, &bl);
+			int err = d->get_private_ctx().operate(d->get_full_oid(DICT_PATH_PRIVATE), &read_op, &bl);
 			i_debug("rados_dict_iterate_init(): private err=%d(%s)", err, strerror(-err));
 
 			iter->failed = err < 0;
@@ -562,7 +588,7 @@ rados_dict_iterate_init(struct dict *_dict, const char * const *paths, enum dict
 			}
 
 			bufferlist bl;
-			int err = d->shared_ctx.operate(d->get_full_oid(DICT_PATH_SHARED), &read_op, &bl);
+			int err = d->get_shared_ctx().operate(d->get_full_oid(DICT_PATH_SHARED), &read_op, &bl);
 			i_debug("rados_dict_iterate_init(): shared err=%d(%s)", err, strerror(-err));
 
 			iter->failed = err < 0;
