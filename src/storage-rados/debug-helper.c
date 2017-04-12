@@ -10,6 +10,8 @@
 #include "index-mail.h"
 #include "mail-storage.h"
 #include "mail-storage-private.h"
+#include "rados-storage.h"
+#include "rados-sync.h"
 #include "debug-helper.h"
 
 #define btoa(x) ((x) ? "true" : "false")
@@ -254,6 +256,24 @@ void debug_print_mail_user(struct mail_user *mailUser, const char *funcname) {
 		i_debug("mail_user stats_enabled = %u", mailUser->stats_enabled);
 		i_debug("mail_user autoexpunge_enabled = %u", mailUser->autoexpunge_enabled);
 		i_debug("mail_user session_restored = %u", mailUser->session_restored);
+	}
+	if (funcname != NULL) {
+		i_debug("###\n");
+	}
+}
+
+void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext, const char *funcname) {
+	if (funcname != NULL) {
+		i_debug("### %s", funcname);
+	}
+	if (radosSyncContext == NULL) {
+		i_debug("rados_sync_context = NULL");
+	} else {
+		i_debug("rados_sync_context path = %s", (char *) radosSyncContext->path->data);
+		i_debug("rados_sync_context path_dir_prefix_len = %lu", radosSyncContext->path_dir_prefix_len);
+		i_debug("rados_sync_context uid_validity = %u", radosSyncContext->uid_validity);
+
+		debug_print_mailbox(&radosSyncContext->mbox->box, NULL);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");

@@ -16,5 +16,6 @@ void debug_print_mailbox_transaction_context(struct mailbox_transaction_context*
 void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char *funcname);
 void debug_print_mail_storage(struct mail_storage *mailStorage, const char *funcname);
 void debug_print_mail_user(struct mail_user *mailUser, const char *funcname);
+void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext, const char *funcname);
 
 #endif /* DEBUG_HELPER_H_ */
