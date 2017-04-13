@@ -11,6 +11,7 @@
 #include "mail-storage.h"
 #include "mail-storage-private.h"
 #include "mailbox-list.h"
+#include "mailbox-list-private.h"
 #include "rados-storage.h"
 #include "rados-sync.h"
 #include "debug-helper.h"
@@ -23,9 +24,9 @@ static char *enum_mail_lookup_abort_strs[] = {
 static char *enum_mail_error_strs[] = {"MAIL_ERROR_NONE", "MAIL_ERROR_TEMP", "MAIL_ERROR_NOTPOSSIBLE", "MAIL_ERROR_PARAMS",
 		"MAIL_ERROR_PERM", "MAIL_ERROR_NOQUOTA", "MAIL_ERROR_NOTFOUND", "MAIL_ERROR_EXISTS", "MAIL_ERROR_EXPUNGED",
 		"MAIL_ERROR_INUSE", "MAIL_ERROR_CONVERSION", "MAIL_ERROR_INVALIDDATA", "MAIL_ERROR_LIMIT", "MAIL_ERROR_LOOKUP_ABORTED"};
+static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK",	"FILE_LOCK_METHOD_DOTLOCK"};
 
 void debug_print_mail(struct mail *mail, const char *funcname) {
-
 	if (funcname != NULL) {
 		i_debug("### %s", funcname);
 	}
@@ -52,7 +53,6 @@ void debug_print_mail(struct mail *mail, const char *funcname) {
 	if (funcname != NULL) {
 		i_debug("###\n");
 	}
-
 }
 
 void debug_print_mailbox(struct mailbox *mailbox, const char *funcname) {
@@ -95,6 +95,8 @@ void debug_print_mailbox(struct mailbox *mailbox, const char *funcname) {
 		i_debug("mailbox corrupted_mailbox_name = %u", mailbox->corrupted_mailbox_name);
 
 		debug_print_mail_storage(mailbox->storage, NULL);
+		debug_print_mailbox_list(mailbox->list, NULL);
+		debug_print_mail_index(mailbox->index, NULL);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -282,6 +284,39 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 	}
 }
 
+void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname) {
+	if (funcname != NULL) {
+		i_debug("### %s", funcname);
+	}
+	if (mailboxList == NULL) {
+		i_debug("mailbox_list = NULL");
+	} else {
+		i_debug("mailbox_list name = %s", mailboxList->name);
+		i_debug("mailbox_list props = 0x%04x", mailboxList->props);
+		i_debug("mailbox_list mailbox_name_max_length = %lu", mailboxList->mailbox_name_max_length);
+		if (mailboxList->pool != NULL) {
+			i_debug("mail_user pool name = %s", mailboxList->pool->v->get_name(mailboxList->pool));
+		}
+		i_debug("mailbox_list subscriptions_mtime = %ld", mailboxList->subscriptions_mtime);
+		i_debug("mailbox_list subscriptions_read_time = %ld", mailboxList->subscriptions_read_time);
+		i_debug("mailbox_list changelog_timestamp = %ld", mailboxList->changelog_timestamp);
+		i_debug("mailbox_list guid_cache_pool = %p", mailboxList->guid_cache_pool);
+		i_debug("mailbox_list guid_cache_errors = %s", btoa(mailboxList->guid_cache_errors));
+		i_debug("mailbox_list error_string = %s", mailboxList->error_string);
+		i_debug("mailbox_list error = %s", enum_mail_error_strs[mailboxList->error]);
+		i_debug("mailbox_list temporary_error = %s", btoa(mailboxList->temporary_error));
+		i_debug("mailbox_list index_root_dir_created = %u", mailboxList->index_root_dir_created);
+		i_debug("mailbox_list guid_cache_updated = %u", mailboxList->guid_cache_updated);
+		i_debug("mailbox_list guid_cache_invalidated = %u", mailboxList->guid_cache_invalidated);
+
+		debug_print_mailbox_list_settings(&mailboxList->set, NULL);
+
+	}
+	if (funcname != NULL) {
+		i_debug("###\n");
+	}
+}
+
 void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxListSettings, const char *funcname) {
 	if (funcname != NULL) {
 		i_debug("### %s", funcname);
@@ -305,6 +340,69 @@ void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxList
 		i_debug("mailbox_list_settings utf8 = %s", btoa(mailboxListSettings->utf8));
 		i_debug("mailbox_list_settings alt_dir_nocheck = %s", btoa(mailboxListSettings->alt_dir_nocheck));
 		i_debug("mailbox_list_settings index_control_use_maildir_name = %s", btoa(mailboxListSettings->index_control_use_maildir_name));
+	}
+	if (funcname != NULL) {
+		i_debug("###\n");
+	}
+}
+
+void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname) {
+	if (funcname != NULL) {
+		i_debug("### %s", funcname);
+	}
+	if (mailIndex == NULL) {
+		i_debug("mail_index = NULL");
+	} else {
+		i_debug("mail_index dir = %s", mailIndex->dir);
+		i_debug("mail_index prefix = %s", mailIndex->prefix);
+		i_debug("mail_index cache = %p", mailIndex->cache);
+		i_debug("mail_index log = %p", mailIndex->log);
+		i_debug("mail_index open_count = %u", mailIndex->open_count);
+		i_debug("mail_index flags = 0x%04x", mailIndex->flags);
+		i_debug("mail_index fsync_mode = 0x%04x", mailIndex->fsync_mode);
+		i_debug("mail_index fsync_mask = 0x%04x", mailIndex->fsync_mask);
+		i_debug("mail_index mode = %d", mailIndex->mode);
+		i_debug("mail_index gid = %d", mailIndex->gid);
+		i_debug("mail_index gid_origin = %s", mailIndex->gid_origin);
+		i_debug("mail_index log_rotate_min_size = %u", mailIndex->log_rotate_min_size);
+		i_debug("mail_index log_rotate_max_size = %u", mailIndex->log_rotate_max_size);
+		i_debug("mail_index log_rotate_min_created_ago_secs = %u", mailIndex->log_rotate_min_created_ago_secs);
+		i_debug("mail_index log_rotate_log2_stale_secs = %u", mailIndex->log_rotate_log2_stale_secs);
+		i_debug("mail_index extension_pool = %p", mailIndex->extension_pool);
+		i_debug("mail_index ext_hdr_init_id = %u", mailIndex->ext_hdr_init_id);
+		i_debug("mail_index ext_hdr_init_data = %p", mailIndex->ext_hdr_init_data);
+		i_debug("mail_index filepath = %s", mailIndex->filepath);
+		i_debug("mail_index fd = %d", mailIndex->fd);
+		i_debug("mail_index map = %p", mailIndex->map);
+		i_debug("mail_index last_mmap_error_time = %ld", mailIndex->last_mmap_error_time);
+		i_debug("mail_index indexid = %u", mailIndex->indexid);
+		i_debug("mail_index inconsistency_id = %u", mailIndex->inconsistency_id);
+		i_debug("mail_index last_read_log_file_seq = %u", mailIndex->last_read_log_file_seq);
+		i_debug("mail_index last_read_log_file_tail_offset = %u", mailIndex->last_read_log_file_tail_offset);
+		i_debug("mail_index fsck_log_head_file_seq = %u", mailIndex->fsck_log_head_file_seq);
+		i_debug("mail_index fsck_log_head_file_offset = %u", mailIndex->fsck_log_head_file_offset);
+		i_debug("mail_index sync_commit_result = %p", mailIndex->sync_commit_result);
+		i_debug("mail_index lock_method = %s", enum_file_lock_method[mailIndex->lock_method]);
+		i_debug("mail_index max_lock_timeout_secs = %u", mailIndex->max_lock_timeout_secs);
+		i_debug("mail_index keywords_pool = %p", mailIndex->keywords_pool);
+		i_debug("mail_index keywords_ext_id = %u", mailIndex->keywords_ext_id);
+		i_debug("mail_index modseq_ext_id = %s", mailIndex->modseq_ext_id);
+		i_debug("mail_index views = %p", mailIndex->views);
+		i_debug("mail_index error = %s", mailIndex->error);
+		i_debug("mail_index nodiskspace = %u", mailIndex->nodiskspace);
+		i_debug("mail_index index_lock_timeout = %u", mailIndex->index_lock_timeout);
+		i_debug("mail_index index_delete_requested = %u", mailIndex->index_delete_requested);
+		i_debug("mail_index index_deleted = %u", mailIndex->index_deleted);
+		i_debug("mail_index log_sync_locked = %u", mailIndex->log_sync_locked);
+		i_debug("mail_index readonly = %u", mailIndex->readonly);
+		i_debug("mail_index mapping = %u", mailIndex->mapping);
+		i_debug("mail_index syncing = %u", mailIndex->syncing);
+		i_debug("mail_index need_recreate = %u", mailIndex->need_recreate);
+		i_debug("mail_index index_min_write = %u", mailIndex->index_min_write);
+		i_debug("mail_index modseqs_enabled = %u", mailIndex->modseqs_enabled);
+		i_debug("mail_index initial_create = %u", mailIndex->initial_create);
+		i_debug("mail_index initial_mapped = %u", mailIndex->initial_mapped);
+		i_debug("mail_index fscked = %u", mailIndex->fscked);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");

@@ -20,6 +20,8 @@ void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char 
 void debug_print_mail_storage(struct mail_storage *mailStorage, const char *funcname);
 void debug_print_mail_user(struct mail_user *mailUser, const char *funcname);
 void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext, const char *funcname);
+void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname);
 void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxListSettings, const char *funcname);
+void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname);
 
 #endif /* DEBUG_HELPER_H_ */
