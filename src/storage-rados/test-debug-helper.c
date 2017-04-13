@@ -8,7 +8,9 @@
 #include "lib.h"
 #include "failures.h"
 #include "index-mail.h"
+#include "mail-index-private.h"
 #include "mailbox-list.h"
+#include "mailbox-list-private.h"
 #include "mail-storage.h"
 #include "mail-storage-private.h"
 #include "rados-sync.h"
@@ -26,6 +28,7 @@ int main(int argc, char **argv) {
 	struct index_mail_data *index_mail_data = i_new(struct index_mail_data, 1);
 	struct mail_save_context *mail_save_context = i_new(struct mail_save_context, 1);
 	struct mail_user *mail_user = i_new(struct mail_user, 1);
+	struct mailbox_list *mbox_lst = i_new(struct mailbox_list, 1);
 	struct mailbox_list_settings *mbox_lst_settings = i_new(struct mailbox_list_settings, 1);
 
 	mailbox->name = i_strdup("hburow");
@@ -62,13 +65,18 @@ int main(int argc, char **argv) {
 	debug_print_mail_storage(mailStorage, "Empty storage");
 	struct rados_sync_context *radosSyncContext = i_new(struct rados_sync_context, 1);
 	debug_print_rados_sync_context(radosSyncContext, "Empty context");
+	struct mail_index *mailIndex = i_new(struct mail_index, 1);
+	debug_print_mail_index(mailIndex, "Empty mail index");
+	debug_print_mailbox_list(mbox_lst, "Empty mailbox list");
 
 	i_free(mailboxTransactionContext);
 	i_free(mailSaveData);
 	i_free(mailStorage);
 	i_free(radosSyncContext);
+	i_free(mailIndex);
 
 	i_free(mbox_lst_settings);
+	i_free(mbox_lst);
 	i_free(mail_user);
 	i_free(mail_save_context);
 	i_free(index_mail_data);
