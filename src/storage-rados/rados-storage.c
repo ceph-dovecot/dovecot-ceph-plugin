@@ -22,7 +22,7 @@ static struct mail_storage *rados_storage_alloc(void)
 	storage = p_new(pool, struct rados_storage, 1);
 	storage->storage = rados_storage;
 	storage->storage.pool = pool;
-	debug_print_mail_storage(storage, "rados-storage::rados_storage_alloc");
+	debug_print_mail_storage(&storage->storage, "rados-storage::rados_storage_alloc");
 	return &storage->storage;
 }
 
@@ -34,6 +34,7 @@ rados_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 		set->layout = MAILBOX_LIST_NAME_FS;
 	if (set->subscription_fname == NULL)
 		set->subscription_fname = RADOS_SUBSCRIPTION_FILE_NAME;
+	debug_print_mailbox_list_settings(set, "rados-storage::rados_storage_get_list_settings");
 }
 
 static struct mailbox *
@@ -71,21 +72,21 @@ static int rados_mailbox_open(struct mailbox *box)
 	} else if (errno == ENOENT) {
 		mail_storage_set_error(box->storage, MAIL_ERROR_NOTFOUND,
 			T_MAIL_ERR_MAILBOX_NOT_FOUND(box->vname));
-		debug_print_mailbox(box, "rados-storage::rados_mailbox_open");
+		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 1)");
 		return -1;
 	} else if (errno == EACCES) {
 		mail_storage_set_critical(box->storage, "%s",
 			mail_error_eacces_msg("stat", box_path));
-		debug_print_mailbox(box, "rados-storage::rados_mailbox_open");
+		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 2)");
 		return -1;
 	} else {
 		mail_storage_set_critical(box->storage, "stat(%s) failed: %m",
 					  box_path);
-		debug_print_mailbox(box, "rados-storage::rados_mailbox_open");
+		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 3)");
 		return -1;
 	}
 	if (index_storage_mailbox_open(box, FALSE) < 0) {
-		debug_print_mailbox(box, "rados-storage::rados_mailbox_open");
+		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 4)");
 		return -1;
 	}
 	mail_index_set_fsync_mode(box->index,
@@ -104,7 +105,7 @@ rados_mailbox_create(struct mailbox *box, const struct mailbox_update *update,
 	int ret;
 
 	if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
-		debug_print_mailbox(box, "rados-storage::rados_mailbox_create");
+		debug_print_mailbox(box, "rados-storage::rados_mailbox_create (ret <= 0, 1)");
 		return ret;
 	}
 
@@ -132,7 +133,7 @@ rados_mailbox_get_metadata(struct mailbox *box,
 
 	if (items != 0) {
 		if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
-			debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata");
+			debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata (ret -1, 1)");
 			return -1;
 		}
 	}

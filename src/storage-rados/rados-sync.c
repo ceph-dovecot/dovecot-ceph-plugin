@@ -122,7 +122,7 @@ int rados_sync_begin(struct rados_mailbox *mbox,
 						&ctx->sync_view, &ctx->trans,
 						sync_flags);
 	if (ret <= 0) {
-		debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin");
+		debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin (ret <= 0, 1)");
 		i_free(ctx);
 		*ctx_r = NULL;
 		return ret;
@@ -145,7 +145,7 @@ int rados_sync_finish(struct rados_sync_context **_ctx, bool success)
 	if (success) {
 		if (mail_index_sync_commit(&ctx->index_sync_ctx) < 0) {
 			mailbox_set_index_error(&ctx->mbox->box);
-			debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish");
+			debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish (ret -1, 1)");
 			ret = -1;
 		}
 	} else {
@@ -177,7 +177,7 @@ rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 
 	if (!box->opened) {
 		if (mailbox_open(box) < 0) {
-			debug_print_mailbox(box, "rados-sync::rados_storage_sync_init");
+			debug_print_mailbox(box, "rados-sync::rados_storage_sync_init (ret -1, 1)");
 			ret = -1;
 		}
 	}
@@ -185,7 +185,7 @@ rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 	if (index_mailbox_want_full_sync(&mbox->box, flags) && ret == 0)
 		ret = rados_sync(mbox);
 
-	ret = index_mailbox_sync_init(box, flags, ret < 0);
+	struct mailbox_sync_context * ctx = index_mailbox_sync_init(box, flags, ret < 0);
 	debug_print_mailbox(box, "rados-sync::rados_storage_sync_init");
-	return ret;
+	return ctx;
 }

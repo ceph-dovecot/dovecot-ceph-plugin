@@ -10,6 +10,7 @@
 #include "index-mail.h"
 #include "mail-storage.h"
 #include "mail-storage-private.h"
+#include "mailbox-list.h"
 #include "rados-storage.h"
 #include "rados-sync.h"
 #include "debug-helper.h"
@@ -159,6 +160,8 @@ void debug_print_mailbox_transaction_context(struct mailbox_transaction_context*
 		i_debug("mailbox_transaction_context stats_track = %u", mailboxTransactionContext->stats_track);
 		i_debug("mailbox_transaction_context nontransactional_changes = %u", mailboxTransactionContext->nontransactional_changes);
 		i_debug("mailbox_transaction_context internal_attribute = %d", mailboxTransactionContext->internal_attribute);
+
+		debug_print_mailbox(mailboxTransactionContext->box, NULL);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -235,10 +238,9 @@ void debug_print_mail_user(struct mail_user *mailUser, const char *funcname) {
 		i_debug("mail_user session_id = %s", mailUser->session_id);
 		i_debug("mail_user auth_token = %s", mailUser->auth_token);
 		i_debug("mail_user auth_user = %s", mailUser->auth_user);
-		i_debug("mail_user userdb_fields = %s", *mailUser->userdb_fields);
+		i_debug("mail_user userdb_fields = %s", mailUser->userdb_fields != NULL ? *mailUser->userdb_fields : "NULL");
 		i_debug("mail_user error = %s", mailUser->error);
 		i_debug("mail_user session_create_time = %ld", mailUser->session_create_time);
-
 		i_debug("mail_user nonexistent = %u", mailUser->nonexistent);
 		i_debug("mail_user home_looked_up = %u", mailUser->home_looked_up);
 		i_debug("mail_user anonymous = %u", mailUser->anonymous);
@@ -269,11 +271,40 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 	if (radosSyncContext == NULL) {
 		i_debug("rados_sync_context = NULL");
 	} else {
-		i_debug("rados_sync_context path = %s", (char *) radosSyncContext->path->data);
+		i_debug("rados_sync_context path = %s", radosSyncContext->path != NULL ? (char *) radosSyncContext->path->data : "NULL");
 		i_debug("rados_sync_context path_dir_prefix_len = %lu", radosSyncContext->path_dir_prefix_len);
 		i_debug("rados_sync_context uid_validity = %u", radosSyncContext->uid_validity);
 
 		debug_print_mailbox(&radosSyncContext->mbox->box, NULL);
+	}
+	if (funcname != NULL) {
+		i_debug("###\n");
+	}
+}
+
+void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxListSettings, const char *funcname) {
+	if (funcname != NULL) {
+		i_debug("### %s", funcname);
+	}
+	if (mailboxListSettings == NULL) {
+		i_debug("mailbox_list_settings = NULL");
+	} else {
+		i_debug("mailbox_list_settings layout = %s", mailboxListSettings->layout);
+		i_debug("mailbox_list_settings root_dir = %s", mailboxListSettings->root_dir);
+		i_debug("mailbox_list_settings index_dir = %s", mailboxListSettings->index_dir);
+		i_debug("mailbox_list_settings index_pvt_dir = %s", mailboxListSettings->index_pvt_dir);
+		i_debug("mailbox_list_settings control_dir = %s", mailboxListSettings->control_dir);
+		i_debug("mailbox_list_settings alt_dir = %s", mailboxListSettings->alt_dir);
+		i_debug("mailbox_list_settings inbox_path = %s", mailboxListSettings->inbox_path);
+		i_debug("mailbox_list_settings subscription_fname = %s", mailboxListSettings->subscription_fname);
+		i_debug("mailbox_list_settings list_index_fname = %s", mailboxListSettings->list_index_fname);
+		i_debug("mailbox_list_settings maildir_name = %s", mailboxListSettings->maildir_name);
+		i_debug("mailbox_list_settings mailbox_dir_name = %s", mailboxListSettings->mailbox_dir_name);
+		i_debug("mailbox_list_settings escape_char = %c", mailboxListSettings->escape_char);
+		i_debug("mailbox_list_settings broken_char = %c", mailboxListSettings->broken_char);
+		i_debug("mailbox_list_settings utf8 = %s", btoa(mailboxListSettings->utf8));
+		i_debug("mailbox_list_settings alt_dir_nocheck = %s", btoa(mailboxListSettings->alt_dir_nocheck));
+		i_debug("mailbox_list_settings index_control_use_maildir_name = %s", btoa(mailboxListSettings->index_control_use_maildir_name));
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
