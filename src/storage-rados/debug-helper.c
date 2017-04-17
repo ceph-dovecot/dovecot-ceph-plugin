@@ -65,6 +65,24 @@ void debug_print_mailbox(struct mailbox *mailbox, const char *funcname) {
 	} else {
 		i_debug("mailbox name = %s", mailbox->name);
 		i_debug("mailbox vname = %s", mailbox->vname);
+		i_debug("mailbox pool = %p", mailbox->pool);
+		i_debug("mailbox metadata_pool = %p", mailbox->metadata_pool);
+		i_debug("mailbox prev = %p", mailbox->prev);
+		i_debug("mailbox next = %p", mailbox->next);
+		i_debug("mailbox view = %p", mailbox->view);
+		i_debug("mailbox cache = %p", mailbox->cache);
+		i_debug("mailbox view_pvt = %p", mailbox->view_pvt);
+		i_debug("mailbox set = %p", mailbox->set);
+		i_debug("mailbox input = %p", mailbox->input);
+		i_debug("mailbox tmp_sync_view = %p", mailbox->tmp_sync_view);
+		i_debug("mailbox notify_callback = %p", mailbox->notify_callback);
+		i_debug("mailbox notify_context = %p", mailbox->notify_context);
+		i_debug("mailbox to_notify = %p", mailbox->to_notify);
+		i_debug("mailbox to_notify_delay = %p", mailbox->to_notify_delay);
+		i_debug("mailbox notify_files = %p", mailbox->notify_files);
+		i_debug("mailbox recent_flags size = %ld", mailbox->recent_flags.arr.element_size);
+		i_debug("mailbox search_results size = %ld", mailbox->search_results.arr.element_size);
+		i_debug("mailbox module_contexts size = %ld", mailbox->module_contexts.arr.element_size);
 		i_debug("mailbox path = %s", mailbox->_path);
 		i_debug("mailbox index_path = %s", mailbox->_index_path);
 		i_debug("mailbox open_error = %s", enum_mail_error_strs[mailbox->open_error]);
@@ -96,7 +114,8 @@ void debug_print_mailbox(struct mailbox *mailbox, const char *funcname) {
 
 		debug_print_mail_storage(mailbox->storage, NULL);
 		debug_print_mailbox_list(mailbox->list, NULL);
-		debug_print_mail_index(mailbox->index, NULL);
+		debug_print_mail_index(mailbox->index, NULL, "index");
+		debug_print_mail_index(mailbox->index_pvt, NULL, "index_pvt");
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -117,6 +136,20 @@ void debug_print_index_mail_data(struct index_mail_data *indexMailData, const ch
 
 		i_debug("index_mail_data virtual_size = %lu", indexMailData->virtual_size);
 		i_debug("index_mail_data physical_size = %lu", indexMailData->physical_size);
+
+		i_debug("index_mail_data parts = %p", indexMailData->parts);
+		i_debug("index_mail_data bin_parts = %p", indexMailData->bin_parts);
+		i_debug("index_mail_data envelope_data = %p", indexMailData->envelope_data);
+		i_debug("index_mail_data wanted_headers = %p", indexMailData->wanted_headers);
+		i_debug("index_mail_data search_results = %p", indexMailData->search_results);
+		i_debug("index_mail_data stream = %p", indexMailData->stream);
+		i_debug("index_mail_data filter_stream = %p", indexMailData->filter_stream);
+		i_debug("index_mail_data tee_stream = %p", indexMailData->tee_stream);
+		i_debug("index_mail_data parser_input = %p", indexMailData->parser_input);
+		i_debug("index_mail_data parser_ctx = %p", indexMailData->parser_ctx);
+
+		i_debug("index_mail_data keywords size = %ld", indexMailData->keywords.arr.element_size);
+		i_debug("index_mail_data keyword_indexes size = %ld", indexMailData->keyword_indexes.arr.element_size);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -346,9 +379,12 @@ void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxList
 	}
 }
 
-void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname) {
+void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname, const char *indexName) {
 	if (funcname != NULL) {
 		i_debug("### %s", funcname);
+	}
+	if (indexName != NULL) {
+		i_debug("*** mail_index %s", indexName);
 	}
 	if (mailIndex == NULL) {
 		i_debug("mail_index = NULL");
@@ -364,8 +400,8 @@ void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname) 
 		i_debug("mail_index mode = %d", mailIndex->mode);
 		i_debug("mail_index gid = %d", mailIndex->gid);
 		i_debug("mail_index gid_origin = %s", mailIndex->gid_origin);
-		i_debug("mail_index log_rotate_min_size = %u", mailIndex->log_rotate_min_size);
-		i_debug("mail_index log_rotate_max_size = %u", mailIndex->log_rotate_max_size);
+		i_debug("mail_index log_rotate_min_size = %lu", mailIndex->log_rotate_min_size);
+		i_debug("mail_index log_rotate_max_size = %lu", mailIndex->log_rotate_max_size);
 		i_debug("mail_index log_rotate_min_created_ago_secs = %u", mailIndex->log_rotate_min_created_ago_secs);
 		i_debug("mail_index log_rotate_log2_stale_secs = %u", mailIndex->log_rotate_log2_stale_secs);
 		i_debug("mail_index extension_pool = %p", mailIndex->extension_pool);
@@ -380,13 +416,13 @@ void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname) 
 		i_debug("mail_index last_read_log_file_seq = %u", mailIndex->last_read_log_file_seq);
 		i_debug("mail_index last_read_log_file_tail_offset = %u", mailIndex->last_read_log_file_tail_offset);
 		i_debug("mail_index fsck_log_head_file_seq = %u", mailIndex->fsck_log_head_file_seq);
-		i_debug("mail_index fsck_log_head_file_offset = %u", mailIndex->fsck_log_head_file_offset);
+		i_debug("mail_index fsck_log_head_file_offset = %lu", mailIndex->fsck_log_head_file_offset);
 		i_debug("mail_index sync_commit_result = %p", mailIndex->sync_commit_result);
 		i_debug("mail_index lock_method = %s", enum_file_lock_method[mailIndex->lock_method]);
 		i_debug("mail_index max_lock_timeout_secs = %u", mailIndex->max_lock_timeout_secs);
 		i_debug("mail_index keywords_pool = %p", mailIndex->keywords_pool);
 		i_debug("mail_index keywords_ext_id = %u", mailIndex->keywords_ext_id);
-		i_debug("mail_index modseq_ext_id = %s", mailIndex->modseq_ext_id);
+		i_debug("mail_index modseq_ext_id = %u", mailIndex->modseq_ext_id);
 		i_debug("mail_index views = %p", mailIndex->views);
 		i_debug("mail_index error = %s", mailIndex->error);
 		i_debug("mail_index nodiskspace = %u", mailIndex->nodiskspace);
