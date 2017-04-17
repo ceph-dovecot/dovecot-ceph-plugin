@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 	struct rados_sync_context *radosSyncContext = i_new(struct rados_sync_context, 1);
 	debug_print_rados_sync_context(radosSyncContext, "Empty context");
 	struct mail_index *mailIndex = i_new(struct mail_index, 1);
-	debug_print_mail_index(mailIndex, "Empty mail index");
+	debug_print_mail_index(mailIndex, "Empty mail index", "empty");
 	debug_print_mailbox_list(mbox_lst, "Empty mailbox list");
 
 	i_free(mailboxTransactionContext);
