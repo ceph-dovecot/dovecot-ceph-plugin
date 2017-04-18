@@ -50,8 +50,10 @@ void debug_print_mail(struct mail *mail, const char *funcname, const char *mailN
 		i_debug("mail access_type = %s", enum_mail_access_type_strs[mail->access_type]);
 		i_debug("mail lookup_abort = %s", enum_mail_lookup_abort_strs[mail->lookup_abort]);
 
-		debug_print_mailbox(mail->box, NULL, "box");
-		debug_print_mailbox_transaction_context(mail->transaction, NULL, "transaction");
+		//debug_print_mailbox(mail->box, NULL, "box");
+		i_debug("mail box = %p", mail->box);
+		//debug_print_mailbox_transaction_context(mail->transaction, NULL, "transaction");
+		i_debug("mail transaction = %p", mail->transaction);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -119,10 +121,14 @@ void debug_print_mailbox(struct mailbox *mailbox, const char *funcname, const ch
 		i_debug("mailbox list_index_has_changed_quick = %u", mailbox->list_index_has_changed_quick);
 		i_debug("mailbox corrupted_mailbox_name = %u", mailbox->corrupted_mailbox_name);
 
-		debug_print_mail_storage(mailbox->storage, NULL, "storage");
-		debug_print_mailbox_list(mailbox->list, NULL, "list");
-		debug_print_mail_index(mailbox->index, NULL, "index");
-		debug_print_mail_index(mailbox->index_pvt, NULL, "index_pvt");
+		//debug_print_mail_storage(mailbox->storage, NULL, "storage");
+		i_debug("mailbox storage = %p", mailbox->storage);
+		//debug_print_mailbox_list(mailbox->list, NULL, "list");
+		i_debug("mailbox list = %p", mailbox->list);
+		//debug_print_mail_index(mailbox->index, NULL, "index");
+		i_debug("mailbox index = %p", mailbox->index);
+		//debug_print_mail_index(mailbox->index_pvt, NULL, "index_pvt");
+		i_debug("mailbox index_pvt = %p", mailbox->index_pvt);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -181,10 +187,15 @@ void debug_print_mail_save_context(struct mail_save_context *mailSaveContext, co
 		i_debug("mail_save_context copying_or_moving = %u", mailSaveContext->copying_or_moving);
 		i_debug("mail_save_context dest_mail_external = %u", mailSaveContext->dest_mail_external);
 		i_debug("mail_save_context data.uid = %u", mailSaveContext->data.uid);
-		debug_print_mail(mailSaveContext->dest_mail, NULL, "dest_mail");
-		debug_print_mail(mailSaveContext->copy_src_mail, NULL, "copy_src_mail");
-		debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
-		debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
+
+		//debug_print_mail(mailSaveContext->dest_mail, NULL, "dest_mail");
+		i_debug("mail_save_context dest_mail = %p", mailSaveContext->dest_mail);
+		//debug_print_mail(mailSaveContext->copy_src_mail, NULL, "copy_src_mail");
+		i_debug("mail_save_context copy_src_mail = %p", mailSaveContext->copy_src_mail);
+		//debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
+		i_debug("mail_save_context transaction = %p", mailSaveContext->transaction);
+		//debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
+		i_debug("mail_save_context data = %p", mailSaveContext->data);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -224,8 +235,10 @@ void debug_print_mailbox_transaction_context(struct mailbox_transaction_context*
 		i_debug("mailbox_transaction_context module_contexts size = %ld", mailboxTransactionContext->module_contexts.arr.element_size);
 		i_debug("mailbox_transaction_context pvt_saves size = %ld", mailboxTransactionContext->pvt_saves.arr.element_size);
 
-		debug_print_mailbox(mailboxTransactionContext->box, NULL, "box");
-		debug_print_mail_save_context(mailboxTransactionContext->save_ctx, NULL, "save_ctx");
+		//debug_print_mailbox(mailboxTransactionContext->box, NULL, "box");
+		i_debug("mailbox_transaction_context box = %p", mailboxTransactionContext->box);
+		//debug_print_mail_save_context(mailboxTransactionContext->save_ctx, NULL, "save_ctx");
+		i_debug("mailbox_transaction_context save_ctx = %p", mailboxTransactionContext->save_ctx);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -297,7 +310,8 @@ void debug_print_mail_storage(struct mail_storage *mailStorage, const char *func
 		i_debug("mail_storage error_stack size = %ld", mailStorage->error_stack.arr.element_size);
 		i_debug("mail_storage module_contexts size = %ld", mailStorage->module_contexts.arr.element_size);
 
-		debug_print_mail_user(mailStorage->user, NULL, "user");
+		//debug_print_mail_user(mailStorage->user, NULL, "user");
+		i_debug("mail_storage user = %p", mailStorage->user);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -384,7 +398,8 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 		i_debug("rados_sync_context sync_view = %p", radosSyncContext->sync_view);
 		i_debug("rados_sync_context trans = %p", radosSyncContext->trans);
 
-		debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
+		//debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
+		i_debug("rados_sync_context mbox->box = %p", radosSyncContext->mbox->box);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -429,7 +444,8 @@ void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *func
 		i_debug("mailbox_list guid_cache_updated = %u", mailboxList->guid_cache_updated);
 		i_debug("mailbox_list guid_cache_invalidated = %u", mailboxList->guid_cache_invalidated);
 
-		debug_print_mailbox_list_settings(&mailboxList->set, NULL, "set");
+		//debug_print_mailbox_list_settings(&mailboxList->set, NULL, "set");
+		i_debug("mailbox_list set = %p", mailboxList->set);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
