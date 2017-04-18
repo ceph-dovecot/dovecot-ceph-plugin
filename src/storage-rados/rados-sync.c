@@ -24,7 +24,7 @@ static string_t *rados_get_path_prefix(struct rados_mailbox *mbox)
 
 	str_append(path, mailbox_get_path(&mbox->box));
 	str_append_c(path, '/');
-	debug_print_mailbox(&mbox->box, "rados-sync::rados_get_path_prefix");
+	debug_print_mailbox(&mbox->box, "rados-sync::rados_get_path_prefix", NULL);
 	return path;
 }
 
@@ -177,7 +177,7 @@ rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 
 	if (!box->opened) {
 		if (mailbox_open(box) < 0) {
-			debug_print_mailbox(box, "rados-sync::rados_storage_sync_init (ret -1, 1)");
+			debug_print_mailbox(box, "rados-sync::rados_storage_sync_init (ret -1, 1)", NULL);
 			ret = -1;
 		}
 	}
@@ -186,6 +186,6 @@ rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 		ret = rados_sync(mbox);
 
 	struct mailbox_sync_context * ctx = index_mailbox_sync_init(box, flags, ret < 0);
-	debug_print_mailbox(box, "rados-sync::rados_storage_sync_init");
+	debug_print_mailbox(box, "rados-sync::rados_storage_sync_init", NULL);
 	return ctx;
 }
