@@ -220,7 +220,7 @@ void debug_print_mailbox_transaction_context(struct mailbox_transaction_context*
 		i_debug("mailbox_transaction_context cache_view = %p", mailboxTransactionContext->cache_view);
 		i_debug("mailbox_transaction_context cache_trans = %p", mailboxTransactionContext->cache_trans);
 		i_debug("mailbox_transaction_context changes = %p", mailboxTransactionContext->changes);
-		i_debug("mailbox_transaction_context stats.cache_hit_count = %u", mailboxTransactionContext->stats.cache_hit_count);
+		i_debug("mailbox_transaction_context stats.cache_hit_count = %lu", mailboxTransactionContext->stats.cache_hit_count);
 		i_debug("mailbox_transaction_context module_contexts size = %ld", mailboxTransactionContext->module_contexts.arr.element_size);
 		i_debug("mailbox_transaction_context pvt_saves size = %ld", mailboxTransactionContext->pvt_saves.arr.element_size);
 
@@ -252,6 +252,10 @@ void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char 
 		i_debug("mail_save_data pop3_uidl = %s", mailSaveData->pop3_uidl);
 		i_debug("mail_save_data from_envelope = %s", mailSaveData->from_envelope);
 		i_debug("mail_save_data pop3_order = %u", mailSaveData->pop3_order);
+
+		i_debug("mail_save_data attach = %p", mailSaveData->attach);
+		i_debug("mail_save_data keywords = %p", mailSaveData->keywords);
+		i_debug("mail_save_data output = %p", mailSaveData->output);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
@@ -281,6 +285,17 @@ void debug_print_mail_storage(struct mail_storage *mailStorage, const char *func
 		i_debug("mail_storage error = %s", enum_mail_error_strs[mailStorage->error]);
 		i_debug("mail_storage temp_path_prefix = %s", mailStorage->temp_path_prefix);
 		i_debug("mail_storage shared_attr_dict_failed = %u", mailStorage->shared_attr_dict_failed);
+
+		i_debug("mail_storage prev = %p", mailStorage->prev);
+		i_debug("mail_storage next = %p", mailStorage->next);
+		i_debug("mail_storage mailboxes = %p", mailStorage->mailboxes);
+		i_debug("mail_storage storage_class = %p", mailStorage->storage_class);
+		i_debug("mail_storage set = %p", mailStorage->set);
+		i_debug("mail_storage callback_context = %p", mailStorage->callback_context);
+		i_debug("mail_storage _shared_attr_dict = %p", mailStorage->_shared_attr_dict);
+
+		i_debug("mail_storage error_stack size = %ld", mailStorage->error_stack.arr.element_size);
+		i_debug("mail_storage module_contexts size = %ld", mailStorage->module_contexts.arr.element_size);
 
 		debug_print_mail_user(mailStorage->user, NULL, "user");
 	}
@@ -314,6 +329,23 @@ void debug_print_mail_user(struct mail_user *mailUser, const char *funcname, con
 		i_debug("mail_user userdb_fields = %s", mailUser->userdb_fields != NULL ? *mailUser->userdb_fields : "NULL");
 		i_debug("mail_user error = %s", mailUser->error);
 		i_debug("mail_user session_create_time = %ld", mailUser->session_create_time);
+
+		i_debug("mail_user creator = %p", mailUser->creator);
+		i_debug("mail_user _service_user = %p", mailUser->_service_user);
+		i_debug("mail_user local_ip = %p", mailUser->local_ip);
+		i_debug("mail_user remote_ip = %p", mailUser->remote_ip);
+		i_debug("mail_user var_expand_table = %p", mailUser->var_expand_table);
+		i_debug("mail_user set_info = %p", mailUser->set_info);
+		i_debug("mail_user unexpanded_set = %p", mailUser->unexpanded_set);
+		i_debug("mail_user set = %p", mailUser->set);
+		i_debug("mail_user namespaces = %p", mailUser->namespaces);
+		i_debug("mail_user storages = %p", mailUser->storages);
+		i_debug("mail_user default_normalizer = %p", mailUser->default_normalizer);
+		i_debug("mail_user _attr_dict = %p", mailUser->_attr_dict);
+
+		i_debug("mail_user hooks size = %ld", mailUser->hooks.arr.element_size);
+		i_debug("mail_user module_contexts size = %ld", mailUser->module_contexts.arr.element_size);
+
 		i_debug("mail_user nonexistent = %u", mailUser->nonexistent);
 		i_debug("mail_user home_looked_up = %u", mailUser->home_looked_up);
 		i_debug("mail_user anonymous = %u", mailUser->anonymous);
