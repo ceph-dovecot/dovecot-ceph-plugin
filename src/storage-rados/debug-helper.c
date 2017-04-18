@@ -380,6 +380,10 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 		i_debug("rados_sync_context path_dir_prefix_len = %lu", radosSyncContext->path_dir_prefix_len);
 		i_debug("rados_sync_context uid_validity = %u", radosSyncContext->uid_validity);
 
+		i_debug("rados_sync_context index_sync_ctx = %p", radosSyncContext->index_sync_ctx);
+		i_debug("rados_sync_context sync_view = %p", radosSyncContext->sync_view);
+		i_debug("rados_sync_context trans = %p", radosSyncContext->trans);
+
 		debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
 	}
 	if (funcname != NULL) {
@@ -403,6 +407,16 @@ void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *func
 		if (mailboxList->pool != NULL) {
 			i_debug("mail_user pool name = %s", mailboxList->pool->v->get_name(mailboxList->pool));
 		}
+		if (mailboxList->guid_cache_pool != NULL) {
+			i_debug("mail_user pool name = %s", mailboxList->guid_cache_pool->v->get_name(mailboxList->guid_cache_pool));
+		}
+		i_debug("mailbox_list mail_set = %p", mailboxList->mail_set);
+		i_debug("mailbox_list subscriptions = %p", mailboxList->subscriptions);
+		i_debug("mailbox_list changelog = %p", mailboxList->changelog);
+
+		i_debug("mailbox_list root_permissions.file_uid = %u", mailboxList->root_permissions.file_uid);
+		i_debug("mailbox_list module_contexts size = %ld", mailboxList->module_contexts.arr.element_size);
+
 		i_debug("mailbox_list subscriptions_mtime = %ld", mailboxList->subscriptions_mtime);
 		i_debug("mailbox_list subscriptions_read_time = %ld", mailboxList->subscriptions_read_time);
 		i_debug("mailbox_list changelog_timestamp = %ld", mailboxList->changelog_timestamp);
@@ -514,6 +528,20 @@ void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname, 
 		i_debug("mail_index initial_create = %u", mailIndex->initial_create);
 		i_debug("mail_index initial_mapped = %u", mailIndex->initial_mapped);
 		i_debug("mail_index fscked = %u", mailIndex->fscked);
+
+		i_debug("mail_index cache = %p", mailIndex->cache);
+		i_debug("mail_index log = %p", mailIndex->log);
+		i_debug("mail_index ext_hdr_init_data = %p", mailIndex->ext_hdr_init_data);
+		i_debug("mail_index map = %p", mailIndex->map);
+		i_debug("mail_index sync_commit_result = %p", mailIndex->sync_commit_result);
+		i_debug("mail_index views = %p", mailIndex->views);
+		i_debug("mail_index extension_pool = %p", mailIndex->extension_pool);
+		i_debug("mail_index keywords_pool = %p", mailIndex->keywords_pool);
+
+		i_debug("mail_index extensions size = %ld", mailIndex->extensions.arr.element_size);
+		i_debug("mail_index sync_lost_handlers size = %ld", mailIndex->sync_lost_handlers.arr.element_size);
+		i_debug("mail_index keywords size = %ld", mailIndex->keywords.arr.element_size);
+		i_debug("mail_index module_contexts size = %ld", mailIndex->module_contexts.arr.element_size);
 	}
 	if (funcname != NULL) {
 		i_debug("###\n");
