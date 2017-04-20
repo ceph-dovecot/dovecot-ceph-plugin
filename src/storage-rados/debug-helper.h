@@ -11,6 +11,10 @@
 struct rados_sync_context;
 struct index_mail_data;
 
+#define FUNC_START() i_debug("[START] %s: %s at line %d", __FILE__, __func__, __LINE__)
+#define FUNC_END() i_debug("[END] %s: %s at line %d\n", __FILE__, __func__, __LINE__)
+#define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
+
 void debug_print_mail(struct mail *mail, const char *funcname, const char *mailName);
 void debug_print_mailbox(struct mailbox *mailbox, const char *funcname, const char *boxName);
 void debug_print_index_mail_data(struct index_mail_data *indexMailData, const char *funcname);

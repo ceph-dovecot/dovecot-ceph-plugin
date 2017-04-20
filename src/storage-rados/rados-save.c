@@ -38,7 +38,6 @@ struct rados_save_context {
 static char *rados_generate_tmp_filename(void)
 {
 	static unsigned int create_count = 0;
-
 	return i_strdup_printf("temp.%s.P%sQ%uM%s.%s",
 			       dec2str(ioloop_timeval.tv_sec), my_pid,
 			       create_count++,
@@ -48,16 +47,21 @@ static char *rados_generate_tmp_filename(void)
 static const char *
 rados_get_save_path(struct rados_save_context *ctx, unsigned int num)
 {
+	FUNC_START();
 	const char *dir;
 
 	dir = mailbox_get_path(&ctx->mbox->box);
+	const char *ret = t_strdup_printf("%s/%s.%u", dir, ctx->tmp_basename, num);
+	i_debug("save path = %s", ret);
 	debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_get_save_path", NULL);
-	return t_strdup_printf("%s/%s.%u", dir, ctx->tmp_basename, num);
+	FUNC_END();
+	return ret;
 }
 
 struct mail_save_context *
 rados_save_alloc(struct mailbox_transaction_context *t)
 {
+	FUNC_START();
 	struct rados_mailbox *mbox = (struct rados_mailbox *)t->box;
 	struct rados_save_context *ctx;
 
@@ -73,11 +77,13 @@ rados_save_alloc(struct mailbox_transaction_context *t)
 		t->save_ctx = &ctx->ctx;
 	}
 	debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
+	FUNC_END();
 	return t->save_ctx;
 }
 
 int rados_save_begin(struct mail_save_context *_ctx, struct istream *input)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 	struct mailbox_transaction_context *trans = _ctx->transaction;
 	enum mail_flags save_flags;
@@ -100,8 +106,10 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input)
 			ctx->failed = TRUE;
 		}
 	} T_END;
+
 	if (ctx->failed) {
 		debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
@@ -125,17 +133,20 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input)
 	ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
 	i_stream_unref(&crlf_input);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin", NULL);
+	FUNC_END();
 	return ctx->failed ? -1 : 0;
 }
 
 int rados_save_continue(struct mail_save_context *_ctx)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 	struct mail_storage *storage = &ctx->mbox->storage->storage;
 
 	if (ctx->failed) {
 		debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue (ret -1, 1)", NULL);
 		debug_print_mail_storage(storage, "rados-save::rados_save_continue (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
@@ -149,6 +160,7 @@ int rados_save_continue(struct mail_save_context *_ctx)
 			ctx->failed = TRUE;
 			debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue (ret -1, 2)", NULL);
 			debug_print_mail_storage(storage, "rados-save::rados_save_continue (ret -1, 2)", NULL);
+			FUNC_END_RET("ret == -1");
 			return -1;
 		}
 		index_mail_cache_parse_continue(_ctx->dest_mail);
@@ -159,11 +171,13 @@ int rados_save_continue(struct mail_save_context *_ctx)
 	} while (i_stream_read(ctx->input) > 0);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue", NULL);
 	debug_print_mail_storage(storage, "rados-save::rados_save_continue", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static int rados_save_flush(struct rados_save_context *ctx, const char *path)
 {
+	FUNC_START();
 	struct mail_storage *storage = &ctx->mbox->storage->storage;
 	struct stat st;
 	int ret = 0;
@@ -211,11 +225,13 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path)
 	ctx->fd = -1;
 	debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_save_flush", NULL);
 	debug_print_mail_storage(storage, "rados-save::rados_save_flush", NULL);
+	FUNC_END();
 	return ret;
 }
 
 int rados_save_finish(struct mail_save_context *_ctx)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 	const char *path = rados_get_save_path(ctx, ctx->mail_count);
 
@@ -238,20 +254,24 @@ int rados_save_finish(struct mail_save_context *_ctx)
 
 	index_save_context_free(_ctx);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_save_finish", NULL);
+	FUNC_END();
 	return ctx->failed ? -1 : 0;
 }
 
 void rados_save_cancel(struct mail_save_context *_ctx)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 
 	ctx->failed = TRUE;
 	(void)rados_save_finish(_ctx);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_save_cancel", NULL);
+	FUNC_END();
 }
 
 int rados_transaction_save_commit_pre(struct mail_save_context *_ctx)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 	struct mailbox_transaction_context *_t = _ctx->transaction;
 	const struct mail_index_header *hdr;
@@ -268,6 +288,7 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx)
 		ctx->failed = TRUE;
 		rados_transaction_save_rollback(_ctx);
 		debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_pre (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
@@ -301,16 +322,19 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx)
 			ctx->failed = TRUE;
 			rados_transaction_save_rollback(_ctx);
 			debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_pre (ret -1, 2)", NULL);
+			FUNC_END_RET("ret == -1");
 			return -1;
 		}
 	}
 	debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_pre", NULL);
+	FUNC_END();
 	return 0;
 }
 
 void rados_transaction_save_commit_post(struct mail_save_context *_ctx,
 					struct mail_index_transaction_commit_result *result)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 
 	_ctx->transaction = NULL; /* transaction is already freed */
@@ -319,12 +343,14 @@ void rados_transaction_save_commit_post(struct mail_save_context *_ctx,
 					  result);
 
 	(void)rados_sync_finish(&ctx->sync_ctx, TRUE);
-	rados_transaction_save_rollback(_ctx);
 	debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_post", NULL);
+	rados_transaction_save_rollback(_ctx);
+	FUNC_END();
 }
 
 void rados_transaction_save_rollback(struct mail_save_context *_ctx)
 {
+	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
 
 	if (!ctx->finished)
@@ -337,4 +363,5 @@ void rados_transaction_save_rollback(struct mail_save_context *_ctx)
 
 	i_free(ctx->tmp_basename);
 	i_free(ctx);
+	FUNC_END();
 }
