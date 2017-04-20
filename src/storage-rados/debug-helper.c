@@ -27,8 +27,9 @@ static char *enum_mail_error_strs[] = {"MAIL_ERROR_NONE", "MAIL_ERROR_TEMP", "MA
 static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK",	"FILE_LOCK_METHOD_DOTLOCK"};
 
 void debug_print_mail(struct mail *mail, const char *funcname, const char *mailName) {
+	i_debug("mail");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (mailName != NULL) {
 		i_debug("mail %s", mailName);
@@ -56,14 +57,15 @@ void debug_print_mail(struct mail *mail, const char *funcname, const char *mailN
 		i_debug("mail transaction = %p", mail->transaction);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mailbox(struct mailbox *mailbox, const char *funcname, const char *boxName) {
 
+	i_debug("mailbox");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (boxName != NULL) {
 		i_debug("mailbox %s", boxName);
@@ -131,14 +133,15 @@ void debug_print_mailbox(struct mailbox *mailbox, const char *funcname, const ch
 		i_debug("mailbox index_pvt = %p", mailbox->index_pvt);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 
 }
 
 void debug_print_index_mail_data(struct index_mail_data *indexMailData, const char *funcname) {
+	i_debug("index_mail_data");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (indexMailData == NULL) {
 		i_debug("index_mail_data = NULL");
@@ -165,13 +168,14 @@ void debug_print_index_mail_data(struct index_mail_data *indexMailData, const ch
 		i_debug("index_mail_data keyword_indexes size = %ld", indexMailData->keyword_indexes.arr.element_size);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mail_save_context(struct mail_save_context *mailSaveContext, const char *funcname, const char* saveCtxName) {
+	i_debug("mail_save_context");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (saveCtxName != NULL) {
 		i_debug("mail_save_context %s", saveCtxName);
@@ -195,17 +199,18 @@ void debug_print_mail_save_context(struct mail_save_context *mailSaveContext, co
 		//debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
 		i_debug("mail_save_context transaction = %p", mailSaveContext->transaction);
 		//debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
-		i_debug("mail_save_context data = %p", mailSaveContext->data);
+		i_debug("mail_save_context data.guid = %s", mailSaveContext->data.guid);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mailbox_transaction_context(struct mailbox_transaction_context* mailboxTransactionContext,
 		const char *funcname, const char *ctxName) {
+	i_debug("mailbox_transaction_context");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (ctxName != NULL) {
 		i_debug("mailbox_transaction_context %s", ctxName);
@@ -241,13 +246,14 @@ void debug_print_mailbox_transaction_context(struct mailbox_transaction_context*
 		i_debug("mailbox_transaction_context save_ctx = %p", mailboxTransactionContext->save_ctx);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char *funcname, const char *saveDataName) {
+	i_debug("mail_save_data");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (saveDataName != NULL) {
 		i_debug("mail_save_data %s", saveDataName);
@@ -271,13 +277,14 @@ void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char 
 		i_debug("mail_save_data output = %p", mailSaveData->output);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mail_storage(struct mail_storage *mailStorage, const char *funcname, const char *storageName) {
+	i_debug("mail_storage");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (storageName != NULL) {
 		i_debug("mail_storage %s", storageName);
@@ -314,13 +321,14 @@ void debug_print_mail_storage(struct mail_storage *mailStorage, const char *func
 		i_debug("mail_storage user = %p", mailStorage->user);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mail_user(struct mail_user *mailUser, const char *funcname, const char* userName) {
+	i_debug("mail_user");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (userName != NULL) {
 		i_debug("mail_user %s", userName);
@@ -379,13 +387,14 @@ void debug_print_mail_user(struct mail_user *mailUser, const char *funcname, con
 		i_debug("mail_user session_restored = %u", mailUser->session_restored);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext, const char *funcname) {
+	i_debug("rados_sync_context");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (radosSyncContext == NULL) {
 		i_debug("rados_sync_context = NULL");
@@ -399,16 +408,17 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 		i_debug("rados_sync_context trans = %p", radosSyncContext->trans);
 
 		//debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
-		i_debug("rados_sync_context mbox->box = %p", radosSyncContext->mbox->box);
+		i_debug("rados_sync_context mbox->box._path = %s", radosSyncContext->mbox->box._path);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname, const char *listName) {
+	i_debug("mailbox_list");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (listName != NULL) {
 		i_debug("mailbox_list %s", listName);
@@ -445,16 +455,17 @@ void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *func
 		i_debug("mailbox_list guid_cache_invalidated = %u", mailboxList->guid_cache_invalidated);
 
 		//debug_print_mailbox_list_settings(&mailboxList->set, NULL, "set");
-		i_debug("mailbox_list set = %p", mailboxList->set);
+		i_debug("mailbox_list set.inbox_path = %s", mailboxList->set.inbox_path);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxListSettings, const char *funcname, const char *listSettingsName) {
+	i_debug("mailbox_list_settings");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (listSettingsName != NULL) {
 		i_debug("mailbox_list_settings %s", listSettingsName);
@@ -480,13 +491,14 @@ void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxList
 		i_debug("mailbox_list_settings index_control_use_maildir_name = %s", btoa(mailboxListSettings->index_control_use_maildir_name));
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }
 
 void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname, const char *indexName) {
+	i_debug("mail_index");
 	if (funcname != NULL) {
-		i_debug("### %s", funcname);
+		//i_debug("### %s", funcname);
 	}
 	if (indexName != NULL) {
 		i_debug("mail_index %s", indexName);
@@ -560,6 +572,6 @@ void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname, 
 		i_debug("mail_index module_contexts size = %ld", mailIndex->module_contexts.arr.element_size);
 	}
 	if (funcname != NULL) {
-		i_debug("###\n");
+		//i_debug("###");
 	}
 }

@@ -15,6 +15,7 @@ extern struct mailbox rados_mailbox;
 
 static struct mail_storage *rados_storage_alloc(void)
 {
+	FUNC_START();
 	struct rados_storage *storage;
 	pool_t pool;
 
@@ -23,6 +24,7 @@ static struct mail_storage *rados_storage_alloc(void)
 	storage->storage = rados_storage;
 	storage->storage.pool = pool;
 	debug_print_mail_storage(&storage->storage, "rados-storage::rados_storage_alloc", NULL);
+	FUNC_END();
 	return &storage->storage;
 }
 
@@ -30,17 +32,20 @@ static void
 rados_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 				struct mailbox_list_settings *set)
 {
+	FUNC_START();
 	if (set->layout == NULL)
 		set->layout = MAILBOX_LIST_NAME_FS;
 	if (set->subscription_fname == NULL)
 		set->subscription_fname = RADOS_SUBSCRIPTION_FILE_NAME;
 	debug_print_mailbox_list_settings(set, "rados-storage::rados_storage_get_list_settings", NULL);
+	FUNC_END();
 }
 
 static struct mailbox *
 rados_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list,
 		    const char *vname, enum mailbox_flags flags)
 {
+	FUNC_START();
 	struct rados_mailbox *mbox;
 	pool_t pool;
 
@@ -58,12 +63,15 @@ rados_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list,
 	index_storage_mailbox_alloc(&mbox->box, vname, flags, MAIL_INDEX_PREFIX);
 
 	mbox->storage = (struct rados_storage *)storage;
+	i_debug("list name = %s", list->name);
 	debug_print_mailbox(&mbox->box, "rados-storage::rados_mailbox_alloc", NULL);
+	FUNC_END();
 	return &mbox->box;
 }
 
 static int rados_mailbox_open(struct mailbox *box)
 {
+	FUNC_START();
 	const char *box_path = mailbox_get_path(box);
 	struct stat st;
 
@@ -73,20 +81,24 @@ static int rados_mailbox_open(struct mailbox *box)
 		mail_storage_set_error(box->storage, MAIL_ERROR_NOTFOUND,
 			T_MAIL_ERR_MAILBOX_NOT_FOUND(box->vname));
 		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	} else if (errno == EACCES) {
 		mail_storage_set_critical(box->storage, "%s",
 			mail_error_eacces_msg("stat", box_path));
 		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 2)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	} else {
 		mail_storage_set_critical(box->storage, "stat(%s) failed: %m",
 					  box_path);
 		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 3)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 	if (index_storage_mailbox_open(box, FALSE) < 0) {
 		debug_print_mailbox(box, "rados-storage::rados_mailbox_open (ret -1, 4)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 	mail_index_set_fsync_mode(box->index,
@@ -94,6 +106,7 @@ static int rados_mailbox_open(struct mailbox *box)
 				  MAIL_INDEX_FSYNC_MASK_APPENDS |
 				  MAIL_INDEX_FSYNC_MASK_EXPUNGES);
 	debug_print_mailbox(box, "rados-storage::rados_mailbox_open", NULL);
+	FUNC_END();
 	return 0;
 }
 
@@ -101,18 +114,22 @@ static int
 rados_mailbox_create(struct mailbox *box, const struct mailbox_update *update,
 		     bool directory)
 {
+	FUNC_START();
 	struct rados_mailbox *mbox = (struct rados_mailbox *)box;
 	int ret;
 
 	if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
 		debug_print_mailbox(box, "rados-storage::rados_mailbox_create (ret <= 0, 1)", NULL);
+		FUNC_END_RET("ret < 0");
 		return ret;
 	}
 
 	ret = update == NULL ? 0 :
 		index_storage_mailbox_update(box, update);
 
+	i_debug("mailbox update = %p", update);
 	debug_print_mailbox(box, "rados-storage::rados_mailbox_create", NULL);
+	FUNC_END();
 	return ret;
 }
 
@@ -122,6 +139,7 @@ rados_mailbox_get_metadata(struct mailbox *box,
 			   enum mailbox_metadata_items items,
 			   struct mailbox_metadata *metadata_r)
 {
+	FUNC_START();
 	struct rados_mailbox *mbox = (struct rados_mailbox *)box;
 
 	if ((items & MAILBOX_METADATA_GUID) != 0) {
@@ -134,21 +152,28 @@ rados_mailbox_get_metadata(struct mailbox *box,
 	if (items != 0) {
 		if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
 			debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata (ret -1, 1)", NULL);
+			FUNC_END_RET("ret == -1");
 			return -1;
 		}
 	}
 
+	if (metadata_r != NULL && metadata_r->cache_fields != NULL) {
+		i_debug("metadata size = %lu", metadata_r->cache_fields->arr.element_size);
+	}
 	debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static void rados_notify_changes(struct mailbox *box)
 {
+	FUNC_START();
 	if (box->notify_callback == NULL)
 		mailbox_watch_remove_all(box);
 	else
 		mailbox_watch_add(box, mailbox_get_path(box));
 	debug_print_mailbox(box, "rados-storage::rados_notify_changes", NULL);
+	FUNC_END();
 }
 
 struct mail_storage rados_storage = {
