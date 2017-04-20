@@ -9,23 +9,30 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <time.h>
 
 static const char *rados_mail_get_path(struct mail *mail)
 {
+	FUNC_START();
 	const char *dir;
 
 	dir = mailbox_get_path(mail->box);
 	debug_print_mail(mail, "rados-mail::rados_mail_get_path", NULL);
-	return t_strdup_printf("%s/%u.", dir, mail->uid);
+	const char *path =t_strdup_printf("%s/%u.", dir, mail->uid);
+	i_debug("path = %s", path);
+	FUNC_END();
+	return path;
 }
 
 static int rados_mail_stat(struct mail *mail, struct stat *st_r)
 {
+	FUNC_START();
 	const char *path;
 
 	if (mail->lookup_abort == MAIL_LOOKUP_ABORT_NOT_IN_CACHE) {
 		mail_set_aborted(mail);
-		debug_print_mail(mail, "rados-mail::rados_mail_stat (ret -1,1)", NULL);
+		debug_print_mail(mail, "rados-mail::rados_mail_stat (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 	mail->mail_metadata_accessed = TRUE;
@@ -40,78 +47,99 @@ static int rados_mail_stat(struct mail *mail, struct stat *st_r)
 						  "stat(%s) failed: %m", path);
 		}
 		debug_print_mail(mail, "rados-mail::rados_mail_stat (ret -1, 2)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
+	i_debug("stat filesize = %ld bytes", st_r->st_size);
 	debug_print_mail(mail, "rados-mail::rados_mail_stat", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static int rados_mail_get_received_date(struct mail *_mail, time_t *date_r)
 {
+	FUNC_START();
 	struct index_mail *mail = (struct index_mail *)_mail;
 	struct index_mail_data *data = &mail->data;
 	struct stat st;
 
 	if (index_mail_get_received_date(_mail, date_r) == 0) {
+		i_debug("received date = %s", ctime(date_r));
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_received_date (ret 0, 1)", NULL);
+		FUNC_END_RET("ret == 0");
 		return 0;
 	}
 
 	if (rados_mail_stat(_mail, &st) < 0) {
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_received_date (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
 	data->received_date = st.st_mtime;
 	*date_r = data->received_date;
+	i_debug("received date = %s", ctime(date_r));
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_received_date", NULL);
 	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_received_date");
+	FUNC_END();
 	return 0;
 }
 
 static int rados_mail_get_save_date(struct mail *_mail, time_t *date_r)
 {
+	FUNC_START();
 	struct index_mail *mail = (struct index_mail *)_mail;
 	struct index_mail_data *data = &mail->data;
 	struct stat st;
 
 	if (index_mail_get_save_date(_mail, date_r) == 0) {
+		i_debug("save date = %s", ctime(date_r));
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_save_date (ret 0, 1)", NULL);
+		FUNC_END_RET("ret == 0");
 		return 0;
 	}
 
 	if (rados_mail_stat(_mail, &st) < 0) {
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_save_date (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
 	data->save_date = st.st_ctime;
 	*date_r = data->save_date;
+	i_debug("save date = %s", ctime(date_r));
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_save_date", NULL);
 	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_save_date");
+	FUNC_END();
 	return 0;
 }
 
 static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r)
 {
+	FUNC_START();
 	struct index_mail *mail = (struct index_mail *)_mail;
 	struct index_mail_data *data = &mail->data;
 	struct stat st;
 
 	if (index_mail_get_physical_size(_mail, size_r) == 0) {
+		i_debug("physical size = %lu", *size_r);
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret 0, 1)", NULL);
+		FUNC_END_RET("ret == 0");
 		return 0;
 	}
 
 	if (rados_mail_stat(_mail, &st) < 0) {
 		debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret -1, 1)", NULL);
+		FUNC_END_RET("ret == -1");
 		return -1;
 	}
 
 	data->physical_size = data->virtual_size = st.st_size;
 	*size_r = data->physical_size;
+	i_debug("physical size = %lu", *size_r);
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size", NULL);
 	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_physical_size");
+	FUNC_END();
 	return 0;
 }
 
@@ -121,6 +149,7 @@ rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED,
 		      struct message_size *body_size,
 		      struct istream **stream_r)
 {
+	FUNC_START();
 	struct index_mail *mail = (struct index_mail *)_mail;
 	struct istream *input;
 	const char *path;
@@ -138,6 +167,7 @@ rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED,
 					"open(%s) failed: %m", path);
 			}
 			debug_print_mail(_mail, "rados-mail::rados_mail_get_stream (ret -1, 1)", NULL);
+			FUNC_END_RET("ret == -1");
 			return -1;
 		}
 		input = i_stream_create_fd_autoclose(&fd, 0);
@@ -147,14 +177,18 @@ rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED,
 			if (mail->mail.v.istream_opened(_mail, &input) < 0) {
 				i_stream_unref(&input);
 				debug_print_mail(_mail, "rados-mail::rados_mail_get_stream (ret -1, 2)", NULL);
+				FUNC_END_RET("ret == -1");
 				return -1;
 			}
 		}
 		mail->data.stream = input;
 	}
 
+	int ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
+	i_debug("stream offset = %lu", (*stream_r)->v_offset);
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_stream", NULL);
-	return index_mail_init_stream(mail, hdr_size, body_size, stream_r);
+	FUNC_END();
+	return ret;
 }
 
 struct mail_vfuncs rados_mail_vfuncs = {
