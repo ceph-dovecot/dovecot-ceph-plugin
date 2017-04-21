@@ -69,6 +69,8 @@ int main(int argc, char **argv) {
 	debug_print_mail_index(mailIndex, "Empty mail index", "empty");
 	debug_print_mailbox_list(mbox_lst, "Empty mailbox list", "empty");
 
+	i_debug("END");
+
 	i_free(mailboxTransactionContext);
 	i_free(mailSaveData);
 	i_free(mailStorage);

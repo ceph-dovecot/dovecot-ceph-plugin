@@ -16,8 +16,6 @@
 #include "rados-sync.h"
 #include "debug-helper.h"
 
-#define btoa(x) ((x) ? "true" : "false")
-
 static char *enum_mail_access_type_strs[] = {"MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH", "MAIL_ACCESS_TYPE_SORT"};
 static char *enum_mail_lookup_abort_strs[] = {
 		"MAIL_LOOKUP_ABORT_NEVER", "MAIL_LOOKUP_ABORT_READ_MAIL", "MAIL_LOOKUP_ABORT_NOT_IN_CACHE"};
@@ -408,7 +406,7 @@ void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext,
 		i_debug("rados_sync_context trans = %p", radosSyncContext->trans);
 
 		//debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
-		i_debug("rados_sync_context mbox->box._path = %s", radosSyncContext->mbox->box._path);
+		//i_debug("rados_sync_context mbox->box._path = %s", radosSyncContext->mbox->box._path);
 	}
 	if (funcname != NULL) {
 		//i_debug("###");

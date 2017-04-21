@@ -34,7 +34,7 @@ rados_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 {
 	FUNC_START();
 	if (set->layout == NULL)
-		set->layout = MAILBOX_LIST_NAME_FS;
+		set->layout = MAILBOX_LIST_NAME_INDEX;
 	if (set->subscription_fname == NULL)
 		set->subscription_fname = RADOS_SUBSCRIPTION_FILE_NAME;
 	debug_print_mailbox_list_settings(set, "rados-storage::rados_storage_get_list_settings", NULL);
@@ -51,6 +51,10 @@ rados_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list,
 
 	/* rados can't work without index files */
 	flags &= ~MAILBOX_FLAG_NO_INDEX_FILES;
+
+	if (storage->set != NULL) {
+		i_debug("mailbox_list_index = %s", btoa(storage->set->mailbox_list_index));
+	}
 
 	pool = pool_alloconly_create("rados mailbox", 1024*3);
 	mbox = p_new(pool, struct rados_mailbox, 1);
