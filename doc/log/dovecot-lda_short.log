@@ -1,0 +1,72 @@
+
+Apr 21 10:12:04 lda(t): Debug: Loading modules from directory: /home/peter/dovecot/lib/dovecot
+Apr 21 10:12:04 lda(t): Debug: Module loaded: /home/peter/dovecot/lib/dovecot/libdict_rados_plugin.so
+Apr 21 10:12:04 lda(t): Debug: Module loaded: /home/peter/dovecot/lib/dovecot/libstorage_rados_plugin.so
+Apr 21 10:12:04 auth: Debug: Loading modules from directory: /home/peter/dovecot/lib/dovecot/auth
+Apr 21 10:12:04 auth: Error: Couldn't load plugin /home/peter/dovecot/lib/dovecot/auth/lib20_auth_var_expand_crypt.so: dlopen() failed: /home/peter/dovecot/lib/dovecot/auth/lib20_auth_var_expand_crypt.so: undefined symbol: var_expand_register_func_array
+Apr 21 10:12:04 auth: Debug: Read auth token secret from /home/peter/dovecot/var/run/dovecot/auth-token-secret.dat
+Apr 21 10:12:04 auth: Debug: passwd-file /home/peter/dovecot/etc/passwd: Read 6 users in 0 secs
+Apr 21 10:12:04 auth: Debug: master in: USER	1	t	service=lda
+Apr 21 10:12:04 auth: Debug: passwd-file(t): lookup: user=t file=/home/peter/dovecot/etc/passwd
+Apr 21 10:12:04 auth: Debug: userdb out: USER	1	t	
+Apr 21 10:12:04 lda(t): Debug: auth USER input: t 
+Apr 21 10:12:04 lda(t): Debug: Added userdb setting: plugin/=yes
+Apr 21 10:12:04 lda(t): Debug: dict_rados_plugin_init refcount=0
+Apr 21 10:12:04 lda(t): Debug: dict_rados_plugin_init registers dict_driver_rados 
+Apr 21 10:12:04 lda(t): Debug: storage_rados_plugin_init refcount=0
+Apr 21 10:12:04 lda(t): Debug: storage_rados_plugin_init registers rados_storage 
+Apr 21 10:12:04 lda(t): Debug: Effective uid=1000, gid=1000, home=
+Apr 21 10:12:04 lda(t): Debug: Namespace inbox: type=private, prefix=, sep=, inbox=yes, hidden=no, list=yes, subscriptions=yes location=rados:/home/peter/dovecot/var/mail/rados/t
+Apr 21 10:12:04 lda(t): Debug: [START] rados-storage.c: rados_storage_get_list_settings at line 35
+Apr 21 10:12:04 lda(t): Debug: [END] rados-storage.c: rados_storage_get_list_settings at line 41
+Apr 21 10:12:04 lda(t): Debug: fs: root=/home/peter/dovecot/var/mail/rados/t, index=, indexpvt=, control=, inbox=, alt=
+Apr 21 10:12:04 lda(t): Debug: [START] rados-storage.c: rados_storage_alloc at line 18
+Apr 21 10:12:04 lda(t): Debug: [END] rados-storage.c: rados_storage_alloc at line 27
+Apr 21 10:12:04 lda(t): Warning: Growing data stack by 32768 as 'default_handler' reaches 464 bytes from 3 allocations.
+Apr 21 10:12:04 lda(t): Debug: none: root=, index=, indexpvt=, control=, inbox=, alt=
+Apr 21 10:12:04 lda(t): Debug: Destination address: t@ceph-dev (source: user@hostname)
+Apr 21 10:12:04 lda(t): Debug: [START] rados-storage.c: rados_mailbox_alloc at line 48
+Apr 21 10:12:04 lda(t): Debug: [END] rados-storage.c: rados_mailbox_alloc at line 68
+Apr 21 10:12:04 lda(t): Debug: [START] rados-storage.c: rados_mailbox_open at line 74
+Apr 21 10:12:04 lda(t): Debug: [END] rados-storage.c: rados_mailbox_open at line 109
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_alloc at line 64
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_alloc at line 80
+Apr 21 10:12:04 lda(t): Debug: [START] rados-storage.c: rados_mailbox_get_metadata at line 142
+Apr 21 10:12:04 lda(t): Debug: [END] rados-storage.c: rados_mailbox_get_metadata at line 164
+Apr 21 10:12:04 lda(t): Debug: Mailbox /home/peter/dovecot/../t.mail: Opened mail UID=1 because: copying
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_begin at line 86
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_get_save_path at line 50
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_get_save_path at line 57
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_begin at line 136
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_continue at line 142
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_continue at line 174
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_continue at line 142
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_continue at line 174
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_finish at line 234
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_get_save_path at line 50
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_get_save_path at line 57
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_save_flush at line 180
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_flush at line 228
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_save_finish at line 257
+Apr 21 10:12:04 lda(t): Debug: [START] rados-mail.c: rados_mail_get_physical_size at line 119
+Apr 21 10:12:04 lda(t): Debug: [END] rados-mail.c: rados_mail_get_physical_size at line 127, ret == 0
+Apr 21 10:12:04 lda(t): Debug: [START] rados-mail.c: rados_mail_get_physical_size at line 119
+Apr 21 10:12:04 lda(t): Debug: [END] rados-mail.c: rados_mail_get_physical_size at line 127, ret == 0
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_transaction_save_commit_pre at line 274
+Apr 21 10:12:04 lda(t): Debug: [START] rados-sync.c: rados_sync_begin at line 118
+Apr 21 10:12:04 lda(t): Debug: [START] rados-sync.c: rados_sync_index at line 69
+Apr 21 10:12:04 lda(t): Debug: [END] rados-sync.c: rados_sync_index at line 112
+Apr 21 10:12:04 lda(t): Debug: [END] rados-sync.c: rados_sync_begin at line 147
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_transaction_save_commit_pre at line 330
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_transaction_save_commit_post at line 337
+Apr 21 10:12:04 lda(t): Debug: [START] rados-sync.c: rados_sync_finish at line 153
+Apr 21 10:12:04 lda(t): Debug: [END] rados-sync.c: rados_sync_finish at line 172
+Apr 21 10:12:04 lda(t): Debug: [START] rados-save.c: rados_transaction_save_rollback at line 353
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_transaction_save_rollback at line 366
+Apr 21 10:12:04 lda(t): Debug: [END] rados-save.c: rados_transaction_save_commit_post at line 348
+
+Apr 21 10:12:04 lda(t): Info: msgid=<b2d6c898-34b9-cfe1-f274-acce2d8e16ac@172.16.224.64>: saved mail to INBOX
+Apr 21 10:12:04 lda: Debug: storage_rados_plugin_deinit refcount=1)
+Apr 21 10:12:04 lda: Debug: storage_rados_plugin_deinit unregisters rados_storage 
+Apr 21 10:12:04 lda: Debug: dict_rados_plugin_deinit refcount=1
+Apr 21 10:12:04 lda: Debug: dict_rados_plugin_deinit unregisters dict_driver_rados 
