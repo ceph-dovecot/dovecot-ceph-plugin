@@ -315,6 +315,9 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx)
 		str_printfa(src_path, "%u", n-1);
 		str_printfa(dest_path, "%u.", uid);
 
+		i_debug("rename mail from %s", str_c(src_path));
+		i_debug("              to %s", str_c(dest_path));
+
 		if (rename(str_c(src_path), str_c(dest_path)) < 0) {
 			mail_storage_set_critical(&ctx->mbox->storage->storage,
 				"rename(%s, %s) failed: %m",
