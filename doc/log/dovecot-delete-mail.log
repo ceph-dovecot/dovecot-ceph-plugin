@@ -1,0 +1,350 @@
+
+Apr 24 14:02:30 auth: Debug: auth client connected (pid=23707)
+Apr 24 14:02:30 imap-login: Warning: Growing pool 'imap login commands' with: 1024
+Apr 24 14:02:30 auth: Debug: client in: AUTH	1	LOGIN	service=imap	secured	session=n3+6YehNAoB/AAAB	lip=127.0.0.1	rip=127.0.0.1	lport=10143	rport=32770	resp=<hidden>
+Apr 24 14:02:30 auth: Debug: client passdb out: CONT	1	UGFzc3dvcmQ6
+Apr 24 14:02:30 auth: Debug: client in: CONT<hidden>
+Apr 24 14:02:30 auth: Debug: passwd-file(t,127.0.0.1,<n3+6YehNAoB/AAAB>): lookup: user=t file=/home/peter/dovecot/etc/passwd
+Apr 24 14:02:30 auth: Debug: client passdb out: OK	1	user=t
+Apr 24 14:02:30 auth: Debug: master in: REQUEST	3069837313	23707	1	b7e6d59bceb459291655123829e3aec3	session_pid=23708	request_auth_token
+Apr 24 14:02:30 auth: Debug: passwd-file(t,127.0.0.1,<n3+6YehNAoB/AAAB>): lookup: user=t file=/home/peter/dovecot/etc/passwd
+Apr 24 14:02:30 auth: Debug: master userdb out: USER	3069837313	t		auth_token=f26949631c5f152168a45b8aa347006db65ebc3e
+Apr 24 14:02:30 imap-login: Info: Login: user=<t>, method=LOGIN, rip=127.0.0.1, lip=127.0.0.1, mpid=23708, secured, session=<n3+6YehNAoB/AAAB>
+Apr 24 14:02:30 imap(t): Debug: Loading modules from directory: /home/peter/dovecot/lib/dovecot
+Apr 24 14:02:30 imap(t): Debug: Module loaded: /home/peter/dovecot/lib/dovecot/libdict_rados_plugin.so
+Apr 24 14:02:30 imap(t): Debug: Module loaded: /home/peter/dovecot/lib/dovecot/libstorage_rados_plugin.so
+Apr 24 14:02:30 imap(t): Debug: Added userdb setting: plugin/=yes
+Apr 24 14:02:30 imap(t): Debug: dict_rados_plugin_init refcount=0
+Apr 24 14:02:30 imap(t): Debug: dict_rados_plugin_init registers dict_driver_rados 
+Apr 24 14:02:30 imap(t): Debug: storage_rados_plugin_init refcount=0
+Apr 24 14:02:30 imap(t): Debug: storage_rados_plugin_init registers rados_storage 
+Apr 24 14:02:30 imap(t): Debug: Effective uid=1000, gid=1000, home=
+Apr 24 14:02:30 imap(t): Debug: Namespace inbox: type=private, prefix=, sep=, inbox=yes, hidden=no, list=yes, subscriptions=yes location=rados:/home/peter/dovecot/var/mail/rados/t
+Apr 24 14:02:30 imap(t): Debug: [START] rados-storage.c: rados_storage_get_list_settings at line 35
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings layout = index
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings root_dir = /home/peter/dovecot/var/mail/rados/t
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings index_dir = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings index_pvt_dir = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings control_dir = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings alt_dir = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings inbox_path = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings subscription_fname = subscriptions.
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings list_index_fname = dovecot.list.index
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings maildir_name = 
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings mailbox_dir_name = 
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings escape_char = 
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings broken_char = 
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings utf8 = false
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings alt_dir_nocheck = false
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_settings index_control_use_maildir_name = false
+Apr 24 14:02:30 imap(t): Debug: [END] rados-storage.c: rados_storage_get_list_settings at line 41
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: index: root=/home/peter/dovecot/var/mail/rados/t, index=, indexpvt=, control=, inbox=, alt=
+Apr 24 14:02:30 imap(t): Debug: [START] rados-storage.c: rados_storage_alloc at line 18
+Apr 24 14:02:30 imap(t): Debug: mail_storage
+Apr 24 14:02:30 imap(t): Debug: mail_storage name = rados
+Apr 24 14:02:30 imap(t): Debug: mail_storage flags = 0x0000
+Apr 24 14:02:30 imap(t): Debug: mail_storage class_flags = 0x0120
+Apr 24 14:02:30 imap(t): Debug: mail_storage pool name = rados storage
+Apr 24 14:02:30 imap(t): Debug: mail_storage refcount = 0
+Apr 24 14:02:30 imap(t): Debug: mail_storage obj_refcount = 0
+Apr 24 14:02:30 imap(t): Debug: mail_storage unique_root_dir = (null)
+Apr 24 14:02:30 imap(t): Debug: mail_storage error_string = (null)
+Apr 24 14:02:30 imap(t): Debug: mail_storage error = MAIL_ERROR_NONE
+Apr 24 14:02:30 imap(t): Debug: mail_storage temp_path_prefix = (null)
+Apr 24 14:02:30 imap(t): Debug: mail_storage shared_attr_dict_failed = 0
+Apr 24 14:02:30 imap(t): Debug: mail_storage prev = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage next = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage mailboxes = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage storage_class = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage set = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage callback_context = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage _shared_attr_dict = (nil)
+Apr 24 14:02:30 imap(t): Debug: mail_storage error_stack size = 0
+Apr 24 14:02:30 imap(t): Debug: mail_storage module_contexts size = 0
+Apr 24 14:02:30 imap(t): Debug: mail_storage user = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-storage.c: rados_storage_alloc at line 27
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [START] rados-storage.c: rados_mailbox_alloc at line 48
+Apr 24 14:02:30 imap(t): Debug: mailbox_list_index = true
+Apr 24 14:02:30 imap(t): Debug: list name = index
+Apr 24 14:02:30 imap(t): Debug: mailbox
+Apr 24 14:02:30 imap(t): Debug: mailbox name = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox vname = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox pool = 0x1d6d3e8
+Apr 24 14:02:30 imap(t): Debug: mailbox metadata_pool = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox prev = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox next = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox view = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox cache = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox view_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox set = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox input = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox tmp_sync_view = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_callback = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_context = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify_delay = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_files = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox recent_flags size = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox search_results size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox module_contexts size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox _perm.file_uid = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox path = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox index_path = (null)
+Apr 24 14:02:30 imap(t): Debug: mailbox open_error = MAIL_ERROR_NONE
+Apr 24 14:02:30 imap(t): Debug: mailbox index_prefix = dovecot.index
+Apr 24 14:02:30 imap(t): Debug: mailbox flags = 0x0004
+Apr 24 14:02:30 imap(t): Debug: mailbox transaction_count = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox enabled_features = 0x0000
+Apr 24 14:02:30 imap(t): Debug: mailbox generation_sequence = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox opened = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox creating = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_undeleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_sync_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting_must_be_empty = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_skip_empty_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_user = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_any = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox disable_reflink_copy_to = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox disallow_new_keywords = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox synced = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mail_cache_disabled = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox update_first_saved = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox skip_create_name_restrictions = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox list_index_has_changed_quick = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox corrupted_mailbox_name = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox storage = 0x1d61a20
+Apr 24 14:02:30 imap(t): Debug: mailbox list = 0x1d41e40
+Apr 24 14:02:30 imap(t): Debug: mailbox index = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox index_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-storage.c: rados_mailbox_alloc at line 72
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: Namespace : Using permissions from /home/peter/dovecot/var/mail/rados/t: mode=0700 gid=default
+Apr 24 14:02:30 imap(t): Debug: [START] rados-storage.c: rados_mailbox_open at line 78
+Apr 24 14:02:30 imap(t): Debug: mailbox
+Apr 24 14:02:30 imap(t): Debug: mailbox name = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox vname = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox pool = 0x1d6d3e8
+Apr 24 14:02:30 imap(t): Debug: mailbox metadata_pool = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox prev = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox next = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox view = 0x1d73e40
+Apr 24 14:02:30 imap(t): Debug: mailbox cache = 0x1d73870
+Apr 24 14:02:30 imap(t): Debug: mailbox view_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox set = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox input = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox tmp_sync_view = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_callback = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_context = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify_delay = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_files = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox recent_flags size = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox search_results size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox module_contexts size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox _perm.file_uid = 1000
+Apr 24 14:02:30 imap(t): Debug: mailbox path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox index_path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox open_error = MAIL_ERROR_NONE
+Apr 24 14:02:30 imap(t): Debug: mailbox index_prefix = dovecot.index
+Apr 24 14:02:30 imap(t): Debug: mailbox flags = 0x0004
+Apr 24 14:02:30 imap(t): Debug: mailbox transaction_count = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox enabled_features = 0x0000
+Apr 24 14:02:30 imap(t): Debug: mailbox generation_sequence = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox opened = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox creating = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_undeleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_sync_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting_must_be_empty = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_skip_empty_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_user = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_any = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox disable_reflink_copy_to = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox disallow_new_keywords = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox synced = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mail_cache_disabled = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox update_first_saved = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox skip_create_name_restrictions = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox list_index_has_changed_quick = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox corrupted_mailbox_name = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox storage = 0x1d61a20
+Apr 24 14:02:30 imap(t): Debug: mailbox list = 0x1d41e40
+Apr 24 14:02:30 imap(t): Debug: mailbox index = 0x1d71cf0
+Apr 24 14:02:30 imap(t): Debug: mailbox index_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-storage.c: rados_mailbox_open at line 113
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_storage_sync_init at line 194
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync at line 178
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync_begin at line 118
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path = NULL
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path_dir_prefix_len = 0
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context uid_validity = 0
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context index_sync_ctx = (nil)
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context sync_view = (nil)
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context trans = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync_begin at line 138, ret <= 0
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync at line 186
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: mailbox
+Apr 24 14:02:30 imap(t): Debug: mailbox name = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox vname = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox pool = 0x1d6d3e8
+Apr 24 14:02:30 imap(t): Debug: mailbox metadata_pool = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox prev = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox next = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox view = 0x1d73e40
+Apr 24 14:02:30 imap(t): Debug: mailbox cache = 0x1d73870
+Apr 24 14:02:30 imap(t): Debug: mailbox view_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox set = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox input = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox tmp_sync_view = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_callback = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_context = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify_delay = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_files = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox recent_flags size = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox search_results size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox module_contexts size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox _perm.file_uid = 1000
+Apr 24 14:02:30 imap(t): Debug: mailbox path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox index_path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox open_error = MAIL_ERROR_NONE
+Apr 24 14:02:30 imap(t): Debug: mailbox index_prefix = dovecot.index
+Apr 24 14:02:30 imap(t): Debug: mailbox flags = 0x0004
+Apr 24 14:02:30 imap(t): Debug: mailbox transaction_count = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox enabled_features = 0x0000
+Apr 24 14:02:30 imap(t): Debug: mailbox generation_sequence = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox opened = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox creating = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_undeleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_sync_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting_must_be_empty = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_skip_empty_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_user = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_any = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox disable_reflink_copy_to = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox disallow_new_keywords = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox synced = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mail_cache_disabled = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox update_first_saved = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox skip_create_name_restrictions = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox list_index_has_changed_quick = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox corrupted_mailbox_name = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox storage = 0x1d61a20
+Apr 24 14:02:30 imap(t): Debug: mailbox list = 0x1d41e40
+Apr 24 14:02:30 imap(t): Debug: mailbox index = 0x1d71cf0
+Apr 24 14:02:30 imap(t): Debug: mailbox index_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_storage_sync_init at line 210
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_storage_sync_init at line 194
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync at line 178
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync_begin at line 118
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync_index at line 69
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path = NULL
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path_dir_prefix_len = 0
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context uid_validity = 1492766094
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context index_sync_ctx = 0x1d77f60
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context sync_view = 0x1d77d70
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context trans = 0x1d775c0
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync_index at line 112
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path = NULL
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path_dir_prefix_len = 0
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context uid_validity = 1492766094
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context index_sync_ctx = 0x1d77f60
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context sync_view = 0x1d77d70
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context trans = 0x1d775c0
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync_begin at line 147
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync at line 186
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: [START] rados-sync.c: rados_sync_finish at line 153
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path = NULL
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context path_dir_prefix_len = 0
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context uid_validity = 1492766094
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context index_sync_ctx = (nil)
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context sync_view = 0x1d77d70
+Apr 24 14:02:30 imap(t): Debug: rados_sync_context trans = 0x1d775c0
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_sync_finish at line 172
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Debug: mailbox
+Apr 24 14:02:30 imap(t): Debug: mailbox name = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox vname = INBOX
+Apr 24 14:02:30 imap(t): Debug: mailbox pool = 0x1d6d3e8
+Apr 24 14:02:30 imap(t): Debug: mailbox metadata_pool = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox prev = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox next = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox view = 0x1d73e40
+Apr 24 14:02:30 imap(t): Debug: mailbox cache = 0x1d73870
+Apr 24 14:02:30 imap(t): Debug: mailbox view_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox set = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox input = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox tmp_sync_view = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_callback = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_context = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox to_notify_delay = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox notify_files = (nil)
+Apr 24 14:02:30 imap(t): Debug: mailbox recent_flags size = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox search_results size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox module_contexts size = 8
+Apr 24 14:02:30 imap(t): Debug: mailbox _perm.file_uid = 1000
+Apr 24 14:02:30 imap(t): Debug: mailbox path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox index_path = /home/peter/dovecot/var/mail/rados/t/6bdc340a8ecdf9586b390000d5e437c3
+Apr 24 14:02:30 imap(t): Debug: mailbox open_error = MAIL_ERROR_NONE
+Apr 24 14:02:30 imap(t): Debug: mailbox index_prefix = dovecot.index
+Apr 24 14:02:30 imap(t): Debug: mailbox flags = 0x0004
+Apr 24 14:02:30 imap(t): Debug: mailbox transaction_count = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox enabled_features = 0x0000
+Apr 24 14:02:30 imap(t): Debug: mailbox generation_sequence = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox opened = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox creating = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox mailbox_undeleting = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_sync_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox deleting_must_be_empty = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox delete_skip_empty_check = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox marked_deleted = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_user = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox inbox_any = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox disable_reflink_copy_to = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox disallow_new_keywords = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox synced = 1
+Apr 24 14:02:30 imap(t): Debug: mailbox mail_cache_disabled = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox update_first_saved = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox skip_create_name_restrictions = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox list_index_has_changed_quick = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox corrupted_mailbox_name = 0
+Apr 24 14:02:30 imap(t): Debug: mailbox storage = 0x1d61a20
+Apr 24 14:02:30 imap(t): Debug: mailbox list = 0x1d41e40
+Apr 24 14:02:30 imap(t): Debug: mailbox index = 0x1d71cf0
+Apr 24 14:02:30 imap(t): Debug: mailbox index_pvt = (nil)
+Apr 24 14:02:30 imap(t): Debug: [END] rados-sync.c: rados_storage_sync_init at line 210
+Apr 24 14:02:30 imap: Error: 
+Apr 24 14:02:30 imap(t): Info: Logged out in=60 out=866
+Apr 24 14:02:30 imap: Debug: storage_rados_plugin_deinit refcount=1)
+Apr 24 14:02:30 imap: Debug: storage_rados_plugin_deinit unregisters rados_storage 
+Apr 24 14:02:30 imap: Debug: dict_rados_plugin_deinit refcount=1
+Apr 24 14:02:30 imap: Debug: dict_rados_plugin_deinit unregisters dict_driver_rados 
