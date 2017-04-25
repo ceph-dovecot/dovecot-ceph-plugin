@@ -34,7 +34,7 @@ rados_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 {
 	FUNC_START();
 	if (set->layout == NULL)
-		set->layout = MAILBOX_LIST_NAME_INDEX;
+		set->layout = MAILBOX_LIST_NAME_FS;
 	if (set->subscription_fname == NULL)
 		set->subscription_fname = RADOS_SUBSCRIPTION_FILE_NAME;
 	debug_print_mailbox_list_settings(set, "rados-storage::rados_storage_get_list_settings", NULL);
