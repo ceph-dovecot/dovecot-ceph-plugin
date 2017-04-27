@@ -214,19 +214,6 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
 int rados_save_finish(struct mail_save_context *_ctx) {
 	FUNC_START();
 	struct rados_save_context *ctx = (struct rados_save_context *) _ctx;
-	struct mail_save_data *mdata = &ctx->ctx.data;
-	string_t *str;
-
-	guid_128_t guid_128;
-	const char *guid = mdata->guid;
-	if (guid != NULL)
-		mail_generate_guid_128_hash(guid, guid_128);
-	else {
-		guid_128_generate(guid_128);
-		guid = guid_128_to_string(guid_128);
-	}
-	str_printfa(str, "%c%s\n", 'G', guid);
-
 	const char *path = rados_get_save_path(ctx, ctx->mail_count);
 
 	ctx->finished = TRUE;
