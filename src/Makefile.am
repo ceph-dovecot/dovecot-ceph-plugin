@@ -1,1 +1,1 @@
-SUBDIRS = dict-rados storage-rados
+SUBDIRS = dict-rados storage-rados storage-rbox

@@ -33,6 +33,7 @@ Makefile
 src/Makefile
 src/dict-rados/Makefile
 src/storage-rados/Makefile
+src/storage-rbox/Makefile
 ])
 
 AC_OUTPUT
