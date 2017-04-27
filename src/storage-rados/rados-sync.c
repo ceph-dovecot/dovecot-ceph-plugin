@@ -7,21 +7,18 @@
 #include "rados-sync.h"
 #include "debug-helper.h"
 
-static void rados_sync_set_uidvalidity(struct rados_sync_context *ctx)
-{
+static void rados_sync_set_uidvalidity(struct rados_sync_context *ctx) {
 	FUNC_START();
 	uint32_t uid_validity = ioloop_time;
 
-	mail_index_update_header(ctx->trans,
-		offsetof(struct mail_index_header, uid_validity),
-		&uid_validity, sizeof(uid_validity), TRUE);
+	mail_index_update_header(ctx->trans, offsetof(struct mail_index_header, uid_validity), &uid_validity, sizeof(uid_validity),
+			TRUE);
 	ctx->uid_validity = uid_validity;
-	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_set_uidvalidity");
+	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_set_uidvalidity", NULL);
 	FUNC_END();
 }
 
-static string_t *rados_get_path_prefix(struct rados_mailbox *mbox)
-{
+static string_t *rados_get_path_prefix(struct rados_mailbox *mbox) {
 	FUNC_START();
 	string_t *path = str_new(default_pool, 256);
 
@@ -33,9 +30,7 @@ static string_t *rados_get_path_prefix(struct rados_mailbox *mbox)
 	return path;
 }
 
-static void
-rados_sync_expunge(struct rados_sync_context *ctx, uint32_t seq1, uint32_t seq2)
-{
+static void rados_sync_expunge(struct rados_sync_context *ctx, uint32_t seq1, uint32_t seq2) {
 	FUNC_START();
 	struct mailbox *box = &ctx->mbox->box;
 	uint32_t uid;
@@ -54,18 +49,16 @@ rados_sync_expunge(struct rados_sync_context *ctx, uint32_t seq1, uint32_t seq2)
 			/* continue anyway */
 		} else {
 			if (box->v.sync_notify != NULL) {
-				box->v.sync_notify(box, uid,
-						   MAILBOX_SYNC_TYPE_EXPUNGE);
+				box->v.sync_notify(box, uid, MAILBOX_SYNC_TYPE_EXPUNGE);
 			}
 			mail_index_expunge(ctx->trans, seq1);
 		}
 	}
-	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_expunge");
+	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_expunge", NULL);
 	FUNC_END();
 }
 
-static void rados_sync_index(struct rados_sync_context *ctx)
-{
+static void rados_sync_index(struct rados_sync_context *ctx) {
 	FUNC_START();
 	struct mailbox *box = &ctx->mbox->box;
 	const struct mail_index_header *hdr;
@@ -79,16 +72,12 @@ static void rados_sync_index(struct rados_sync_context *ctx)
 		rados_sync_set_uidvalidity(ctx);
 
 	/* mark the newly seen messages as recent */
-	if (mail_index_lookup_seq_range(ctx->sync_view, hdr->first_recent_uid,
-					hdr->next_uid, &seq1, &seq2)) {
-		mailbox_recent_flags_set_seqs(&ctx->mbox->box, ctx->sync_view,
-					      seq1, seq2);
+	if (mail_index_lookup_seq_range(ctx->sync_view, hdr->first_recent_uid, hdr->next_uid, &seq1, &seq2)) {
+		mailbox_recent_flags_set_seqs(&ctx->mbox->box, ctx->sync_view, seq1, seq2);
 	}
 
 	while (mail_index_sync_next(ctx->index_sync_ctx, &sync_rec)) {
-		if (!mail_index_lookup_seq_range(ctx->sync_view,
-						 sync_rec.uid1, sync_rec.uid2,
-						 &seq1, &seq2)) {
+		if (!mail_index_lookup_seq_range(ctx->sync_view, sync_rec.uid1, sync_rec.uid2, &seq1, &seq2)) {
 			/* already expunged, nothing to do. */
 			continue;
 		}
@@ -108,13 +97,11 @@ static void rados_sync_index(struct rados_sync_context *ctx)
 	if (box->v.sync_notify != NULL)
 		box->v.sync_notify(box, 0, 0);
 
-	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_index");
+	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_index", NULL);
 	FUNC_END();
 }
 
-int rados_sync_begin(struct rados_mailbox *mbox,
-		     struct rados_sync_context **ctx_r, bool force)
-{
+int rados_sync_begin(struct rados_mailbox *mbox, struct rados_sync_context **ctx_r, bool force) {
 	FUNC_START();
 	struct rados_sync_context *ctx;
 	enum mail_index_sync_flags sync_flags;
@@ -123,16 +110,13 @@ int rados_sync_begin(struct rados_mailbox *mbox,
 	ctx = i_new(struct rados_sync_context, 1);
 	ctx->mbox = mbox;
 
-	sync_flags = index_storage_get_sync_flags(&mbox->box) |
-		MAIL_INDEX_SYNC_FLAG_FLUSH_DIRTY;
+	sync_flags = index_storage_get_sync_flags(&mbox->box) | MAIL_INDEX_SYNC_FLAG_FLUSH_DIRTY;
 	if (!force)
 		sync_flags |= MAIL_INDEX_SYNC_FLAG_REQUIRE_CHANGES;
 
-	ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx,
-						&ctx->sync_view, &ctx->trans,
-						sync_flags);
+	ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans, sync_flags);
 	if (ret <= 0) {
-		debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin (ret <= 0, 1)");
+		debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin (ret <= 0, 1)", NULL);
 		i_free(ctx);
 		*ctx_r = NULL;
 		FUNC_END_RET("ret <= 0");
@@ -142,14 +126,13 @@ int rados_sync_begin(struct rados_mailbox *mbox,
 	rados_sync_index(ctx);
 	index_storage_expunging_deinit(&mbox->box);
 
-	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin");
+	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin", NULL);
 	*ctx_r = ctx;
 	FUNC_END();
 	return 0;
 }
 
-int rados_sync_finish(struct rados_sync_context **_ctx, bool success)
-{
+int rados_sync_finish(struct rados_sync_context **_ctx, bool success) {
 	FUNC_START();
 	struct rados_sync_context *ctx = *_ctx;
 	int ret = success ? 0 : -1;
@@ -158,14 +141,14 @@ int rados_sync_finish(struct rados_sync_context **_ctx, bool success)
 	if (success) {
 		if (mail_index_sync_commit(&ctx->index_sync_ctx) < 0) {
 			mailbox_set_index_error(&ctx->mbox->box);
-			debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish (ret -1, 1)");
+			debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish (ret -1, 1)", NULL);
 			FUNC_END_RET("ret == -1");
 			ret = -1;
 		}
 	} else {
 		mail_index_sync_rollback(&ctx->index_sync_ctx);
 	}
-	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish");
+	debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish", NULL);
 	if (ctx->path != NULL)
 		str_free(&ctx->path);
 	i_free(ctx);
@@ -173,8 +156,7 @@ int rados_sync_finish(struct rados_sync_context **_ctx, bool success)
 	return ret;
 }
 
-static int rados_sync(struct rados_mailbox *mbox)
-{
+int rados_sync(struct rados_mailbox *mbox) {
 	FUNC_START();
 	struct rados_sync_context *sync_ctx;
 
@@ -184,15 +166,13 @@ static int rados_sync(struct rados_mailbox *mbox)
 	}
 
 	FUNC_END();
-	return sync_ctx == NULL ? 0 :
-		rados_sync_finish(&sync_ctx, TRUE);
+	return sync_ctx == NULL ? 0 : rados_sync_finish(&sync_ctx, TRUE);
 }
 
 struct mailbox_sync_context *
-rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
-{
+rados_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
 	FUNC_START();
-	struct rados_mailbox *mbox = (struct rados_mailbox *)box;
+	struct rados_mailbox *mbox = (struct rados_mailbox *) box;
 	int ret = 0;
 
 	if (!box->opened) {

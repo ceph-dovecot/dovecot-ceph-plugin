@@ -17,18 +17,20 @@ struct index_mail_data;
 #define FUNC_END() i_debug("[END] %s: %s at line %d\n", __FILE__, __func__, __LINE__)
 #define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
 
-void debug_print_mail(struct mail *mail, const char *funcname, const char *mailName);
-void debug_print_mailbox(struct mailbox *mailbox, const char *funcname, const char *boxName);
-void debug_print_index_mail_data(struct index_mail_data *indexMailData, const char *funcname);
-void debug_print_mail_save_context(struct mail_save_context *mailSaveContext, const char *funcname, const char* saveCtxName);
-void debug_print_mailbox_transaction_context(struct mailbox_transaction_context* mailboxTransactionContext,
-		const char *funcname, const char *ctxName);
-void debug_print_mail_save_data(struct mail_save_data *mailSaveData, const char *funcname, const char *saveDataName);
-void debug_print_mail_storage(struct mail_storage *mailStorage, const char *funcname, const char *storageName);
-void debug_print_mail_user(struct mail_user *mailUser, const char *funcname, const char* userName);
-void debug_print_rados_sync_context(struct rados_sync_context *radosSyncContext, const char *funcname);
-void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname, const char *listName);
-void debug_print_mailbox_list_settings(struct mailbox_list_settings *mailboxListSettings, const char *funcname, const char *listSettingsName);
-void debug_print_mail_index(struct mail_index *mailIndex, const char *funcname, const char *indexName);
+void debug_print_mail(struct mail *target, const char *funcname, const char *name);
+void debug_print_mailbox(struct mailbox *target, const char *funcname, const char *name);
+void debug_print_rados_mailbox(struct rados_mailbox *target, const char *funcname, const char *name);
+void debug_print_index_mail_data(struct index_mail_data *target, const char *funcname, const char *name);
+void debug_print_mail_save_context(struct mail_save_context *target, const char *funcname, const char* name);
+void debug_print_mailbox_transaction_context(struct mailbox_transaction_context* target, const char *funcname, const char *name);
+void debug_print_mail_save_data(struct mail_save_data *target, const char *funcname, const char *name);
+void debug_print_mail_storage(struct mail_storage *target, const char *funcname, const char *name);
+void debug_print_mail_user(struct mail_user *target, const char *funcname, const char* name);
+void debug_print_rados_sync_context(struct rados_sync_context *target, const char *funcname, const char *name);
+void debug_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname, const char *name);
+void debug_print_mailbox_list_settings(struct mailbox_list_settings *target, const char *funcname, const char *name);
+void debug_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name);
+void debug_print_mail_index(struct mail_index *target, const char *funcname, const char *name);
+void debug_print_rbox_index_header(struct rbox_index_header *target, const char *funcname, const char *name);
 
 #endif /* DEBUG_HELPER_H_ */
