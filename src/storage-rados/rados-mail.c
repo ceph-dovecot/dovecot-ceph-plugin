@@ -4,12 +4,15 @@
 #include "istream.h"
 #include "index-mail.h"
 #include "rados-storage.h"
-#include "debug-helper.h"
+#include "ioloop.h"
+#include "str.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
+
+#include "debug-helper.h"
 
 static const char *rados_mail_get_path(struct mail *mail)
 {
@@ -80,7 +83,7 @@ static int rados_mail_get_received_date(struct mail *_mail, time_t *date_r)
 	*date_r = data->received_date;
 	i_debug("received date = %s", ctime(date_r));
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_received_date", NULL);
-	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_received_date");
+	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_received_date", NULL);
 	FUNC_END();
 	return 0;
 }
@@ -109,7 +112,7 @@ static int rados_mail_get_save_date(struct mail *_mail, time_t *date_r)
 	*date_r = data->save_date;
 	i_debug("save date = %s", ctime(date_r));
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_save_date", NULL);
-	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_save_date");
+	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_save_date", NULL);
 	FUNC_END();
 	return 0;
 }
@@ -138,7 +141,7 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r)
 	*size_r = data->physical_size;
 	i_debug("physical size = %lu", *size_r);
 	debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size", NULL);
-	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_physical_size");
+	debug_print_index_mail_data(data, "rados-mail::rados_mail_get_physical_size", NULL);
 	FUNC_END();
 	return 0;
 }

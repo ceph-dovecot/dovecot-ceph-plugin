@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
 	mail->uid = 123;
 
 	debug_print_mail(mail, "test-debug-helper::main()", NULL);
-	debug_print_index_mail_data(index_mail_data, "test-debug-helper::main()");
+	debug_print_index_mail_data(index_mail_data, "test-debug-helper::main()", NULL);
 	debug_print_mail_save_context(mail_save_context, "test-debug-helper::main(1)", "empty 1");
 	mail_save_context->dest_mail = mail;
 	debug_print_mail_save_context(mail_save_context, "test-debug-helper::main(2)", "empty 2");
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 	struct mail_storage *mailStorage = i_new(struct mail_storage, 1);
 	debug_print_mail_storage(mailStorage, "Empty storage", "empty");
 	struct rados_sync_context *radosSyncContext = i_new(struct rados_sync_context, 1);
-	debug_print_rados_sync_context(radosSyncContext, "Empty context");
+	debug_print_rados_sync_context(radosSyncContext, "Empty context", NULL);
 	struct mail_index *mailIndex = i_new(struct mail_index, 1);
 	debug_print_mail_index(mailIndex, "Empty mail index", "empty");
 	debug_print_mailbox_list(mbox_lst, "Empty mailbox list", "empty");
