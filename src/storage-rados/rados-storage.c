@@ -34,7 +34,6 @@ static void rados_storage_get_list_settings(const struct mail_namespace *ns ATTR
 	FUNC_START();
 	if (set->layout == NULL) {
 		set->layout = MAILBOX_LIST_NAME_FS;
-		// set->layout = MAILBOX_LIST_NAME_INDEX;
 	}
 	if (*set->maildir_name == '\0')
 		set->maildir_name = RADOS_MAILDIR_NAME;
@@ -76,154 +75,11 @@ rados_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, con
 	return &mbox->box;
 }
 
-static int rados_mailbox_alloc_index(struct rados_mailbox *mbox) {
-	struct rbox_index_header hdr;
-
-	if (index_storage_mailbox_alloc_index(&mbox->box) < 0)
-		return -1;
-
-	mbox->hdr_ext_id = mail_index_ext_register(mbox->box.index, "rados-hdr", sizeof(struct rbox_index_header), 0, 0);
-
-	/* set the initialization data in case the mailbox is created */
-	i_zero(&hdr);
-	guid_128_generate(hdr.mailbox_guid);
-	mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
-
-	debug_print_rbox_index_header(&hdr, "rados-storage::rados_mailbox_alloc_index", NULL);
-	debug_print_rados_mailbox(mbox, "rados-storage::rados_mailbox_alloc_index", NULL);
-
-	return 0;
-}
-
-static int rados_read_header(struct rados_mailbox *mbox, struct rbox_index_header *hdr, bool log_error, bool *need_resize_r) {
-	struct mail_index_view *view;
-	const void *data;
-	size_t data_size;
-	int ret = 0;
-
-	i_assert(mbox->box.opened);
-
-	debug_print_rbox_index_header(&hdr, "rados-storage::rados_read_header", "in");
-
-	view = mail_index_view_open(mbox->box.index);
-	mail_index_get_header_ext(view, mbox->hdr_ext_id, &data, &data_size);
-	if (data_size < RADOS_INDEX_HEADER_MIN_SIZE && (!mbox->box.creating || data_size != 0)) {
-		if (log_error) {
-			mail_storage_set_critical(&mbox->storage->storage, "rados %s: Invalid rados header size", mailbox_get_path(&mbox->box));
-		}
-		ret = -1;
-	} else {
-		i_zero(hdr);
-		memcpy(hdr, data, I_MIN(data_size, sizeof(*hdr)));
-		if (guid_128_is_empty(hdr->mailbox_guid))
-			ret = -1;
-		else {
-			/* data is valid. remember it in case mailbox
-			 is being reset */
-			mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, hdr, sizeof(*hdr));
-		}
-	}
-	mail_index_view_close(&view);
-	*need_resize_r = data_size < sizeof(*hdr);
-
-	debug_print_rbox_index_header(hdr, "rados-storage::rados_read_header", "out");
-
-	return ret;
-}
-
-static void rados_update_header(struct rados_mailbox *mbox, struct mail_index_transaction *trans,
-		const struct mailbox_update *update) {
-	struct rbox_index_header hdr, new_hdr;
-	bool need_resize;
-
-	if (rados_read_header(mbox, &hdr, TRUE, &need_resize) < 0) {
-		i_zero(&hdr);
-		need_resize = TRUE;
-	}
-
-	new_hdr = hdr;
-
-	if (update != NULL && !guid_128_is_empty(update->mailbox_guid)) {
-		memcpy(new_hdr.mailbox_guid, update->mailbox_guid, sizeof(new_hdr.mailbox_guid));
-	} else if (guid_128_is_empty(new_hdr.mailbox_guid)) {
-		guid_128_generate(new_hdr.mailbox_guid);
-	}
-
-	if (need_resize) {
-		mail_index_ext_resize_hdr(trans, mbox->hdr_ext_id, sizeof(new_hdr));
-	}
-	if (memcmp(&hdr, &new_hdr, sizeof(hdr)) != 0) {
-		mail_index_update_header_ext(trans, mbox->hdr_ext_id, 0, &new_hdr, sizeof(new_hdr));
-	}
-	memcpy(mbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
-}
-
-static int rados_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
-		struct mail_index_transaction *trans) {
-	struct rados_mailbox *mbox = (struct rados_mailbox *) box;
-	struct mail_index_transaction *new_trans = NULL;
-	const struct mail_index_header *hdr;
-	uint32_t uid_validity, uid_next;
-
-	if (trans == NULL) {
-		new_trans = mail_index_transaction_begin(box->view, 0);
-		trans = new_trans;
-	}
-
-	hdr = mail_index_get_header(box->view);
-	if (update != NULL && update->uid_validity != 0)
-		uid_validity = update->uid_validity;
-	else if (hdr->uid_validity != 0)
-		uid_validity = hdr->uid_validity;
-	else {
-		/* set uidvalidity */
-		// TODO uid_validity = dbox_get_uidvalidity_next(box->list);
-	}
-
-	if (hdr->uid_validity != uid_validity) {
-		mail_index_update_header(trans, offsetof(struct mail_index_header, uid_validity), &uid_validity, sizeof(uid_validity),
-		TRUE);
-	}
-	if (update != NULL && hdr->next_uid < update->min_next_uid) {
-		uid_next = update->min_next_uid;
-		mail_index_update_header(trans, offsetof(struct mail_index_header, next_uid), &uid_next, sizeof(uid_next), TRUE);
-	}
-	if (update != NULL && update->min_first_recent_uid != 0 && hdr->first_recent_uid < update->min_first_recent_uid) {
-		uint32_t first_recent_uid = update->min_first_recent_uid;
-
-		mail_index_update_header(trans, offsetof(struct mail_index_header, first_recent_uid), &first_recent_uid,
-				sizeof(first_recent_uid), FALSE);
-	}
-	if (update != NULL && update->min_highest_modseq != 0
-			&& mail_index_modseq_get_highest(box->view) < update->min_highest_modseq) {
-		mail_index_modseq_enable(box->index);
-		mail_index_update_highest_modseq(trans, update->min_highest_modseq);
-	}
-
-	if (box->inbox_user && box->creating) {
-		/* initialize pop3-uidl header when creating mailbox
-		 (not on mailbox_update()) */
-		index_pop3_uidl_set_max_uid(box, trans, 0);
-	}
-
-	rados_update_header(mbox, trans, update);
-	if (new_trans != NULL) {
-		if (mail_index_transaction_commit(&new_trans) < 0) {
-			mailbox_set_index_error(box);
-			return -1;
-		}
-	}
-	return 0;
-}
-
 static int rados_mailbox_open(struct mailbox *box) {
 	FUNC_START();
 	struct rados_mailbox *mbox = (struct rados_mailbox *) box;
 	struct rbox_index_header hdr;
 	bool need_resize;
-
-	if (rados_mailbox_alloc_index(mbox) < 0)
-		return -1;
 
 	const char *box_path = mailbox_get_path(box);
 	struct stat st;
@@ -258,22 +114,6 @@ static int rados_mailbox_open(struct mailbox *box) {
 	mail_index_set_fsync_mode(box->index, box->storage->set->parsed_fsync_mode,
 			MAIL_INDEX_FSYNC_MASK_APPENDS | MAIL_INDEX_FSYNC_MASK_EXPUNGES);
 
-	/* get/generate mailbox guid */
-	if (rados_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
-		/* looks like the mailbox is corrupted */
-		// (void) rados_sync(mbox, RADOS_SYNC_FLAG_FORCE);
-		(void) rados_sync(mbox);
-		if (rados_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
-			i_zero(&hdr);
-	}
-
-	if (guid_128_is_empty(hdr.mailbox_guid)) {
-		/* regenerate it */
-		if (rados_mailbox_create_indexes(box, NULL, NULL) < 0 || rados_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
-			return -1;
-	}
-	memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
-
 	debug_print_rados_mailbox(mbox, "rados-storage::rados_mailbox_open", NULL);
 	FUNC_END();
 	return 0;
@@ -302,12 +142,6 @@ static int rados_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata
 	FUNC_START();
 	struct rados_mailbox *mbox = (struct rados_mailbox *) box;
 
-	if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
-		debug_print_rados_mailbox(mbox, "rados-storage::rados_mailbox_get_metadata (ret -1, 1)", NULL);
-		FUNC_END_RET("ret == -1");
-		return -1;
-	}
-
 	if ((items & MAILBOX_METADATA_GUID) != 0) {
 		/* a bit ugly way to do this, but better than nothing for now.
 		 FIXME: if indexes are enabled, keep this there. */
@@ -315,12 +149,13 @@ static int rados_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata
 		items &= ~MAILBOX_METADATA_GUID;
 	}
 
-
-#ifdef NEVER
-	if ((items & MAILBOX_METADATA_GUID) != 0) {
-		memcpy(metadata_r->guid, mbox->mailbox_guid, sizeof(metadata_r->guid));
+	if (items != 0) {
+		if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
+			debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata (ret -1, 1)", NULL);
+			FUNC_END_RET("ret == -1");
+			return -1;
+		}
 	}
-#endif
 
 	if (metadata_r != NULL && metadata_r->cache_fields != NULL) {
 		i_debug("metadata size = %lu", metadata_r->cache_fields->arr.element_size);
