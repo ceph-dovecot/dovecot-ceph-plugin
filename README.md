@@ -42,12 +42,12 @@ The name of the dict driver is `rados`. Add the plugin for example to 10-mail.co
 The configuration parameters are:
 
 * **oid**: The RADOS object id to use. 
-* **pool**: The RADOS poll to use for the dictionary objects. 
-* **config**: Absolut path to a Ceph configuration file.
+* **pool**: The RADOS pool to use for the dictionary objects. 
+* **config**: Absolute path to a Ceph configuration file.
 
-The mail users username will be used as Ceph namespace. All key/values will be stored in OMAP Key/values of the object <oid>.
+The mail user's username will be used as Ceph namespace. All key/values will be stored in OMAP key/values of the object <oid>.
 
-Shared key/values are not supported rigeht now.
+Shared key/values are not supported right now.
 
 ### Storage RADOS Plugin
 
