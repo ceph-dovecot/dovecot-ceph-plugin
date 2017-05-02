@@ -208,7 +208,7 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 
 	if (hdr->uid_validity != uid_validity) {
 		mail_index_update_header(trans, offsetof(struct mail_index_header, uid_validity), &uid_validity, sizeof(uid_validity),
-				TRUE);
+		TRUE);
 	}
 	if (update != NULL && hdr->next_uid < update->min_next_uid) {
 		uid_next = update->min_next_uid;
@@ -272,7 +272,10 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {
 	if (index_storage_mailbox_alloc_index(&mbox->box) < 0)
 		return -1;
 
+	mbox->ext_id = mail_index_ext_register(mbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
+
 	mbox->hdr_ext_id = mail_index_ext_register(mbox->box.index, "dbox-hdr", sizeof(struct rbox_index_header), 0, 0);
+
 	/* set the initialization data in case the mailbox is created */
 	i_zero(&hdr);
 	guid_128_generate(hdr.mailbox_guid);
