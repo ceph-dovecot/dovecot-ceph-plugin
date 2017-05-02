@@ -12,20 +12,22 @@
 #define RADOS_TRASH_DIR_NAME "trash"
 #define RADOS_MAILDIR_NAME "rados-Mails"
 
-#define RADOS_INDEX_HEADER_MIN_SIZE (sizeof(guid_128_t))
-struct rbox_index_header {
+#define SDBOX_INDEX_HEADER_MIN_SIZE (sizeof(uint32_t))
+struct sdbox_index_header {
+	/* increased every time a full mailbox rebuild is done */
 	uint32_t rebuild_count;
 	guid_128_t mailbox_guid;
-	uint8_t flags;
+	uint8_t flags; /* enum dbox_index_header_flags */
 	uint8_t unused[3];
-};
-
-struct rbox_index_record {
-	guid_128_t guid;
 };
 
 struct rados_storage {
 	struct mail_storage storage;
+};
+
+struct obox_mail_index_record {
+	unsigned char guid[GUID_128_SIZE];
+	unsigned char oid[GUID_128_SIZE];
 };
 
 struct rados_mailbox {
@@ -33,6 +35,7 @@ struct rados_mailbox {
 	struct rados_storage *storage;
 
 	uint32_t hdr_ext_id;
+	uint32_t ext_id;
 
 	guid_128_t mailbox_guid;
 };
