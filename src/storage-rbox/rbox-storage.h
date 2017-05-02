@@ -42,6 +42,9 @@ struct rbox_mailbox {
 
 extern struct mail_vfuncs rbox_mail_vfuncs;
 
+struct mail *
+rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
+		struct mailbox_header_lookup_ctx *wanted_headers);
 int rbox_mail_open(struct dbox_mail *mail, uoff_t *offset_r, struct dbox_file **file_r);
 
 int rbox_read_header(struct rbox_mailbox *mbox, struct rbox_index_header *hdr, bool log_error, bool *need_resize_r);
@@ -51,6 +54,7 @@ void rbox_set_mailbox_corrupted(struct mailbox *box);
 struct mail_save_context *
 rbox_save_alloc(struct mailbox_transaction_context *_t);
 int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);
+int rbox_save_continue(struct mail_save_context *_ctx);
 int rbox_save_finish(struct mail_save_context *ctx);
 void rbox_save_cancel(struct mail_save_context *ctx);
 

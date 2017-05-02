@@ -17,6 +17,17 @@ extern struct mail_storage dbox_storage, rbox_storage;
 extern struct mailbox rbox_mailbox;
 extern struct dbox_storage_vfuncs rbox_dbox_storage_vfuncs;
 
+static void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED, struct mailbox_list_settings *set) {
+	if (set->layout == NULL)
+		set->layout = MAILBOX_LIST_NAME_FS;
+	if (set->subscription_fname == NULL)
+		set->subscription_fname = DBOX_SUBSCRIPTION_FILE_NAME;
+	if (*set->maildir_name == '\0')
+		set->maildir_name = DBOX_MAILDIR_NAME;
+	if (*set->mailbox_dir_name == '\0')
+		set->mailbox_dir_name = DBOX_MAILBOX_DIR_NAME;
+}
+
 static struct mail_storage *rbox_storage_alloc(void) {
 	struct rbox_storage *storage;
 	pool_t pool;
@@ -30,14 +41,14 @@ static struct mail_storage *rbox_storage_alloc(void) {
 }
 
 static int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
-	struct dbox_storage *storage = (struct dbox_storage *) _storage;
+	struct rbox_storage *storage = (struct rbox_storage *) _storage;
 	enum fs_properties props;
 
 	if (dbox_storage_create(_storage, ns, error_r) < 0)
 		return -1;
 
-	if (storage->attachment_fs != NULL) {
-		props = fs_get_properties(storage->attachment_fs);
+	if (storage->storage.attachment_fs != NULL) {
+		props = fs_get_properties(storage->storage.attachment_fs);
 		if ((props & FS_PROPERTY_RENAME) == 0) {
 			*error_r = "mail_attachment_fs: "
 					"Backend doesn't support renaming";
@@ -45,6 +56,14 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
 		}
 	}
 	return 0;
+}
+
+static void rbox_storage_destroy(struct mail_storage *_storage) {
+	struct rbox_storage *storage = (struct rbox_storage *) _storage;
+
+	if (storage->storage.attachment_fs != NULL)
+		fs_deinit(&storage->storage.attachment_fs);
+	index_storage_destroy(_storage);
 }
 
 static const char *
@@ -355,7 +374,7 @@ static int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_
 	return 0;
 }
 
-static int dbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
+static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
 	if (!box->opened) {
 		if (mailbox_open(box) < 0)
 			return -1;
@@ -365,13 +384,24 @@ static int dbox_mailbox_update(struct mailbox *box, const struct mailbox_update 
 	return index_storage_mailbox_update_common(box, update);
 }
 
+static void rbox_notify_changes(struct mailbox *box) {
+	const char *dir, *path;
+
+	if (box->notify_callback == NULL)
+		mailbox_watch_remove_all(box);
+	else {
+		if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &dir) <= 0)
+			return;
+		path = t_strdup_printf("%s/"MAIL_INDEX_PREFIX".log", dir);
+		mailbox_watch_add(box, path);
+	}
+}
+
 struct mail_storage rbox_storage = { .name = RBOX_STORAGE_NAME, .class_flags = MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG
 		| MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS
-		| MAIL_STORAGE_CLASS_FLAG_BINARY_DATA | MAIL_STORAGE_CLASS_FLAG_STUBS,
-
-.v = {
-NULL, rbox_storage_alloc, rbox_storage_create, dbox_storage_destroy,
-NULL, dbox_storage_get_list_settings, rbox_storage_autodetect, rbox_mailbox_alloc,
+		| MAIL_STORAGE_CLASS_FLAG_BINARY_DATA | MAIL_STORAGE_CLASS_FLAG_STUBS, .v = {
+NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy,
+NULL, rbox_storage_get_list_settings, rbox_storage_autodetect, rbox_mailbox_alloc,
 NULL,
 NULL, } };
 
@@ -383,7 +413,7 @@ struct mailbox rbox_mailbox = { .v = {
 		rbox_mailbox_close,
 		index_storage_mailbox_free,
 		rbox_mailbox_create,
-		dbox_mailbox_update,
+		rbox_mailbox_update,
 		index_storage_mailbox_delete,
 		index_storage_mailbox_rename,
 		index_storage_get_status,
@@ -400,19 +430,19 @@ struct mailbox rbox_mailbox = { .v = {
 		index_mailbox_sync_next,
 		index_mailbox_sync_deinit,
 		NULL,
-		dbox_notify_changes,
+		rbox_notify_changes,
 		index_transaction_begin,
 		index_transaction_commit,
 		index_transaction_rollback,
 		NULL,
-		dbox_mail_alloc,
+		rbox_mail_alloc,
 		index_storage_search_init,
 		index_storage_search_deinit,
 		index_storage_search_next_nonblock,
 		index_storage_search_next_update_seq,
 		rbox_save_alloc,
 		rbox_save_begin,
-		dbox_save_continue,
+		rbox_save_continue,
 		rbox_save_finish,
 		rbox_save_cancel,
 		rbox_copy,
