@@ -1,4 +1,3 @@
-
 #include <time.h>
 
 #include "lib.h"
@@ -8,10 +7,8 @@
 #include "mail-storage-private.h"
 #include "mailbox-list.h"
 #include "mailbox-list-private.h"
-
 #include "rbox-storage.h"
 #include "rbox-sync.h"
-
 #include "debug-helper.h"
 
 static char *enum_mail_access_type_strs[] = { "MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH", "MAIL_ACCESS_TYPE_SORT" };
@@ -89,12 +86,20 @@ void debug_print_mail(struct mail *target, const char *funcname, const char *nam
 	RBOX_PRINT_END()
 }
 
-void debug_print_rbox_mail_index_header(struct rbox_index_header *target, const char *funcname, const char *name) {
+void debug_print_rbox_index_header(struct rbox_index_header *target, const char *funcname, const char *name) {
 	RBOX_PRINT_START("rbox_index_header")
 
 		RBOX_PRINT_DEBUG("rebuild_count = %u", target->rebuild_count);
 		RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
 		RBOX_PRINT_DEBUG("flags = 0x%x", target->flags);
+
+	RBOX_PRINT_END()
+}
+
+void debug_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname, const char *name) {
+	RBOX_PRINT_START("obox_mail_index_record")
+
+		RBOX_PRINT_DEBUG("guid = %s", guid_128_to_string(target->guid));
 
 	RBOX_PRINT_END()
 }
@@ -379,13 +384,14 @@ void debug_print_mail_user(struct mail_user *target, const char *funcname, const
 void debug_print_rbox_sync_context(struct rbox_sync_context *target, const char *funcname, const char *name) {
 	RBOX_PRINT_START("rbox_sync_context")
 
-	//debug_print_mailbox(&rboxSyncContext->mbox->box, NULL, "mbox->box");
-		RBOX_PRINT_DEBUG("mbox->box._path = %s", target->mbox->box._path);
 		RBOX_PRINT_DEBUG("index_sync_ctx = %p", target->index_sync_ctx);
 		RBOX_PRINT_DEBUG("sync_view = %p", target->sync_view);
-		RBOX_PRINT_DEBUG("flags = %d", target->flags);
 		RBOX_PRINT_DEBUG("trans = %p", target->trans);
-		RBOX_PRINT_DEBUG("trans = %p", target->trans);
+		RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
+		// TODO ARRAY_TYPE(uint32_t) expunged_uids;
+
+		//debug_print_mailbox(&rboxSyncContext->mbox->box, NULL, "mbox->box");
+		//DEBUG("mbox->box._path = %s", rboxSyncContext->mbox->box._path);
 
 	RBOX_PRINT_END()
 }

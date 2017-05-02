@@ -86,12 +86,20 @@ void debug_print_mail(struct mail *target, const char *funcname, const char *nam
 	RBOX_PRINT_END()
 }
 
-void debug_print_rbox_index_header(struct rbox_index_header *target, const char *funcname, const char *name) {
-	RBOX_PRINT_START("rbox_index_header")
+void debug_print_sdbox_index_header(struct sdbox_index_header *target, const char *funcname, const char *name) {
+	RBOX_PRINT_START("sdbox_index_header")
 
 		RBOX_PRINT_DEBUG("rebuild_count = %u", target->rebuild_count);
 		RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
 		RBOX_PRINT_DEBUG("flags = 0x%x", target->flags);
+
+	RBOX_PRINT_END()
+}
+
+void debug_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname, const char *name) {
+	RBOX_PRINT_START("obox_mail_index_record")
+
+		RBOX_PRINT_DEBUG("guid = %s", guid_128_to_string(target->guid));
 
 	RBOX_PRINT_END()
 }
