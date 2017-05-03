@@ -39,6 +39,24 @@ static char *enum_file_lock_method[] = { "FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_ME
 
 #define STRFTIME_MAX_BUFSIZE (1024*64)
 
+/* Obtain a backtrace and print it to stdout. */
+static void print_trace(void) {
+	void *array[20];
+	size_t size;
+	char **strings;
+	size_t i;
+
+	size = backtrace(array, 20);
+	strings = backtrace_symbols(array, size);
+
+	i_debug("Obtained %zd stack frames", size);
+
+	for (i = 0; i < size; i++)
+		i_debug("%s", strings[i]);
+
+	free(strings);
+}
+
 static const char *strftime_real(const char *fmt, const struct tm *tm) {
 	size_t bufsize = strlen(fmt) + 32;
 	char *buf = t_buffer_get(bufsize);
