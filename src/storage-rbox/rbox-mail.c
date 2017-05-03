@@ -9,12 +9,17 @@
 #include "compat.h"
 #include <sys/stat.h>
 
+#include "debug-helper.h"
 #include "rbox-file.h"
 #include "rbox-storage.h"
 
 struct mail *
 rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
 		struct mailbox_header_lookup_ctx *wanted_headers) {
+
+	FUNC_START();
+	i_debug("rbox_mail_alloc: wanted_fields = %d", wanted_fields);
+
 	struct dbox_mail *mail;
 	pool_t pool;
 
@@ -23,6 +28,10 @@ rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wan
 	mail->imail.mail.pool = pool;
 
 	index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
+
+	debug_print_mail(&mail->imail.mail.mail, "rbox_mail_alloc", NULL);
+	FUNC_END();
+
 	return &mail->imail.mail.mail;
 }
 
@@ -79,9 +88,14 @@ static int rbox_mail_file_set(struct dbox_mail *mail) {
 }
 
 static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const char **value_r) {
+
+	FUNC_START();
+
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) _mail->box;
 	struct dbox_mail *mail = (struct dbox_mail *) _mail;
 	struct stat st;
+
+	i_debug("rbox_mail_get_special: field = %d", field);
 
 	switch (field) {
 	case MAIL_FETCH_REFCOUNT:
@@ -113,7 +127,11 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
 	default:
 		break;
 	}
-	return rbox_mail_get_special(_mail, field, value_r);
+
+	debug_print_mail(_mail, "rbox_mail_get_special", NULL);
+	FUNC_END();
+
+	return dbox_mail_get_special(_mail, field, value_r);
 }
 
 int rbox_mail_open(struct dbox_mail *mail, uoff_t *offset_r, struct dbox_file **file_r) {
