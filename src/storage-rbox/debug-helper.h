@@ -4,6 +4,8 @@
 
 struct rbox_sync_context;
 struct index_mail_data;
+struct dbox_file;
+struct rbox_file;
 struct rbox_mailbox;
 struct rbox_index_header;
 struct obox_mail_index_record;
@@ -33,5 +35,8 @@ void rbox_dbg_print_obox_mail_index_record(struct obox_mail_index_record *target
 void rbox_dbg_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name);
 void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_mail_index_header(struct rbox_index_header *target, const char *funcname, const char *name);
+
+void rbox_dbg_print_dbox_file(struct dbox_file *target, const char *funcname, const char *name);
+void rbox_dbg_print_rbox_file(struct rbox_file *target, const char *funcname, const char *name);
 
 #endif /* DEBUG_HELPER_H_ */
