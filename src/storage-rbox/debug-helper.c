@@ -9,6 +9,8 @@
 #include "mailbox-list-private.h"
 #include "rbox-storage.h"
 #include "rbox-sync.h"
+#include "dbox-file.h"
+#include "rbox-file.h"
 #include "debug-helper.h"
 
 static char *enum_mail_access_type_strs[] = { "MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH", "MAIL_ACCESS_TYPE_SORT" };
@@ -542,6 +544,49 @@ void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, 
 		RBOX_PRINT_DEBUG("sync_lost_handlers size = %ld", target->sync_lost_handlers.arr.element_size);
 		RBOX_PRINT_DEBUG("keywords size = %ld", target->keywords.arr.element_size);
 		RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
+
+	RBOX_PRINT_END()
+}
+
+void rbox_dbg_print_dbox_file(struct dbox_file *target, const char *funcname, const char *name) {
+	RBOX_PRINT_START("dbox_file")
+
+		RBOX_PRINT_DEBUG("storage = %p", target->storage);
+		RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
+		RBOX_PRINT_DEBUG("create_time = %s", rbox_unixdate2str(target->create_time));
+		RBOX_PRINT_DEBUG("file_version = %u", target->file_version);
+		RBOX_PRINT_DEBUG("file_header_size = %u", target->file_header_size);
+		RBOX_PRINT_DEBUG("msg_header_size = %u", target->msg_header_size);
+		RBOX_PRINT_DEBUG("cur_path = %s", target->cur_path);
+		RBOX_PRINT_DEBUG("primary_path = %s", target->primary_path);
+		RBOX_PRINT_DEBUG("alt_path = %s", target->alt_path);
+		RBOX_PRINT_DEBUG("fd = %d", target->fd);
+		RBOX_PRINT_DEBUG("input = %p", target->input);
+		RBOX_PRINT_DEBUG("lock = %p", target->lock);
+		RBOX_PRINT_DEBUG("cur_offset = %lu", target->cur_offset);
+		RBOX_PRINT_DEBUG("cur_physical_size = %lu", target->cur_physical_size);
+		RBOX_PRINT_DEBUG("metadata_pool = %p", target->metadata_pool);
+		RBOX_PRINT_DEBUG("metadata size = %ld", target->metadata.arr.element_size);
+		RBOX_PRINT_DEBUG("metadata_read_offset = %lu", target->metadata_read_offset);
+		RBOX_PRINT_DEBUG("appending = %u", target->appending);
+		RBOX_PRINT_DEBUG("corrupted = %u", target->corrupted);
+
+	RBOX_PRINT_END()
+}
+
+void rbox_dbg_print_rbox_file(struct rbox_file *target, const char *funcname, const char *name) {
+	RBOX_PRINT_START("rbox_file")
+
+		rbox_dbg_print_dbox_file(&target->file, funcname, "file");
+		if (target->mbox != NULL) {
+			rbox_dbg_print_mailbox(&target->mbox->box, funcname, "mbox");
+		} else {
+			RBOX_PRINT_DEBUG("mbox = %p", target->mbox);
+		}
+		RBOX_PRINT_DEBUG("uid = %u", target->uid);
+		RBOX_PRINT_DEBUG("attachment_pool = %p", target->attachment_pool);
+		RBOX_PRINT_DEBUG("attachment_paths = %ld", target->attachment_paths.arr.element_size);
+		RBOX_PRINT_DEBUG("written_to_disk = %s", btoa(target->written_to_disk));
 
 	RBOX_PRINT_END()
 }

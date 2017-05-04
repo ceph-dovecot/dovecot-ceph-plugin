@@ -9,11 +9,18 @@
 
 #include "rbox-file.h"
 #include "rbox-storage.h"
+#include "debug-helper.h"
 
 static int
 rbox_file_copy_attachments(struct rbox_file *src_file,
 			    struct rbox_file *dest_file)
 {
+	FUNC_START();
+	i_debug("rbox_file_copy_attachments: source file");
+	rbox_dbg_print_rbox_file(src_file, "rbox_file_copy_attachments", NULL);
+	i_debug("rbox_file_copy_attachments: dest file");
+	rbox_dbg_print_rbox_file(dest_file, "rbox_file_copy_attachments", NULL);
+
 	struct dbox_storage *src_storage = src_file->file.storage;
 	struct dbox_storage *dest_storage = dest_file->file.storage;
 	struct fs_file *src_fsfile, *dest_fsfile;
@@ -25,6 +32,7 @@ rbox_file_copy_attachments(struct rbox_file *src_file,
 
 	if (src_storage->attachment_dir == NULL) {
 		/* no attachments in source storage */
+		FUNC_END_RET("ret == 1; no attachments in source storage");
 		return 1;
 	}
 	if (dest_storage->attachment_dir == NULL ||
@@ -36,12 +44,15 @@ rbox_file_copy_attachments(struct rbox_file *src_file,
 		   dest_storage->storage.set->mail_attachment_hash) != 0) {
 		/* different attachment dirs/settings between storages.
 		   have to copy the slow way. */
+		FUNC_END_RET("ret == 0; different attachment dirs/settings between storages");
 		return 0;
 	}
 
 	if ((ret = rbox_file_get_attachments(&src_file->file,
-					      &extrefs_line)) <= 0)
+					      &extrefs_line)) <= 0) {
+		FUNC_END_RET("ret < 0 ? -1 : 1; get_attachments");
 		return ret < 0 ? -1 : 1;
+	}
 
 	pool = pool_alloconly_create("rbox attachments copy", 1024);
 	p_array_init(&extrefs, pool, 16);
@@ -50,6 +61,7 @@ rbox_file_copy_attachments(struct rbox_file *src_file,
 			"Can't copy %s with corrupted extref metadata: %s",
 			src_file->file.cur_path, extrefs_line);
 		pool_unref(&pool);
+		FUNC_END_RET("ret == -1; can't copy file with corrupted extref metadata");
 		return -1;
 	}
 
@@ -87,12 +99,14 @@ rbox_file_copy_attachments(struct rbox_file *src_file,
 		fs_file_deinit(&dest_fsfile);
 	} T_END;
 	pool_unref(&pool);
+	FUNC_END();
 	return ret;
 }
 
 static int
 rbox_copy_hardlink(struct mail_save_context *_ctx, struct mail *mail)
 {
+	FUNC_START();
 	struct dbox_save_context *ctx = (struct dbox_save_context *)_ctx;
 	struct rbox_mailbox *dest_mbox =
 		(struct rbox_mailbox *)_ctx->transaction->box;
@@ -101,15 +115,24 @@ rbox_copy_hardlink(struct mail_save_context *_ctx, struct mail *mail)
 	const char *src_path, *dest_path;
 	int ret;
 
+	rbox_dbg_print_mail(mail, "rbox_copy_hardlink", NULL);
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_copy_hardlink", NULL);
+
 	if (strcmp(mail->box->storage->name, RBOX_STORAGE_NAME) == 0)
 		src_mbox = (struct rbox_mailbox *)mail->box;
 	else {
 		/* Source storage isn't rbox, can't hard link */
+		FUNC_END_RET("ret == 0; Source storage isn't rbox, can't hard link");
 		return 0;
 	}
 
 	src_file = rbox_file_init(src_mbox, mail->uid);
+	i_debug("rbox_copy_hardlink: source file");
+	rbox_dbg_print_dbox_file(src_file, "rbox_copy_hardlink", NULL);
+
 	dest_file = rbox_file_init(dest_mbox, 0);
+	i_debug("rbox_copy_hardlink: dest file");
+	rbox_dbg_print_dbox_file(dest_file, "rbox_copy_hardlink", NULL);
 
 	ctx->ctx.data.flags &= ~DBOX_INDEX_FLAG_ALT;
 
@@ -139,6 +162,7 @@ rbox_copy_hardlink(struct mail_save_context *_ctx, struct mail *mail)
 		}
 		dbox_file_unref(&src_file);
 		dbox_file_unref(&dest_file);
+		FUNC_END_RET("ret <= 0; nfs_safe_link failed");
 		return ret;
 	}
 
@@ -148,6 +172,7 @@ rbox_copy_hardlink(struct mail_save_context *_ctx, struct mail *mail)
 		(void)rbox_file_unlink_aborted_save((struct rbox_file *)dest_file);
 		dbox_file_unref(&src_file);
 		dbox_file_unref(&dest_file);
+		FUNC_END_RET("ret <= 0; rbox_file_copy_attachments failed");
 		return ret;
 	}
 	((struct rbox_file *)dest_file)->written_to_disk = TRUE;
@@ -158,15 +183,20 @@ rbox_copy_hardlink(struct mail_save_context *_ctx, struct mail *mail)
 	rbox_save_add_file(_ctx, dest_file);
 	mail_set_seq_saving(_ctx->dest_mail, ctx->seq);
 	dbox_file_unref(&src_file);
+	FUNC_END();
 	return 1;
 }
 
 int rbox_copy(struct mail_save_context *_ctx, struct mail *mail)
 {
+	FUNC_START();
 	struct dbox_save_context *ctx = (struct dbox_save_context *)_ctx;
 	struct mailbox_transaction_context *_t = _ctx->transaction;
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *)_t->box;
 	int ret;
+
+	rbox_dbg_print_mail(mail, "rbox_copy", NULL);
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_copy", NULL);
 
 	i_assert((_t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
@@ -179,10 +209,13 @@ int rbox_copy(struct mail_save_context *_ctx, struct mail *mail)
 
 		if (ret != 0) {
 			index_save_context_free(_ctx);
+			FUNC_END_RET("ret != 0; rbox_copy_hardlink failed");
 			return ret > 0 ? 0 : -1;
 		}
 
 		/* non-fatal hardlinking failure, try the slow way */
 	}
-	return mail_storage_copy(_ctx, mail);
+	ret = mail_storage_copy(_ctx, mail);
+	FUNC_END();
+	return ret;
 }
