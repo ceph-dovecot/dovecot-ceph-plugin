@@ -8,7 +8,6 @@
 #include "dbox-mail.h"
 #include "compat.h"
 #include "dbox-attachment.h"
-#include "doveadm-util.h"
 #include <sys/stat.h>
 
 #include "debug-helper.h"
