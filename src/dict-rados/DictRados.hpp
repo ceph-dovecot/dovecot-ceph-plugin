@@ -44,7 +44,7 @@ public:
 		this->pool = pool;
 	}
 
-	const librados::IoCtx& get_private_ctx() const {
+	librados::IoCtx& get_private_ctx() {
 		return private_ctx;
 	}
 
@@ -52,7 +52,7 @@ public:
 		private_ctx = privateCtx;
 	}
 
-	const librados::IoCtx& get_shared_ctx() const {
+	librados::IoCtx& get_shared_ctx() {
 		return shared_ctx;
 	}
 
