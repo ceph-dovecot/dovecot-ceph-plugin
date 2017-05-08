@@ -243,6 +243,11 @@ void rados_dict_deinit(struct dict *_dict) {
 	i_free(_dict);
 }
 
+int rados_dict_wait(struct dict *dict) {
+	/* FIXME: we don't support this yet */
+	return 0;
+}
+
 class rados_dict_lookup_context {
 public:
 	ObjectReadOperation read_op;
@@ -370,10 +375,14 @@ public:
 	bool atomic_inc_not_found;
 
 	ObjectWriteOperation write_op_private;
+	AioCompletion *completion_private;
 	bool dirty_private;
+	ObjectWriteOperation write_op_shared;
+	AioCompletion *completion_shared;
 	bool dirty_shared;
 
-	ObjectWriteOperation write_op_shared;
+	void *context = nullptr;
+	dict_transaction_commit_callback_t *callback;
 
 	ObjectWriteOperation &get_op(const std::string& key) {
 		if (key.find(DICT_PATH_SHARED) == 0) {
@@ -394,7 +403,51 @@ struct dict_transaction_context *rados_transaction_init(struct dict *_dict) {
 	ctx = new rados_dict_transaction_context();
 	ctx->ctx.dict = _dict;
 
+	ctx->ctx.timestamp.tv_sec = 0;
+	ctx->ctx.timestamp.tv_nsec = 0;
+
+	ctx->write_op_private.set_op_flags2(OPERATION_NOFLAG);
+	ctx->write_op_shared.set_op_flags2(OPERATION_NOFLAG);
+
 	return &ctx->ctx;
+}
+
+void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struct timespec *ts) {
+	struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *) _ctx;
+	DictRados *d = ((struct rados_dict *) _ctx->dict)->d;
+
+	struct timespec t = { ts->tv_sec, ts->tv_nsec };
+
+	if (ts != NULL) {
+		_ctx->timestamp.tv_sec = t.tv_sec;
+		_ctx->timestamp.tv_nsec = t.tv_nsec;
+		ctx->write_op_private.mtime2(&t);
+		ctx->write_op_shared.mtime2(&t);
+	}
+}
+
+static void rados_transaction_complete_private_callback(rados_completion_t comp, void* arg) {
+	rados_dict_transaction_context *c = (rados_dict_transaction_context *) arg;
+
+	auto ret = DICT_COMMIT_RET_OK;
+
+	comp->
+	i_debug("rados_transaction_complete_private_callback(%s): r_val=%d(%s)", c->key.c_str(), c->r_val, strerror(-c->r_val));
+
+	if (c->callback != nullptr) {
+		i_debug("call callback func...");
+		c->callback(ret, c->context);
+
+		delete c->completion_private;
+		c->completion_private = nullptr;
+		delete c;
+	}
+}
+
+static void rados_transaction_complete_shared_callback(rados_completion_t comp, void* arg) {
+	rados_dict_transaction_context *c = (rados_dict_transaction_context *) arg;
+
+	auto ret = DICT_COMMIT_RET_OK;
 }
 
 int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, dict_transaction_commit_callback_t *callback,
@@ -405,38 +458,67 @@ int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async, 
 	int ret = DICT_COMMIT_RET_OK;
 
 	if (_ctx->changed) {
-		if (ret == DICT_COMMIT_RET_OK && ctx->dirty_private) {
-			i_debug("rados_transaction_commit() operate(%s)", d->get_private_oid().c_str());
+		ctx->context = context;
+		ctx->callback = callback;
 
-			ctx->write_op_private.set_op_flags2(OPERATION_NOFLAG);
-			int err = d->get_private_ctx().operate(d->get_private_oid(), &ctx->write_op_private);
+		if (async) {
 
-			if (err < 0)
-				ret = DICT_COMMIT_RET_FAILED;
-			else if (ctx->atomic_inc_not_found)
-				ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
-			else
-				ret = DICT_COMMIT_RET_OK;
-		}
+			if (ret == DICT_COMMIT_RET_OK && ctx->dirty_private) {
+				i_debug("rados_transaction_commit() async operate(%s)", d->get_private_oid().c_str());
+				ctx->completion_private = librados::Rados::aio_create_completion(ctx, rados_transaction_complete_private_callback,
+						nullptr);
 
-		if (ret == DICT_COMMIT_RET_OK && ctx->dirty_shared) {
-			i_debug("rados_transaction_commit() operate(%s)", d->get_shared_oid().c_str());
+				int err = d->get_private_ctx().aio_operate(d->get_private_oid(), ctx->completion_private, &ctx->write_op_private);
+				if (err < 0)
+					ret = DICT_COMMIT_RET_FAILED;
+			}
 
-			ctx->write_op_shared.set_op_flags2(OPERATION_NOFLAG);
-			int err = d->get_shared_ctx().operate(d->get_shared_oid(), &ctx->write_op_shared);
-			if (err < 0)
-				ret = DICT_COMMIT_RET_FAILED;
-			else if (ctx->atomic_inc_not_found)
-				ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
-			else
-				ret = DICT_COMMIT_RET_OK;
+			if (ret == DICT_COMMIT_RET_OK && ctx->dirty_shared) {
+				i_debug("rados_transaction_commit() async operate(%s)", d->get_shared_oid().c_str());
+				ctx->completion_shared = librados::Rados::aio_create_completion(ctx, rados_transaction_complete_shared_callback,
+						nullptr);
+
+				int err = d->get_shared_ctx().aio_operate(d->get_shared_oid(), ctx->completion_shared, &ctx->write_op_shared);
+				if (err < 0)
+					ret = DICT_COMMIT_RET_FAILED;
+			}
+
+			if (ret != DICT_COMMIT_RET_OK) {
+				delete ctx->completion;
+				ctx->completion = nullptr;
+				delete ctx;
+
+			}
+		} else {
+			if (ret == DICT_COMMIT_RET_OK && ctx->dirty_private) {
+				i_debug("rados_transaction_commit() operate(%s)", d->get_private_oid().c_str());
+
+				int err = d->get_private_ctx().operate(d->get_private_oid(), &ctx->write_op_private);
+
+				if (err < 0)
+					ret = DICT_COMMIT_RET_FAILED;
+				else if (ctx->atomic_inc_not_found)
+					ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
+				else
+					ret = DICT_COMMIT_RET_OK;
+			}
+
+			if (ret == DICT_COMMIT_RET_OK && ctx->dirty_shared) {
+				i_debug("rados_transaction_commit() operate(%s)", d->get_shared_oid().c_str());
+
+				int err = d->get_shared_ctx().operate(d->get_shared_oid(), &ctx->write_op_shared);
+				if (err < 0)
+					ret = DICT_COMMIT_RET_FAILED;
+				else if (ctx->atomic_inc_not_found)
+					ret = DICT_COMMIT_RET_NOTFOUND; // TODO DICT_COMMIT_RET_NOTFOUND = dict_atomic_inc() was used on a nonexistent key
+				else
+					ret = DICT_COMMIT_RET_OK;
+			}
+			if (callback != NULL)
+				callback(ret, context);
+			delete ctx;
 		}
 	}
-
-	if (callback != NULL)
-		callback(ret, context);
-
-	delete ctx;
 
 	return ret;
 }
@@ -455,8 +537,6 @@ void rados_set(struct dict_transaction_context *_ctx, const char *key, const cha
 
 	i_debug("rados_set(%s,%s)", key, value);
 
-	_ctx->changed = TRUE;
-
 	std::map<std::string, bufferlist> map;
 	bufferlist bl;
 	bl.append(value);
@@ -470,8 +550,6 @@ void rados_unset(struct dict_transaction_context *_ctx, const char *key) {
 
 	i_debug("rados_unset(%s)", key);
 
-	_ctx->changed = TRUE;
-
 	set<string> keys;
 	keys.insert(key);
 	ctx->get_op(key).omap_rm_keys(keys);
@@ -483,12 +561,10 @@ void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, lo
 
 	i_debug("rados_atomic_inc(%s,%lld)", key, diff);
 
-	_ctx->changed = TRUE;
-
 	set<string> keys;
 	keys.insert(key);
 
-	// TODO implement
+// TODO implement
 }
 
 class kv_map {
