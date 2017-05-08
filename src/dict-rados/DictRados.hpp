@@ -8,6 +8,8 @@ extern "C" {
 
 #include <rados/librados.hpp>
 
+typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
+
 class DictRados {
 public:
 	DictRados();
@@ -44,7 +46,7 @@ public:
 		this->pool = pool;
 	}
 
-	const librados::IoCtx& get_private_ctx() const {
+	librados::IoCtx& get_private_ctx() {
 		return private_ctx;
 	}
 
@@ -52,13 +54,15 @@ public:
 		private_ctx = privateCtx;
 	}
 
-	const librados::IoCtx& get_shared_ctx() const {
+	librados::IoCtx& get_shared_ctx() {
 		return shared_ctx;
 	}
 
 	void set_shared_ctx(const librados::IoCtx& sharedCtx) {
 		shared_ctx = sharedCtx;
 	}
+
+	std::list<AioCompletionPtr> completions;
 
 private:
 	std::string pool;
