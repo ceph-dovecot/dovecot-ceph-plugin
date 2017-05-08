@@ -12,12 +12,14 @@
 #include "rbox-file.h"
 #include "rbox-sync.h"
 #include "rbox-storage.h"
+#include "debug-helper.h"
 
 extern struct mail_storage dbox_storage, rbox_storage;
 extern struct mailbox rbox_mailbox;
 extern struct dbox_storage_vfuncs rbox_dbox_storage_vfuncs;
 
 static void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED, struct mailbox_list_settings *set) {
+	FUNC_START();
 	if (set->layout == NULL)
 		set->layout = MAILBOX_LIST_NAME_FS;
 	if (set->subscription_fname == NULL)
@@ -26,9 +28,12 @@ static void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_
 		set->maildir_name = DBOX_MAILDIR_NAME;
 	if (*set->mailbox_dir_name == '\0')
 		set->mailbox_dir_name = DBOX_MAILBOX_DIR_NAME;
+	rbox_dbg_print_mailbox_list_settings(set, "rbox_storage_get_list_settings", NULL);
+	FUNC_END();
 }
 
 static struct mail_storage *rbox_storage_alloc(void) {
+	FUNC_START();
 	struct rbox_storage *storage;
 	pool_t pool;
 
@@ -37,57 +42,77 @@ static struct mail_storage *rbox_storage_alloc(void) {
 	storage->storage.v = rbox_dbox_storage_vfuncs;
 	storage->storage.storage = rbox_storage;
 	storage->storage.storage.pool = pool;
+	rbox_dbg_print_mail_storage(&storage->storage.storage, "rbox_storage_alloc", NULL);
+	FUNC_END();
 	return &storage->storage.storage;
 }
 
 static int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
+	FUNC_START();
 	struct rbox_storage *storage = (struct rbox_storage *) _storage;
 	enum fs_properties props;
 
-	if (dbox_storage_create(_storage, ns, error_r) < 0)
+	if (dbox_storage_create(_storage, ns, error_r) < 0) {
+		FUNC_END_RET("ret == -1; dbox_storage_create failed");
 		return -1;
+	}
 
 	if (storage->storage.attachment_fs != NULL) {
 		props = fs_get_properties(storage->storage.attachment_fs);
 		if ((props & FS_PROPERTY_RENAME) == 0) {
 			*error_r = "mail_attachment_fs: "
 					"Backend doesn't support renaming";
+			FUNC_END_RET("ret == -1; Backend doesn't support renaming");
 			return -1;
 		}
 	}
+	FUNC_END();
 	return 0;
 }
 
 static void rbox_storage_destroy(struct mail_storage *_storage) {
+	FUNC_START();
 	struct rbox_storage *storage = (struct rbox_storage *) _storage;
+
+	rbox_dbg_print_mail_storage(_storage, "rbox_storage_destroy", NULL);
 
 	if (storage->storage.attachment_fs != NULL)
 		fs_deinit(&storage->storage.attachment_fs);
 	index_storage_destroy(_storage);
+	FUNC_END();
 }
 
 static const char *
 rbox_storage_find_root_dir(const struct mail_namespace *ns) {
+	FUNC_START();
 	bool debug = ns->mail_set->mail_debug;
 	const char *home, *path;
+
+	rbox_dbg_print_mail_user(ns->owner, "rbox_storage_find_root_dir", NULL);
 
 	if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
 		path = t_strconcat(home, "/rbox", NULL);
 		if (access(path, R_OK | W_OK | X_OK) == 0) {
 			if (debug)
 				i_debug("rbox: root exists (%s)", path);
+			FUNC_END();
 			return path;
 		}
 		if (debug)
 			i_debug("rbox: access(%s, rwx): failed: %m", path);
 	}
+	FUNC_END_RET("ret == NULL; no root dir found");
 	return NULL;
 }
 
 static bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set) {
+	FUNC_START();
 	bool debug = ns->mail_set->mail_debug;
 	struct stat st;
 	const char *path, *root_dir;
+
+	rbox_dbg_print_mail_user(ns->owner, "rbox_storage_autodetect", NULL);
+	rbox_dbg_print_mailbox_list_settings(set, "rbox_storage_autodetect", NULL);
 
 	if (set->root_dir != NULL)
 		root_dir = set->root_dir;
@@ -96,6 +121,7 @@ static bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mail
 		if (root_dir == NULL) {
 			if (debug)
 				i_debug("rbox: couldn't find root dir");
+			FUNC_END_RET("ret == FALSE");
 			return FALSE;
 		}
 	}
@@ -106,22 +132,26 @@ static bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mail
 	if (stat(path, &st) < 0) {
 		if (debug)
 			i_debug("rbox autodetect: stat(%s) failed: %m", path);
+		FUNC_END_RET("ret == FALSE");
 		return FALSE;
 	}
 
 	if (!S_ISDIR(st.st_mode)) {
 		if (debug)
 			i_debug("rbox autodetect: %s not a directory", path);
+		FUNC_END_RET("ret == FALSE");
 		return FALSE;
 	}
 
 	set->root_dir = root_dir;
 	dbox_storage_get_list_settings(ns, set);
+	FUNC_END();
 	return TRUE;
 }
 
 static struct mailbox *
 rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname, enum mailbox_flags flags) {
+	FUNC_START();
 	struct rbox_mailbox *mbox;
 	struct index_mailbox_context *ibox;
 	pool_t pool;
@@ -143,10 +173,15 @@ rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, cons
 	ibox->index_flags |= MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
 
 	mbox->storage = (struct rbox_storage *) storage;
+
+	i_debug("rbox_mailbox_alloc: vname = %s", vname);
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_alloc", NULL);
+	FUNC_END();
 	return &mbox->box;
 }
 
 int rbox_read_header(struct rbox_mailbox *mbox, struct rbox_index_header *hdr, bool log_error, bool *need_resize_r) {
+	FUNC_START();
 	struct mail_index_view *view;
 	const void *data;
 	size_t data_size;
@@ -175,10 +210,15 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct rbox_index_header *hdr, b
 	}
 	mail_index_view_close(&view);
 	*need_resize_r = data_size < sizeof(*hdr);
+
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_read_header", NULL);
+	rbox_dbg_print_rbox_index_header(hdr, "rbox_read_header", NULL);
+	FUNC_END();
 	return ret;
 }
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans, const struct mailbox_update *update) {
+	FUNC_START();
 	struct rbox_index_header hdr, new_hdr;
 	bool need_resize;
 
@@ -202,9 +242,12 @@ static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_tran
 		mail_index_update_header_ext(trans, mbox->hdr_ext_id, 0, &new_hdr, sizeof(new_hdr));
 	}
 	memcpy(mbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_update_header", NULL);
+	FUNC_END();
 }
 
 int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update, struct mail_index_transaction *trans) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
 	struct mail_index_transaction *new_trans = NULL;
 	const struct mail_index_header *hdr;
@@ -252,23 +295,34 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 	}
 
 	rbox_update_header(mbox, trans, update);
+
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_create_indexes", NULL);
+
 	if (new_trans != NULL) {
 		if (mail_index_transaction_commit(&new_trans) < 0) {
 			mailbox_set_index_error(box);
+			FUNC_END_RET("ret == -1; mail_index_transaction_commit failed ");
 			return -1;
 		}
 	}
+	FUNC_END();
 	return 0;
 }
 
 static const char *
 rbox_get_attachment_path_suffix(struct dbox_file *_file) {
+	FUNC_START();
 	struct rbox_file *file = (struct rbox_file *) _file;
 
-	return t_strdup_printf("-%s-%u", guid_128_to_string(file->mbox->mailbox_guid), file->uid);
+	const char *ret = t_strdup_printf("-%s-%u", guid_128_to_string(file->mbox->mailbox_guid), file->uid);
+	i_debug("rbox_get_attachment_path_suffix: path suffix = %s", ret);
+	rbox_dbg_print_rbox_file(file, "rbox_get_attachment_path_suffix", NULL);
+	FUNC_END();
+	return ret;
 }
 
 void rbox_set_mailbox_corrupted(struct mailbox *box) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
 	struct rbox_index_header hdr;
 	bool need_resize;
@@ -277,19 +331,28 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
 		mbox->corrupted_rebuild_count = 1;
 	else
 		mbox->corrupted_rebuild_count = hdr.rebuild_count;
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_set_mailbox_corrupted", NULL);
+	FUNC_END();
 }
 
 static void rbox_set_file_corrupted(struct dbox_file *_file) {
+	FUNC_START();
 	struct rbox_file *file = (struct rbox_file *) _file;
 
 	rbox_set_mailbox_corrupted(&file->mbox->box);
+	rbox_dbg_print_rbox_file(file, "", NULL);
+	FUNC_END();
 }
 
 static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {
+	FUNC_START();
 	struct rbox_index_header hdr;
 
-	if (index_storage_mailbox_alloc_index(&mbox->box) < 0)
+	if (index_storage_mailbox_alloc_index(&mbox->box) < 0) {
+		rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_alloc_index", NULL);
+		FUNC_END_RET("ret == -1; index_storage_mailbox_alloc_index failed");
 		return -1;
+	}
 
 	mbox->ext_id = mail_index_ext_register(mbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
 
@@ -299,22 +362,30 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {
 	i_zero(&hdr);
 	guid_128_generate(hdr.mailbox_guid);
 	mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_alloc_index", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static int rbox_mailbox_open(struct mailbox *box) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
 	struct rbox_index_header hdr;
 	bool need_resize;
 
-	if (rbox_mailbox_alloc_index(mbox) < 0)
+	if (rbox_mailbox_alloc_index(mbox) < 0) {
+		FUNC_END_RET("ret == -1; rbox_mailbox_alloc_index failed");
 		return -1;
+	}
 
-	if (dbox_mailbox_open(box) < 0)
+	if (dbox_mailbox_open(box) < 0) {
+		FUNC_END_RET("ret == -1; dbox_mailbox_open failed");
 		return -1;
+	}
 
 	if (box->creating) {
 		/* wait for mailbox creation to initialize the index */
+		FUNC_END_RET("ret == -1; wait for mailbox creation");
 		return 0;
 	}
 
@@ -328,73 +399,103 @@ static int rbox_mailbox_open(struct mailbox *box) {
 
 	if (guid_128_is_empty(hdr.mailbox_guid)) {
 		/* regenerate it */
-		if (rbox_mailbox_create_indexes(box, NULL, NULL) < 0 || rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
+		if (rbox_mailbox_create_indexes(box, NULL, NULL) < 0 || rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0) {
+			FUNC_END_RET("ret == -1; rbox_mailbox_create_indexes failed");
 			return -1;
+		}
 	}
 	memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_open", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static void rbox_mailbox_close(struct mailbox *box) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_close", NULL);
 
 	if (mbox->corrupted_rebuild_count != 0)
 		(void) rbox_sync(mbox, 0);
 	index_storage_mailbox_close(box);
+	FUNC_END();
 }
 
 static int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
 	struct rbox_index_header hdr;
 	bool need_resize;
 
-	if (dbox_mailbox_create(box, update, directory) < 0)
+	if (dbox_mailbox_create(box, update, directory) < 0) {
+		FUNC_END_RET("ret == -1; dbox_mailbox_create failed");
 		return -1;
-	if (directory || !guid_128_is_empty(mbox->mailbox_guid))
+	}
+	if (directory || !guid_128_is_empty(mbox->mailbox_guid)) {
+		FUNC_END_RET("ret == 0; directory || mbox->mailbox_guid not empty");
 		return 0;
+	}
 
 	/* another process just created the mailbox. read the mailbox_guid. */
 	if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
 		mail_storage_set_critical(box->storage, "rbox %s: Failed to read newly created dbox header", mailbox_get_path(&mbox->box));
+		FUNC_END_RET("ret == -1; Failed to read newly created dbox header");
 		return -1;
 	}
 	memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
 	i_assert(!guid_128_is_empty(mbox->mailbox_guid));
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_create", NULL);
+	FUNC_END();
 	return 0;
 }
 
 static int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items, struct mailbox_metadata *metadata_r) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
 
-	if (index_mailbox_get_metadata(box, items, metadata_r) < 0)
+	if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
+		FUNC_END_RET("ret == -1; index_mailbox_get_metadata failed");
 		return -1;
+	}
 	if ((items & MAILBOX_METADATA_GUID) != 0) {
 		memcpy(metadata_r->guid, mbox->mailbox_guid, sizeof(metadata_r->guid));
 	}
+	FUNC_END();
 	return 0;
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
+	FUNC_START();
 	if (!box->opened) {
-		if (mailbox_open(box) < 0)
+		if (mailbox_open(box) < 0) {
+			FUNC_END_RET("ret == -1; mailbox_open failed");
 			return -1;
+		}
 	}
-	if (rbox_mailbox_create_indexes(box, update, NULL) < 0)
+	if (rbox_mailbox_create_indexes(box, update, NULL) < 0) {
+		FUNC_END_RET("ret == -1; rbox_mailbox_create_indexes failed");
 		return -1;
+	}
+	rbox_dbg_print_mailbox(box, "rbox_mailbox_update", NULL);
+	FUNC_END();
 	return index_storage_mailbox_update_common(box, update);
 }
 
 static void rbox_notify_changes(struct mailbox *box) {
+	FUNC_START();
 	const char *dir, *path;
 
 	if (box->notify_callback == NULL)
 		mailbox_watch_remove_all(box);
 	else {
-		if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &dir) <= 0)
+		if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &dir) <= 0) {
 			return;
+		}
 		path = t_strdup_printf("%s/"MAIL_INDEX_PREFIX".log", dir);
 		mailbox_watch_add(box, path);
 	}
+	rbox_dbg_print_mailbox(box, "rbox_notify_changes", NULL);
+	FUNC_END();
 }
 
 struct mail_storage rbox_storage = { .name = RBOX_STORAGE_NAME, .class_flags = MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG
