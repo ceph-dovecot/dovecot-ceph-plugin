@@ -59,6 +59,7 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
 
 	if (storage->storage.attachment_fs != NULL) {
 		props = fs_get_properties(storage->storage.attachment_fs);
+		i_debug("rbox_storage_create: props = 0x%04x", props);
 		if ((props & FS_PROPERTY_RENAME) == 0) {
 			*error_r = "mail_attachment_fs: "
 					"Backend doesn't support renaming";
@@ -66,6 +67,7 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
 			return -1;
 		}
 	}
+	rbox_dbg_print_mail_storage(_storage, "rbox_storage_create", NULL);
 	FUNC_END();
 	return 0;
 }
@@ -340,7 +342,7 @@ static void rbox_set_file_corrupted(struct dbox_file *_file) {
 	struct rbox_file *file = (struct rbox_file *) _file;
 
 	rbox_set_mailbox_corrupted(&file->mbox->box);
-	rbox_dbg_print_rbox_file(file, "", NULL);
+	rbox_dbg_print_rbox_file(file, "rbox_set_file_corrupted", NULL);
 	FUNC_END();
 }
 
@@ -452,6 +454,9 @@ static int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update 
 static int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items, struct mailbox_metadata *metadata_r) {
 	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) box;
+
+	i_debug("rbox_mailbox_get_metadata: items = 0x%04x", items);
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_mailbox_get_metadata", NULL);
 
 	if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
 		FUNC_END_RET("ret == -1; index_mailbox_get_metadata failed");
