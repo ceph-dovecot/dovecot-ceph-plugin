@@ -33,8 +33,8 @@ static char *enum_mail_error_strs[] = {
 		"MAIL_ERROR_LOOKUP_ABORTED" };
 static char *enum_file_lock_method[] = { "FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK", "FILE_LOCK_METHOD_DOTLOCK" };
 
-#define RBOX_PRINT_START(NAME) if (funcname == NULL) funcname = "-"; if (name == NULL) name = NAME; if (target == NULL) i_debug("%s: %s = NULL", funcname, name); else {
-#define RBOX_PRINT_DEBUG(FORMAT, ...) ; i_debug("%s: %s."FORMAT , funcname, name, __VA_ARGS__)
+#define RBOX_PRINT_START(NAME) if (funcname == NULL) funcname = "-"; if (name == NULL) name = NAME; if (target == NULL) i_debug("rds %s: %s = NULL", funcname, name); else {
+#define RBOX_PRINT_DEBUG(FORMAT, ...) ; i_debug("rds %s: %s."FORMAT , funcname, name, __VA_ARGS__)
 #define RBOX_PRINT_END() }
 
 #define STRFTIME_MAX_BUFSIZE (1024*64)
@@ -78,10 +78,12 @@ void debug_print_mail(struct mail *target, const char *funcname, const char *nam
 		RBOX_PRINT_DEBUG("access_type = %s", enum_mail_access_type_strs[target->access_type]);
 		RBOX_PRINT_DEBUG("lookup_abort = %s", enum_mail_lookup_abort_strs[target->lookup_abort]);
 
-		debug_print_mailbox(target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
-		RBOX_PRINT_DEBUG("box = %p", target->box);
+
 		//debug_print_mailbox_transaction_context(target->transaction, NULL, "transaction");
 		RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
+
+		//RBOX_PRINT_DEBUG("box = %p", target->box);
+		debug_print_mailbox(target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
 
 	RBOX_PRINT_END()
 }
@@ -171,7 +173,7 @@ void debug_print_mailbox(struct mailbox *target, const char *funcname, const cha
 		//debug_print_mail_storage(target->storage, "storage");
 		RBOX_PRINT_DEBUG("storage = %p", target->storage);
 		debug_print_mailbox_list(target->list, funcname, t_strdup_printf("  %s.%s", name, "list"));
-		//DEBUG("list = %p", target->list);
+		//RBOX_PRINT_DEBUG("list = %p", target->list);
 		//debug_print_mail_index(target->index, "index");
 		RBOX_PRINT_DEBUG("index = %p", target->index);
 		//debug_print_mail_index(target->index_pvt, "index_pvt");
@@ -410,7 +412,8 @@ void debug_print_mailbox_list(struct mailbox_list *target, const char *funcname,
 
 		if (target->guid_cache_pool != NULL) {
 			RBOX_PRINT_DEBUG("guid_cache_pool name = %s", target->guid_cache_pool->v->get_name(target->guid_cache_pool));
-		}RBOX_PRINT_DEBUG("mail_set = %p", target->mail_set);
+		}
+		RBOX_PRINT_DEBUG("mail_set = %p", target->mail_set);
 		RBOX_PRINT_DEBUG("subscriptions = %p", target->subscriptions);
 		RBOX_PRINT_DEBUG("changelog = %p", target->changelog);
 
