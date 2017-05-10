@@ -19,7 +19,7 @@
 struct dict dict_driver_rados = { .name = "rados", {
 		.init = rados_dict_init,
 		.deinit = rados_dict_deinit,
-		.wait = NULL,
+		.wait = rados_dict_wait,
 		.lookup = rados_dict_lookup,
 		.iterate_init = rados_dict_iterate_init,
 		.iterate = rados_dict_iterate,
@@ -32,12 +32,12 @@ struct dict dict_driver_rados = { .name = "rados", {
 		.atomic_inc = rados_atomic_inc,
 		.lookup_async = rados_dict_lookup_async,
 		.switch_ioloop = NULL,
-		.set_timestamp = NULL } };
+		.set_timestamp = rados_dict_set_timestamp } };
 
 static int plugin_ref_count = 0;
 
 void dict_rados_plugin_init(struct module *module) {
-	(void)module; // suppress an unused parameter warning
+	(void) module; // suppress an unused parameter warning
 	i_debug("dict_rados_plugin_init refcount=%d", plugin_ref_count);
 	if (plugin_ref_count++ > 0)
 		return;
