@@ -5,6 +5,7 @@
 #include "rbox-storage.h"
 #include "rbox-file.h"
 #include "rbox-sync.h"
+#include "debug-helper.h"
 
 #define RBOX_REBUILD_COUNT 3
 
@@ -12,6 +13,7 @@ static void
 dbox_sync_file_move_if_needed(struct dbox_file *file,
 			      enum rbox_sync_entry_type type)
 {
+	FUNC_START();
 	struct stat st;
 	bool move_to_alt = type == RBOX_SYNC_ENTRY_TYPE_MOVE_TO_ALT;
 	bool deleted;
@@ -29,14 +31,20 @@ dbox_sync_file_move_if_needed(struct dbox_file *file,
 		if (dbox_file_open(file, &deleted) > 0 && !deleted)
 			(void)rbox_file_move(file, move_to_alt);
 	}
+	rbox_dbg_print_dbox_file(file, "dbox_sync_file_move_if_needed", NULL);
+	FUNC_END();
 }
 
 static void rbox_sync_file(struct rbox_sync_context *ctx,
 			    uint32_t seq, uint32_t uid,
 			    enum rbox_sync_entry_type type)
 {
+	FUNC_START();
 	struct dbox_file *file;
 	enum modify_type modify_type;
+
+	i_debug("rbox_sync_file: seq = %u, uid = %u, type = %d", seq, uid, type);
+	rbox_dbg_print_rbox_sync_context(ctx, "rbox_sync_file", NULL);
 
 	switch (type) {
 	case RBOX_SYNC_ENTRY_TYPE_EXPUNGE:
@@ -59,14 +67,19 @@ static void rbox_sync_file(struct rbox_sync_context *ctx,
 		dbox_file_unref(&file);
 		break;
 	}
+	FUNC_END();
 }
 
 static void rbox_sync_add(struct rbox_sync_context *ctx,
 			   const struct mail_index_sync_rec *sync_rec)
 {
+	FUNC_START();
 	uint32_t uid;
 	enum rbox_sync_entry_type type;
 	uint32_t seq, seq1, seq2;
+
+	i_debug("rbox_sync_add: type = %d", sync_rec->type);
+	rbox_dbg_print_rbox_sync_context(ctx, "rbox_sync_add", NULL);
 
 	if (sync_rec->type == MAIL_INDEX_SYNC_TYPE_EXPUNGE) {
 		/* we're interested */
@@ -95,30 +108,40 @@ static void rbox_sync_add(struct rbox_sync_context *ctx,
 		mail_index_lookup_uid(ctx->sync_view, seq, &uid);
 		rbox_sync_file(ctx, seq, uid, type);
 	}
+	FUNC_END();
 }
 
 static int rbox_sync_index(struct rbox_sync_context *ctx)
 {
+	FUNC_START();
 	struct mailbox *box = &ctx->mbox->box;
 	const struct mail_index_header *hdr;
 	struct mail_index_sync_rec sync_rec;
 	uint32_t seq1, seq2;
 
 	hdr = mail_index_get_header(ctx->sync_view);
+
+	i_debug("rbox_sync_index: hdr->uid_validity = %u", hdr->uid_validity);
+	rbox_dbg_print_rbox_sync_context(ctx, "rbox_sync_index", NULL);
+
 	if (hdr->uid_validity == 0) {
 		/* newly created index file */
 		if (hdr->next_uid == 1) {
 			/* could be just a race condition where we opened the
 			   mailbox between mkdir and index creation. fix this
 			   silently. */
-			if (rbox_mailbox_create_indexes(box, NULL, ctx->trans) < 0)
+			if (rbox_mailbox_create_indexes(box, NULL, ctx->trans) < 0) {
+				FUNC_END_RET("ret == -1");
 				return -1;
+			}
+			FUNC_END_RET("ret == 1");
 			return 1;
 		}
 		mail_storage_set_critical(box->storage,
 			"rbox %s: Broken index: missing UIDVALIDITY",
 			mailbox_get_path(box));
 		rbox_set_mailbox_corrupted(box);
+		FUNC_END_RET("ret == 0");
 		return 0;
 	}
 
@@ -129,16 +152,21 @@ static int rbox_sync_index(struct rbox_sync_context *ctx)
 
 	while (mail_index_sync_next(ctx->index_sync_ctx, &sync_rec))
 		rbox_sync_add(ctx, &sync_rec);
+	FUNC_END();
 	return 1;
 }
 
 static void dbox_sync_file_expunge(struct rbox_sync_context *ctx,
 				   uint32_t uid)
 {
+	FUNC_START();
 	struct mailbox *box = &ctx->mbox->box;
 	struct dbox_file *file;
 	struct rbox_file *sfile;
 	int ret;
+
+	i_debug("dbox_sync_file_expunge: uid = %u", uid);
+	rbox_dbg_print_rbox_sync_context(ctx, "dbox_sync_file_expunge", NULL);
 
 	file = rbox_file_init(ctx->mbox, uid);
 	sfile = (struct rbox_file *)file;
@@ -151,11 +179,15 @@ static void dbox_sync_file_expunge(struct rbox_sync_context *ctx,
 	if (ret > 0 && box->v.sync_notify != NULL)
 		box->v.sync_notify(box, uid, MAILBOX_SYNC_TYPE_EXPUNGE);
 	dbox_file_unref(&file);
+	FUNC_END();
 }
 
 static void dbox_sync_expunge_files(struct rbox_sync_context *ctx)
 {
+	FUNC_START();
 	const uint32_t *uidp;
+
+	rbox_dbg_print_rbox_sync_context(ctx, "dbox_sync_expunge_files", NULL);
 
 	/* NOTE: Index is no longer locked. Multiple processes may be unlinking
 	   the files at the same time. */
@@ -166,11 +198,13 @@ static void dbox_sync_expunge_files(struct rbox_sync_context *ctx)
 	if (ctx->mbox->box.v.sync_notify != NULL)
 		ctx->mbox->box.v.sync_notify(&ctx->mbox->box, 0, 0);
 	ctx->mbox->box.tmp_sync_view = NULL;
+	FUNC_END();
 }
 
 static int
 rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_error)
 {
+	FUNC_START();
 	struct mail_index_view *view;
 	struct rbox_index_header hdr;
 	bool need_resize;
@@ -182,14 +216,17 @@ rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_error)
 
 	if (ret < 0 && retry) {
 		mail_index_refresh(mbox->box.index);
+		FUNC_END_RET("retry");
 		return rbox_refresh_header(mbox, FALSE, log_error);
 	}
+	FUNC_END();
 	return ret;
 }
 
 int rbox_sync_begin(struct rbox_mailbox *mbox, enum rbox_sync_flags flags,
 		     struct rbox_sync_context **ctx_r)
 {
+	FUNC_START();
 	struct mail_storage *storage = mbox->box.storage;
 	const struct mail_index_header *hdr =
 		mail_index_get_header(mbox->box.view);
@@ -198,6 +235,9 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, enum rbox_sync_flags flags,
 	unsigned int i;
 	int ret;
 	bool rebuild, force_rebuild;
+
+	i_debug("rbox_sync_begin: flags = %d", flags);
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_sync_begin", NULL);
 
 	force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
 	rebuild = force_rebuild ||
@@ -228,6 +268,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, enum rbox_sync_flags flags,
 			array_free(&ctx->expunged_uids);
 			i_free(ctx);
 			*ctx_r = NULL;
+			FUNC_END_RET("ret");
 			return ret;
 		}
 
@@ -258,18 +299,24 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, enum rbox_sync_flags flags,
 			index_storage_expunging_deinit(&ctx->mbox->box);
 			array_free(&ctx->expunged_uids);
 			i_free(ctx);
+			FUNC_END_RET("ret = -1");
 			return -1;
 		}
 	}
 
 	*ctx_r = ctx;
+	FUNC_END();
 	return 0;
 }
 
 int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success)
 {
+	FUNC_START();
 	struct rbox_sync_context *ctx = *_ctx;
 	int ret = success ? 0 : -1;
+
+	i_debug("rbox_sync_finish: success = %s", btoa(success));
+	rbox_dbg_print_rbox_sync_context(ctx, "rbox_sync_finish", NULL);
 
 	*_ctx = NULL;
 
@@ -290,27 +337,39 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success)
 	index_storage_expunging_deinit(&ctx->mbox->box);
 	array_free(&ctx->expunged_uids);
 	i_free(ctx);
+	FUNC_END();
 	return ret;
 }
 
 int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags)
 {
+	FUNC_START();
 	struct rbox_sync_context *sync_ctx;
 
-	if (rbox_sync_begin(mbox, flags, &sync_ctx) < 0)
+	if (rbox_sync_begin(mbox, flags, &sync_ctx) < 0) {
+		FUNC_END_RET("ret == -1; rbox_sync_begin failed");
 		return -1;
+	}
 
-	if (sync_ctx == NULL)
+	if (sync_ctx == NULL) {
+		FUNC_END_RET("ret == 0; sync_ctx == NULL");
 		return 0;
-	return rbox_sync_finish(&sync_ctx, TRUE);
+	}
+	int ret = rbox_sync_finish(&sync_ctx, TRUE);
+	FUNC_END();
+	return ret;
 }
 
 struct mailbox_sync_context *
 rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
 	enum rbox_sync_flags rbox_sync_flags = 0;
 	int ret = 0;
+
+	i_debug("rbox_sync_begin: flags = %d", flags);
+	rbox_dbg_print_rbox_mailbox(mbox, "rbox_sync_begin", NULL);
 
 	if (!box->opened) {
 		if (mailbox_open(box) < 0)
@@ -326,5 +385,6 @@ rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags)
 		ret = rbox_sync(mbox, rbox_sync_flags);
 	}
 
+	FUNC_END();
 	return index_mailbox_sync_init(box, flags, ret < 0);
 }
