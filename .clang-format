@@ -1,0 +1,10 @@
+---
+Language:        Cpp
+BasedOnStyle:    Google
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ColumnLimit:     120
+...

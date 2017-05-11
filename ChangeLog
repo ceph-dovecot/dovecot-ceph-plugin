@@ -1,0 +1,817 @@
+2017-05-02 13:43:54 +0200 Peter Mauritius <p.mauritius@tallence.com> (05f119d)
+
+    expanded all direct dbox_* vfuncs to allow tracing
+
+
+M	src/storage-rbox/rbox-mail.c
+M	src/storage-rbox/rbox-save.c
+M	src/storage-rbox/rbox-storage.c
+M	src/storage-rbox/rbox-storage.h
+
+2017-05-02 10:24:44 +0200 Peter Mauritius <p.mauritius@tallence.com> (212e8ed)
+
+    fixes, obox_mail_ndex_record used for guid
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-storage.h
+M	src/storage-rbox/debug-helper.c
+M	src/storage-rbox/rbox-storage.c
+M	src/storage-rbox/rbox-storage.h
+
+2017-04-28 08:45:46 +0200 Peter Burow <h.burow@tallence.com> (a099879)
+
+    Typos removed
+
+
+M	README.md
+
+2017-04-27 18:37:05 +0200 Peter Mauritius <p.mauritius@tallence.com> (41b44cb)
+
+    Merge branch 'master' of https://github.com/tallence/dovecot-ceph-plugin.git
+
+    Conflicts:
+    src/storage-rados/rados-storage.c
+
+2017-04-27 18:34:42 +0200 Peter Mauritius <p.mauritius@tallence.com> (72ea07c)
+
+    new rbox module based on sdbox created
+
+
+M	.settings/language.settings.xml
+M	configure.ac
+M	src/Makefile.am
+A	src/storage-rbox/Makefile.am
+A	src/storage-rbox/debug-helper.c
+A	src/storage-rbox/debug-helper.h
+A	src/storage-rbox/libstorage-rbox-plugin.c
+A	src/storage-rbox/libstorage-rbox-plugin.h
+A	src/storage-rbox/rbox-copy.c
+A	src/storage-rbox/rbox-file.c
+A	src/storage-rbox/rbox-file.h
+A	src/storage-rbox/rbox-mail.c
+A	src/storage-rbox/rbox-save.c
+A	src/storage-rbox/rbox-storage.c
+A	src/storage-rbox/rbox-storage.h
+A	src/storage-rbox/rbox-sync-rebuild.c
+A	src/storage-rbox/rbox-sync.c
+A	src/storage-rbox/rbox-sync.h
+A	src/storage-rbox/test-debug-helper.c
+
+2017-04-27 18:34:04 +0200 Peter Mauritius <p.mauritius@tallence.com> (3116420)
+
+    guids disabled
+
+
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/rados-storage.c
+
+2017-04-27 18:22:13 +0200 Peter Mauritius <p.mauritius@tallence.com> (019eff4)
+
+    debug log extended, guids created
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-mail.c
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-storage.h
+M	src/storage-rados/rados-sync.c
+M	src/storage-rados/rados-sync.h
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-25 11:52:48 +0200 Peter Burow <h.burow@tallence.com> (faf2c8e)
+
+    New logs with layout = fs
+
+
+M	doc/log/dovecot-append.log
+M	doc/log/dovecot-delete-mail.log
+M	doc/log/dovecot-very-big.log
+M	src/storage-rados/rados-storage.c
+
+2017-04-25 09:18:40 +0200 Peter Burow <h.burow@tallence.com> (034d906)
+
+    Append by moving mails
+
+
+A	doc/log/dovecot-append.log
+
+2017-04-24 14:14:18 +0200 Peter Burow <h.burow@tallence.com> (0dbaef0)
+
+    Mail deleted
+
+
+A	doc/log/dovecot-delete-mail.log
+
+2017-04-24 12:58:29 +0200 Peter Burow <h.burow@tallence.com> (ccee0e4)
+
+    Big (16MB) mail delivered
+
+
+A	doc/log/dovecot-very-big.log
+
+2017-04-24 12:57:31 +0200 Peter Burow <h.burow@tallence.com> (db12bbe)
+
+    debug output for rename file
+
+
+M	src/storage-rados/rados-save.c
+
+2017-04-24 08:03:47 +0200 Peter Burow <h.burow@tallence.com> (a44923e)
+
+    short versions
+
+
+A	doc/log/dovecot-lda-index_short.log
+A	doc/log/dovecot-lda_short.log
+A	doc/log/dovecot_read_msg_short.log
+
+2017-04-21 14:22:52 +0200 Peter Burow <h.burow@tallence.com> (c59b1fc)
+
+    instead fs now index
+
+
+A	doc/log/dovecot-lda-index.log
+M	doc/log/dovecot-lda.log
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-20 14:48:43 +0200 Peter Burow <h.burow@tallence.com> (a677510)
+
+    debug log files
+
+
+A	doc/log/dovecot-lda.log
+A	doc/log/dovecot_examine_inbox.log
+A	doc/log/dovecot_read_msg.log
+A	doc/log/dovecot_read_msg_only_header.log
+
+2017-04-20 13:56:52 +0200 Peter Burow <h.burow@tallence.com> (3c042d6)
+
+    debug output optimized
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-mail.c
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-sync.c
+
+2017-04-18 15:38:22 +0200 Peter Burow <h.burow@tallence.com> (3998a75)
+
+    endless loop removed
+
+
+M	src/storage-rados/debug-helper.c
+
+2017-04-18 10:31:39 +0200 Peter Burow <h.burow@tallence.com> (9d67eec)
+
+    More debug attributes
+
+
+M	src/storage-rados/debug-helper.c
+
+2017-04-18 10:00:19 +0200 Peter Burow <h.burow@tallence.com> (0f0b099)
+
+    More debug attributes
+
+
+M	src/storage-rados/debug-helper.c
+
+2017-04-18 09:21:21 +0200 Peter Burow <h.burow@tallence.com> (1069cd5)
+
+    More debug attributes
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-mail.c
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-sync.c
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-17 12:57:30 +0200 Peter Burow <h.burow@tallence.com> (1148cbe)
+
+    More debug attributes
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-13 12:20:55 +0200 Peter Burow <h.burow@tallence.com> (9decfa8)
+
+    Some more debug infos
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-13 10:24:06 +0200 Peter Burow <h.burow@tallence.com> (153e85c)
+
+    More debug infos
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-mail.c
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-sync.c
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-12 14:56:07 +0200 Peter Burow <h.burow@tallence.com> (43ccfe4)
+
+    More debug infos
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-storage.c
+M	src/storage-rados/rados-sync.c
+
+2017-04-12 12:17:30 +0200 Peter Burow <h.burow@tallence.com> (5b20c4b)
+
+    More debug infos
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-save.c
+
+2017-04-12 09:20:49 +0200 Peter Burow <h.burow@tallence.com> (5e724de)
+
+    Adapted to master changes
+
+
+2017-04-12 09:18:25 +0200 Peter Burow <h.burow@tallence.com> (cdda9de)
+
+    More debug infos
+
+
+M	src/storage-rados/debug-helper.c
+M	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-save.c
+M	src/storage-rados/test-debug-helper.c
+
+2017-04-11 18:17:15 +0200 Peter Mauritius <p.mauritius@tallence.com> (aaba213)
+
+    Merge branch 'master' of https://github.com/tallence/dovecot-ceph-plugin.git
+
+
+2017-04-11 18:17:04 +0200 Peter Mauritius <p.mauritius@tallence.com> (e9f1471)
+
+    Tested with Dovecot
+
+
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+M	src/dict-rados/imap.txt
+
+2017-04-11 14:27:30 +0200 Peter Burow <h.burow@tallence.com> (85a3113)
+
+    Print debug infos
+
+
+M	.settings/language.settings.xml
+M	src/storage-rados/Makefile.am
+A	src/storage-rados/debug-helper.c
+A	src/storage-rados/debug-helper.h
+M	src/storage-rados/rados-mail.c
+A	src/storage-rados/test-debug-helper.c
+
+2017-04-10 18:50:27 +0200 Peter Mauritius <p.mauritius@tallence.com> (328b9b2)
+
+    Merge branch 'master' of https://github.com/tallence/dovecot-ceph-plugin.git
+
+    Conflicts:
+    src/dict-rados/DictRados.cpp
+
+2017-04-10 16:40:16 +0200 Peter Mauritius <p.mauritius@tallence.com> (154eaee)
+
+    support for shared keys added
+
+
+M	.autotools
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-10 10:52:53 +0200 Peter Burow <h.burow@tallence.com> (5da7959)
+
+    Adapted to master changes
+
+
+2017-04-10 09:25:01 +0200 Peter Burow <h.burow@tallence.com> (18a1ce9)
+
+    Async support
+
+
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+
+2017-04-07 19:29:53 +0200 Peter Mauritius <p.mauritius@tallence.com> (7a4c4c0)
+
+    Merge branch 'master' of https://github.com/tallence/dovecot-ceph-plugin.git
+
+    Conflicts:
+    .cproject
+    src/dict-rados/DictRados.cpp
+
+2017-04-07 19:19:26 +0200 Peter Mauritius <p.mauritius@tallence.com> (a0b75ee)
+
+    dict_iterate* extended
+
+
+M	.autotools
+M	.cproject
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-07 12:57:29 +0200 Peter Burow <h.burow@tallence.com> (1e79901)
+
+    Adapted to last master changes
+
+
+2017-04-07 10:12:57 +0200 Peter Burow <h.burow@tallence.com> (0a48e65)
+
+    More C++, less warnings
+
+
+M	.autotools
+M	.cproject
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+M	src/dict-rados/Makefile.am
+M	src/dict-rados/libdict-rados-plugin.c
+M	src/dict-rados/libdict-rados-plugin.h
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-07 10:03:52 +0200 Peter Mauritius <p.mauritius@tallence.com> (596a211)
+
+    RADOS cluster connection as singleton, code cleanup, iteration data move to
+    interation context
+
+
+M	.cproject
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.h
+M	src/dict-rados/DictRados.hpp
+M	src/dict-rados/libdict-rados-plugin.c
+
+2017-04-05 12:46:25 +0200 Peter Burow <h.burow@tallence.com> (c71ec8a)
+
+    clear reader map before lookup
+
+
+M	.cproject
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-05 12:13:07 +0200 Peter Mauritius <p.mauritius@tallence.com> (ab21aaa)
+
+    Merge branch 'master' of
+    https://gitlab1.tallence.com/Telekom/dovecot-rados-plugin.git
+
+
+2017-04-05 12:12:41 +0200 Peter Mauritius <p.mauritius@tallence.com> (893e17d)
+
+    fixed error in dict_iterate
+
+
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-05 09:52:58 +0200 Peter Burow <h.burow@tallence.com> (6158289)
+
+    Adapted from cpp
+
+
+2017-04-05 09:41:36 +0200 Peter Burow <h.burow@tallence.com> (79fc9ea)
+
+    project changes
+
+
+M	.settings/language.settings.xml
+
+2017-04-05 09:18:53 +0200 Peter Burow <h.burow@tallence.com> (5e28bb5)
+
+    Adapted to master
+
+
+2017-04-05 08:51:42 +0200 Peter Burow <h.burow@tallence.com> (dbec239)
+
+    lookup async implemented
+
+
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+M	src/dict-rados/test-dict-rados.c
+
+2017-04-04 17:17:06 +0200 Peter Mauritius <p.mauritius@tallence.com> (7e4595d)
+
+    C++ code cleanup, fixed merge errors
+
+
+M	src/dict-rados/DictRados.cpp
+
+2017-04-04 15:36:08 +0200 Peter Mauritius <p.mauritius@tallence.com> (bbc36da)
+
+    Merge remote-tracking branch 'origin/cpp'
+
+    Conflicts:
+    src/dict-rados/libdict-rados-plugin.c
+    src/dict-rados/test-dict-rados.c
+
+2017-04-04 11:59:14 +0200 Peter Mauritius <p.mauritius@tallence.com> (56596f6)
+
+    gitignore extended
+
+
+A	.gitignore
+A	m4/.gitignore
+M	src/dict-rados/.gitignore
+A	src/dict-rados/imap.txt
+
+2017-04-04 11:35:09 +0200 Peter Mauritius <p.mauritius@tallence.com> (1e48722)
+
+    Removed config option for pool and id. test_dict_rados creates test pool on
+    the fly. Switched to Ceph developer cluster.
+
+
+M	README.md
+D	src/dict-rados/ceph.client.admin.keyring
+M	src/dict-rados/ceph.conf
+M	src/dict-rados/libdict-rados-plugin.c
+M	src/dict-rados/test-dict-rados.c
+D	src/storage-rados/ceph.client.admin.keyring
+M	src/storage-rados/ceph.conf
+
+2017-04-03 08:10:13 +0200 Peter Burow <h.burow@tallence.com> (065a871)
+
+    Merge remote-tracking branch 'origin/master' into cpp
+
+
+2017-03-31 14:09:45 +0200 Peter Burow <h.burow@tallence.com> (bf7e734)
+
+    More aio support
+
+
+M	.autotools
+M	.cproject
+M	.settings/language.settings.xml
+M	src/dict-rados/DictRados.cpp
+M	src/dict-rados/DictRados.hpp
+
+2017-03-31 09:06:24 +0200 Peter Mauritius <p.mauritius@tallence.com> (15babb8)
+
+    import of 1.3.0
+
+
+M	doc/dtag411w-email-ceph-design.adoc
+
+2017-03-30 15:15:44 +0200 Peter Burow <h.burow@tallence.com> (c584e01)
+
+    Adapted to master (new project structure)
+
+
+2017-03-28 13:01:43 +0200 Peter Burow <h.burow@tallence.com> (9978e51)
+
+    lookup_async enabled
+
+
+M	src/DictRados.cpp
+M	src/DictRados.h
+M	src/DictRados.hpp
+M	src/librados-plugin.c
+M	src/test-rados.c
+
+2017-03-24 16:57:10 +0100 Peter Mauritius <p.mauritius@tallence.com> (6d82d98)
+
+    Typos
+
+
+M	README.md
+
+2017-03-24 16:53:44 +0100 Peter Mauritius <p.mauritius@tallence.com> (3c43d9f)
+
+    Created new RADOS storage plugin based on the cydir storage. Moved RADOS
+    dict plugin to separate dictionary.
+
+
+M	.cproject
+M	.project
+M	.settings/language.settings.xml
+M	README.md
+M	configure.ac
+M	src/Makefile.am
+A	src/dict-rados/.gitignore
+A	src/dict-rados/Makefile.am
+R100	src/ceph.client.admin.keyring	src/dict-rados/ceph.client.admin.keyring
+R100	src/ceph.conf	src/dict-rados/ceph.conf
+R096	src/librados-plugin.c	src/dict-rados/libdict-rados-plugin.c
+A	src/dict-rados/libdict-rados-plugin.h
+R098	src/test-rados.c	src/dict-rados/test-dict-rados.c
+D	src/librados-plugin.h
+A	src/storage-rados/Makefile.am
+A	src/storage-rados/ceph.client.admin.keyring
+A	src/storage-rados/ceph.conf
+A	src/storage-rados/libstorage-rados-plugin.c
+A	src/storage-rados/libstorage-rados-plugin.h
+A	src/storage-rados/rados-mail.c
+A	src/storage-rados/rados-save.c
+A	src/storage-rados/rados-storage.c
+A	src/storage-rados/rados-storage.h
+A	src/storage-rados/rados-sync.c
+A	src/storage-rados/rados-sync.h
+
+2017-03-24 16:51:23 +0100 Peter Burow <h.burow@tallence.com> (ec92974)
+
+    More re-factoring
+
+
+M	src/DictRados.cpp
+M	src/DictRados.hpp
+
+2017-03-23 15:30:35 +0100 Peter Burow <h.burow@tallence.com> (bff99cd)
+
+    Optimized
+
+
+M	src/DictRados.cpp
+M	src/DictRados.hpp
+
+2017-03-23 13:54:24 +0100 Peter Burow <h.burow@tallence.com> (226c525)
+
+    Use more Object[Read/Write]Operation
+
+
+M	src/DictRados.cpp
+
+2017-03-23 11:28:30 +0100 Peter Burow <h.burow@tallence.com> (e0c54ae)
+
+    struct rados_dict members moved to DictRados class
+
+
+M	src/DictRados.cpp
+M	src/DictRados.hpp
+
+2017-03-22 15:20:29 +0100 Peter Burow <h.burow@tallence.com> (0dc13f2)
+
+    More iterate support
+
+
+M	src/DictRados.cpp
+
+2017-03-22 10:31:46 +0100 Peter Burow <h.burow@tallence.com> (f8a6975)
+
+    More IoCtx support
+
+
+M	src/DictRados.cpp
+M	src/DictRados.hpp
+
+2017-03-21 11:51:28 +0100 Peter Burow <h.burow@tallence.com> (63dbd81)
+
+    Cluster connect and io_ctx creation added
+
+
+M	src/DictRados.cpp
+M	src/DictRados.h
+M	src/DictRados.hpp
+
+2017-03-21 11:49:02 +0100 Peter Burow <h.burow@tallence.com> (ac30fbf)
+
+    Include of config.h added
+
+
+M	src/librados-plugin.c
+
+2017-03-21 11:48:09 +0100 Peter Burow <h.burow@tallence.com> (936e8e0)
+
+    Replaced by master version
+
+
+M	src/test-rados.c
+
+2017-03-21 11:46:40 +0100 Peter Burow <h.burow@tallence.com> (0c185ac)
+
+    -std=c++11 added
+
+
+M	src/Makefile.am
+
+2017-03-13 14:53:30 +0100 Peter Mauritius <p.mauritius@tallence.com> (ccf8024)
+
+    CDT project fixed
+
+
+M	.project
+M	.settings/language.settings.xml
+D	.settings/org.eclipse.cdt.ui.prefs
+
+2017-03-13 14:52:06 +0100 Peter Mauritius <p.mauritius@tallence.com> (62433b4)
+
+    CDT project fixed
+
+
+A	.autotools
+A	.cproject
+
+2017-03-13 13:41:24 +0100 Peter Mauritius <p.mauritius@tallence.com> (0896eae)
+
+    Update README.md
+
+
+M	README.md
+
+2017-03-13 13:38:31 +0100 Peter Mauritius <p.mauritius@tallence.com> (6c4b304)
+
+    Update README.md
+
+
+M	README.md
+
+2017-03-13 13:26:16 +0100 Peter Mauritius <p.mauritius@tallence.com> (8d8dcec)
+
+    Added installation in users home
+
+
+M	README.md
+
+2017-03-13 13:20:42 +0100 Peter Mauritius <p.mauritius@tallence.com> (07fcd1f)
+
+    Submodule dovecot removed
+
+
+D	.gitmodules
+D	dovecot
+
+2017-03-13 12:54:29 +0100 Peter Mauritius <p.mauritius@tallence.com> (66e0340)
+
+    Updated dovecot.m4
+
+
+M	m4/dovecot.m4
+
+2017-03-13 12:40:48 +0100 Peter Mauritius <p.mauritius@tallence.com> (cdf5121)
+
+    Added dovecot/core release-2.2.28 as submodule
+
+
+A	.gitmodules
+A	dovecot
+
+2017-03-08 13:12:10 +0100 Peter Mauritius <p.mauritius@tallence.com> (5f9c954)
+
+    Compatibility with dovecot 2.2.28
+
+
+A	.project
+A	.settings/language.settings.xml
+A	.settings/org.eclipse.cdt.ui.prefs
+M	src/librados-plugin.c
+M	src/test-rados.c
+
+2017-02-24 18:51:10 +0100 Peter Mauritius <p.mauritius@tallence.com> (6dcc179)
+
+    C++
+
+
+M	configure.ac
+A	src/DictRados.cpp
+A	src/DictRados.h
+A	src/DictRados.hpp
+M	src/Makefile.am
+M	src/librados-plugin.c
+
+2017-01-26 10:42:51 +0100 Peter Mauritius <p.mauritius@tallence.com> (0c913c7)
+
+    Add new file
+
+
+A	doc/email-ceph-proposal.adoc
+
+2017-01-26 10:41:54 +0100 Peter Mauritius <p.mauritius@tallence.com> (c32edac)
+
+    Add new file
+
+
+A	doc/dtag411w-email-ceph-design.adoc
+
+2017-01-26 10:39:10 +0100 Peter Mauritius <p.mauritius@tallence.com> (c2a3344)
+
+    Delete test.adoc
+
+
+D	test.adoc
+
+2017-01-26 10:38:42 +0100 Peter Mauritius <p.mauritius@tallence.com> (44495d8)
+
+    Add new directory
+
+
+A	doc/.gitkeep
+
+2017-01-26 10:25:53 +0100 Peter Mauritius <p.mauritius@tallence.com> (68afc65)
+
+    Update test.adoc
+
+
+M	test.adoc
+
+2017-01-26 10:24:40 +0100 Peter Mauritius <p.mauritius@tallence.com> (d2f3064)
+
+    Add new file
+
+
+A	test.adoc
+
+2017-01-24 17:35:44 +0100 Peter Mauritius <p.mauritius@tallence.com> (f375ed0)
+
+    error fixed
+
+
+M	src/librados-plugin.c
+
+2017-01-24 16:36:35 +0100 Peter Mauritius <p.mauritius@tallence.com> (e32a18f)
+
+    Fixed RADOS returncodes
+
+
+M	src/librados-plugin.c
+M	src/test-rados.c
+
+2017-01-23 19:07:02 +0100 Peter Mauritius <p.mauritius@tallence.com> (01e87da)
+
+    started work on atomic_inc
+
+
+M	src/librados-plugin.c
+M	src/test-rados.c
+
+2017-01-23 14:36:00 +0100 Peter Mauritius <p.mauritius@tallence.com> (85caeef)
+
+    fixed errors, more tests, async missing
+
+
+M	src/librados-plugin.c
+M	src/test-rados.c
+
+2017-01-23 11:32:42 +0100 Peter Mauritius <p.mauritius@tallence.com> (0787a21)
+
+    Merge branch 'master' of
+    https://gitlab1.tallence.com/Telekom/dovecot-rados-plugin.git
+
+
+2017-01-23 11:30:53 +0100 Peter Mauritius <p.mauritius@tallence.com> (e29f163)
+
+    Update README.md
+
+
+M	README.md
+
+2017-01-23 11:28:52 +0100 Peter Mauritius <p.mauritius@tallence.com> (e4582f6)
+
+    fixed test program name
+
+
+M	src/Makefile.am
+
+2017-01-23 09:36:59 +0100 Peter Mauritius <p.mauritius@tallence.com> (1e148a8)
+
+    Update README.md
+
+
+M	README.md
+
+2017-01-23 09:33:55 +0100 Peter Mauritius <p.mauritius@tallence.com> (f69289d)
+
+    initial commit
+
+
+A	LICENSE
+A	Makefile.am
+A	README.md
+A	autogen.sh
+A	configure.ac
+A	m4/dovecot.m4
+A	src/Makefile.am
+A	src/ceph.client.admin.keyring
+A	src/ceph.conf
+A	src/librados-plugin.c
+A	src/librados-plugin.h
+A	src/test-rados.c
