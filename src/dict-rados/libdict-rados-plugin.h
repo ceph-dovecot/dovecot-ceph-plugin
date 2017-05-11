@@ -1,9 +1,9 @@
-#ifndef LIBDICT_RADOS_PLUGIN_H
-#define LIBDICT_RADOS_PLUGIN_H
+#ifndef DOVECOT_RADOS_PLUGIN_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_
+#define DOVECOT_RADOS_PLUGIN_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_
 
 struct module;
 
 void dict_rados_plugin_init(struct module *module);
 void dict_rados_plugin_deinit(void);
 
-#endif
+#endif /* DOVECOT_RADOS_PLUGIN_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_ */
