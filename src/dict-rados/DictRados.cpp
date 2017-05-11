@@ -13,7 +13,6 @@ extern "C" {
 #include "connection.h"
 #include "module-dir.h"
 #include "DictRados.h"
-
 }
 
 #include <iostream>
