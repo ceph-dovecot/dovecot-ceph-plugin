@@ -19,6 +19,8 @@
 #include "rbox-file.h"
 #include "rbox-storage.h"
 #include "rbox-sync.h"
+#include "debug-helper.h"
+
 
 struct rbox_save_context {
 	struct dbox_save_context ctx;
@@ -36,6 +38,7 @@ struct rbox_save_context {
 
 struct dbox_file *
 rbox_save_file_get_file(struct mailbox_transaction_context *t, uint32_t seq) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) t->save_ctx;
 	struct dbox_file * const *files, *file;
 	unsigned int count;
@@ -48,11 +51,17 @@ rbox_save_file_get_file(struct mailbox_transaction_context *t, uint32_t seq) {
 
 	file = files[seq - ctx->first_saved_seq];
 	i_assert(((struct rbox_file * )file)->written_to_disk);
+
+	i_debug("rbox_save_file_get_file: seq = %u", seq);
+	rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_file_get_file", NULL);
+	rbox_dbg_print_dbox_file(file, "rbox_save_file_get_file", NULL);
+	FUNC_END();
 	return file;
 }
 
 struct mail_save_context *
 rbox_save_alloc(struct mailbox_transaction_context *t) {
+	FUNC_START();
 	struct rbox_mailbox *mbox = (struct rbox_mailbox *) t->box;
 	struct rbox_save_context *ctx = (struct rbox_save_context *) t->save_ctx;
 
@@ -64,6 +73,8 @@ rbox_save_alloc(struct mailbox_transaction_context *t) {
 		ctx->ctx.failed = FALSE;
 		ctx->ctx.finished = FALSE;
 		ctx->ctx.dbox_output = NULL;
+		rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_file_get_file", NULL);
+		FUNC_END_RET("ret = &ctx->ctx.ctx; use the existing allocated structure");
 		return &ctx->ctx.ctx;
 	}
 
@@ -73,10 +84,13 @@ rbox_save_alloc(struct mailbox_transaction_context *t) {
 	ctx->mbox = mbox;
 	i_array_init(&ctx->files, 32);
 	t->save_ctx = &ctx->ctx.ctx;
+	rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_file_get_file", NULL);
+	FUNC_END();
 	return t->save_ctx;
 }
 
 void rbox_save_add_file(struct mail_save_context *_ctx, struct dbox_file *file) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 	struct dbox_file * const *files;
 	unsigned int count;
@@ -91,12 +105,18 @@ void rbox_save_add_file(struct mail_save_context *_ctx, struct dbox_file *file) 
 		dbox_file_close(files[count - 1]);
 	}
 	array_append(&ctx->files, &file, 1);
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_save_add_file", NULL);
+	rbox_dbg_print_dbox_file(file, "rbox_save_add_file", NULL);
+	FUNC_END();
 }
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 	struct dbox_file *file;
 	int ret;
+
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_save_begin", NULL);
 
 	file = rbox_file_create(ctx->mbox);
 	ctx->append_ctx = dbox_file_append_init(file);
@@ -106,24 +126,33 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 		dbox_file_append_rollback(&ctx->append_ctx);
 		dbox_file_unref(&file);
 		ctx->ctx.failed = TRUE;
+		FUNC_END_RET("ret = -1; get_append_stream failed");
 		return -1;
 	}
 	ctx->cur_file = file;
 	dbox_save_begin(&ctx->ctx, input);
 
 	rbox_save_add_file(_ctx, file);
+	FUNC_END();
 	return ctx->ctx.failed ? -1 : 0;
 }
 
 int rbox_save_continue(struct mail_save_context *_ctx) {
+	FUNC_START();
 	struct dbox_save_context *ctx = (struct dbox_save_context *) _ctx;
 	struct mail_storage *storage = _ctx->transaction->box->storage;
 
-	if (ctx->failed)
-		return -1;
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_save_continue", NULL);
 
-	if (_ctx->data.attach != NULL)
+	if (ctx->failed) {
+		FUNC_END_RET("ret == -1; ctx failed");
+		return -1;
+	}
+
+	if (_ctx->data.attach != NULL) {
+		FUNC_END_RET("ret == index_attachment_save_continue");
 		return index_attachment_save_continue(_ctx);
+	}
 
 	do {
 		if (o_stream_send_istream(_ctx->data.output, ctx->input) < 0) {
@@ -131,6 +160,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 				mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
 			}
 			ctx->failed = TRUE;
+			FUNC_END_RET("ret == -1; o_stream_send_istream failed");
 			return -1;
 		}
 		index_mail_cache_parse_continue(_ctx->dest_mail);
@@ -139,10 +169,12 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 		 input stream. we'll have to make sure we don't return with
 		 one of the streams still having data in them. */
 	} while (i_stream_read(ctx->input) > 0);
+	FUNC_END();
 	return 0;
 }
 
 static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct dbox_file *file) {
+	FUNC_START();
 	struct rbox_file *sfile = (struct rbox_file *) file;
 	const ARRAY_TYPE(mail_attachment_extref) *extrefs_arr;
 	const struct mail_attachment_extref *extrefs;
@@ -150,6 +182,9 @@ static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
 	uoff_t message_size;
 	guid_128_t guid_128;
 	unsigned int i, count;
+
+	rbox_dbg_print_dbox_file(file, "dbox_save_mail_write_metadata", NULL);
+	rbox_dbg_print_mail_save_context(&ctx->ctx, "dbox_save_mail_write_metadata", NULL);
 
 	i_assert(file->msg_header_size == sizeof(dbox_msg_hdr));
 
@@ -159,6 +194,7 @@ static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
 	dbox_msg_header_fill(&dbox_msg_hdr, message_size);
 	if (o_stream_pwrite(ctx->dbox_output, &dbox_msg_hdr, sizeof(dbox_msg_hdr), file->file_header_size) < 0) {
 		dbox_file_set_syscall_error(file, "pwrite()");
+		FUNC_END_RET("ret == -1; o_stream_pwrite failed");
 		return -1;
 	}
 	sfile->written_to_disk = TRUE;
@@ -179,16 +215,22 @@ static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
 			array_append(&sfile->attachment_paths, &path, 1);
 		}
 	}
+	FUNC_END();
 	return 0;
 }
 
 static int dbox_save_finish_write(struct mail_save_context *_ctx) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 	struct dbox_file **files;
 
+	rbox_dbg_print_mail_save_context(_ctx, "dbox_save_finish_write", NULL);
+
 	ctx->ctx.finished = TRUE;
-	if (ctx->ctx.dbox_output == NULL)
+	if (ctx->ctx.dbox_output == NULL) {
+		FUNC_END_RET("ret == -1; ctx.dbox_output == NULL");
 		return -1;
+	}
 
 	if (_ctx->data.save_date != (time_t) -1) {
 		/* we can't change ctime, but we can add the date to cache */
@@ -223,31 +265,39 @@ static int dbox_save_finish_write(struct mail_save_context *_ctx) {
 	i_stream_unref(&ctx->ctx.input);
 	ctx->ctx.dbox_output = NULL;
 
+	FUNC_END();
 	return ctx->ctx.failed ? -1 : 0;
 }
 
 int rbox_save_finish(struct mail_save_context *ctx) {
+	FUNC_START();
 	int ret;
 
 	ret = dbox_save_finish_write(ctx);
 	index_save_context_free(ctx);
+	FUNC_END();
 	return ret;
 }
 
 void rbox_save_cancel(struct mail_save_context *_ctx) {
+	FUNC_START();
 	struct dbox_save_context *ctx = (struct dbox_save_context *) _ctx;
 
 	ctx->failed = TRUE;
 	(void) rbox_save_finish(_ctx);
+	FUNC_END();
 }
 
 static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE(seq_range) *uids)
 {
+	FUNC_START();
 	struct dbox_file *const *files;
 	struct seq_range_iter iter;
 	unsigned int i, count, n = 0;
 	uint32_t uid;
 	bool ret;
+
+	rbox_dbg_print_mail_save_context(ctx, "dbox_save_assign_uids", NULL);
 
 	seq_range_array_iter_init(&iter, uids);
 	files = array_get(&ctx->files, &count);
@@ -256,20 +306,26 @@ static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE
 
 		ret = seq_range_array_iter_nth(&iter, n++, &uid);
 		i_assert(ret);
-		if (rbox_file_assign_uid(sfile, uid, FALSE) < 0)
-		return -1;
+		if (rbox_file_assign_uid(sfile, uid, FALSE) < 0) {
+			FUNC_END_RET("ret == -1; file_assign_uid failed");
+			return -1;
+		}
 		if (ctx->ctx.highest_pop3_uidl_seq == i+1) {
 			index_pop3_uidl_set_max_uid(&ctx->mbox->box,
 			ctx->ctx.trans, uid);
 		}
 	}
 	i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
+	FUNC_END();
 	return 0;
 }
 
 static int dbox_save_assign_stub_uids(struct rbox_save_context *ctx) {
+	FUNC_START();
 	struct dbox_file * const *files;
 	unsigned int i, count;
+
+	rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
 
 	files = array_get(&ctx->files, &count);
 	for (i = 0; i < count; i++) {
@@ -279,16 +335,22 @@ static int dbox_save_assign_stub_uids(struct rbox_save_context *ctx) {
 		mail_index_lookup_uid(ctx->ctx.trans->view, ctx->first_saved_seq + i, &uid);
 		i_assert(uid != 0);
 
-		if (rbox_file_assign_uid(sfile, uid, TRUE) < 0)
+		if (rbox_file_assign_uid(sfile, uid, TRUE) < 0) {
+			FUNC_END_RET("ret == -1; file_assign_uid failed");
 			return -1;
+		}
 	}
 
+	FUNC_END();
 	return 0;
 }
 
 static void dbox_save_unref_files(struct rbox_save_context *ctx) {
+	FUNC_START();
 	struct dbox_file **files;
 	unsigned int i, count;
+
+	rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
 
 	files = array_get_modifiable(&ctx->files, &count);
 	for (i = 0; i < count; i++) {
@@ -300,22 +362,28 @@ static void dbox_save_unref_files(struct rbox_save_context *ctx) {
 		dbox_file_unref(&files[i]);
 	}
 	array_free(&ctx->files);
+	FUNC_END();
 }
 
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 	struct mailbox_transaction_context *_t = _ctx->transaction;
 	const struct mail_index_header *hdr;
+
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_transaction_save_commit_pre", NULL);
 
 	i_assert(ctx->ctx.finished);
 
 	if (array_count(&ctx->files) == 0) {
 		/* the mail must be freed in the commit_pre() */
+		FUNC_END_RET("ret == 0; array_count == 0");
 		return 0;
 	}
 
 	if (rbox_sync_begin(ctx->mbox, RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC, &ctx->sync_ctx) < 0) {
 		rbox_transaction_save_rollback(_ctx);
+		FUNC_END_RET("ret == -1; sync_begin failed");
 		return -1;
 	}
 
@@ -330,28 +398,35 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 		mail_index_append_finish_uids(ctx->ctx.trans, hdr->next_uid, &_t->changes->saved_uids);
 		if (dbox_save_assign_uids(ctx, &_t->changes->saved_uids) < 0) {
 			rbox_transaction_save_rollback(_ctx);
+			FUNC_END_RET("ret == -1; assign_uids failed");
 			return -1;
 		}
 	} else {
 		/* assign UIDs that we stashed away */
 		if (dbox_save_assign_stub_uids(ctx) < 0) {
 			rbox_transaction_save_rollback(_ctx);
+			FUNC_END_RET("ret == -1; assign_stub_uids failed");
 			return -1;
 		}
 	}
 
 	_t->changes->uid_validity = hdr->uid_validity;
+	FUNC_END();
 	return 0;
 }
 
 void rbox_transaction_save_commit_post(struct mail_save_context *_ctx, struct mail_index_transaction_commit_result *result) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 	struct mail_storage *storage = _ctx->transaction->box->storage;
 
 	_ctx->transaction = NULL; /* transaction is already freed */
 
+	rbox_dbg_print_mail_save_context(_ctx, "rbox_transaction_save_commit_post", NULL);
+
 	if (array_count(&ctx->files) == 0) {
 		rbox_transaction_save_rollback(_ctx);
+		FUNC_END_RET("array_count == 0");
 		return;
 	}
 
@@ -368,9 +443,11 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx, struct ma
 		}
 	}
 	rbox_transaction_save_rollback(_ctx);
+	FUNC_END();
 }
 
 void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
+	FUNC_START();
 	struct rbox_save_context *ctx = (struct rbox_save_context *) _ctx;
 
 	if (!ctx->ctx.finished)
@@ -380,4 +457,5 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 	if (ctx->sync_ctx != NULL)
 		(void) rbox_sync_finish(&ctx->sync_ctx, FALSE);
 	i_free(ctx);
+	FUNC_END();
 }
