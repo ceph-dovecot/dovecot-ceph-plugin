@@ -1,5 +1,7 @@
-#ifndef DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_H_
-#define DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_H_
+// Copyright 2017 <Tallence>
+
+#ifndef SRC_DICT_RADOS_DICTRADOS_H_
+#define SRC_DICT_RADOS_DICTRADOS_H_
 
 #include "lib.h"
 #include "dict-private.h"
@@ -30,4 +32,4 @@ extern int rados_dict_iterate_deinit(struct dict_iterate_context *ctx);
 
 extern void rados_dict_set_timestamp(struct dict_transaction_context *ctx, const struct timespec *ts);
 
-#endif /* DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_H_ */
+#endif  // SRC_DICT_RADOS_DICTRADOS_H_
