@@ -297,7 +297,7 @@ static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE
 	uint32_t uid;
 	bool ret;
 
-	rbox_dbg_print_mail_save_context(ctx, "dbox_save_assign_uids", NULL);
+	rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
 
 	seq_range_array_iter_init(&iter, uids);
 	files = array_get(&ctx->files, &count);
