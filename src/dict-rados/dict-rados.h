@@ -1,7 +1,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_DICT_RADOS_DICTRADOS_H_
-#define SRC_DICT_RADOS_DICTRADOS_H_
+#ifndef SRC_DICT_RADOS_DICT_RADOS_H_
+#define SRC_DICT_RADOS_DICT_RADOS_H_
 
 #include "lib.h"
 #include "dict-private.h"
@@ -23,7 +23,7 @@ extern void rados_transaction_rollback(struct dict_transaction_context *_ctx);
 
 extern void rados_set(struct dict_transaction_context *_ctx, const char *key, const char *value);
 extern void rados_unset(struct dict_transaction_context *_ctx, const char *key);
-extern void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff);
+extern void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff);  // NOLINT
 
 extern struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const char *const *paths,
                                                             enum dict_iterate_flags flags);
@@ -32,4 +32,4 @@ extern int rados_dict_iterate_deinit(struct dict_iterate_context *ctx);
 
 extern void rados_dict_set_timestamp(struct dict_transaction_context *ctx, const struct timespec *ts);
 
-#endif  // SRC_DICT_RADOS_DICTRADOS_H_
+#endif  // SRC_DICT_RADOS_DICT_RADOS_H_

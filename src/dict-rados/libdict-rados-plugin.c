@@ -16,7 +16,8 @@
 #include "config.h"
 #include "config.h"
 
-#include "DictRados.h"
+#include "libdict-rados-plugin.h"
+#include "dict-rados.h"
 
 struct dict dict_driver_rados = {.name = "rados",
                                  {.init = rados_dict_init,
