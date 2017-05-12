@@ -18,10 +18,12 @@ module_LTLIBRARIES = \
 
 libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
-    DictRados.cpp 
+	rados-dictionary.cpp \
+    dict-rados.cpp 
 
 noinst_HEADERS = \
-	DictRados.hpp \
+	rados-dictionary.h \
+	dict-rados.h \
 	libdict-rados-plugin.h
 	
 test_programs = \
@@ -30,7 +32,8 @@ test_programs = \
 test_dict_rados_SOURCES = \
 	test-dict-rados.c \
 	libdict-rados-plugin.c \
-    DictRados.cpp 
+	rados-dictionary.cpp \
+    dict-rados.cpp 
 
 test_dict_rados_LDADD = $(LIBDICT_RADOS_PLUGIN) $(LIBDOVECOT) $(LIBDOVECOT_STORAGE)
 test_dict_rados_DEPENDENCIES = $(LIBDOVECOT_DEPS)  $(LIBDOVECOT_STORAGE_DEPS)
