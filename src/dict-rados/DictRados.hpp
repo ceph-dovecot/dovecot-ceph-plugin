@@ -1,3 +1,5 @@
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+
 #ifndef DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_HPP_
 #define DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_HPP_
 
