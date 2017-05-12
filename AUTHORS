@@ -1,0 +1,16 @@
+Maintainer
+----------
+
+Peter Mauritius <p.mauritius@tallence.com>
+
+
+Contributors
+------------
+
+Peter Mauritius <p.mauritius@tallence.com>
+Peter Burow <h.burow@tallence.com>
+Jan Radon <j.radonw@tallence.com>
+
+For a complete contributor list:
+
+  git shortlog -sn

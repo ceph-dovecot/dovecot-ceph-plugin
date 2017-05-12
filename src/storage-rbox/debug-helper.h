@@ -1,6 +1,7 @@
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef DEBUG_HELPER_H_
-#define DEBUG_HELPER_H_
+#ifndef SRC_STORAGE_RBOX_DEBUG_HELPER_H_
+#define SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 
 struct rbox_sync_context;
 struct index_mail_data;
@@ -22,16 +23,18 @@ void rbox_dbg_print_mail(struct mail *target, const char *funcname, const char *
 void rbox_dbg_print_mailbox(struct mailbox *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name);
 void rbox_dbg_print_index_mail_data(struct index_mail_data *target, const char *funcname, const char *name);
-void rbox_dbg_print_mail_save_context(struct mail_save_context *target, const char *funcname, const char* name);
-void rbox_dbg_print_mailbox_transaction_context(struct mailbox_transaction_context* target, const char *funcname, const char *name);
+void rbox_dbg_print_mail_save_context(struct mail_save_context *target, const char *funcname, const char *name);
+void rbox_dbg_print_mailbox_transaction_context(struct mailbox_transaction_context *target, const char *funcname,
+                                                const char *name);
 void rbox_dbg_print_mail_save_data(struct mail_save_data *target, const char *funcname, const char *name);
 void rbox_dbg_print_mail_storage(struct mail_storage *target, const char *funcname, const char *name);
-void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, const char* name);
+void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_sync_context(struct rbox_sync_context *target, const char *funcname, const char *name);
 void rbox_dbg_print_mailbox_list(struct mailbox_list *mailboxList, const char *funcname, const char *name);
 void rbox_dbg_print_mailbox_list_settings(struct mailbox_list_settings *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_index_header(struct rbox_index_header *target, const char *funcname, const char *name);
-void rbox_dbg_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname, const char *name);
+void rbox_dbg_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname,
+                                           const char *name);
 void rbox_dbg_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name);
 void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_mail_index_header(struct rbox_index_header *target, const char *funcname, const char *name);
@@ -39,4 +42,4 @@ void rbox_dbg_print_rbox_mail_index_header(struct rbox_index_header *target, con
 void rbox_dbg_print_dbox_file(struct dbox_file *target, const char *funcname, const char *name);
 void rbox_dbg_print_rbox_file(struct rbox_file *target, const char *funcname, const char *name);
 
-#endif /* DEBUG_HELPER_H_ */
+#endif /* SRC_STORAGE_RBOX_DEBUG_HELPER_H_ */

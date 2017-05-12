@@ -1,4 +1,5 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include "lib.h"
 #include "array.h"
