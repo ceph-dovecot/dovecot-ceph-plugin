@@ -1,4 +1,4 @@
-// Copyright 2017 <Tallence>
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #ifndef SRC_DICT_RADOS_DICTRADOS_H_
 #define SRC_DICT_RADOS_DICTRADOS_H_
