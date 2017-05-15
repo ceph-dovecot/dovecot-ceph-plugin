@@ -23,17 +23,19 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-file.c \
 	rbox-mail.c \
 	rbox-save.c \
+	rbox-storage.cpp \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
-	rbox-storage.c \
-	debug-helper.c
+	debug-helper.c \
+	RadosBox.cpp
 	
 noinst_HEADERS = \
 	libstorage-rbox-plugin.h \
 	rbox-file.h \
 	rbox-storage.h \
 	rbox-sync.h \
-	debug-helper.h
+	debug-helper.h \
+	RadosBox.hpp
 	
 test_programs = \
 	test-debug-helper

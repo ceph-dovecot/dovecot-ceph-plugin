@@ -1,5 +1,10 @@
-#ifndef DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_HPP_
-#define DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_HPP_
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+
+#ifndef SRC_DICT_RADOS_RADOS_DICTIONARY_H_
+#define SRC_DICT_RADOS_RADOS_DICTIONARY_H_
+
+#include <list>
+#include <string>
 
 extern "C" {
 #include "lib.h"
@@ -10,12 +15,12 @@ extern "C" {
 
 typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
 
-class DictRados {
+class RadosDictionary {
  public:
-  DictRados();
-  virtual ~DictRados();
+  RadosDictionary();
+  virtual ~RadosDictionary();
 
-  int init(const std::string uri, const std::string& username, std::string& error_r);
+  int init(const std::string uri, const std::string& username, std::string* error_r);
   void deinit();
 
   const std::string get_full_oid(const std::string& key);
@@ -52,4 +57,4 @@ class DictRados {
   int read_config_from_uri(const std::string& uri);
 };
 
-#endif /* DOVECOT_RADOS_PLUGIN_DICT_RADOS_DICTRADOS_HPP_ */
+#endif /* SRC_DICT_RADOS_RADOS_DICTIONARY_H_ */
