@@ -28,6 +28,7 @@ extern "C" {
 #include "dict-rados.h"
 }
 
+#include "rados-cluster.h"
 #include "rados-dictionary.h"
 
 using namespace librados;  // NOLINT
@@ -43,28 +44,65 @@ using std::set;
 
 struct rados_dict {
   struct dict dict;
+  RadosCluster cluster;
   RadosDictionary *d;
 };
+
+static const vector<string> explode(const string &str, const char &sep) {
+  vector<string> v;
+  stringstream ss(str);  // Turn the string into a stream.
+  string tok;
+
+  while (getline(ss, tok, sep)) {
+    v.push_back(tok);
+  }
+
+  return v;
+}
 
 int rados_dict_init(struct dict *driver, const char *uri, const struct dict_settings *set, struct dict **dict_r,
                     const char **error_r) {
   struct rados_dict *dict;
   const char *const *args;
+  string oid = "";
+  string pool = "librmb";
 
   i_debug("rados_dict_init(uri=%s)", uri);
 
+  vector<string> props(explode(uri, ':'));
+  for (vector<string>::iterator it = props.begin(); it != props.end(); ++it) {
+    if (it->compare(0, 4, "oid=") == 0) {
+      oid = it->substr(4);
+    } else if (it->compare(0, 5, "pool=") == 0) {
+      pool = it->substr(5);
+    } else {
+      *error_r = t_strdup_printf("Invalid URI!");
+      return -1;
+    }
+  }
+
+  string username(set->username);
+  if (username.find(DICT_USERNAME_SEPARATOR) != string::npos) {
+    /* escape the username */
+    username = dict_escape_string(username.c_str());
+  }
+
   dict = i_new(struct rados_dict, 1);
-  dict->d = new RadosDictionary();
-  RadosDictionary *d = dict->d;
 
   string error_msg;
-  int ret = d->init(uri, set->username, &error_msg);
+  int ret = dict->cluster.init(&error_msg);
 
   if (ret < 0) {
-    delete dict->d;
-    dict->d = nullptr;
     i_free(dict);
     *error_r = t_strdup_printf("%s", error_msg.c_str());
+    return -1;
+  }
+
+  ret = dict->cluster.dictionary_create(pool, username, oid, &dict->d);
+
+  if (ret < 0) {
+    *error_r = t_strdup_printf("Error creating RadosDictionary()! %s", strerror(-ret));
+    dict->cluster.deinit();
     return -1;
   }
 
@@ -80,7 +118,7 @@ void rados_dict_deinit(struct dict *_dict) {
 
   i_debug("rados_dict_deinit()");
 
-  d->deinit();
+  dict->cluster.deinit();
   delete dict->d;
   dict->d = nullptr;
 
