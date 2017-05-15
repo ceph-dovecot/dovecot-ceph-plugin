@@ -1,3 +1,5 @@
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+
 #include "lib.h"
 #include "config.h"
 #include "array.h"
@@ -14,7 +16,8 @@
 #include "config.h"
 #include "config.h"
 
-#include "DictRados.h"
+#include "libdict-rados-plugin.h"
+#include "dict-rados.h"
 
 struct dict dict_driver_rados = {.name = "rados",
                                  {.init = rados_dict_init,
