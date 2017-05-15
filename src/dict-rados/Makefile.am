@@ -18,10 +18,12 @@ module_LTLIBRARIES = \
 
 libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
+	rados-cluster.cpp \
 	rados-dictionary.cpp \
     dict-rados.cpp 
 
 noinst_HEADERS = \
+	rados-cluster.h \
 	rados-dictionary.h \
 	dict-rados.h \
 	libdict-rados-plugin.h
@@ -32,6 +34,7 @@ test_programs = \
 test_dict_rados_SOURCES = \
 	test-dict-rados.c \
 	libdict-rados-plugin.c \
+	rados-cluster.cpp \
 	rados-dictionary.cpp \
     dict-rados.cpp 
 
