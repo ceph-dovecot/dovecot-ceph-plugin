@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <cstdint>
 
 #include <rados/librados.hpp>
 
@@ -25,6 +26,8 @@ extern "C" {
 #include "ostream.h"
 #include "connection.h"
 #include "module-dir.h"
+#include "guid.h"
+
 #include "dict-rados.h"
 }
 
@@ -41,6 +44,7 @@ using std::pair;
 using std::set;
 
 #define DICT_USERNAME_SEPARATOR '/'
+static const char CACHE_DELETED[] = "_DELETED_";
 
 struct rados_dict {
   struct dict dict;
@@ -282,24 +286,34 @@ class rados_dict_transaction_context {
   struct dict_transaction_context ctx;
   bool atomic_inc_not_found;
 
+  guid_128_t guid;
+
   ObjectWriteOperation write_op_private;
   AioCompletionPtr completion_private;
   bool dirty_private;
+  bool locked_private;
 
   ObjectWriteOperation write_op_shared;
   AioCompletionPtr completion_shared;
   bool dirty_shared;
+  bool locked_shared;
 
   void *context = nullptr;
   dict_transaction_commit_callback_t *callback;
 
+  std::map<std::string, string> cache;
+
   rados_dict_transaction_context() {
     dirty_private = false;
     dirty_shared = false;
+    locked_private = false;
+    locked_shared = false;
     completion_private = std::make_shared<AioCompletion>(*librados::Rados::aio_create_completion());
     completion_shared = std::make_shared<AioCompletion>(*librados::Rados::aio_create_completion());
     callback = nullptr;
     atomic_inc_not_found = false;
+
+    guid_128_generate(guid);
   }
 
   ~rados_dict_transaction_context() {
@@ -315,6 +329,23 @@ class rados_dict_transaction_context {
     } else if (key.find(DICT_PATH_PRIVATE) == 0) {
       dirty_private |= true;
       return write_op_private;
+    }
+    i_unreached();
+  }
+
+  void set_locked(const std::string &key) {
+    if (key.find(DICT_PATH_SHARED) == 0) {
+      locked_shared |= true;
+    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+      locked_private |= true;
+    }
+  }
+
+  bool is_locked(const std::string &key) {
+    if (key.find(DICT_PATH_SHARED) == 0) {
+      return locked_shared;
+    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+      return locked_private;
     }
     i_unreached();
   }
@@ -366,7 +397,9 @@ static void rados_transaction_private_complete_callback(rados_completion_t comp,
   if (finished) {
     if (c->callback != nullptr) {
       i_debug("rados_transaction_private_complete_callback() call callback func...");
-      c->callback(failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK, c->context);
+      c->callback(
+          c->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND : (failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK),
+          c->context);
     }
 
     delete c;
@@ -392,7 +425,9 @@ static void rados_transaction_shared_complete_callback(rados_completion_t comp, 
   if (finished) {
     if (c->callback != nullptr) {
       i_debug("rados_transaction_shared_complete_callback() call callback func...");
-      c->callback(failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK, c->context);
+      c->callback(
+          c->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND : (failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK),
+          c->context);
     }
 
     delete c;
@@ -445,26 +480,48 @@ int rados_transaction_commit(struct dict_transaction_context *_ctx, bool async,
     }
 
     if (!async) {
+      if (ctx->locked_private) {
+        d->get_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+      }
+      if (ctx->locked_shared) {
+        d->get_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+      }
       delete ctx;
+    } else {
+      if (ctx->locked_private) {
+        d->get_io_ctx().aio_unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid), nullptr);
+      }
+      if (ctx->locked_shared) {
+        d->get_io_ctx().aio_unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid), nullptr);
+      }
     }
   }
 
-  return failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK;
+  return ctx->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND : (failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK);
 }
 
 void rados_transaction_rollback(struct dict_transaction_context *_ctx) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
+  RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
 
   i_debug("rados_transaction_rollback()");
+
+  if (ctx->locked_private) {
+    d->get_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+  }
+  if (ctx->locked_shared) {
+    d->get_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+  }
 
   delete ctx;
 }
 
-void rados_set(struct dict_transaction_context *_ctx, const char *key, const char *value) {
+void rados_set(struct dict_transaction_context *_ctx, const char *_key, const char *value) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
+  const string key(_key);
 
-  i_debug("rados_set(%s,%s)", key, value);
+  i_debug("rados_set(%s,%s)", _key, value);
 
   _ctx->changed = TRUE;
 
@@ -473,33 +530,74 @@ void rados_set(struct dict_transaction_context *_ctx, const char *key, const cha
   bl.append(value);
   map.insert(pair<string, bufferlist>(key, bl));
   ctx->get_op(key).omap_set(map);
+
+  ctx->cache[key] = value;
 }
 
-void rados_unset(struct dict_transaction_context *_ctx, const char *key) {
+void rados_unset(struct dict_transaction_context *_ctx, const char *_key) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
+  const string key(_key);
 
-  i_debug("rados_unset(%s)", key);
+  i_debug("rados_unset(%s)", _key);
 
   _ctx->changed = TRUE;
 
   set<string> keys;
   keys.insert(key);
   ctx->get_op(key).omap_rm_keys(keys);
+
+  ctx->cache[key] = CACHE_DELETED;
 }
 
-void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *key, long long diff) {  // NOLINT
+void rados_atomic_inc(struct dict_transaction_context *_ctx, const char *_key, long long diff) {  // NOLINT
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
+  const string key(_key);
+  string old_value = "0";
 
-  i_debug("rados_atomic_inc(%s,%lld)", key, diff);
+  i_debug("rados_atomic_inc(%s,%lld)", _key, diff);
 
-  _ctx->changed = TRUE;
+  auto it = ctx->cache.find(key);
+  if (it == ctx->cache.end()) {
+    if (d->get(key, &old_value) == -ENOENT) {
+      ctx->cache[key] = old_value = CACHE_DELETED;
+    } else {
+      RadosDictionary *d = ((struct rados_dict *)ctx->ctx.dict)->d;
+      if (!ctx->is_locked(key)) {
+        struct timeval tv = {30, 0};  // TODO(peter): config?
+        int err = d->get_io_ctx().lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_128_to_string(ctx->guid), "",
+                                                 &tv, 0);
+        if (err == 0) {
+          ctx->set_locked(key);
+        } else {
+          i_error("rados_atomic_inc(%s,%lld) lock not acquired err=%d", _key, diff, err);
+          ctx->atomic_inc_not_found = true;
+          return;
+        }
+      }
+    }
+  } else {
+    old_value = it->second;
+  }
 
-  set<string> keys;
-  keys.insert(key);
+  i_debug("rados_atomic_inc(%s,%lld) old_value=%s", _key, diff, old_value.c_str());
 
-  // TODO(p.mauritius): implement
+  if (old_value.compare(CACHE_DELETED) == 0) {
+    ctx->atomic_inc_not_found = true;
+    return;
+  }
+
+  long long value;  // NOLINT
+  if (str_to_llong(old_value.c_str(), &value) < 0)
+    i_unreached();
+
+  value += diff;
+  string new_string_value = std::to_string(value);
+
+  i_debug("rados_atomic_inc(%s,%lld) new_value=%s", _key, diff, new_string_value.c_str());
+
+  rados_set(_ctx, _key, new_string_value.c_str());
 }
 
 class kv_map {

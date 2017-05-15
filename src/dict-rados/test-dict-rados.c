@@ -24,6 +24,8 @@ static const char *OMAP_VALUE_PRIVATE = "PRIVATE";
 static const char *OMAP_KEY_SHARED = "shared/key";
 static const char *OMAP_VALUE_SHARED = "SHARED";
 
+static const char *OMAP_KEY_ATOMIC_INC = "priv/atomic_inc";
+
 static const char *OMAP_ITERATE_EXACT_KEYS[] = {"priv/K1", "priv/K2", "priv/K3", "priv/K4", "shared/S1", NULL};
 static const char *OMAP_ITERATE_EXACT_VALUES[] = {"V1", "V2", "V3", "V4", "VS1", NULL};
 
@@ -161,6 +163,103 @@ static void test_dict_lookup(void) {
   test_end();
 }
 
+static void test_dict_atomic_inc(void) {
+  struct dict_transaction_context *ctx;
+
+  test_begin("dict_atomic_inc");
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.set(ctx, OMAP_KEY_ATOMIC_INC, "10");
+  int result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  const char *value;
+  dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_ATOMIC_INC, &value);
+  test_assert(strcmp("20", value) == 0);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.unset(ctx, OMAP_KEY_ATOMIC_INC);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_callback, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 99);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 99);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_NOTFOUND);
+
+  test_end();
+}
+
+static void test_dict_atomic_inc_multiple(void) {
+  struct dict_transaction_context *ctx;
+
+  test_begin("dict_atomic_inc_multiple");
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.set(ctx, OMAP_KEY_ATOMIC_INC, "10");
+  int result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  const char *value;
+  dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_ATOMIC_INC, &value);
+  test_assert(strcmp("30", value) == 0);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  test_dict_r->v.unset(ctx, OMAP_KEY_ATOMIC_INC);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, NULL, NULL);
+  test_assert(result == DICT_COMMIT_RET_NOTFOUND);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.unset(ctx, OMAP_KEY_ATOMIC_INC);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_callback, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  test_end();
+}
+
+static void test_dict_atomic_inc_async(void) {
+  struct dict_transaction_context *ctx;
+
+  test_begin("dict_atomic_inc_async");
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.set(ctx, OMAP_KEY_ATOMIC_INC, "10");
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+  test_dict_r->v.atomic_inc(ctx, OMAP_KEY_ATOMIC_INC, 10);
+
+  int result = 0;
+
+  int err = ctx->dict->v.transaction_commit(ctx, TRUE, dict_transaction_commit_callback, &result);
+  test_assert(err == DICT_COMMIT_RET_OK);
+  dict_driver_rados.v.wait(test_dict_r);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  const char *value;
+  dict_driver_rados.v.lookup(test_dict_r, test_pool, OMAP_KEY_ATOMIC_INC, &value);
+  test_assert(strcmp("30", value) == 0);
+
+  ctx = dict_driver_rados.v.transaction_init(test_dict_r);
+  test_dict_r->v.unset(ctx, OMAP_KEY_ATOMIC_INC);
+  result = ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_callback, NULL);
+  test_assert(result == DICT_COMMIT_RET_OK);
+
+  test_end();
+}
+
 static void test_dict_lookup_async(void) {
   struct dict_transaction_context *ctx;
 
@@ -268,26 +367,6 @@ static void test_dict_transaction_commit_sync_callback(void) {
   ctx->dict->v.transaction_commit(ctx, FALSE, dict_transaction_commit_callback, &result);
   test_assert(result == DICT_COMMIT_RET_OK);
   test_end();
-}
-
-static void test_dict_atomic_inc(void) {
-#if 0
-	struct dict_transaction_context * ctx;
-	int result = DICT_COMMIT_RET_NOTFOUND;
-	test_begin("dict_atomic_inc");
-	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.atomic_inc(ctx, OMAP_KEY_PRIVATE, 10);
-
-	ctx->dict->v.transaction_commit(ctx, FALSE, NULL, &result);
-	test_assert(result == DICT_COMMIT_RET_OK);
-
-	ctx = dict_driver_rados.v.transaction_init(test_dict_r);
-	test_dict_r->v.unset(ctx, OMAP_KEY_PRIVATE);
-	result = DICT_COMMIT_RET_NOTFOUND;
-	ctx->dict->v.transaction_commit(ctx, FALSE, NULL, &result);
-	test_assert(result == DICT_COMMIT_RET_OK);
-	test_end();
-#endif
 }
 
 static void test_dict_iterate_exact_key(void) {
@@ -468,11 +547,13 @@ int main(int argc, const char *argv[]) {
                            test_dict_transaction_commit_async,
                            test_dict_lookup,
                            test_dict_lookup_async,
-                           test_dict_atomic_inc,
                            test_dict_iterate_exact_key,
                            test_dict_iterate_exact_no_value,
                            test_dict_iterate,
                            test_dict_iterate_recursive,
+                           test_dict_atomic_inc,
+                           test_dict_atomic_inc_multiple,
+                           test_dict_atomic_inc_async,
                            test_dict_deinit,
                            test_teardown,
                            NULL};
