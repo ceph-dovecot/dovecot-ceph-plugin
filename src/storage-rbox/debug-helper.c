@@ -335,14 +335,17 @@ void rbox_dbg_print_mail_storage(struct mail_storage *target, const char *funcna
 		RBOX_PRINT_DEBUG("mailboxes = %p", target->mailboxes);
 		RBOX_PRINT_DEBUG("storage_class = %p", target->storage_class);
 		RBOX_PRINT_DEBUG("set = %p", target->set);
+		if (target->set != NULL) {
+			RBOX_PRINT_DEBUG("mail_location = %s", target->set->mail_location);
+		}
 		RBOX_PRINT_DEBUG("callback_context = %p", target->callback_context);
 		RBOX_PRINT_DEBUG("_shared_attr_dict = %p", target->_shared_attr_dict);
 
 		RBOX_PRINT_DEBUG("error_stack size = %ld", target->error_stack.arr.element_size);
 		RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
 
-		//rbox_dbg_print_mail_user(mailStorage->user, NULL, "user");
-		RBOX_PRINT_DEBUG("user = %p", target->user);
+		rbox_dbg_print_mail_user(target->user, NULL, "user");
+		//RBOX_PRINT_DEBUG("user = %p", target->user);
 
 	RBOX_PRINT_END()
 }
