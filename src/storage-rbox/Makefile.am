@@ -21,13 +21,14 @@ module_LTLIBRARIES = \
 libstorage_rbox_plugin_la_SOURCES = \
 	libstorage-rbox-plugin.c \
 	rbox-copy.c \
-	rbox-file.c \
-	rbox-mail.c \
+	rbox-file.cpp \
+	rbox-mail.cpp \
 	rbox-save.c \
 	rbox-storage.cpp \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
 	debug-helper.c \
+	rados-storage.cpp \
 	RadosBox.cpp
 	
 noinst_HEADERS = \
@@ -36,6 +37,7 @@ noinst_HEADERS = \
 	rbox-storage.h \
 	rbox-sync.h \
 	debug-helper.h \
+	rados-storage.h \
 	RadosBox.hpp
 	
 test_programs = \
