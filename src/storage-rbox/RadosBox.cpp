@@ -34,6 +34,7 @@ extern "C" {
 
 #include <rados/librados.hpp>
 #include "RadosBox.hpp"
+#include "rados-cluster.h"
 
 using namespace librados;
 using namespace std;
