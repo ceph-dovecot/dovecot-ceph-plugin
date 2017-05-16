@@ -1,5 +1,9 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <string>
+
+#include <rados/librados.hpp>
+
 extern "C" {
 
 #include "lib.h"
@@ -18,6 +22,14 @@ extern "C" {
 #include "debug-helper.h"
 
 }
+
+#include "rbox-storage.hpp"
+#include "rados-cluster.h"
+#include "rados-storage.h"
+
+using namespace librados;  // NOLINT
+
+using std::string;
 
 extern struct mail_storage dbox_storage, rbox_storage;
 extern struct mailbox rbox_mailbox;
@@ -59,6 +71,23 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
   enum fs_properties props;
 
+  string error_msg;
+  int ret = storage->cluster.init(&error_msg);
+
+  if (ret < 0) {
+    // TODO free rbox_storage
+    *error_r = t_strdup_printf("%s", error_msg.c_str());
+    return -1;
+  }
+
+  ret = storage->cluster.storage_create("rbd", "my_user", "my_oid", &storage->s);
+
+  if (ret < 0) {
+    *error_r = t_strdup_printf("Error creating RadosStorage()! %s", strerror(-ret));
+    storage->cluster.deinit();
+    return -1;
+  }
+
   if (dbox_storage_create(_storage, ns, error_r) < 0) {
     FUNC_END_RET("ret == -1; dbox_storage_create failed");
     return -1;
@@ -85,6 +114,10 @@ static void rbox_storage_destroy(struct mail_storage *_storage) {
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
   rbox_dbg_print_mail_storage(_storage, "rbox_storage_destroy", NULL);
+
+  storage->cluster.deinit();
+  delete storage->s;
+  storage->s = nullptr;
 
   if (storage->storage.attachment_fs != NULL)
     fs_deinit(&storage->storage.attachment_fs);

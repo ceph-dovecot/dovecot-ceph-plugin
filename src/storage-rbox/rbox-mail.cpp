@@ -1,7 +1,10 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+extern "C" {
+
 #include "lib.h"
+#include "typeof-def.h"
 #include "ioloop.h"
 #include "istream.h"
 #include "str.h"
@@ -14,6 +17,10 @@
 #include "debug-helper.h"
 #include "rbox-file.h"
 #include "rbox-storage.h"
+
+}
+
+#include "rbox-storage.hpp"
 
 struct mail *
 rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
@@ -416,8 +423,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 	int ret;
 
 	if (data->stream == NULL) {
+	  /*
 		if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
 			return -1;
+    */
 
 		ret = get_mail_stream(mail, offset, &input);
 		if (ret <= 0) {
@@ -425,7 +434,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 				return -1;
 			dbox_file_set_corrupted(mail->open_file,
 					"uid=%u points to broken data at offset="
-					"%"PRIuUOFF_T, _mail->uid, offset);
+					"%" PRIuUOFF_T, _mail->uid, offset);
 			if (input != NULL)
 				i_stream_unref(&input);
 			return -1;
