@@ -5,6 +5,9 @@
 
 #include "index-storage.h"
 #include "dbox-storage.h"
+//#include "rados-cluster.h"
+
+//class RadosStorage;
 
 #define RBOX_STORAGE_NAME "rbox"
 #define RBOX_MAIL_FILE_PREFIX "u."
@@ -19,8 +22,10 @@ struct rbox_index_header {
   uint8_t unused[3];
 };
 
-struct rbox_storage {
+struct rbox_storage__ {
   struct dbox_storage storage;
+  //RadosCluster cluster;
+  //RadosStorage *s;
 };
 
 struct obox_mail_index_record {

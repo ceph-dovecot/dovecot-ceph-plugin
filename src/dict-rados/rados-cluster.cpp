@@ -4,6 +4,7 @@
 
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
+#include "rados-storage.h"
 
 using std::string;
 
@@ -77,5 +78,23 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
   }
 
   *dictionary = new RadosDictionary(&io_ctx, username, oid);
+  return 0;
+}
+
+int RadosCluster::storage_create(const string &pool, const string &username, const string &oid,
+                                    RadosStorage **storage) {
+  if (cluster_ref_count == 0) {
+    return -ENOENT;
+  }
+
+  librados::IoCtx io_ctx;
+
+  int err = cluster.ioctx_create(pool.c_str(), io_ctx);
+  if (err < 0) {
+    // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
+    return err;
+  }
+
+  *storage = new RadosStorage(&io_ctx, username, oid);
   return 0;
 }
