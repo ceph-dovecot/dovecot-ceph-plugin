@@ -1,7 +1,10 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+extern "C" {
+
 #include "lib.h"
+#include "typeof-def.h"
 #include "eacces-error.h"
 #include "fdatasync-path.h"
 #include "mkdir-parents.h"
@@ -16,6 +19,10 @@
 
 #include <stdio.h>
 #include <utime.h>
+
+}
+
+#include "rbox-storage.hpp"
 
 static void rbox_file_init_paths(struct rbox_file *file, const char *fname) {
   FUNC_START();
