@@ -5,6 +5,7 @@
 
 #include <list>
 #include <string>
+#include <cstdint>
 
 extern "C" {
 #include "lib.h"
@@ -31,6 +32,8 @@ class RadosDictionary {
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 
   std::list<AioCompletionPtr> completions;
+
+  int get(const std::string& key, std::string* value_r);
 
  private:
   librados::IoCtx io_ctx;
