@@ -1,0 +1,166 @@
+@startuml
+skinparam monochrome true
+hide footbox
+participant ls as "lib-storage"
+participant rbox
+participant f as "rbox-file"
+
+activate ls
+ls -> rbox: rbox_storage_get_list_settings
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_storage_alloc
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_storage_create
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_mailbox_alloc
+activate rbox
+deactivate rbox
+
+ls -> rbox: rbox_mailbox_open
+activate rbox
+rbox -> rbox: rbox_mailbox_alloc_index
+activate rbox
+deactivate rbox
+rbox -> rbox: rbox_read_header
+activate rbox
+deactivate rbox
+ls <-- rbox: rbox_mailbox_open
+deactivate rbox
+
+ls -> rbox: rbox_save_alloc
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_mail_alloc
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_mailbox_get_metadata
+activate rbox
+deactivate rbox
+
+ls -> rbox: rbox_copy
+activate rbox
+rbox -> rbox: rbox_copy_hardlink
+activate rbox
+deactivate rbox
+
+rbox -> ls: mail_storage_copy
+activate ls
+
+ls -> rbox: rbox_save_begin
+activate rbox
+rbox -> f: rbox_file_create
+activate f
+f -> f: rbox_file_init
+activate f
+f -> f: rbox_file_init_paths
+activate f
+deactivate f
+deactivate f
+f -> f: rbox_file_create_fd
+activate f
+deactivate f
+rbox <-- f: rbox_file_create
+deactivate f
+rbox -> rbox: rbox_mail_close
+activate rbox
+deactivate rbox
+rbox -> rbox: rbox_save_add_file
+activate rbox
+deactivate rbox
+ls <-- rbox: rbox_save_begin
+deactivate rbox
+
+ls -> rbox: rbox_save_continue
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_save_continue
+activate rbox
+deactivate rbox
+
+ls -> rbox: rbox_save_finish
+activate rbox
+rbox -> rbox: dbox_save_finish_write
+activate rbox
+rbox -> rbox: dbox_save_mail_write_metadata
+activate rbox
+rbox -> rbox: rbox_mail_get_virtual_size
+activate rbox
+deactivate rbox
+deactivate rbox
+deactivate rbox
+ls <-- rbox: rbox_save_finish
+deactivate rbox
+
+ls -> rbox: rbox_mail_get_special
+ls <-- rbox: rbox_mail_get_special
+ls -> rbox: rbox_mail_get_physical_size
+ls <-- rbox: rbox_mail_get_physical_size
+ls -> rbox: rbox_mail_get_virtual_size
+ls <-- rbox: rbox_mail_get_virtual_size
+rbox <-- ls: mail_storage_copy
+deactivate ls
+ls <-- rbox: rbox_copy
+deactivate rbox
+
+ls -> rbox: rbox_mail_close
+activate rbox
+deactivate rbox
+
+ls -> rbox: rbox_transaction_save_commit_pre
+activate rbox
+rbox -> rbox: rbox_sync_begin
+activate rbox
+rbox -> rbox: rbox_refresh_header
+activate rbox
+rbox -> rbox: rbox_read_header
+activate rbox
+deactivate rbox
+deactivate rbox
+rbox -> rbox: rbox_sync_index
+activate rbox
+deactivate rbox
+deactivate rbox
+rbox -> rbox: dbox_save_assign_uids
+activate rbox
+rbox -> f: rbox_file_assign_uid
+activate f
+f -> f: rbox_file_init_paths
+activate f
+deactivate f
+rbox <-- f: rbox_file_assign_uid
+deactivate f
+deactivate rbox
+ls <-- rbox: rbox_transaction_save_commit_pre
+deactivate rbox
+
+ls -> rbox: rbox_transaction_save_commit_post
+activate rbox
+rbox -> rbox: rbox_sync_finish
+activate rbox
+rbox -> rbox: dbox_sync_expunge_files
+activate rbox
+deactivate rbox
+deactivate rbox
+rbox -> rbox: rbox_transaction_save_rollback
+note right: only for cleanup
+activate rbox
+rbox -> rbox: dbox_save_unref_files
+activate rbox
+rbox -> rbox: rbox_file_free
+activate rbox
+deactivate rbox
+deactivate rbox
+deactivate rbox
+ls <-- rbox: rbox_transaction_save_commit_post
+deactivate rbox
+
+ls -> rbox: rbox_mailbox_close
+activate rbox
+deactivate rbox
+ls -> rbox: rbox_storage_destroy
+activate rbox
+deactivate rbox
+@enduml
