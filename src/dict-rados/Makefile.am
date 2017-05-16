@@ -1,7 +1,10 @@
 AM_CPPFLAGS = \
-	$(LIBDOVECOT_INCLUDE)
+	$(LIBDOVECOT_INCLUDE) \
+	-I$(top_srcdir)/src/storage-rbox
 
 AM_CXXFLAGS = 
+
+AUTOMAKE_OPTIONS = subdir-objects
 
 LIBDICT_RADOS_PLUGIN = libdict_rados_plugin.la
 
@@ -20,6 +23,7 @@ libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
 	rados-cluster.cpp \
 	rados-dictionary.cpp \
+	../storage-rbox/rados-storage.cpp \
     dict-rados.cpp 
 
 noinst_HEADERS = \
@@ -36,6 +40,7 @@ test_dict_rados_SOURCES = \
 	libdict-rados-plugin.c \
 	rados-cluster.cpp \
 	rados-dictionary.cpp \
+	../storage-rbox/rados-storage.cpp \
     dict-rados.cpp 
 
 test_dict_rados_LDADD = $(LIBDICT_RADOS_PLUGIN) $(LIBDOVECOT) $(LIBDOVECOT_STORAGE)
