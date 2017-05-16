@@ -1,5 +1,6 @@
 AM_CPPFLAGS = \
-	$(LIBDOVECOT_INCLUDE)
+	$(LIBDOVECOT_INCLUDE) \
+	-I$(top_srcdir)/src/dict-rados
 
 AM_CXXFLAGS = \
 	$(LIBDOVECOT_INCLUDE)
@@ -20,20 +21,24 @@ module_LTLIBRARIES = \
 libstorage_rbox_plugin_la_SOURCES = \
 	libstorage-rbox-plugin.c \
 	rbox-copy.c \
-	rbox-file.c \
-	rbox-mail.c \
+	rbox-file.cpp \
+	rbox-mail.cpp \
 	rbox-save.c \
+	rbox-storage.cpp \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
-	rbox-storage.c \
-	debug-helper.c
+	debug-helper.c \
+	rados-storage.cpp \
+	RadosBox.cpp
 	
 noinst_HEADERS = \
 	libstorage-rbox-plugin.h \
 	rbox-file.h \
 	rbox-storage.h \
 	rbox-sync.h \
-	debug-helper.h
+	debug-helper.h \
+	rados-storage.h \
+	RadosBox.hpp
 	
 test_programs = \
 	test-debug-helper
