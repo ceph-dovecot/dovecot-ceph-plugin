@@ -8,6 +8,7 @@
 #include <rados/librados.hpp>
 
 class RadosDictionary;
+class RadosStorage;
 
 class RadosCluster {
  public:
@@ -19,6 +20,8 @@ class RadosCluster {
 
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
+  int storage_create(const std::string &pool, const std::string &username, const std::string &oid,
+                     RadosStorage **storage);
 
  private:
   static librados::Rados cluster;

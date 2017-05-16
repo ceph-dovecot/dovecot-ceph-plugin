@@ -313,37 +313,40 @@ void rbox_dbg_print_mail_save_data(struct mail_save_data *target, const char *fu
 }
 
 void rbox_dbg_print_mail_storage(struct mail_storage *target, const char *funcname, const char *name) {
-  RBOX_PRINT_START("mail_storage")
+	RBOX_PRINT_START("mail_storage")
 
-  RBOX_PRINT_DEBUG("name = %s", target->name);
-  RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
-  RBOX_PRINT_DEBUG("class_flags = 0x%04x", target->class_flags);
-  if (target->pool != NULL) {
-    RBOX_PRINT_DEBUG("pool name = %s", target->pool->v->get_name(target->pool));
-  }
-  RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
-  RBOX_PRINT_DEBUG("obj_refcount = %d", target->obj_refcount);
-  RBOX_PRINT_DEBUG("unique_root_dir = %s", target->unique_root_dir);
-  RBOX_PRINT_DEBUG("error_string = %s", target->error_string);
-  RBOX_PRINT_DEBUG("error = %s", enum_mail_error_strs[target->error]);
-  RBOX_PRINT_DEBUG("temp_path_prefix = %s", target->temp_path_prefix);
-  RBOX_PRINT_DEBUG("shared_attr_dict_failed = %u", target->shared_attr_dict_failed);
+		RBOX_PRINT_DEBUG("name = %s", target->name);
+		RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
+		RBOX_PRINT_DEBUG("class_flags = 0x%04x", target->class_flags);
+		if (target->pool != NULL) {
+			RBOX_PRINT_DEBUG("pool name = %s", target->pool->v->get_name(target->pool));
+		}
+		RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
+		RBOX_PRINT_DEBUG("obj_refcount = %d", target->obj_refcount);
+		RBOX_PRINT_DEBUG("unique_root_dir = %s", target->unique_root_dir);
+		RBOX_PRINT_DEBUG("error_string = %s", target->error_string);
+		RBOX_PRINT_DEBUG("error = %s", enum_mail_error_strs[target->error]);
+		RBOX_PRINT_DEBUG("temp_path_prefix = %s", target->temp_path_prefix);
+		RBOX_PRINT_DEBUG("shared_attr_dict_failed = %u", target->shared_attr_dict_failed);
 
-  RBOX_PRINT_DEBUG("prev = %p", target->prev);
-  RBOX_PRINT_DEBUG("next = %p", target->next);
-  RBOX_PRINT_DEBUG("mailboxes = %p", target->mailboxes);
-  RBOX_PRINT_DEBUG("storage_class = %p", target->storage_class);
-  RBOX_PRINT_DEBUG("set = %p", target->set);
-  RBOX_PRINT_DEBUG("callback_context = %p", target->callback_context);
-  RBOX_PRINT_DEBUG("_shared_attr_dict = %p", target->_shared_attr_dict);
+		RBOX_PRINT_DEBUG("prev = %p", target->prev);
+		RBOX_PRINT_DEBUG("next = %p", target->next);
+		RBOX_PRINT_DEBUG("mailboxes = %p", target->mailboxes);
+		RBOX_PRINT_DEBUG("storage_class = %p", target->storage_class);
+		RBOX_PRINT_DEBUG("set = %p", target->set);
+		if (target->set != NULL) {
+			RBOX_PRINT_DEBUG("mail_location = %s", target->set->mail_location);
+		}
+		RBOX_PRINT_DEBUG("callback_context = %p", target->callback_context);
+		RBOX_PRINT_DEBUG("_shared_attr_dict = %p", target->_shared_attr_dict);
 
-  RBOX_PRINT_DEBUG("error_stack size = %ld", target->error_stack.arr.element_size);
-  RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
+		RBOX_PRINT_DEBUG("error_stack size = %ld", target->error_stack.arr.element_size);
+		RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
 
-  // rbox_dbg_print_mail_user(mailStorage->user, NULL, "user");
-  RBOX_PRINT_DEBUG("user = %p", target->user);
+		rbox_dbg_print_mail_user(target->user, NULL, "user");
+		//RBOX_PRINT_DEBUG("user = %p", target->user);
 
-  RBOX_PRINT_END()
+	RBOX_PRINT_END()
 }
 
 void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, const char *name) {
