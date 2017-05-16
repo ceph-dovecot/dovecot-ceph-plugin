@@ -1,0 +1,81 @@
+@startuml
+skinparam monochrome true
+hide footbox
+participant ls as "lib-storage"
+
+activate ls
+ls -> rados: rados_storage_get_list_settings
+activate rados
+deactivate rados
+ls -> rados: rados_storage_alloc
+activate rados
+deactivate rados
+ls -> rados: rados_mailbox_alloc
+activate rados
+deactivate rados
+ls -> rados: rados_mailbox_open
+activate rados
+deactivate rados
+ls -> rados: rados_save_alloc
+activate rados
+deactivate rados
+ls -> rados: rados_mailbox_get_metadata
+activate rados
+deactivate rados
+
+ls -> rados: rados_save_begin
+activate rados
+rados -> rados: rados_get_save_path
+activate rados
+deactivate rados
+deactivate rados
+ls -> rados: rados_save_continue
+activate rados
+deactivate rados
+ls -> rados: rados_save_continue
+activate rados
+deactivate rados
+
+ls -> rados: rados_save_finish
+activate rados
+rados -> rados: rados_get_save_path
+activate rados
+deactivate rados
+rados -> rados: rados_save_flush
+activate rados
+deactivate rados
+ls <-- rados: rados_save_finish
+deactivate rados
+
+ls -> rados: rados_mail_get_physical_size
+activate rados
+deactivate rados
+
+ls -> rados: rados_mail_get_physical_size
+activate rados
+deactivate rados
+
+ls -> rados: rados_transaction_save_commit_pre
+activate rados
+rados -> rados: rados_sync_begin
+activate rados
+rados -> rados: rados_sync_index
+activate rados
+deactivate rados
+deactivate rados
+ls <-- rados: rados_transaction_save_commit_pre
+deactivate rados
+
+ls -> rados: rados_transaction_save_commit_post
+activate rados
+rados -> rados: rados_sync_finish
+activate rados
+deactivate rados
+rados -> rados: rados_transaction_save_rollback
+note right: only for cleanup
+activate rados
+deactivate rados
+ls <-- rados: rados_transaction_save_commit_post
+deactivate rados
+
+@enduml
