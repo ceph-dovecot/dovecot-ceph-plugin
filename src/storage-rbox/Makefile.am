@@ -1,5 +1,6 @@
 AM_CPPFLAGS = \
-	$(LIBDOVECOT_INCLUDE)
+	$(LIBDOVECOT_INCLUDE) \
+	-I$(top_srcdir)/src/dict-rados
 
 AM_CXXFLAGS = \
 	$(LIBDOVECOT_INCLUDE)
