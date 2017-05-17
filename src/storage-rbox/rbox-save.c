@@ -155,9 +155,10 @@ off_t stream_mail_to_rados(rados_ioctx_t* ceph_io, char* guid, struct istream *i
 	ssize_t ret;
 	int offset = 0;
 	start_offset = instream->v_offset;
+
 	do{
 		(void)i_stream_read_data(instream, &data, &iov.iov_len,0);
-		if(iov.iov_len ==0){
+		if(iov.iov_len ==0){		
 			/*all sent */
 			if(instream->stream_errno !=0){
 				return -1;
@@ -166,10 +167,9 @@ off_t stream_mail_to_rados(rados_ioctx_t* ceph_io, char* guid, struct istream *i
 		}
 		
 		iov.iov_base = data;
-
+		
 		int err = rados_write(*ceph_io,guid,iov.iov_base,iov.iov_len, offset);
 		if(err <0){
-			i_debug("cannot write to pool %lu",ceph_io);
 			return -1;
 		}
 		i_stream_skip(instream,0);
@@ -184,7 +184,8 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 	FUNC_START();
 	struct dbox_save_context *ctx = (struct dbox_save_context *) _ctx;
 	struct mail_storage *storage = _ctx->transaction->box->storage; 
-	
+	struct rbox_storage *rbox_ctx = (struct rbox_storage *) storage;
+
 	rbox_dbg_print_mail_save_context(_ctx, "rbox_save_continue", NULL);
 	rbox_dbg_print_mail_storage(storage,"rbox_save_continue",NULL);
 	rbox_dbg_print_mail_user(storage->user,"rbox_save_continue",NULL);
@@ -198,43 +199,34 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 		FUNC_END_RET("ret == index_attachment_save_continue");
 		return index_attachment_save_continue(_ctx);
 	}
+	
+	/* temporary guid generation see rbox-mail.c */
+	char oid[GUID_128_SIZE];
+	generate_oid(oid,_ctx->transaction->box->storage, ctx->seq);
+	int bytes_written = 0;
+	do {	
+		if(((struct rbox_storage*) storage)->use_rados_storage ==0){
+			bytes_written = o_stream_send_istream(_ctx->data.output, ctx->input);
+		}else{
+			bytes_written = stream_mail_to_rados(&rbox_ctx->ceph_io, oid, ctx->input);
+		}
 
-	if(((struct rbox_storage*) storage)->use_rados_storage ==0 ){
-		do {
-			if (o_stream_send_istream(_ctx->data.output, ctx->input) < 0) {
-				if (!mail_storage_set_error_from_errno(storage)) {
-					mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
-				}
-				ctx->failed = TRUE;
-				FUNC_END_RET("ret == -1; o_stream_send_istream failed");
-				return -1;
+		if (bytes_written < 0) {
+			if (!mail_storage_set_error_from_errno(storage)) {
+				mail_storage_set_critical(storage, "write(%s) failed: %m", 
+								o_stream_get_name(_ctx->data.output));
 			}
-			index_mail_cache_parse_continue(_ctx->dest_mail);
+			ctx->failed = TRUE;
+			FUNC_END_RET("ret == -1; o_stream_send_istream failed");
+			return -1;
+		}
+		index_mail_cache_parse_continue(_ctx->dest_mail);
 
 		// both tee input readers may consume data from our primary
 		// input stream. we'll have to make sure we don't return with
 		//  one of the streams still having data in them. 
-		} while (i_stream_read(ctx->input) > 0);
+	} while (i_stream_read(ctx->input) > 0);
 	
-	}
-	else{
-		do {
-			/* temporary guid generation see rbox-save.c */
-			char oid[GUID_128_SIZE];
-			generate_oid(oid,_ctx->transaction->box->storage, ctx->seq);
-			
-			if (stream_mail_to_rados(&((struct rbox_storage*) storage)->ceph_io, oid, ctx->input) < 0) {
-				if (!mail_storage_set_error_from_errno(storage)) {
-					mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
-				}
-				ctx->failed = TRUE;
-				FUNC_END_RET("ret == -1; o_stream_send_istream failed");
-				return -1;
-			}	
-			index_mail_cache_parse_continue(_ctx->dest_mail);
-	
-		} while (i_stream_read(ctx->input) > 0);
-	}
 
 	FUNC_END();
 	return 0;
