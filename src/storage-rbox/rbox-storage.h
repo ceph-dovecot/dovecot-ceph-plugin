@@ -3,6 +3,7 @@
 
 #include "index-storage.h"
 #include "dbox-storage.h"
+#include <rados/librados.h>
 
 #define RBOX_STORAGE_NAME "rbox"
 #define RBOX_MAIL_FILE_PREFIX "u."
@@ -19,6 +20,12 @@ struct rbox_index_header {
 
 struct rbox_storage {
 	struct dbox_storage storage;
+	/* rados cluster and io ctx */
+	rados_t cluster;
+	rados_ioctx_t ceph_io; 
+	// currently used to control if mail is stored
+	// in rados or in a local file
+	int use_rados_storage; 
 };
 
 struct obox_mail_index_record {
@@ -67,5 +74,7 @@ void rbox_transaction_save_commit_post(struct mail_save_context *ctx, struct mai
 void rbox_transaction_save_rollback(struct mail_save_context *ctx);
 
 int rbox_copy(struct mail_save_context *ctx, struct mail *mail);
+
+void generate_oid(char* oid, struct mail_storage *storage, int mail_uid);
 
 #endif

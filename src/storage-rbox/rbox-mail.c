@@ -13,6 +13,8 @@
 #include "debug-helper.h"
 #include "rbox-file.h"
 #include "rbox-storage.h"
+#include <rados/librados.h>
+#include "message-part.h"
 
 struct mail *
 rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
@@ -170,11 +172,11 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
 
 int rbox_mail_open(struct dbox_mail *mail, uoff_t *offset_r, struct dbox_file **file_r) {
 	FUNC_START();
-
-	struct mail *_mail = &mail->imail.mail.mail;
+	
+struct mail *_mail = &mail->imail.mail.mail;
 	bool deleted;
 	int ret;
-
+	
 	if (_mail->lookup_abort != MAIL_LOOKUP_ABORT_NEVER) {
 		mail_set_aborted(_mail);
 		rbox_dbg_print_mail(_mail, "rbox_mail_open", NULL);
@@ -225,8 +227,6 @@ static int rbox_mail_metadata_read(struct dbox_mail *mail, struct dbox_file **fi
 		return -1;
 	}
 
-	i_debug("rbox_mail_metadata_read: offset = %lu, cur_path = %s", offset, (*file_r)->cur_path);
-
 	if (dbox_file_seek(*file_r, offset) <= 0) {
 		rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_metadata_read", NULL);
 		FUNC_END_RET("ret == -1; seek failed");
@@ -259,7 +259,6 @@ static int rbox_mail_metadata_get(struct dbox_mail *mail, enum dbox_metadata_key
 	}
 
 	*value_r = dbox_file_metadata_get(file, key);
-	i_debug("rbox_mail_metadata_get: key = %d, value = %s", key, *value_r);
 	rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_metadata_get", NULL);
 	FUNC_END();
 	return 0;
@@ -393,7 +392,7 @@ static int get_mail_stream(struct dbox_mail *mail, uoff_t offset, struct istream
 		*stream_r = NULL;
 		return ret;
 	}
-
+	
 	*stream_r = i_stream_create_limit(file->input, file->cur_physical_size);
 	if (pmail->v.istream_opened != NULL) {
 		if (pmail->v.istream_opened(&pmail->mail, stream_r) < 0)
@@ -403,18 +402,36 @@ static int get_mail_stream(struct dbox_mail *mail, uoff_t offset, struct istream
 		return 1;
 	else
 		return dbox_attachment_file_get_stream(file, stream_r);
+	
+	return 1;
 }
+
+
 
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
 		struct message_size *body_size, struct istream **stream_r) {
+
 	struct rbox_storage *storage = (struct rbox_storage *) _mail->box->storage;
 	struct dbox_mail *mail = (struct dbox_mail *) _mail;
 	struct index_mail_data *data = &mail->imail.data;
 	struct istream *input;
-	uoff_t offset;
+	struct istream *rados_input;
+
+	uoff_t offset = 0;
 	int ret;
 
+	off_t size_r;
+	if(rbox_mail_get_virtual_size(_mail, &size_r) <0 ){
+		i_debug("rbox_mail_get_stream: error getting mail_virtual_size, lookup in rados not yet implemented");
+		return -1;
+	}
+
+	/* temporary guid generation see rbox-save.c */
+	char oid[GUID_128_SIZE];
+	generate_oid(oid, _mail->box->storage, _mail->seq);
+
 	if (data->stream == NULL) {
+
 		if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
 			return -1;
 
@@ -430,7 +447,25 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 			return -1;
 		}
 		data->stream = input;
-		index_mail_set_read_buffer_size(_mail, input);
+	
+	
+		char buffer[size_r];
+		int read = 0;
+		read = rados_read(storage->ceph_io,oid,buffer,size_r,0);
+		if(read <0){
+			return -1;
+		}
+		rados_input = i_stream_create_from_data(buffer,size_r);
+			
+		i_stream_seek(input,mail->open_file->cur_physical_size);
+
+		if(!i_stream_add_data(input,buffer,size_r)){
+			return -1;
+		}
+
+		i_stream_seek(input,0);
+
+		index_mail_set_read_buffer_size(_mail, data->stream);
 	}
 
 	return index_mail_init_stream(&mail->imail, hdr_size, body_size, stream_r);
@@ -445,7 +480,6 @@ struct mail_vfuncs rbox_mail_vfuncs = {
 		index_mail_prefetch,
 		index_mail_precache,
 		index_mail_add_temp_wanted_fields,
-
 		index_mail_get_flags,
 		index_mail_get_keywords,
 		index_mail_get_keyword_indexes,
