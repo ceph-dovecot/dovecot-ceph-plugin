@@ -421,11 +421,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 	int ret;
 
 	off_t size_r;
-	if(rbox_mail_get_virtual_size(_mail, &size_r) <0 ){
-		i_debug("rbox_mail_get_stream: error getting mail_virtual_size, lookup in rados not yet implemented");
+	if(rbox_mail_get_physical_size(_mail,&size_r) <0){
 		return -1;
 	}
-
+	
 	/* temporary guid generation see rbox-save.c */
 	char oid[GUID_128_SIZE];
 	generate_oid(oid, _mail->box->storage, _mail->seq);
@@ -447,7 +446,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 			return -1;
 		}
 		data->stream = input;
-	
 	
 		char buffer[size_r];
 		int read = 0;

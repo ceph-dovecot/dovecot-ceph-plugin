@@ -545,6 +545,7 @@ static void rbox_notify_changes(struct mailbox *box) {
 	FUNC_END();
 }
 
+//TODO: remove test function to generate oid (used in rbox-mail.c, rbox-save.c)
 void generate_oid(char* oid, struct mail_storage *storage, int mail_uid){
         int32_t mail_user_uid = storage->user->uid;
         sprintf(oid,"INBOX.%d%d",mail_user_uid,mail_uid);

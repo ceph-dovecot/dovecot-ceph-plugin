@@ -205,7 +205,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 	generate_oid(oid,_ctx->transaction->box->storage, ctx->seq);
 	int bytes_written = 0;
 	do {	
-		if(((struct rbox_storage*) storage)->use_rados_storage ==0){
+		if(rbox_ctx->use_rados_storage ==0){
 			bytes_written = o_stream_send_istream(_ctx->data.output, ctx->input);
 		}else{
 			bytes_written = stream_mail_to_rados(&rbox_ctx->ceph_io, oid, ctx->input);
