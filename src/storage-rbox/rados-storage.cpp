@@ -17,3 +17,6 @@ RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username, const s
 
 RadosStorage::~RadosStorage() { get_io_ctx().close(); }
 
+void RadosStorage::generate_guid(guid_128_t guid) {
+  guid_128_generate(guid);
+}

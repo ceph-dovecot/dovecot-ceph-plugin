@@ -9,6 +9,7 @@
 
 extern "C" {
 #include "lib.h"
+#include "guid.h"
 }
 
 #include <rados/librados.hpp>
@@ -23,6 +24,8 @@ class RadosStorage {
   const std::string& get_username() const { return username; }
 
   librados::IoCtx& get_io_ctx() { return io_ctx; }
+
+  void generate_guid(guid_128_t guid);
 
  private:
   librados::IoCtx io_ctx;
