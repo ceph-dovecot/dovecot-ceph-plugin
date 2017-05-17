@@ -51,7 +51,9 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
 	FUNC_START();
 	struct rbox_storage *storage = (struct rbox_storage *) _storage;
 	enum fs_properties props;
+	
 
+	storage->use_rados_storage = 1;
 	if (dbox_storage_create(_storage, ns, error_r) < 0) {
 		FUNC_END_RET("ret == -1; dbox_storage_create failed");
 		return -1;
@@ -68,6 +70,40 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
 		}
 	}
 	rbox_dbg_print_mail_storage(_storage, "rbox_storage_create", NULL);
+
+	// initialize c rados_ctx (test cluster, pool and user name !)
+	
+        char cluster_name[] = "ceph";
+	char *poolname = "rbd";
+        char user_name[] = "client.admin";
+	uint64_t flags;
+
+        int err;
+        err = rados_create2(&storage->cluster, cluster_name, user_name, flags);
+
+        if (err < 0) {
+                exit(EXIT_FAILURE);
+        }
+
+	err = rados_conf_parse_env(storage->cluster,NULL);        
+        if (err < 0) {
+                exit(EXIT_FAILURE);
+        }
+
+	err = rados_conf_read_file(storage->cluster, NULL);
+	if(err <0){
+		exit(EXIT_FAILURE);
+	}
+        err = rados_connect(storage->cluster);
+        if (err < 0) {
+	       exit(EXIT_FAILURE);
+        }
+
+	err = rados_ioctx_create(storage->cluster,poolname, &storage->ceph_io);
+	if(err < 0){
+		exit(EXIT_FAILURE);
+	}
+	
 	FUNC_END();
 	return 0;
 }
@@ -81,6 +117,11 @@ static void rbox_storage_destroy(struct mail_storage *_storage) {
 	if (storage->storage.attachment_fs != NULL)
 		fs_deinit(&storage->storage.attachment_fs);
 	index_storage_destroy(_storage);
+
+	// destroy
+	rados_ioctx_destroy(storage->ceph_io);
+	rados_shutdown(storage->cluster);
+	
 	FUNC_END();
 }
 
@@ -460,13 +501,14 @@ static int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_
 
 	if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
 		FUNC_END_RET("ret == -1; index_mailbox_get_metadata failed");
+		i_debug("jrse_: index_mailbox_get_metadata failed");
 		return -1;
 	}
 	if ((items & MAILBOX_METADATA_GUID) != 0) {
 		memcpy(metadata_r->guid, mbox->mailbox_guid, sizeof(metadata_r->guid));
 	}
 	FUNC_END();
-	return 0;
+	return -1;
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
@@ -502,6 +544,13 @@ static void rbox_notify_changes(struct mailbox *box) {
 	rbox_dbg_print_mailbox(box, "rbox_notify_changes", NULL);
 	FUNC_END();
 }
+
+void generate_oid(char* oid, struct mail_storage *storage, int mail_uid){
+        int32_t mail_user_uid = storage->user->uid;
+        sprintf(oid,"INBOX.%d%d",mail_user_uid,mail_uid);
+}
+
+
 
 struct mail_storage rbox_storage = { .name = RBOX_STORAGE_NAME, .class_flags = MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG
 		| MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS
