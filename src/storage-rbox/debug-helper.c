@@ -399,7 +399,6 @@ void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, co
   RBOX_PRINT_DEBUG("deinitializing = %u", target->deinitializing);
   RBOX_PRINT_DEBUG("admin = %u", target->admin);
   RBOX_PRINT_DEBUG("stats_enabled = %u", target->stats_enabled);
-  RBOX_PRINT_DEBUG("autoexpunge_enabled = %u", target->autoexpunge_enabled);
   RBOX_PRINT_DEBUG("session_restored = %u", target->session_restored);
 
   RBOX_PRINT_END()
