@@ -10,6 +10,7 @@ struct rbox_file;
 struct rbox_mailbox;
 struct rbox_index_header;
 struct obox_mail_index_record;
+struct rbox_index_header;
 
 #define btoa(x) ((x) ? "true" : "false")
 
