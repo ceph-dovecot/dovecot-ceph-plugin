@@ -23,7 +23,7 @@ extern "C" {
 
 }
 
-#include "rbox-storage.hpp"
+#include "rbox-storage-struct.h"
 #include "rados-cluster.h"
 #include "rados-storage.h"
 
@@ -71,23 +71,6 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
   enum fs_properties props;
 
-  string error_msg;
-  int ret = storage->cluster.init(&error_msg);
-
-  if (ret < 0) {
-    // TODO free rbox_storage
-    *error_r = t_strdup_printf("%s", error_msg.c_str());
-    return -1;
-  }
-
-  ret = storage->cluster.storage_create("rbd", "my_user", "my_oid", &storage->s);
-
-  if (ret < 0) {
-    *error_r = t_strdup_printf("Error creating RadosStorage()! %s", strerror(-ret));
-    storage->cluster.deinit();
-    return -1;
-  }
-
   if (dbox_storage_create(_storage, ns, error_r) < 0) {
     FUNC_END_RET("ret == -1; dbox_storage_create failed");
     return -1;
@@ -104,6 +87,30 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
       return -1;
     }
   }
+
+  string error_msg;
+  int ret = storage->cluster.init(&error_msg);
+
+  if (ret < 0) {
+    // TODO free rbox_storage?
+    *error_r = t_strdup_printf("%s", error_msg.c_str());
+    return -1;
+  }
+
+  string username = "unknown";
+  if (storage->storage.storage.user != NULL) {
+    username = storage->storage.storage.user->username;
+  }
+
+  string poolname = "mail_storage";
+  ret = storage->cluster.storage_create(poolname, username, "my_oid", &storage->s);
+
+  if (ret < 0) {
+    *error_r = t_strdup_printf("Error creating RadosStorage()! %s", strerror(-ret));
+    storage->cluster.deinit();
+    return -1;
+  }
+
   rbox_dbg_print_mail_storage(_storage, "rbox_storage_create", NULL);
   FUNC_END();
   return 0;

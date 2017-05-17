@@ -1,11 +1,14 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <list>
 #include <string>
 
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
 #include "rados-storage.h"
 
+using std::list;
+using std::pair;
 using std::string;
 
 librados::Rados RadosCluster::cluster;
@@ -89,7 +92,29 @@ int RadosCluster::storage_create(const string &pool, const string &username, con
 
   librados::IoCtx io_ctx;
 
-  int err = cluster.ioctx_create(pool.c_str(), io_ctx);
+  // pool exists? else create
+  list<pair<int64_t, string>> pool_list;
+  int err = cluster.pool_list2(pool_list);
+  if (err < 0) {
+    // *error_r = t_strdup_printf("Cannot list RADOS pools: %s", strerror(-err));
+    return err;
+  }
+  bool pool_found = false;
+  for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); it++) {
+    if ((*it).second.compare(pool) == 0) {
+      pool_found = true;
+      break;
+    }
+  }
+  if (pool_found != true) {
+    err = cluster.pool_create(pool.c_str());
+    if (err < 0) {
+      // *error_r = t_strdup_printf("Cannot create RADOS pool %s: %s", pool.c_str(), strerror(-err));
+      return err;
+    }
+  }
+
+  err = cluster.ioctx_create(pool.c_str(), io_ctx);
   if (err < 0) {
     // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
     return err;
