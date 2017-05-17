@@ -28,8 +28,7 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
 	debug-helper.c \
-	rados-storage.cpp \
-	RadosBox.cpp
+	rados-storage.cpp
 	
 noinst_HEADERS = \
 	libstorage-rbox-plugin.h \
@@ -37,8 +36,7 @@ noinst_HEADERS = \
 	rbox-storage.h \
 	rbox-sync.h \
 	debug-helper.h \
-	rados-storage.h \
-	RadosBox.hpp
+	rados-storage.h
 	
 test_programs = \
 	test-debug-helper

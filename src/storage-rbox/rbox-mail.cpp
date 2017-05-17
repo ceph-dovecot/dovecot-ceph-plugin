@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
@@ -20,7 +21,7 @@ extern "C" {
 
 }
 
-#include "rbox-storage.hpp"
+#include "rbox-storage-struct.h"
 
 struct mail *
 rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
