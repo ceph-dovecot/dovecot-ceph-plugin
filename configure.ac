@@ -31,6 +31,7 @@ AC_CHECK_HEADER(rados/librados.h, [
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+src/librmb/Makefile
 src/dict-rados/Makefile
 src/storage-rados/Makefile
 src/storage-rbox/Makefile
