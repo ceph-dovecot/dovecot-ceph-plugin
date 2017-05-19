@@ -1,7 +1,6 @@
-
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
-
+ 
 extern "C" {
 
 #include "lib.h"
@@ -22,6 +21,7 @@ extern "C" {
 }
 
 #include "rbox-storage-struct.h"
+#include "rados-storage.h"
 
 struct mail *
 rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
@@ -420,14 +420,23 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 	struct dbox_mail *mail = (struct dbox_mail *) _mail;
 	struct index_mail_data *data = &mail->imail.data;
 	struct istream *input;
+	struct istream *rados_input;
 	uoff_t offset;
 	int ret;
 
+	uoff_t size_r;
+	if(rbox_mail_get_physical_size(_mail,&size_r) <0){
+		return -1;
+	}
+	
+	/* temporary guid generation see rbox-save.c */
+	char oid[GUID_128_SIZE];
+	generate_oid(oid, _mail->box->storage, _mail->seq);
+
 	if (data->stream == NULL) {
-	  /*
+
 		if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
 			return -1;
-    */
 
 		ret = get_mail_stream(mail, offset, &input);
 		if (ret <= 0) {
@@ -435,13 +444,32 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 				return -1;
 			dbox_file_set_corrupted(mail->open_file,
 					"uid=%u points to broken data at offset="
-					"%" PRIuUOFF_T, _mail->uid, offset);
+					"%"PRIuUOFF_T, _mail->uid, offset);
 			if (input != NULL)
 				i_stream_unref(&input);
 			return -1;
 		}
 		data->stream = input;
-		index_mail_set_read_buffer_size(_mail, input);
+		ret = 0;
+		librados::bufferlist bl;
+		do{
+			ret = ((storage->s)->get_io_ctx()).read(oid,bl,size_r,ret);
+			if(ret < 0){
+				return -1;
+			}
+		}while(ret < size_r);
+
+		rados_input = i_stream_create_from_data((const char*)bl.to_str().c_str(),size_r);
+			
+		i_stream_seek(input,mail->open_file->cur_physical_size);
+
+		if(!i_stream_add_data(input,(const unsigned char*)bl.to_str().c_str(),size_r)){
+			return -1;
+		}
+
+		i_stream_seek(input,0);
+
+		index_mail_set_read_buffer_size(_mail, data->stream);
 	}
 
 	return index_mail_init_stream(&mail->imail, hdr_size, body_size, stream_r);
