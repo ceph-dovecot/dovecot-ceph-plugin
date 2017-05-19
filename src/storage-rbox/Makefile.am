@@ -1,9 +1,8 @@
 AM_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
-	-I$(top_srcdir)/src/dict-rados
+	-I$(top_srcdir)/src/librmb
 
-AM_CXXFLAGS = \
-	$(LIBDOVECOT_INCLUDE)
+AM_CXXFLAGS = 
 
 LIBSTORAGE_RBOX_PLUGIN = libstorage_rbox_plugin.la
 
@@ -11,8 +10,7 @@ libstorage_rbox_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)
 libstorage_rbox_plugin_la_CFLAGS = 
 libstorage_rbox_plugin_la_CXXFLAGS = -fpermissive -std=c++11
 libstorage_rbox_plugin_la_LDFLAGS = -module -avoid-version
-
-libstorage_rbox_plugin_la_LIBADD = $(LIBDOVECOT)
+libstorage_rbox_plugin_la_LIBADD = $(LIBDOVECOT) -lrmb
 
 module_dir = $(moduledir)
 module_LTLIBRARIES = \
@@ -27,16 +25,14 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-storage.cpp \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
-	debug-helper.c \
-	rados-storage.cpp
+	debug-helper.c
 	
 noinst_HEADERS = \
 	libstorage-rbox-plugin.h \
 	rbox-file.h \
 	rbox-storage.h \
 	rbox-sync.h \
-	debug-helper.h \
-	rados-storage.h
+	debug-helper.h
 	
 test_programs = \
 	test-debug-helper
