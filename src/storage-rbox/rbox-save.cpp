@@ -39,8 +39,7 @@ struct rbox_save_context {
   struct dbox_file_append_context *append_ctx;
 
   uint32_t first_saved_seq;
-  ARRAY(struct dbox_file *)
-  files;
+  ARRAY(struct dbox_file *) files;
 };
 
 struct dbox_file *rbox_save_file_get_file(struct mailbox_transaction_context *t, uint32_t seq) {
@@ -221,7 +220,65 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct dbox_file *file) {
+void rbox_save_write_metadata(struct mail_save_context *_ctx, struct ostream *output, uoff_t output_msg_size,
+                              const char *orig_mailbox_name, guid_128_t guid_128) {
+  struct dbox_save_context *ctx = (struct dbox_save_context *)_ctx;
+  struct mail_save_data *mdata = &ctx->ctx.data;
+  struct dbox_metadata_header metadata_hdr;
+  const char *guid;
+  string_t *str;
+  uoff_t vsize;
+
+  i_zero(&metadata_hdr);
+  memcpy(metadata_hdr.magic_post, DBOX_MAGIC_POST, sizeof(metadata_hdr.magic_post));
+  o_stream_nsend(output, &metadata_hdr, sizeof(metadata_hdr));
+
+  str = t_str_new(256);
+  if (output_msg_size != ctx->input->v_offset) {
+    /* a plugin changed the data written to disk, so the
+       "message size" dbox header doesn't contain the actual
+       "physical" message size. we need to save it as a
+       separate metadata header. */
+    str_printfa(str, "%c%llx\n", DBOX_METADATA_PHYSICAL_SIZE, (unsigned long long)ctx->input->v_offset);
+  }
+  str_printfa(str, "%c%lx\n", DBOX_METADATA_RECEIVED_TIME, (unsigned long)mdata->received_date);
+  if (mail_get_virtual_size(_ctx->dest_mail, &vsize) < 0)
+    i_unreached();
+  str_printfa(str, "%c%llx\n", DBOX_METADATA_VIRTUAL_SIZE, (unsigned long long)vsize);
+  if (mdata->pop3_uidl != NULL) {
+    i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
+    str_printfa(str, "%c%s\n", DBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
+    ctx->have_pop3_uidls = TRUE;
+    ctx->highest_pop3_uidl_seq = I_MAX(ctx->highest_pop3_uidl_seq, ctx->seq);
+  }
+  if (mdata->pop3_order != 0) {
+    str_printfa(str, "%c%u\n", DBOX_METADATA_POP3_ORDER, mdata->pop3_order);
+    ctx->have_pop3_orders = TRUE;
+    ctx->highest_pop3_uidl_seq = I_MAX(ctx->highest_pop3_uidl_seq, ctx->seq);
+  }
+
+  guid = mdata->guid;
+  if (guid != NULL) {
+    mail_generate_guid_128_hash(guid, guid_128);
+  } else {
+    guid_128_generate(guid_128);
+    guid = guid_128_to_string(guid_128);
+  }
+  str_printfa(str, "%c%s\n", DBOX_METADATA_GUID, guid);
+
+  if (orig_mailbox_name != NULL && strchr(orig_mailbox_name, '\r') == NULL && strchr(orig_mailbox_name, '\n') == NULL) {
+    /* save the original mailbox name so if mailbox indexes get
+       corrupted we can place at least some (hopefully most) of
+       the messages to correct mailboxes. */
+    str_printfa(str, "%c%s\n", DBOX_METADATA_ORIG_MAILBOX, orig_mailbox_name);
+  }
+
+  dbox_attachment_save_write_metadata(_ctx, str);
+
+  str_append_c(str, '\n');
+  o_stream_nsend(output, str_data(str), str_len(str));
+}
+static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct dbox_file *file) {
   FUNC_START();
   struct rbox_file *sfile = (struct rbox_file *)file;
   const ARRAY_TYPE(mail_attachment_extref) * extrefs_arr;
@@ -231,14 +288,14 @@ static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   guid_128_t guid_128;
   unsigned int i, count;
 
-  rbox_dbg_print_dbox_file(file, "dbox_save_mail_write_metadata", NULL);
-  rbox_dbg_print_mail_save_context(&ctx->ctx, "dbox_save_mail_write_metadata", NULL);
+  rbox_dbg_print_dbox_file(file, "rbox_save_mail_write_metadata", NULL);
+  rbox_dbg_print_mail_save_context(&ctx->ctx, "rbox_save_mail_write_metadata", NULL);
 
   i_assert(file->msg_header_size == sizeof(dbox_msg_hdr));
 
   message_size = ctx->dbox_output->offset - file->msg_header_size - file->file_header_size;
 
-  dbox_save_write_metadata(&ctx->ctx, ctx->dbox_output, message_size, NULL, guid_128);
+  rbox_save_write_metadata(&ctx->ctx, ctx->dbox_output, message_size, NULL, guid_128);
   dbox_msg_header_fill(&dbox_msg_hdr, message_size);
   if (o_stream_pwrite(ctx->dbox_output, &dbox_msg_hdr, sizeof(dbox_msg_hdr), file->file_header_size) < 0) {
     dbox_file_set_syscall_error(file, "pwrite()");
@@ -267,12 +324,12 @@ static int dbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   return 0;
 }
 
-static int dbox_save_finish_write(struct mail_save_context *_ctx) {
+static int rbox_save_finish_write(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
   struct dbox_file **files;
 
-  rbox_dbg_print_mail_save_context(_ctx, "dbox_save_finish_write", NULL);
+  rbox_dbg_print_mail_save_context(_ctx, "rbox_save_finish_write", NULL);
 
   ctx->ctx.finished = TRUE;
   if (ctx->ctx.dbox_output == NULL) {
@@ -292,7 +349,7 @@ static int dbox_save_finish_write(struct mail_save_context *_ctx) {
   files = array_idx_modifiable(&ctx->files, array_count(&ctx->files) - 1);
   if (!ctx->ctx.failed) {
     T_BEGIN {
-      if (dbox_save_mail_write_metadata(&ctx->ctx, *files) < 0)
+      if (rbox_save_mail_write_metadata(&ctx->ctx, *files) < 0)
         ctx->ctx.failed = TRUE;
     }
     T_END;
@@ -323,7 +380,7 @@ int rbox_save_finish(struct mail_save_context *ctx) {
   FUNC_START();
   int ret;
 
-  ret = dbox_save_finish_write(ctx);
+  ret = rbox_save_finish_write(ctx);
   index_save_context_free(ctx);
   FUNC_END();
   return ret;
@@ -338,7 +395,7 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
-static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE(seq_range) * uids) {
+static int rbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE(seq_range) * uids) {
   FUNC_START();
   struct dbox_file *const *files;
   struct seq_range_iter iter;
@@ -346,7 +403,7 @@ static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE
   uint32_t uid;
   bool ret;
 
-  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
+  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_assign_uids", NULL);
 
   seq_range_array_iter_init(&iter, uids);
   files = array_get(&ctx->files, &count);
@@ -368,12 +425,12 @@ static int dbox_save_assign_uids(struct rbox_save_context *ctx, const ARRAY_TYPE
   return 0;
 }
 
-static int dbox_save_assign_stub_uids(struct rbox_save_context *ctx) {
+static int rbox_save_assign_stub_uids(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file *const *files;
   unsigned int i, count;
 
-  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
+  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_assign_uids", NULL);
 
   files = array_get(&ctx->files, &count);
   for (i = 0; i < count; i++) {
@@ -393,12 +450,12 @@ static int dbox_save_assign_stub_uids(struct rbox_save_context *ctx) {
   return 0;
 }
 
-static void dbox_save_unref_files(struct rbox_save_context *ctx) {
+static void rbox_save_unref_files(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file **files;
   unsigned int i, count;
 
-  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "dbox_save_assign_uids", NULL);
+  rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_assign_uids", NULL);
 
   files = array_get_modifiable(&ctx->files, &count);
   for (i = 0; i < count; i++) {
@@ -444,14 +501,14 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   if ((_ctx->transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
     /* assign UIDs for new messages */
     mail_index_append_finish_uids(ctx->ctx.trans, hdr->next_uid, &_t->changes->saved_uids);
-    if (dbox_save_assign_uids(ctx, &_t->changes->saved_uids) < 0) {
+    if (rbox_save_assign_uids(ctx, &_t->changes->saved_uids) < 0) {
       rbox_transaction_save_rollback(_ctx);
       FUNC_END_RET("ret == -1; assign_uids failed");
       return -1;
     }
   } else {
     /* assign UIDs that we stashed away */
-    if (dbox_save_assign_stub_uids(ctx) < 0) {
+    if (rbox_save_assign_stub_uids(ctx) < 0) {
       rbox_transaction_save_rollback(_ctx);
       FUNC_END_RET("ret == -1; assign_stub_uids failed");
       return -1;
@@ -501,7 +558,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   if (!ctx->ctx.finished)
     rbox_save_cancel(_ctx);
-  dbox_save_unref_files(ctx);
+  rbox_save_unref_files(ctx);
 
   if (ctx->sync_ctx != NULL)
     (void)rbox_sync_finish(&ctx->sync_ctx, FALSE);
