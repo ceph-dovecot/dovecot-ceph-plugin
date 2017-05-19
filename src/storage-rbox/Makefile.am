@@ -23,7 +23,7 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-copy.c \
 	rbox-file.cpp \
 	rbox-mail.cpp \
-	rbox-save.c \
+	rbox-save.cpp \
 	rbox-storage.cpp \
 	rbox-sync.c \
 	rbox-sync-rebuild.c \
