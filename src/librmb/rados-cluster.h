@@ -1,7 +1,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_DICT_RADOS_RADOS_CLUSTER_H_
-#define SRC_DICT_RADOS_RADOS_CLUSTER_H_
+#ifndef SRC_LIBRMB_RADOS_CLUSTER_H_
+#define SRC_LIBRMB_RADOS_CLUSTER_H_
 
 #include <string>
 
@@ -28,4 +28,4 @@ class RadosCluster {
   static int cluster_ref_count;
 };
 
-#endif /* SRC_DICT_RADOS_RADOS_CLUSTER_H_ */
+#endif /* SRC_LIBRMB_RADOS_CLUSTER_H_ */

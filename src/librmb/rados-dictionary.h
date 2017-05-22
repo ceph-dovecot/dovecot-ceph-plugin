@@ -1,16 +1,11 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_DICT_RADOS_RADOS_DICTIONARY_H_
-#define SRC_DICT_RADOS_RADOS_DICTIONARY_H_
+#ifndef SRC_LIBRMB_RADOS_DICTIONARY_H_
+#define SRC_LIBRMB_RADOS_DICTIONARY_H_
 
 #include <list>
 #include <string>
 #include <cstdint>
-
-extern "C" {
-#include "lib.h"
-#include "dict-private.h"
-}
 
 #include <rados/librados.hpp>
 
@@ -41,4 +36,4 @@ class RadosDictionary {
   std::string username;
 };
 
-#endif /* SRC_DICT_RADOS_RADOS_DICTIONARY_H_ */
+#endif /* SRC_LIBRMB_RADOS_DICTIONARY_H_ */
