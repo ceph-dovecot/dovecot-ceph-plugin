@@ -1,16 +1,11 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_STORAGE_RBOX_RADOS_STORAGE_H_
-#define SRC_STORAGE_RBOX_RADOS_STORAGE_H_
+#ifndef SRC_LIBRMB_RADOS_STORAGE_H_
+#define SRC_LIBRMB_RADOS_STORAGE_H_
 
 #include <list>
 #include <string>
 #include <cstdint>
-
-extern "C" {
-#include "lib.h"
-#include "guid.h"
-}
 
 #include <rados/librados.hpp>
 
@@ -25,13 +20,10 @@ class RadosStorage {
 
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 
-  void generate_guid(guid_128_t guid);
-
  private:
   librados::IoCtx io_ctx;
   std::string oid;
   std::string username;
-
 };
 
-#endif /* SRC_STORAGE_RBOX_RADOS_STORAGE_H_ */
+#endif /* SRC_LIBRMB_RADOS_STORAGE_H_ */
