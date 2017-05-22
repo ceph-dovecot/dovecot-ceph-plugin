@@ -40,7 +40,7 @@ const string RadosDictionary::get_full_oid(const std::string &key) {
   } else if (key.find(DICT_PATH_PRIVATE) == 0) {
     return get_private_oid();
   } else {
-    i_unreached();
+    // TODO(peter) i_unreached();
   }
   return "";
 }
