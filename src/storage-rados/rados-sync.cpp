@@ -1,12 +1,18 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+extern "C" {
 #include "lib.h"
+#include "typeof-def.h"
 #include "ioloop.h"
 #include "str.h"
-#include "rados-storage.h"
+
+#include "rados-storage-local.h"
 #include "rados-sync.h"
 #include "debug-helper.h"
+}
+
+#include "rados-storage-struct.h"
 
 static void rados_sync_set_uidvalidity(struct rados_sync_context *ctx) {
   FUNC_START();
