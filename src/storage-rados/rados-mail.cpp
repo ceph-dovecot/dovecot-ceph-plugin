@@ -1,19 +1,26 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#include "lib.h"
-#include "istream.h"
-#include "index-mail.h"
-#include "rados-storage.h"
-#include "ioloop.h"
-#include "str.h"
-
+extern "C" {
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
 
+#include "lib.h"
+#include "typeof-def.h"
+
+#include "istream.h"
+#include "index-mail.h"
+#include "ioloop.h"
+#include "str.h"
+
+#include "rados-storage-local.h"
+
 #include "debug-helper.h"
+}
+
+#include "rados-storage-struct.h"
 
 static const char *rados_mail_get_path(struct mail *mail) {
   FUNC_START();
@@ -42,9 +49,9 @@ static int rados_mail_stat(struct mail *mail, struct stat *st_r) {
   mail->transaction->stats.stat_lookup_count++;
   path = rados_mail_get_path(mail);
   if (stat(path, st_r) < 0) {
-    if (errno == ENOENT)
+    if (errno == ENOENT) {
       mail_set_expunged(mail);
-    else {
+    } else {
       mail_storage_set_critical(mail->box->storage, "stat(%s) failed: %m", path);
     }
     debug_print_mail(mail, "rados-mail::rados_mail_stat (ret -1, 2)", NULL);
@@ -154,9 +161,9 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
     path = rados_mail_get_path(_mail);
     fd = open(path, O_RDONLY);
     if (fd == -1) {
-      if (errno == ENOENT)
+      if (errno == ENOENT) {
         mail_set_expunged(_mail);
-      else {
+      } else {
         mail_storage_set_critical(_mail->box->storage, "open(%s) failed: %m", path);
       }
       debug_print_mail(_mail, "rados-mail::rados_mail_get_stream (ret -1, 1)", NULL);
