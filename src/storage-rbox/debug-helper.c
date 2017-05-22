@@ -1,5 +1,6 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <execinfo.h>
 #include <time.h>
 
 #include "lib.h"
@@ -41,8 +42,8 @@ static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_MET
 
 #define STRFTIME_MAX_BUFSIZE (1024 * 64)
 
-/* Obtain a backtrace and print it to stdout.
-static void print_trace(void) {
+/* Obtain a backtrace and print it to stdout. */
+void print_trace(void) {
         void *array[20];
         size_t size;
         char **strings;
@@ -58,7 +59,6 @@ static void print_trace(void) {
 
         free(strings);
 }
-*/
 
 static const char *strftime_real(const char *fmt, const struct tm *tm) {
   size_t bufsize = strlen(fmt) + 32;
