@@ -135,12 +135,12 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     FUNC_END_RET("ret = -1; get_append_stream failed");
     return -1;
   }
+
   ctx->cur_file = file;
   dbox_save_begin(&ctx->ctx, input);
 
   generate_oid(((struct rbox_file *)ctx->cur_file)->oid, storage->user->username, dbox_ctx->seq);
 
-  // add x attribute (to save save state)
   rbox_save_add_file(_ctx, file);
   FUNC_END();
   return ctx->ctx.failed ? -1 : 0;
@@ -182,6 +182,7 @@ off_t stream_mail_to_rados(const struct rbox_storage *storage, const std::string
 int rbox_save_continue(struct mail_save_context *_ctx) {
   FUNC_START();
   struct dbox_save_context *ctx = (struct dbox_save_context *)_ctx;
+  struct rbox_save_context *rbox_save_ctx = (struct rbox_save_context *)_ctx;
   struct mail_storage *storage = _ctx->transaction->box->storage;
   struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
 
@@ -200,11 +201,10 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   }
 
   /* temporary guid generation see rbox-mail.c */
-  char oid[GUID_128_SIZE];
-  generate_oid(oid, _ctx->transaction->box->storage->user->username, ctx->seq);
+
   int bytes_written = 0;
   do {
-    bytes_written = stream_mail_to_rados(rbox_ctx, oid, ctx->input);
+    bytes_written = stream_mail_to_rados(rbox_ctx, ((struct rbox_file *)rbox_save_ctx->cur_file)->oid, ctx->input);
 
     if (bytes_written < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
@@ -329,12 +329,27 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   return 0;
 }
 
+static void remove_from_rados(RadosStorage *storage, char *oid) { (storage->get_io_ctx()).remove(oid); }
+
+static void remove_files_from_rados(struct rbox_save_context *ctx) {
+  FUNC_START();
+  struct dbox_file **files;
+  unsigned int i, count;
+  struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
+  struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
+
+  if (ctx->ctx.failed) {
+    files = array_get_modifiable(&ctx->files, &count);
+    for (i = 0; i < count; i++) {
+      remove_from_rados(rbox_ctx->s, ((struct rbox_file *)files[i])->oid);
+    }
+  }
+  FUNC_END();
+}
 static int rbox_save_finish_write(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
   struct dbox_file **files;
-
-  // check object attribute status and write only if all good
 
   rbox_dbg_print_mail_save_context(_ctx, "rbox_save_finish_write", NULL);
 
@@ -365,9 +380,13 @@ static int rbox_save_finish_write(struct mail_save_context *_ctx) {
   if (ctx->ctx.failed) {
     mail_index_expunge(ctx->ctx.trans, ctx->ctx.seq);
     mail_cache_transaction_reset(ctx->ctx.ctx.transaction->cache_trans);
+
+    remove_files_from_rados(ctx);
+
     dbox_file_append_rollback(&ctx->append_ctx);
     dbox_file_unlink(*files);
     dbox_file_unref(files);
+
     array_delete(&ctx->files, array_count(&ctx->files) - 1, 1);
   } else {
     dbox_file_append_checkpoint(ctx->append_ctx);
@@ -461,6 +480,8 @@ static void rbox_save_unref_files(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file **files;
   unsigned int i, count;
+  struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
+  struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
 
   rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_assign_uids", NULL);
 
@@ -468,19 +489,13 @@ static void rbox_save_unref_files(struct rbox_save_context *ctx) {
   for (i = 0; i < count; i++) {
     if (ctx->ctx.failed) {
       struct rbox_file *sfile = (struct rbox_file *)files[i];
-
       (void)rbox_file_unlink_aborted_save(sfile);
-
-      // sfile->delete();
     }
     dbox_file_unref(&files[i]);
   }
   array_free(&ctx->files);
   FUNC_END();
 }
-
-// clean up function
-// save function
 
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
@@ -560,9 +575,9 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
       mail_storage_set_critical(storage, "fdatasync_path(%s) failed: %m", box_path);
     }
   }
+
   rbox_transaction_save_rollback(_ctx);
 
-  // set object attribute to ok!
   FUNC_END();
 }
 
@@ -572,6 +587,8 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   if (!ctx->ctx.finished)
     rbox_save_cancel(_ctx);
+
+  remove_files_from_rados(ctx);
 
   rbox_save_unref_files(ctx);
 
