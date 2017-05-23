@@ -427,7 +427,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
   /* temporary guid generation see rbox-save.c */
   char oid[GUID_128_SIZE];
-  generate_oid(oid, _mail->box->storage, _mail->seq);
+  generate_oid(oid, _mail->box->storage->user->username, _mail->seq);
 
   if (data->stream == NULL) {
     if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
@@ -450,7 +450,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     librados::bufferlist bl;
     do {
       ret = ((storage->s)->get_io_ctx()).read(oid, bl, size_r, ret);
-      if (ret < 0) {
+      if (ret <= 0) {
         return -1;
       }
     } while (ret < size_r);
