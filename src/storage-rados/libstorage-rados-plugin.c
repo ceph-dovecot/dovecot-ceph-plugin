@@ -4,6 +4,10 @@
 #include "config.h"
 #include "mail-storage.h"
 
+#include "index-storage.h"
+#include "index-mail.h"
+#include "mail-copy.h"
+
 #include "libstorage-rados-plugin.h"
 
 extern struct mail_storage rados_storage;

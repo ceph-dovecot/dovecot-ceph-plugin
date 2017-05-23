@@ -1,7 +1,13 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+extern "C" {
+#include <stdio.h>
+#include <utime.h>
+
 #include "lib.h"
+#include "typeof-def.h"
+
 #include "array.h"
 #include "hostpid.h"
 #include "istream.h"
@@ -9,32 +15,14 @@
 #include "ostream.h"
 #include "str.h"
 #include "index-mail.h"
-#include "rados-storage.h"
+#include "rados-storage-local.h"
 #include "rados-sync.h"
 #include "debug-helper.h"
+}
 
-#include <stdio.h>
-#include <utime.h>
+#include "rados-save.h"
 
-struct rados_save_context {
-  struct mail_save_context ctx;
-
-  struct rados_mailbox *mbox;
-  struct mail_index_transaction *trans;
-
-  char *tmp_basename;
-  unsigned int mail_count;
-
-  struct rados_sync_context *sync_ctx;
-
-  /* updated for each appended mail: */
-  uint32_t seq;
-  struct istream *input;
-  int fd;
-
-  unsigned int failed : 1;
-  unsigned int finished : 1;
-};
+#include "rados-storage-struct.h"
 
 static char *rados_generate_tmp_filename(void) {
   static unsigned int create_count = 0;
@@ -68,6 +56,7 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     ctx->trans = t->itrans;
     ctx->tmp_basename = rados_generate_tmp_filename();
     ctx->fd = -1;
+    guid_128_generate(ctx->mail_guid);
     t->save_ctx = &ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
@@ -180,9 +169,9 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
   }
 
   if (ctx->ctx.data.received_date == (time_t)-1) {
-    if (fstat(ctx->fd, &st) == 0)
+    if (fstat(ctx->fd, &st) == 0) {
       ctx->ctx.data.received_date = st.st_mtime;
-    else {
+    } else {
       mail_storage_set_critical(storage, "fstat(%s) failed: %m", path);
       ret = -1;
     }
