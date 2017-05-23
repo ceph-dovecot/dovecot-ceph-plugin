@@ -75,3 +75,4 @@ libtool
 *.exe
 *.out
 *.app
+/.settings/
