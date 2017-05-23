@@ -9,8 +9,8 @@
 #include "mail-storage-private.h"
 #include "mailbox-list.h"
 #include "mailbox-list-private.h"
-#include "rados-storage.h"
 #include "rados-sync.h"
+#include "rados-storage-local.h"
 #include "debug-helper.h"
 
 static char *enum_mail_access_type_strs[] = {"MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH",
