@@ -117,6 +117,8 @@ void rbox_save_add_file(struct mail_save_context *_ctx, struct dbox_file *file) 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
+  struct dbox_save_context *dbox_ctx = (struct dbox_save_context *)_ctx;
+  struct mail_storage *storage = _ctx->transaction->box->storage;
   struct dbox_file *file;
   int ret;
 
@@ -136,6 +138,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   ctx->cur_file = file;
   dbox_save_begin(&ctx->ctx, input);
 
+  generate_oid(((struct rbox_file *)ctx->cur_file)->oid, storage->user->username, dbox_ctx->seq);
+
+  // add x attribute (to save save state)
   rbox_save_add_file(_ctx, file);
   FUNC_END();
   return ctx->ctx.failed ? -1 : 0;
@@ -196,7 +201,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 
   /* temporary guid generation see rbox-mail.c */
   char oid[GUID_128_SIZE];
-  generate_oid(oid, _ctx->transaction->box->storage, ctx->seq);
+  generate_oid(oid, _ctx->transaction->box->storage->user->username, ctx->seq);
   int bytes_written = 0;
   do {
     bytes_written = stream_mail_to_rados(rbox_ctx, oid, ctx->input);
@@ -328,6 +333,8 @@ static int rbox_save_finish_write(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
   struct dbox_file **files;
+
+  // check object attribute status and write only if all good
 
   rbox_dbg_print_mail_save_context(_ctx, "rbox_save_finish_write", NULL);
 
@@ -463,12 +470,17 @@ static void rbox_save_unref_files(struct rbox_save_context *ctx) {
       struct rbox_file *sfile = (struct rbox_file *)files[i];
 
       (void)rbox_file_unlink_aborted_save(sfile);
+
+      // sfile->delete();
     }
     dbox_file_unref(&files[i]);
   }
   array_free(&ctx->files);
   FUNC_END();
 }
+
+// clean up function
+// save function
 
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
@@ -549,6 +561,8 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
     }
   }
   rbox_transaction_save_rollback(_ctx);
+
+  // set object attribute to ok!
   FUNC_END();
 }
 
@@ -558,6 +572,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   if (!ctx->ctx.finished)
     rbox_save_cancel(_ctx);
+
   rbox_save_unref_files(ctx);
 
   if (ctx->sync_ctx != NULL)

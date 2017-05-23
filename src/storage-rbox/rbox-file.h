@@ -12,7 +12,8 @@ struct rbox_file {
 
   /* 0 while file is being created */
   uint32_t uid;
-
+  /* ceph oid */
+  char oid[GUID_128_SIZE];
   /* list of attachment paths while saving/copying message */
   pool_t attachment_pool;
   ARRAY_TYPE(const_string) attachment_paths;
