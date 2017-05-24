@@ -324,6 +324,7 @@ static int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
     FUNC_END_RET("ret == -1; metadata_get");
     return -1;
   }
+
   if (value == NULL) {
     rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_get_virtual_size", NULL);
     FUNC_END_RET("ret == ?; value == NULL");
@@ -393,6 +394,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
       mail_set_expunged(_mail);
     return -1;
   }
+
   *date_r = data->save_date = st.st_ctime;
   return 0;
 }
@@ -428,15 +430,15 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   uoff_t offset;
   int ret;
 
-  uoff_t size_r;
-  if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {
+  uoff_t size_r = 0;
+  if (rbox_mail_get_physical_size(_mail, &size_r) < 0 || size_r == 0) {
+    i_debug("error fetching mails physical size_r is: %ld ", size_r);
     return -1;
   }
 
   /* temporary guid generation see rbox-save.c */
   char oid[GUID_128_SIZE];
   generate_oid(oid, _mail->box->storage->user->username, _mail->seq);
-  i_debug("JAR_ %ld", size_r);
 
   if (data->stream == NULL) {
     if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
