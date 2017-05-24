@@ -275,21 +275,29 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct dbox_mail *mail = (struct dbox_mail *)_mail;
   struct index_mail_data *data = &mail->imail.data;
   struct dbox_file *file;
+  struct rbox_storage *rbox_storage = (struct rbox_storage *)_mail->box->storage;
+
+  uint64_t file_size;
+  time_t time;
+  // TODO(jrse): remove temporary guid generation see rbox-save.c
+  char oid[GUID_128_SIZE];
 
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("rbox_mail_get_physical_size: size = %lu", *size_r);
     rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_get_physical_size", NULL);
+    i_debug("JAR_ read mail physical size from index ");
     FUNC_END_RET("ret == 0; get_physical_size");
     return 0;
   }
 
-  if (dbox_mail_metadata_read(mail, &file) < 0) {
-    rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_get_physical_size", NULL);
-    FUNC_END_RET("ret == -1; metadata_read");
+  generate_oid(oid, _mail->box->storage->user->username, _mail->seq);
+  if (((rbox_storage->s)->get_io_ctx()).stat(oid, &file_size, &time) < 0) {
+    i_debug("read file stat from rados failed : oid: %s", oid);
+    FUNC_END_RET("ret == -1; rados_read");
     return -1;
   }
 
-  data->physical_size = dbox_file_get_plaintext_size(file);
+  data->physical_size = file_size;
   *size_r = data->physical_size;
   i_debug("rbox_mail_get_physical_size: size = %lu", *size_r);
   rbox_dbg_print_mail(&mail->imail.mail.mail, "rbox_mail_get_physical_size", NULL);
@@ -428,6 +436,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   /* temporary guid generation see rbox-save.c */
   char oid[GUID_128_SIZE];
   generate_oid(oid, _mail->box->storage->user->username, _mail->seq);
+  i_debug("JAR_ %ld", size_r);
 
   if (data->stream == NULL) {
     if (storage->storage.v.mail_open(mail, &offset, &mail->open_file) < 0)
