@@ -138,7 +138,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   ctx->cur_file = file;
   dbox_save_begin(&ctx->ctx, input);
-
+  // TODO(jrse) remove temporary guid id generation
   generate_oid(((struct rbox_file *)ctx->cur_file)->oid, storage->user->username, dbox_ctx->seq);
 
   rbox_save_add_file(_ctx, file);
@@ -346,6 +346,7 @@ static void remove_files_from_rados(struct rbox_save_context *ctx) {
   }
   FUNC_END();
 }
+
 static int rbox_save_finish_write(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
