@@ -125,6 +125,7 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct index_mail *mail = (struct index_mail *)_mail;
   struct index_mail_data *data = &mail->data;
   struct stat st;
+  const char *path;
 
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("physical size = %lu", *size_r);
@@ -132,6 +133,8 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     FUNC_END_RET("ret == 0");
     return 0;
   }
+
+  path = rados_mail_get_path(_mail);
 
   if (rados_mail_stat(_mail, &st) < 0) {
     debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret -1, 1)", NULL);
