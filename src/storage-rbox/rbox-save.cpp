@@ -329,20 +329,25 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   return 0;
 }
 
-static void remove_from_rados(RadosStorage *storage, char *oid) { (storage->get_io_ctx()).remove(oid); }
+static void remove_from_rados(RadosStorage *storage, char *oid) { 
+  if(oid !=0 && storage != 0 && storage != 0 ) {
+    i_debug("object to delete is : %s",oid);
+    (storage->get_io_ctx()).remove(oid); 
+  }
+}
 
-static void remove_files_from_rados(struct rbox_save_context *ctx) {
+static void remove_objects_from_rados(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file **files;
   unsigned int i, count;
   struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
   struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
-
   if (ctx->ctx.failed) {
-    files = array_get_modifiable(&ctx->files, &count);
-    for (i = 0; i < count; i++) {
-      remove_from_rados(rbox_ctx->s, ((struct rbox_file *)files[i])->oid);
-    }
+      files = array_get(&ctx->files, &count);
+      i_debug("remove_objects_from_rados: objects to delete : %d",count);
+      for (i = 0; i < count; i++) {
+        remove_from_rados(rbox_ctx->s, ((struct rbox_file *)files[i])->oid);
+      }
   }
   FUNC_END();
 }
@@ -382,7 +387,7 @@ static int rbox_save_finish_write(struct mail_save_context *_ctx) {
     mail_index_expunge(ctx->ctx.trans, ctx->ctx.seq);
     mail_cache_transaction_reset(ctx->ctx.ctx.transaction->cache_trans);
 
-    remove_files_from_rados(ctx);
+    remove_objects_from_rados(ctx);
 
     dbox_file_append_rollback(&ctx->append_ctx);
     dbox_file_unlink(*files);
@@ -589,7 +594,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   if (!ctx->ctx.finished)
     rbox_save_cancel(_ctx);
 
-  remove_files_from_rados(ctx);
+  remove_objects_from_rados(ctx);
 
   rbox_save_unref_files(ctx);
 
