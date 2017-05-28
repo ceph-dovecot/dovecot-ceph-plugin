@@ -1,6 +1,11 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <string>
+#include <map>
+
+#include <rados/librados.hpp>
+
 extern "C" {
 
 #include "lib.h"
@@ -28,6 +33,11 @@ extern "C" {
 }
 #include "rbox-storage-struct.h"
 #include "rados-storage.h"
+
+using namespace librados;  // NOLINT
+using std::string;
+using std::map;
+using std::pair;
 
 struct rbox_save_context {
   struct dbox_save_context ctx;
@@ -228,36 +238,67 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 void rbox_save_write_metadata(struct mail_save_context *_ctx, struct ostream *output, uoff_t output_msg_size,
                               const char *orig_mailbox_name, guid_128_t guid_128) {
   struct dbox_save_context *ctx = (struct dbox_save_context *)_ctx;
+  struct rbox_save_context *rbox_save_ctx = (struct rbox_save_context *)_ctx;
+  struct mail_storage *storage = _ctx->transaction->box->storage;
+  struct rbox_storage *rbox_storage = (struct rbox_storage *)storage;
+
   struct mail_save_data *mdata = &ctx->ctx.data;
   struct dbox_metadata_header metadata_hdr;
   const char *guid;
   string_t *str;
   uoff_t vsize;
 
+  map<string, bufferlist> map;
+
   i_zero(&metadata_hdr);
   memcpy(metadata_hdr.magic_post, DBOX_MAGIC_POST, sizeof(metadata_hdr.magic_post));
   o_stream_nsend(output, &metadata_hdr, sizeof(metadata_hdr));
 
   str = t_str_new(256);
+  bufferlist physical_size;
   if (output_msg_size != ctx->input->v_offset) {
     /* a plugin changed the data written to disk, so the
        "message size" dbox header doesn't contain the actual
        "physical" message size. we need to save it as a
        separate metadata header. */
     str_printfa(str, "%c%llx\n", DBOX_METADATA_PHYSICAL_SIZE, (unsigned long long)ctx->input->v_offset);
+    physical_size.append(ctx->input->v_offset);
+    map.insert(pair<string, bufferlist>(RBOX_METADATA_PHYSICAL_SIZE, physical_size));
   }
+
   str_printfa(str, "%c%lx\n", DBOX_METADATA_RECEIVED_TIME, (unsigned long)mdata->received_date);
+  bufferlist received_date;
+  received_date.append(mdata->received_date);
+  map.insert(pair<string, bufferlist>(RBOX_METADATA_RECEIVED_TIME, received_date));
+
   if (mail_get_virtual_size(_ctx->dest_mail, &vsize) < 0)
     i_unreached();
+
   str_printfa(str, "%c%llx\n", DBOX_METADATA_VIRTUAL_SIZE, (unsigned long long)vsize);
+
+  bufferlist virtual_size_bl;
+  virtual_size_bl.append(vsize);
+  map.insert(pair<string, bufferlist>(RBOX_METADATA_VIRTUAL_SIZE, virtual_size_bl));
+
+  bufferlist pop3_uidl;
   if (mdata->pop3_uidl != NULL) {
     i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
     str_printfa(str, "%c%s\n", DBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
+
+    pop3_uidl.append(mdata->pop3_uidl);
+    map.insert(pair<string, bufferlist>(RBOX_METADATA_POP3_UIDL, pop3_uidl));
+
     ctx->have_pop3_uidls = TRUE;
     ctx->highest_pop3_uidl_seq = I_MAX(ctx->highest_pop3_uidl_seq, ctx->seq);
   }
+
+  bufferlist pop3_order;
   if (mdata->pop3_order != 0) {
     str_printfa(str, "%c%u\n", DBOX_METADATA_POP3_ORDER, mdata->pop3_order);
+
+    pop3_order.append(mdata->pop3_order);
+    map.insert(pair<string, bufferlist>(RBOX_METADATA_POP3_ORDER, pop3_order));
+
     ctx->have_pop3_orders = TRUE;
     ctx->highest_pop3_uidl_seq = I_MAX(ctx->highest_pop3_uidl_seq, ctx->seq);
   }
@@ -270,19 +311,32 @@ void rbox_save_write_metadata(struct mail_save_context *_ctx, struct ostream *ou
     guid = guid_128_to_string(guid_128);
   }
   str_printfa(str, "%c%s\n", DBOX_METADATA_GUID, guid);
+  bufferlist guid_bl;
+  guid_bl.append(guid);
+  map.insert(pair<string, bufferlist>(RBOX_METADATA_GUID, guid_bl));
 
+  bufferlist orig_mailbox_name_bl;
   if (orig_mailbox_name != NULL && strchr(orig_mailbox_name, '\r') == NULL && strchr(orig_mailbox_name, '\n') == NULL) {
     /* save the original mailbox name so if mailbox indexes get
        corrupted we can place at least some (hopefully most) of
        the messages to correct mailboxes. */
     str_printfa(str, "%c%s\n", DBOX_METADATA_ORIG_MAILBOX, orig_mailbox_name);
+    orig_mailbox_name_bl.append(orig_mailbox_name);
+    map.insert(pair<string, bufferlist>(RBOX_METADATA_ORIG_MAILBOX, orig_mailbox_name_bl));
   }
 
   dbox_attachment_save_write_metadata(_ctx, str);
 
   str_append_c(str, '\n');
   o_stream_nsend(output, str_data(str), str_len(str));
+
+  bufferlist bl;
+  bl.append(str_data(str), str_len(str));
+  map.insert(pair<string, bufferlist>(RBOX_METADATA_ALL, bl));
+  i_debug("rbox_save_write_metadata: len=%d, str='%s'", str_len(str), str_data(str));
+  ((rbox_storage->s)->get_io_ctx()).omap_set(((struct rbox_file *)rbox_save_ctx->cur_file)->oid, map);
 }
+
 static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct dbox_file *file) {
   FUNC_START();
   struct rbox_file *sfile = (struct rbox_file *)file;
@@ -301,6 +355,7 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   message_size = ctx->dbox_output->offset - file->msg_header_size - file->file_header_size;
 
   rbox_save_write_metadata(&ctx->ctx, ctx->dbox_output, message_size, NULL, guid_128);
+
   dbox_msg_header_fill(&dbox_msg_hdr, message_size);
   if (o_stream_pwrite(ctx->dbox_output, &dbox_msg_hdr, sizeof(dbox_msg_hdr), file->file_header_size) < 0) {
     dbox_file_set_syscall_error(file, "pwrite()");
@@ -329,10 +384,10 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   return 0;
 }
 
-static void remove_from_rados(RadosStorage *storage, char *oid) { 
-  if(oid !=0 && storage != 0 && storage != 0 ) {
-    i_debug("object to delete is : %s",oid);
-    (storage->get_io_ctx()).remove(oid); 
+static void remove_from_rados(RadosStorage *storage, char *oid) {
+  if (oid != 0 && storage != 0 && storage != 0) {
+    i_debug("object to delete is : %s", oid);
+    (storage->get_io_ctx()).remove(oid);
   }
 }
 
@@ -340,14 +395,15 @@ static void remove_objects_from_rados(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file **files;
   unsigned int i, count;
-  struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
-  struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
+
   if (ctx->ctx.failed) {
-      files = array_get(&ctx->files, &count);
-      i_debug("remove_objects_from_rados: objects to delete : %d",count);
-      for (i = 0; i < count; i++) {
-        remove_from_rados(rbox_ctx->s, ((struct rbox_file *)files[i])->oid);
-      }
+    struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
+    struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
+    files = array_get(&ctx->files, &count);
+    i_debug("remove_objects_from_rados: objects to delete : %d", count);
+    for (i = 0; i < count; i++) {
+      remove_from_rados(rbox_ctx->s, ((struct rbox_file *)files[i])->oid);
+    }
   }
   FUNC_END();
 }
@@ -486,8 +542,6 @@ static void rbox_save_unref_files(struct rbox_save_context *ctx) {
   FUNC_START();
   struct dbox_file **files;
   unsigned int i, count;
-  struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
-  struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
 
   rbox_dbg_print_mail_save_context(&ctx->ctx.ctx, "rbox_save_assign_uids", NULL);
 

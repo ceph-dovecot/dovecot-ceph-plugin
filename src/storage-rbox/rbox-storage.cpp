@@ -14,7 +14,7 @@ extern "C" {
 #include "mailbox-list-private.h"
 #include "index-pop3-uidl.h"
 #include "typeof-def.h"
-#include "dbox-mail.h"
+#include "rbox-mail.h"
 #include "dbox-save.h"
 #include "rbox-file.h"
 #include "rbox-sync.h"
