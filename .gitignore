@@ -76,3 +76,4 @@ libtool
 *.out
 *.app
 /.settings/
+/dovecot/
