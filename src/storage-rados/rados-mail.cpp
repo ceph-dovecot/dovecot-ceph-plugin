@@ -1,8 +1,9 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-extern "C" {
 #include <fcntl.h>
+
+extern "C" {
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -20,6 +21,7 @@ extern "C" {
 #include "debug-helper.h"
 }
 
+#include "rados-mail.h"
 #include "rados-storage-struct.h"
 
 struct rados_mail {
