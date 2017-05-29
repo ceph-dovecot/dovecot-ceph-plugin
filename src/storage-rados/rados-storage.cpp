@@ -111,7 +111,6 @@ struct mailbox *rados_mailbox_alloc(struct mail_storage *storage, struct mailbox
   FUNC_START();
   struct rados_mailbox *mbox;
   struct index_mailbox_context *ibox;
-  struct sdbox_index_header hdr;
   pool_t pool;
 
   /* rados can't work without index files */
@@ -137,17 +136,6 @@ struct mailbox *rados_mailbox_alloc(struct mail_storage *storage, struct mailbox
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
-  /*
-  mbox->ext_id = mail_index_ext_register(mbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
-  mbox->hdr_ext_id = mail_index_ext_register(mbox->box.index, "dbox-hdr", sizeof(struct sdbox_index_header), 0, 0);
-
-  i_zero(&hdr);
-  guid_128_generate(hdr.mailbox_guid);
-  mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
-  memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
-*/
-  guid_128_generate(mbox->mailbox_guid);
-
   mbox->storage = (struct rados_storage *)storage;
 
   i_debug("list name = %s", list->name);
@@ -156,9 +144,32 @@ struct mailbox *rados_mailbox_alloc(struct mail_storage *storage, struct mailbox
   return &mbox->box;
 }
 
+static int rados_mailbox_alloc_index(struct rados_mailbox *mbox) {
+  struct sdbox_index_header hdr;
+
+  if (index_storage_mailbox_alloc_index(&mbox->box) < 0)
+    return -1;
+
+  mbox->hdr_ext_id = mail_index_ext_register(mbox->box.index, "dbox-hdr", sizeof(struct sdbox_index_header), 0, 0);
+  /* set the initialization data in case the mailbox is created */
+  i_zero(&hdr);
+  guid_128_generate(hdr.mailbox_guid);
+  mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
+
+  memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
+
+  // register index record holding the mail guid
+  mbox->ext_id = mail_index_ext_register(mbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
+
+  return 0;
+}
+
 int rados_mailbox_open(struct mailbox *box) {
   FUNC_START();
   struct rados_mailbox *mbox = (struct rados_mailbox *)box;
+
+  if (rados_mailbox_alloc_index(mbox) < 0)
+    return -1;
 
   const char *box_path = mailbox_get_path(box);
   struct stat st;
