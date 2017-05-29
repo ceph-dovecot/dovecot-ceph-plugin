@@ -415,7 +415,7 @@ void debug_print_mailbox_list(struct mailbox_list *target, const char *funcname,
   RBOX_PRINT_DEBUG("changelog = %p", target->changelog);
 
   RBOX_PRINT_DEBUG("root_permissions.file_uid = %u", target->root_permissions.file_uid);
-  RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
+  // RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.);
 
   RBOX_PRINT_DEBUG("subscriptions_mtime = %ld", target->subscriptions_mtime);
   RBOX_PRINT_DEBUG("subscriptions_read_time = %ld", target->subscriptions_read_time);
