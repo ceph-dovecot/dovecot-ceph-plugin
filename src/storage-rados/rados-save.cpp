@@ -44,7 +44,8 @@ class rados_save_context {
 
   char *tmp_basename;
   unsigned int mail_count;
-  guid_128_t mail_guid;
+
+  guid_128_t mail_guid;  // goes to index record
 
   struct rados_sync_context *sync_ctx;
 
@@ -95,7 +96,6 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     ctx->trans = t->itrans;
     ctx->tmp_basename = rados_generate_tmp_filename();
     ctx->fd = -1;
-    guid_128_generate(ctx->mail_guid);
     t->save_ctx = &ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
@@ -111,6 +111,8 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct istream *crlf_input;
 
   ctx->failed = FALSE;
+
+  guid_128_generate(ctx->mail_guid);
 
   T_BEGIN {
     const char *path;
@@ -286,6 +288,7 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
 int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
+  struct rados_mailbox *rbox = ctx->mbox;
   const char *path = rados_get_save_path(ctx, ctx->mail_count);
 
   ctx->finished = TRUE;
@@ -295,10 +298,16 @@ int rados_save_finish(struct mail_save_context *_ctx) {
       ctx->failed = TRUE;
   }
 
-  if (!ctx->failed)
+  if (!ctx->failed) {
+    struct obox_mail_index_record rec;
+    i_zero(&rec);
+    memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
+    mail_index_update_ext(ctx->trans, ctx->seq, rbox->ext_id, &rec, NULL);
+
     ctx->mail_count++;
-  else
+  } else {
     i_unlink(path);
+  }
 
   index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !ctx->failed);
   if (ctx->input != NULL)
