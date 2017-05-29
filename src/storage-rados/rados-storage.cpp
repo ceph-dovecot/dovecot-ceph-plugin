@@ -1,12 +1,13 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <sys/stat.h>
+
 #include <string>
 
 #include <rados/librados.hpp>
 
 extern "C" {
-#include <sys/stat.h>
 
 #include "lib.h"
 #include "typeof-def.h"
@@ -25,6 +26,7 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-cluster.h"
 #include "rados-storage.h"
+#include "rados-mail.h"
 
 using namespace librados;  // NOLINT
 using std::string;
@@ -210,6 +212,13 @@ int rados_mailbox_open(struct mailbox *box) {
   return 0;
 }
 
+static void rados_mailbox_close(struct mailbox *box) {
+  FUNC_START();
+  debug_print_mailbox(box, "rados_mailbox_close", NULL);
+  index_storage_mailbox_close(box);
+  FUNC_END();
+}
+
 int rados_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
   FUNC_START();
   struct rados_mailbox *mbox = (struct rados_mailbox *)box;
@@ -225,6 +234,14 @@ int rados_mailbox_create(struct mailbox *box, const struct mailbox_update *updat
 
   i_debug("mailbox update = %p", update);
   debug_print_rados_mailbox(mbox, "rados-storage::rados_mailbox_create", NULL);
+  FUNC_END();
+  return ret;
+}
+
+static int rados_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
+  FUNC_START();
+  debug_print_mailbox(box, "rados_mailbox_update", NULL);
+  int ret = index_storage_mailbox_update(box, update);
   FUNC_END();
   return ret;
 }
@@ -272,6 +289,19 @@ void rados_notify_changes(struct mailbox *box) {
   FUNC_END();
 }
 
+int rados_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
+  FUNC_START();
+  struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
+
+  debug_print_mail(mail, "rados_mail_copy", NULL);
+  debug_print_mail_save_context(_ctx, "rados_mail_copy", NULL);
+
+  int ret = mail_storage_copy(_ctx, mail);
+
+  FUNC_END();
+  return ret;
+}
+
 struct mail_storage rados_storage = {
     .name = RADOS_STORAGE_NAME,
     .class_flags = static_cast<mail_storage_class_flags>(
@@ -287,10 +317,10 @@ struct mailbox_vfuncs rados_mailbox_vfuncs = {index_storage_is_readonly,
                                               index_storage_mailbox_enable,
                                               index_storage_mailbox_exists,
                                               rados_mailbox_open,
-                                              index_storage_mailbox_close,
+                                              rados_mailbox_close,
                                               index_storage_mailbox_free,
                                               rados_mailbox_create,
-                                              index_storage_mailbox_update,
+                                              rados_mailbox_update,
                                               index_storage_mailbox_delete,
                                               index_storage_mailbox_rename,
                                               index_storage_get_status,
@@ -312,7 +342,7 @@ struct mailbox_vfuncs rados_mailbox_vfuncs = {index_storage_is_readonly,
                                               index_transaction_commit,
                                               index_transaction_rollback,
                                               NULL,
-                                              index_mail_alloc,
+                                              rados_mail_alloc,
                                               index_storage_search_init,
                                               index_storage_search_deinit,
                                               index_storage_search_next_nonblock,
@@ -322,7 +352,7 @@ struct mailbox_vfuncs rados_mailbox_vfuncs = {index_storage_is_readonly,
                                               rados_save_continue,
                                               rados_save_finish,
                                               rados_save_cancel,
-                                              mail_storage_copy,
+                                              rados_mail_copy,
                                               rados_transaction_save_commit_pre,
                                               rados_transaction_save_commit_post,
                                               rados_transaction_save_rollback,
