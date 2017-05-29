@@ -22,14 +22,66 @@ extern "C" {
 
 #include "rados-storage-struct.h"
 
-static const char *rados_mail_get_path(struct mail *mail) {
+struct rados_mail {
+  struct index_mail imail;
+
+  guid_128_t mail_guid;
+};
+
+static int rados_get_guid(struct mail *_mail) {
   FUNC_START();
+  struct rados_mail *mail = (struct rados_mail *)_mail;
+  struct rados_mailbox *rbox = (struct rados_mailbox *)_mail->transaction->box;
+
+  if (guid_128_is_empty(mail->mail_guid)) {
+    const struct obox_mail_index_record *obox_rec;
+    const void *rec_data;
+    mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
+    obox_rec = rec_data;
+
+    if (obox_rec == nullptr) {
+      /* lost for some reason, give up */
+      FUNC_END_RET("ret == -1");
+      return -1;
+    }
+
+    memcpy(mail->mail_guid, obox_rec->guid, sizeof(obox_rec->guid));
+  }
+
+  i_debug("rados_get_guid: mail_guid=%s", guid_128_to_string(mail->mail_guid));
+
+  FUNC_END();
+  return 0;
+}
+
+struct mail *rados_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
+                              struct mailbox_header_lookup_ctx *wanted_headers) {
+  FUNC_START();
+
+  pool_t pool = pool_alloconly_create("mail", 2048);
+  struct rados_mail *mail = p_new(pool, struct rados_mail, 1);
+  mail->imail.mail.pool = pool;
+
+  index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
+
+  FUNC_END();
+
+  return &mail->imail.mail.mail;
+}
+
+static const char *rados_mail_get_path(struct mail *_mail) {
+  FUNC_START();
+  struct rados_mail *mail = (struct rados_mail *)_mail;
+
   const char *dir;
 
-  dir = mailbox_get_path(mail->box);
-  debug_print_mail(mail, "rados-mail::rados_mail_get_path", NULL);
-  const char *path = t_strdup_printf("%s/%u.", dir, mail->uid);
+  rados_get_guid((struct mail *)mail);
+
+  dir = mailbox_get_path(_mail->box);
+  debug_print_mail(_mail, "rados-mail::rados_mail_get_path", NULL);
+  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(mail->mail_guid));
   i_debug("path = %s", path);
+
   FUNC_END();
   return path;
 }
