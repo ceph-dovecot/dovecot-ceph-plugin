@@ -51,6 +51,7 @@ class rados_save_context {
   /* updated for each appended mail: */
   uint32_t seq;
   struct istream *input;
+  int fd;
 
   RadosStorage &rados_storage;
   ObjectWriteOperation write_op;
@@ -61,16 +62,18 @@ class rados_save_context {
   unsigned int finished : 1;
 };
 
+static char *rados_generate_tmp_filename(void) {
+  static unsigned int create_count = 0;
+  return i_strdup_printf("temp.%s.P%sQ%uM%s.%s", dec2str(ioloop_timeval.tv_sec), my_pid, create_count++,
+                         dec2str(ioloop_timeval.tv_usec), my_hostname);
+}
+
 static const char *rados_get_save_path(struct rados_save_context *ctx, unsigned int num) {
   FUNC_START();
   const char *dir;
-  guid_128_t guid_128;
-
-  guid_128_generate(guid_128);
-  const char *guid = guid_128_to_string(guid_128);
 
   dir = mailbox_get_path(&ctx->mbox->box);
-  const char *ret = t_strdup_printf("%s/%s", dir, guid);
+  const char *ret = t_strdup_printf("%s/%s.%u", dir, ctx->tmp_basename, num);
   i_debug("save path = %s", ret);
   debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_get_save_path", NULL);
   FUNC_END();
@@ -90,6 +93,8 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     ctx->ctx.transaction = t;
     ctx->mbox = mbox;
     ctx->trans = t->itrans;
+    ctx->tmp_basename = rados_generate_tmp_filename();
+    ctx->fd = -1;
     guid_128_generate(ctx->mail_guid);
     t->save_ctx = &ctx->ctx;
   }
@@ -106,6 +111,21 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct istream *crlf_input;
 
   ctx->failed = FALSE;
+
+  T_BEGIN {
+    const char *path;
+
+    path = rados_get_save_path(ctx, ctx->mail_count);
+    ctx->fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0660);
+    if (ctx->fd != -1) {
+      _ctx->data.output = o_stream_create_fd_file(ctx->fd, 0, FALSE);
+      o_stream_cork(_ctx->data.output);
+    } else {
+      mail_storage_set_critical(trans->box->storage, "open(%s) failed: %m", path);
+      ctx->failed = TRUE;
+    }
+  }
+  T_END;
 
   ctx->cur_oid = rados_get_save_path(ctx, ctx->mail_count);
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
@@ -141,9 +161,6 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   crlf_input = i_stream_create_crlf(input);
   ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
   i_stream_unref(&crlf_input);
-
-  ctx->oids.push_back(ctx->cur_oid);
-
   debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin", NULL);
   FUNC_END();
   return ctx->failed ? -1 : 0;
@@ -194,7 +211,8 @@ int rados_save_continue(struct mail_save_context *_ctx) {
   }
 
   do {
-    if (rados_stream_mail_to_rados(ctx) < 0) {
+    if (o_stream_send_istream(_ctx->data.output, ctx->input) < 0) {
+      //    if (rados_stream_mail_to_rados(ctx) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", rados_get_save_path(ctx, ctx->mail_count));
       }
@@ -223,12 +241,10 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
   struct stat st;
   int ret = 0;
 
-  /*
- if (o_stream_nfinish(ctx->ctx.data.output) < 0) {
+  if (o_stream_nfinish(ctx->ctx.data.output) < 0) {
     mail_storage_set_critical(storage, "write(%s) failed: %s", path, o_stream_get_error(ctx->ctx.data.output));
     ret = -1;
   }
-
 
   if (storage->set->parsed_fsync_mode != FSYNC_MODE_NEVER) {
     if (fsync(ctx->fd) < 0) {
@@ -256,8 +272,11 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
   }
 
   o_stream_destroy(&ctx->ctx.data.output);
-  */
-
+  if (close(ctx->fd) < 0) {
+    mail_storage_set_critical(storage, "close(%s) failed: %m", path);
+    ret = -1;
+  }
+  ctx->fd = -1;
   debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_save_flush", NULL);
   debug_print_mail_storage(storage, "rados-save::rados_save_flush", NULL);
   FUNC_END();
@@ -267,20 +286,19 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
 int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
-  struct mail_storage *storage = ((struct mail_save_context *)ctx)->transaction->box->storage;
-  struct rbox_storage *rbox_ctx = (struct rbox_storage *)storage;
+  const char *path = rados_get_save_path(ctx, ctx->mail_count);
 
   ctx->finished = TRUE;
 
-  if (rados_save_flush(ctx, ctx->cur_oid.c_str()) < 0)
-    ctx->failed = TRUE;
-
-  if (!ctx->failed) {
-    ctx->mail_count++;
-  } else {
-    ctx->rados_storage.get_io_ctx().remove(ctx->cur_oid);
-    // TODO(peter) cleanup all oids
+  if (ctx->fd != -1) {
+    if (rados_save_flush(ctx, path) < 0)
+      ctx->failed = TRUE;
   }
+
+  if (!ctx->failed)
+    ctx->mail_count++;
+  else
+    i_unlink(path);
 
   index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !ctx->failed);
   if (ctx->input != NULL)
