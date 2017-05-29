@@ -1,6 +1,9 @@
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <stdio.h>
+#include <utime.h>
+
 #include <string>
 #include <map>
 #include <vector>
@@ -8,9 +11,6 @@
 #include <rados/librados.hpp>
 
 extern "C" {
-#include <stdio.h>
-#include <utime.h>
-
 #include "lib.h"
 #include "typeof-def.h"
 
@@ -42,7 +42,6 @@ class rados_save_context {
   struct rados_mailbox *mbox;
   struct mail_index_transaction *trans;
 
-  char *tmp_basename;
   unsigned int mail_count;
 
   guid_128_t mail_guid;  // goes to index record
@@ -63,22 +62,16 @@ class rados_save_context {
   unsigned int finished : 1;
 };
 
-static char *rados_generate_tmp_filename(void) {
-  static unsigned int create_count = 0;
-  return i_strdup_printf("temp.%s.P%sQ%uM%s.%s", dec2str(ioloop_timeval.tv_sec), my_pid, create_count++,
-                         dec2str(ioloop_timeval.tv_usec), my_hostname);
-}
-
 static const char *rados_get_save_path(struct rados_save_context *ctx, unsigned int num) {
   FUNC_START();
-  const char *dir;
 
-  dir = mailbox_get_path(&ctx->mbox->box);
-  const char *ret = t_strdup_printf("%s/%s.%u", dir, ctx->tmp_basename, num);
-  i_debug("save path = %s", ret);
-  debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_get_save_path", NULL);
+  const char *dir = mailbox_get_path(&ctx->mbox->box);
+  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(ctx->mail_guid));
+
+  i_debug("save path = %s", path);
+
   FUNC_END();
-  return ret;
+  return path;
 }
 
 struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t) {
@@ -94,7 +87,6 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     ctx->ctx.transaction = t;
     ctx->mbox = mbox;
     ctx->trans = t->itrans;
-    ctx->tmp_basename = rados_generate_tmp_filename();
     ctx->fd = -1;
     t->save_ctx = &ctx->ctx;
   }
@@ -129,7 +121,8 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
   T_END;
 
-  ctx->cur_oid = rados_get_save_path(ctx, ctx->mail_count);
+  string oid(guid_128_to_string(ctx->mail_guid));
+  ctx->cur_oid = oid;
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
 
   // create RADOS object and set state to saving
@@ -137,7 +130,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   state_bl.append("S");
   int ret = ctx->rados_storage.get_io_ctx().setxattr(ctx->cur_oid, "STATE", state_bl);
   if (ret < 0) {
-    mail_storage_set_critical(trans->box->storage, "setxattr(%s, &s) failed: %m", ctx->cur_oid.c_str(), "STATE");
+    mail_storage_set_critical(trans->box->storage, "setxattr(%s, %s, %s) failed", ctx->cur_oid.c_str(), "STATE", "S");
     ctx->failed = TRUE;
   }
 
@@ -356,38 +349,6 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   mail_index_append_finish_uids(ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
   _t->changes->uid_validity = ctx->sync_ctx->uid_validity;
 
-  dir = mailbox_get_path(&ctx->mbox->box);
-
-  src_path = t_str_new(256);
-  str_printfa(src_path, "%s/%s.", dir, ctx->tmp_basename);
-  src_prefixlen = str_len(src_path);
-
-  dest_path = t_str_new(256);
-  str_append(dest_path, dir);
-  str_append_c(dest_path, '/');
-  dest_prefixlen = str_len(dest_path);
-
-  seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
-  n = 0;
-  while (seq_range_array_iter_nth(&iter, n++, &uid) > 0) {
-    str_truncate(src_path, src_prefixlen);
-    str_truncate(dest_path, dest_prefixlen);
-    str_printfa(src_path, "%u", n - 1);
-    str_printfa(dest_path, "%u.", uid);
-
-    i_debug("rename mail from %s", str_c(src_path));
-    i_debug("              to %s", str_c(dest_path));
-
-    if (rename(str_c(src_path), str_c(dest_path)) < 0) {
-      mail_storage_set_critical(&ctx->mbox->storage->storage, "rename(%s, %s) failed: %m", str_c(src_path),
-                                str_c(dest_path));
-      ctx->failed = TRUE;
-      rados_transaction_save_rollback(_ctx);
-      debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_pre (ret -1, 2)", NULL);
-      FUNC_END_RET("ret == -1");
-      return -1;
-    }
-  }
   debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_commit_pre", NULL);
   FUNC_END();
   return 0;
@@ -420,7 +381,6 @@ void rados_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_rollback", NULL);
 
-  i_free(ctx->tmp_basename);
   delete ctx;
   FUNC_END();
 }
