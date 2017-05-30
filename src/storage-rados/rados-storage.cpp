@@ -53,6 +53,7 @@ void rados_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED
   FUNC_START();
   if (set->layout == NULL) {
     set->layout = MAILBOX_LIST_NAME_FS;
+    // set->layout = MAILBOX_LIST_NAME_INDEX;
   }
   if (*set->maildir_name == '\0')
     set->maildir_name = RADOS_MAILDIR_NAME;
@@ -241,6 +242,14 @@ int rados_mailbox_create(struct mailbox *box, const struct mailbox_update *updat
 static int rados_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
   FUNC_START();
   debug_print_mailbox(box, "rados_mailbox_update", NULL);
+
+  if (!box->opened) {
+    if (mailbox_open(box) < 0)
+      return -1;
+  }
+
+  // TODO(peter): if (sdbox_mailbox_create_indexes(box, update, NULL) < 0) return -1;
+
   int ret = index_storage_mailbox_update(box, update);
   FUNC_END();
   return ret;
@@ -251,12 +260,7 @@ int rados_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items 
   FUNC_START();
   struct rados_mailbox *mbox = (struct rados_mailbox *)box;
 
-  if ((items & MAILBOX_METADATA_GUID) != 0) {
-    /* a bit ugly way to do this, but better than nothing for now.
-     FIXME: if indexes are enabled, keep this there. */
-    mail_generate_guid_128_hash(box->name, metadata_r->guid);
-    items &= ~MAILBOX_METADATA_GUID;
-  }
+  debug_print_rados_mailbox(mbox, "rados-storage::rados_mailbox_get_metadata", NULL);
 
   if (items != 0) {
     if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
@@ -264,6 +268,10 @@ int rados_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items 
       FUNC_END_RET("ret == -1");
       return -1;
     }
+  }
+
+  if ((items & MAILBOX_METADATA_GUID) != 0) {
+    memcpy(metadata_r->guid, mbox->mailbox_guid, sizeof(metadata_r->guid));
   }
 
   if (metadata_r != NULL && metadata_r->cache_fields != NULL) {
