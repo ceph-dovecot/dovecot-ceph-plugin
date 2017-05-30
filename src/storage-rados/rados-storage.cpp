@@ -250,16 +250,17 @@ int rados_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items 
                                struct mailbox_metadata *metadata_r) {
   FUNC_START();
   struct rados_mailbox *mbox = (struct rados_mailbox *)box;
+  int items_ = items;
 
   if ((items & MAILBOX_METADATA_GUID) != 0) {
     /* a bit ugly way to do this, but better than nothing for now.
      FIXME: if indexes are enabled, keep this there. */
     mail_generate_guid_128_hash(box->name, metadata_r->guid);
-    items &= ~MAILBOX_METADATA_GUID;
+    items_ &= ~MAILBOX_METADATA_GUID;
   }
 
-  if (items != 0) {
-    if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
+  if (items_ != 0) {
+    if (index_mailbox_get_metadata(box, static_cast<mailbox_metadata_items>(items), metadata_r) < 0) {
       debug_print_mailbox(box, "rados-storage::rados_mailbox_get_metadata (ret -1, 1)", NULL);
       FUNC_END_RET("ret == -1");
       return -1;
