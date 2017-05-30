@@ -54,7 +54,6 @@ class rados_save_context {
   /* updated for each appended mail: */
   uint32_t seq;
   struct istream *input;
-  int fd;
 
   RadosStorage &rados_storage;
   ObjectWriteOperation write_op;
@@ -66,18 +65,6 @@ class rados_save_context {
   unsigned int failed : 1;
   unsigned int finished : 1;
 };
-
-static const char *rados_get_save_path(struct rados_save_context *ctx, unsigned int num) {
-  FUNC_START();
-
-  const char *dir = mailbox_get_path(&ctx->mbox->box);
-  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(ctx->mail_oid));
-
-  i_debug("save path = %s", path);
-
-  FUNC_END();
-  return path;
-}
 
 struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t) {
   FUNC_START();
@@ -92,7 +79,6 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     ctx->ctx.transaction = t;
     ctx->mbox = mbox;
     ctx->trans = t->itrans;
-    ctx->fd = -1;
     t->save_ctx = &ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
@@ -117,21 +103,6 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   string oid(guid_128_to_string(ctx->mail_oid));
   ctx->cur_oid = oid;
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
-
-  T_BEGIN {
-    const char *path;
-
-    path = rados_get_save_path(ctx, ctx->mail_count);
-    ctx->fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0660);
-    if (ctx->fd != -1) {
-      _ctx->data.output = o_stream_create_fd_file(ctx->fd, 0, FALSE);
-      o_stream_cork(_ctx->data.output);
-    } else {
-      mail_storage_set_critical(trans->box->storage, "open(%s) failed: %m", path);
-      ctx->failed = TRUE;
-    }
-  }
-  T_END;
 
   // create RADOS object and set state to saving
   ceph::bufferlist state_bl;
@@ -242,20 +213,9 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
     ret = -1;
   }
 
-  if (storage->set->parsed_fsync_mode != FSYNC_MODE_NEVER) {
-    if (fsync(ctx->fd) < 0) {
-      mail_storage_set_critical(storage, "fsync(%s) failed: %m", path);
-      ret = -1;
-    }
-  }
-
   if (ctx->ctx.data.received_date == (time_t)-1) {
-    if (fstat(ctx->fd, &st) == 0) {
-      ctx->ctx.data.received_date = st.st_mtime;
-    } else {
-      mail_storage_set_critical(storage, "fstat(%s) failed: %m", path);
-      ret = -1;
-    }
+    mail_storage_set_critical(storage, "fstat(%s) failed: %m", path);
+    ret = -1;
   } else {
     struct utimbuf ut;
 
@@ -268,11 +228,7 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
   }
 
   o_stream_destroy(&ctx->ctx.data.output);
-  if (close(ctx->fd) < 0) {
-    mail_storage_set_critical(storage, "close(%s) failed: %m", path);
-    ret = -1;
-  }
-  ctx->fd = -1;
+
   debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_save_flush", NULL);
   debug_print_mail_storage(storage, "rados-save::rados_save_flush", NULL);
   FUNC_END();
@@ -326,8 +282,7 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
     op.setxattr(RBOX_METADATA_POP3_ORDER, bl);
   }
 
-  string path = rados_get_save_path(ctx, ctx->mail_count);
-  int ret = rados_storage->s->get_io_ctx().operate(path, &op);
+  int ret = rados_storage->s->get_io_ctx().operate(ctx->cur_oid, &op);
 
   FUNC_END();
 
@@ -340,11 +295,6 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   struct rados_mailbox *rbox = ctx->mbox;
   struct mail_storage *storage = &ctx->mbox->storage->storage;
   struct rados_storage *rados_ctx = (struct rados_storage *)storage;
-  const char *path = rados_get_save_path(ctx, ctx->mail_count);
-  if (ctx->fd != -1) {
-    if (rados_save_flush(ctx, path) < 0)
-      ctx->failed = TRUE;
-  }
 
   ctx->finished = TRUE;
 
@@ -355,11 +305,11 @@ int rados_save_finish(struct mail_save_context *_ctx) {
     librados::bufferlist state_bl;
     state_bl.append("F");  // finished
     ctx->write_op.setxattr("SAVE", state_bl);
+
     rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
     i_debug("saving to : %s", ctx->cur_oid.c_str());
 
   } else {
-    // i_unlink(path);
     ctx->write_op.remove();
   }
 
