@@ -107,6 +107,10 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   guid_128_generate(ctx->mail_oid);
 
+  string oid(guid_128_to_string(ctx->mail_oid));
+  ctx->cur_oid = oid;
+  i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
+
   T_BEGIN {
     const char *path;
 
@@ -122,18 +126,10 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
   T_END;
 
-  string oid(guid_128_to_string(ctx->mail_oid));
-  ctx->cur_oid = oid;
-  i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
-
   // create RADOS object and set state to saving
   ceph::bufferlist state_bl;
   state_bl.append("S");
-  int ret = ctx->rados_storage.get_io_ctx().setxattr(ctx->cur_oid, "STATE", state_bl);
-  if (ret < 0) {
-    mail_storage_set_critical(trans->box->storage, "setxattr(%s, %s, %s) failed", ctx->cur_oid.c_str(), "STATE", "S");
-    ctx->failed = TRUE;
-  }
+  ctx->write_op.setxattr("STATE", state_bl);
 
   if (ctx->failed) {
     debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin (ret -1, 1)", NULL);
@@ -162,7 +158,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   return ctx->failed ? -1 : 0;
 }
 
-size_t rados_stream_mail_to_rados(rados_save_context *ctx) {
+size_t rados_stream_mail_to_rados(istream *input, struct rados_save_context *ctx) {
   const unsigned char *data;
   ssize_t ret;
   ceph::bufferlist bl;
@@ -170,11 +166,11 @@ size_t rados_stream_mail_to_rados(rados_save_context *ctx) {
   size_t total_size = 0;
 
   do {
-    (void)i_stream_read_data(ctx->input, &data, &size, 0);
-    i_debug("rados_stream_mail_to_rados: size=%lu", size);
+    (void)i_stream_read_data(input, &data, &size, 0);
+    i_debug("rados_stream_mail_to_rados: size=%d", size);
     if (size == 0) {
       /*all sent */
-      if (ctx->input->stream_errno != 0) {
+      if (input->stream_errno != 0) {
         return -1;
       }
       break;
@@ -183,12 +179,9 @@ size_t rados_stream_mail_to_rados(rados_save_context *ctx) {
     bl.clear();
     bl.append((const char *)data, size);
 
-    int err = ctx->rados_storage.get_io_ctx().append(ctx->cur_oid, bl, size);
-    if (err < 0) {
-      return -1;
-    }
-    total_size += size;
-    i_stream_skip(ctx->input, 0);  // ???
+    ctx->write_op.write(total_size, bl);
+    total_size += bl.length();
+    i_stream_skip(input, bl.length());
   } while ((size_t)ret == size);
 
   return total_size;
@@ -207,10 +200,10 @@ int rados_save_continue(struct mail_save_context *_ctx) {
   }
 
   do {
-    if (o_stream_send_istream(_ctx->data.output, ctx->input) < 0) {
+    if (rados_stream_mail_to_rados(ctx->input, ctx) < 0) {
       //    if (rados_stream_mail_to_rados(ctx) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
-        mail_storage_set_critical(storage, "write(%s) failed: %m", rados_get_save_path(ctx, ctx->mail_count));
+        mail_storage_set_critical(storage, "write(%s) failed: %m", "unused JAR");
       }
       ctx->failed = TRUE;
       debug_print_mail_save_context(_ctx, "rados-save::rados_save_continue (ret -1, 2)", NULL);
@@ -302,20 +295,29 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
   struct rados_mailbox *rbox = ctx->mbox;
+  struct mail_storage *storage = &ctx->mbox->storage->storage;
+  struct rados_storage *rados_ctx = (struct rados_storage *)storage;
   const char *path = rados_get_save_path(ctx, ctx->mail_count);
-
-  ctx->finished = TRUE;
-
   if (ctx->fd != -1) {
     if (rados_save_flush(ctx, path) < 0)
       ctx->failed = TRUE;
   }
 
+  ctx->finished = TRUE;
+
   if (!ctx->failed) {
     rados_save_mail_write_metadata(ctx);
     ctx->mail_count++;
+
+    librados::bufferlist state_bl;
+    state_bl.append("F");  // finished
+    ctx->write_op.setxattr("SAVE", state_bl);
+    rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
+    i_debug("saving to : %s", ctx->cur_oid.c_str());
+
   } else {
-    i_unlink(path);
+    // i_unlink(path);
+    ctx->write_op.remove();
   }
 
   index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !ctx->failed);
