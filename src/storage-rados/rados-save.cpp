@@ -273,7 +273,13 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
 }
 
 static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
+  FUNC_START();
   struct rados_mailbox *rbox = ctx->mbox;
+  struct mail_storage *storage = ctx->ctx.transaction->box->storage;
+  auto *rados_storage = (struct rados_storage *)storage;
+  struct mail_save_data *mdata = &ctx->ctx.data;
+
+  ObjectWriteOperation op;
 
   if (ctx->ctx.data.guid != NULL) {
     mail_generate_guid_128_hash(ctx->ctx.data.guid, ctx->mail_guid);
@@ -281,14 +287,53 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
     guid_128_generate(ctx->mail_guid);
   }
 
-  /* save the 128bit GUID/OID to index */
+  /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
   i_zero(&rec);
   memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
   memcpy(rec.oid, ctx->mail_oid, sizeof(ctx->mail_oid));
   mail_index_update_ext(ctx->trans, ctx->seq, rbox->ext_id, &rec, NULL);
 
-  return 0;
+  {
+    bufferlist bl;
+    bl.append((const char *)ctx->mail_guid, sizeof(ctx->mail_guid));
+    op.setxattr(RBOX_METADATA_GUID, bl);
+  }
+
+  {
+    bufferlist bl;
+    bl.append(mdata->received_date);
+    op.setxattr(RBOX_METADATA_RECEIVED_DATE, bl);
+  }
+
+  uoff_t vsize;
+  if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
+    i_unreached();
+  } else {
+    bufferlist bl;
+    bl.append(vsize);
+    op.setxattr(RBOX_METADATA_VIRTUAL_SIZE, bl);
+  }
+
+  if (mdata->pop3_uidl != NULL) {
+    i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
+    bufferlist bl;
+    bl.append(mdata->pop3_uidl);
+    op.setxattr(RBOX_METADATA_POP3_UIDL, bl);
+  }
+
+  if (mdata->pop3_order != 0) {
+    bufferlist bl;
+    bl.append(mdata->pop3_order);
+    op.setxattr(RBOX_METADATA_POP3_ORDER, bl);
+  }
+
+  string path = rados_get_save_path(ctx, ctx->mail_count);
+  int ret = rados_storage->s->get_io_ctx().operate(path, &op);
+
+  FUNC_END();
+
+  return ret < 0;
 }
 
 int rados_save_finish(struct mail_save_context *_ctx) {
