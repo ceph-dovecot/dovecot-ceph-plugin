@@ -23,6 +23,7 @@ extern "C" {
 
 #include "rados-mail.h"
 #include "rados-storage-struct.h"
+#include "rados-storage.h"
 
 struct rados_mail {
   struct index_mail imail;
@@ -179,9 +180,11 @@ static int rados_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 
 static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
-  struct index_mail *mail = (struct index_mail *)_mail;
-  struct index_mail_data *data = &mail->data;
-  struct stat st;
+  struct rados_storage *rados_storage = (struct rados_storage *)_mail->box->storage;
+  struct rados_mail *r_mail = (struct rados_mail *)_mail;
+
+  uint64_t file_size;
+  time_t time;
 
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("physical size = %lu", *size_r);
@@ -190,46 +193,59 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return 0;
   }
 
-  if (rados_mail_stat(_mail, &st) < 0) {
-    debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret -1, 1)", NULL);
-    FUNC_END_RET("ret == -1");
+  i_debug("JRSE_ oid: %s", guid_128_to_string(r_mail->mail_guid));
+  if (((rados_storage->s)->get_io_ctx()).stat(guid_128_to_string(r_mail->mail_guid), &file_size, &time) < 0) {
+    i_debug("read file stat from rados failed : oid: %s", guid_128_to_string(r_mail->mail_guid));
+    FUNC_END_RET("ret == -1; rados_read");
     return -1;
   }
 
-  data->physical_size = data->virtual_size = st.st_size;
-  *size_r = data->physical_size;
-  i_debug("physical size = %lu", *size_r);
-  debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size", NULL);
-  debug_print_index_mail_data(data, "rados-mail::rados_mail_get_physical_size", NULL);
+  *size_r = file_size;
+  i_debug("rbox_mail_get_physical_size: size = %lu", *size_r);
   FUNC_END();
   return 0;
 }
-
 static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
                                  struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
   struct index_mail *mail = (struct index_mail *)_mail;
+  struct rados_mail *r_mail = (struct rados_mail *)_mail;
   struct istream *input;
-  const char *path;
-  int fd;
+
+  struct rados_storage *storage = (struct rados_storage *)_mail->box->storage;
+  int ret = 0;
 
   if (mail->data.stream == NULL) {
-    _mail->transaction->stats.open_lookup_count++;
-    path = rados_mail_get_path(_mail);
-    fd = open(path, O_RDONLY);
-    if (fd == -1) {
-      if (errno == ENOENT) {
-        mail_set_expunged(_mail);
-      } else {
-        mail_storage_set_critical(_mail->box->storage, "open(%s) failed: %m", path);
-      }
-      debug_print_mail(_mail, "rados-mail::rados_mail_get_stream (ret -1, 1)", NULL);
-      FUNC_END_RET("ret == -1");
+    i_debug("mail_guid before : %s", guid_128_to_string(r_mail->mail_oid));
+    // read guid
+    rados_get_guid(_mail);
+    i_debug("mail_guid after : %s", guid_128_to_string(r_mail->mail_oid));
+
+    uoff_t size_r = 0;
+    if (rados_mail_get_physical_size(_mail, &size_r) < 0 || size_r == 0) {
+      i_debug("error fetching mails physical size_r is: %ld ", size_r);
       return -1;
     }
-    input = i_stream_create_fd_autoclose(&fd, 0);
-    i_stream_set_name(input, path);
+    i_debug("found mail with %d bytes", size_r);
+    _mail->transaction->stats.open_lookup_count++;
+
+    librados::bufferlist bl;
+    do {
+      ret = ((storage->s)->get_io_ctx()).read(guid_128_to_string(r_mail->mail_oid), bl, size_r, ret);
+      if (ret <= 0) {
+        return -1;
+      }
+    } while (ret < size_r);
+
+    // create buffer on heap for istream
+    // TODO(jrse) check if this creates a memory leak?
+    char *copy = i_malloc(bl.length() + 1);
+    strcpy(copy, bl.to_str().c_str());
+    i_debug("mail is: %s", copy);
+    input = i_stream_create_from_data(copy, size_r);
+    i_stream_set_name(input, "RADOS");
     index_mail_set_read_buffer_size(_mail, input);
+
     if (mail->mail.v.istream_opened != NULL) {
       if (mail->mail.v.istream_opened(_mail, &input) < 0) {
         i_stream_unref(&input);
@@ -238,10 +254,11 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
         return -1;
       }
     }
+
     mail->data.stream = input;
   }
 
-  int ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
+  ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
   i_debug("stream offset = %lu", (*stream_r)->v_offset);
   debug_print_mail(_mail, "rados-mail::rados_mail_get_stream", NULL);
   FUNC_END();
