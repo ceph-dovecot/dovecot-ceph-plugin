@@ -28,6 +28,7 @@ struct rados_mail {
   struct index_mail imail;
 
   guid_128_t mail_guid;
+  guid_128_t mail_oid;
 };
 
 static int rados_get_guid(struct mail *_mail) {
@@ -35,7 +36,7 @@ static int rados_get_guid(struct mail *_mail) {
   struct rados_mail *mail = (struct rados_mail *)_mail;
   struct rados_mailbox *rbox = (struct rados_mailbox *)_mail->transaction->box;
 
-  if (guid_128_is_empty(mail->mail_guid)) {
+  if (guid_128_is_empty(mail->mail_oid)) {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
@@ -48,9 +49,11 @@ static int rados_get_guid(struct mail *_mail) {
     }
 
     memcpy(mail->mail_guid, obox_rec->guid, sizeof(obox_rec->guid));
+    memcpy(mail->mail_oid, obox_rec->oid, sizeof(obox_rec->oid));
   }
 
   i_debug("rados_get_guid: mail_guid=%s", guid_128_to_string(mail->mail_guid));
+  i_debug("rados_get_guid: mail_oid=%s", guid_128_to_string(mail->mail_oid));
 
   FUNC_END();
   return 0;
@@ -81,7 +84,7 @@ static const char *rados_mail_get_path(struct mail *_mail) {
 
   dir = mailbox_get_path(_mail->box);
   debug_print_mail(_mail, "rados-mail::rados_mail_get_path", NULL);
-  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(mail->mail_guid));
+  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(mail->mail_oid));
   i_debug("path = %s", path);
 
   FUNC_END();
