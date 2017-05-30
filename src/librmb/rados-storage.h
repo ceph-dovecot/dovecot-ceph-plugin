@@ -8,6 +8,8 @@
 #include <cstdint>
 
 #include <rados/librados.hpp>
+namespace tallence {
+namespace librmb {
 
 class RadosStorage {
  public:
@@ -25,5 +27,6 @@ class RadosStorage {
   std::string oid;
   std::string username;
 };
-
+}
+}
 #endif /* SRC_LIBRMB_RADOS_STORAGE_H_ */
