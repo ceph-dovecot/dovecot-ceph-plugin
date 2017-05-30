@@ -2,6 +2,7 @@
 
 #include <list>
 #include <string>
+#include <utility>
 
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
@@ -10,7 +11,9 @@
 using std::list;
 using std::pair;
 using std::string;
-using namespace tallence::librmb;
+
+using namespace tallence::librmb;  // NOLINT
+
 librados::Rados RadosCluster::cluster;
 int RadosCluster::cluster_ref_count = 0;
 
@@ -85,7 +88,7 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
 }
 
 int RadosCluster::storage_create(const string &pool, const string &username, const string &oid,
-                                    RadosStorage **storage) {
+                                 RadosStorage **storage) {
   if (cluster_ref_count == 0) {
     return -ENOENT;
   }

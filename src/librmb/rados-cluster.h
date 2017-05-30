@@ -9,6 +9,7 @@
 
 namespace tallence {
 namespace librmb {
+
 class RadosDictionary;
 class RadosStorage;
 
@@ -29,6 +30,7 @@ class RadosCluster {
   static librados::Rados cluster;
   static int cluster_ref_count;
 };
-}
-}
-#endif /* SRC_LIBRMB_RADOS_CLUSTER_H_ */
+}  // namespace librmb
+}  // namespace tallence
+
+#endif  // SRC_LIBRMB_RADOS_CLUSTER_H_

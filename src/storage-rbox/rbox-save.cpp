@@ -34,8 +34,8 @@ extern "C" {
 #include "rbox-storage-struct.h"
 #include "rados-storage.h"
 
-using namespace librados;  // NOLINT
-using namespace tallence::librmb;
+using namespace librados;          // NOLINT
+using namespace tallence::librmb;  // NOLINT
 
 using std::string;
 using std::map;
