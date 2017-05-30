@@ -16,8 +16,8 @@
 
 #include "rados-dictionary.h"
 
-using namespace librados;  // NOLINT
-using namespace tallence::librmb;
+using namespace librados;          // NOLINT
+using namespace tallence::librmb;  // NOLINT
 
 using std::string;
 using std::stringstream;

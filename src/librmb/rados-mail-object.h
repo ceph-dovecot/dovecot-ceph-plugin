@@ -1,10 +1,11 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_STORAGE_RADOS_RADOSMAILOBJECT_H_
-#define SRC_STORAGE_RADOS_RADOSMAILOBJECT_H_
+#ifndef SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
+#define SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
+
+#include <string>
 
 #include <rados/librados.hpp>
-#include <string>
 
 namespace tallence {
 namespace librmb {
@@ -19,13 +20,15 @@ class RadosMailObject {
 
   librados::ObjectWriteOperation getObjectWriteOperation() { return writeOperation; }
 
-  void addXAttribute(std::string key, librados::bufferlist &bl);
-  void fullWrite(librados::bufferlist &bl);
+  void addXAttribute(std::string key, const librados::bufferlist &bl);
+  void fullWrite(const librados::bufferlist &bl);
 
  private:
   std::string oid;
   librados::ObjectWriteOperation writeOperation;
 };
-}
-}
-#endif /* SRC_STORAGE_RADOS_RADOSMAILOBJECT_H_ */
+
+}  // namespace librmb
+}  // namespace tallence
+
+#endif  // SRC_LIBRMB_RADOS_MAIL_OBJECT_H_

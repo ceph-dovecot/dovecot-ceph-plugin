@@ -6,8 +6,8 @@
 
 #include "rados-storage.h"
 
-using namespace librados;  // NOLINT
-using namespace tallence::librmb;
+using namespace librados;          // NOLINT
+using namespace tallence::librmb;  // NOLINT
 
 using std::string;
 
@@ -17,4 +17,3 @@ RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username, const s
     : io_ctx(*ctx), username(username), oid(oid) {}
 
 RadosStorage::~RadosStorage() { get_io_ctx().close(); }
-
