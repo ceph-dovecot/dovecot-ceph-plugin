@@ -8,8 +8,8 @@
 
 struct rados_storage {
   struct mail_storage storage;
-  RadosCluster cluster;
-  RadosStorage *s;
+  tallence::librmb::RadosCluster cluster;
+  tallence::librmb::RadosStorage *s;
 };
 
 #endif /* SRC_STORAGE_RADOS_RADOS_STORAGE_STRUCT_H_ */
