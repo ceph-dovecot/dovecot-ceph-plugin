@@ -10,7 +10,8 @@
 #include <rados/librados.hpp>
 
 typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
-
+namespace tallence {
+namespace librmb {
 class RadosDictionary {
  public:
   RadosDictionary(librados::IoCtx* ctx, const std::string& username, const std::string& oid);
@@ -35,5 +36,6 @@ class RadosDictionary {
   std::string oid;
   std::string username;
 };
-
+}
+}
 #endif /* SRC_LIBRMB_RADOS_DICTIONARY_H_ */

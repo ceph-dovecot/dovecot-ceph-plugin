@@ -25,6 +25,8 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
+using namespace tallence::librmb;
+
 struct rados_mail {
   struct index_mail imail;
 
@@ -193,9 +195,8 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return 0;
   }
 
-  i_debug("JRSE_ oid: %s", guid_128_to_string(r_mail->mail_guid));
-  if (((rados_storage->s)->get_io_ctx()).stat(guid_128_to_string(r_mail->mail_guid), &file_size, &time) < 0) {
-    i_debug("read file stat from rados failed : oid: %s", guid_128_to_string(r_mail->mail_guid));
+  if (((rados_storage->s)->get_io_ctx()).stat(guid_128_to_string(r_mail->mail_oid), &file_size, &time) < 0) {
+    i_debug("read file stat from rados failed : oid: %s", guid_128_to_string(r_mail->mail_oid));
     FUNC_END_RET("ret == -1; rados_read");
     return -1;
   }
@@ -226,7 +227,7 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
       i_debug("error fetching mails physical size_r is: %ld ", size_r);
       return -1;
     }
-    i_debug("found mail with %d bytes", size_r);
+    i_debug("found mail with %d bytes for oid %s", size_r, guid_128_to_string(r_mail->mail_oid));
     _mail->transaction->stats.open_lookup_count++;
 
     librados::bufferlist bl;

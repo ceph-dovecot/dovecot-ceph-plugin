@@ -26,10 +26,12 @@ extern "C" {
 #include "debug-helper.h"
 }
 
+#include "RadosMailObject.h"
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
 using namespace librados;  // NOLINT
+using namespace tallence::librmb;
 
 using std::string;
 
@@ -58,6 +60,8 @@ class rados_save_context {
   ObjectWriteOperation write_op;
   string cur_oid;
   std::vector<std::string> oids;
+
+  RadosMailObject *mailObject;
 
   unsigned int failed : 1;
   unsigned int finished : 1;
@@ -92,6 +96,9 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     t->save_ctx = &ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
+
+  ctx->mailObject = new RadosMailObject();
+
   FUNC_END();
   return t->save_ctx;
 }
@@ -306,15 +313,6 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
     op.setxattr(RBOX_METADATA_RECEIVED_DATE, bl);
   }
 
-  uoff_t vsize;
-  if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
-    i_unreached();
-  } else {
-    bufferlist bl;
-    bl.append(vsize);
-    op.setxattr(RBOX_METADATA_VIRTUAL_SIZE, bl);
-  }
-
   if (mdata->pop3_uidl != NULL) {
     i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
     bufferlist bl;
@@ -444,6 +442,7 @@ void rados_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_rollback", NULL);
 
+  delete ctx->mailObject;
   delete ctx;
   FUNC_END();
 }

@@ -45,6 +45,7 @@ using std::set;
 
 #define DICT_USERNAME_SEPARATOR '/'
 static const char CACHE_DELETED[] = "_DELETED_";
+using namespace tallence::librmb;
 
 struct rados_dict {
   struct dict dict;
