@@ -35,6 +35,8 @@ extern "C" {
 #include "rados-storage.h"
 
 using namespace librados;  // NOLINT
+using namespace tallence::librmb;
+
 using std::string;
 using std::map;
 using std::pair;
@@ -384,7 +386,7 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
   return 0;
 }
 
-static void remove_from_rados(RadosStorage *storage, char *oid) {
+static void remove_from_rados(tallence::librmb::RadosStorage *storage, char *oid) {
   if (oid != 0 && storage != 0 && storage != 0) {
     i_debug("object to delete is : %s", oid);
     (storage->get_io_ctx()).remove(oid);
