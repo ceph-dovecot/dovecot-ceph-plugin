@@ -26,12 +26,12 @@ extern "C" {
 #include "debug-helper.h"
 }
 
-#include "RadosMailObject.h"
+#include "../librmb/rados-mail-object.h"
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
-using namespace librados;  // NOLINT
-using namespace tallence::librmb;
+using namespace librados;          // NOLINT
+using namespace tallence::librmb;  // NOLINT
 
 using std::string;
 
