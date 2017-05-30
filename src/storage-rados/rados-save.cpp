@@ -26,6 +26,7 @@ extern "C" {
 #include "debug-helper.h"
 }
 
+#include "RadosMailObject.h"
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
@@ -58,6 +59,8 @@ class rados_save_context {
   ObjectWriteOperation write_op;
   string cur_oid;
   std::vector<std::string> oids;
+
+  RadosMailObject *mailObject;
 
   unsigned int failed : 1;
   unsigned int finished : 1;
@@ -92,6 +95,9 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     t->save_ctx = &ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
+
+  ctx->mailObject = new RadosMailObject();
+
   FUNC_END();
   return t->save_ctx;
 }
@@ -399,6 +405,7 @@ void rados_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_rollback", NULL);
 
+  delete ctx->mailObject;
   delete ctx;
   FUNC_END();
 }
