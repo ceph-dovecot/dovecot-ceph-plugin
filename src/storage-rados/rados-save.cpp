@@ -45,6 +45,7 @@ class rados_save_context {
   unsigned int mail_count;
 
   guid_128_t mail_guid;  // goes to index record
+  guid_128_t mail_oid;   // goes to index record
 
   struct rados_sync_context *sync_ctx;
 
@@ -66,7 +67,7 @@ static const char *rados_get_save_path(struct rados_save_context *ctx, unsigned 
   FUNC_START();
 
   const char *dir = mailbox_get_path(&ctx->mbox->box);
-  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(ctx->mail_guid));
+  const char *path = t_strdup_printf("%s/%s", dir, guid_128_to_string(ctx->mail_oid));
 
   i_debug("save path = %s", path);
 
@@ -104,7 +105,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   ctx->failed = FALSE;
 
-  guid_128_generate(ctx->mail_guid);
+  guid_128_generate(ctx->mail_oid);
 
   T_BEGIN {
     const char *path;
@@ -121,7 +122,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
   T_END;
 
-  string oid(guid_128_to_string(ctx->mail_guid));
+  string oid(guid_128_to_string(ctx->mail_oid));
   ctx->cur_oid = oid;
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
 
@@ -278,6 +279,25 @@ static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
   return ret;
 }
 
+static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
+  struct rados_mailbox *rbox = ctx->mbox;
+
+  if (ctx->ctx.data.guid != NULL) {
+    mail_generate_guid_128_hash(ctx->ctx.data.guid, ctx->mail_guid);
+  } else {
+    guid_128_generate(ctx->mail_guid);
+  }
+
+  /* save the 128bit GUID/OID to index */
+  struct obox_mail_index_record rec;
+  i_zero(&rec);
+  memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
+  memcpy(rec.oid, ctx->mail_oid, sizeof(ctx->mail_oid));
+  mail_index_update_ext(ctx->trans, ctx->seq, rbox->ext_id, &rec, NULL);
+
+  return 0;
+}
+
 int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
@@ -292,11 +312,7 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   }
 
   if (!ctx->failed) {
-    struct obox_mail_index_record rec;
-    i_zero(&rec);
-    memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
-    mail_index_update_ext(ctx->trans, ctx->seq, rbox->ext_id, &rec, NULL);
-
+    rados_save_mail_write_metadata(ctx);
     ctx->mail_count++;
   } else {
     i_unlink(path);

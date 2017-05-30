@@ -314,7 +314,8 @@ struct mail_storage rados_storage = {
     .name = RADOS_STORAGE_NAME,
     .class_flags = static_cast<mail_storage_class_flags>(
         MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS |
-        MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS | MAIL_STORAGE_CLASS_FLAG_BINARY_DATA),
+        MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUID128 | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS |
+        MAIL_STORAGE_CLASS_FLAG_BINARY_DATA),
 
     .v = {
         NULL, rados_storage_alloc, rados_storage_create, rados_storage_destroy, NULL, rados_storage_get_list_settings,
