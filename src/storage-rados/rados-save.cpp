@@ -269,6 +269,12 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
     op.setxattr(RBOX_METADATA_RECEIVED_DATE, bl);
   }
 
+  {
+    bufferlist bl;
+    bl.append(mdata->save_date);
+    op.setxattr(RBOX_METADATA_SAVE_DATE, bl);
+  }
+
   if (mdata->pop3_uidl != NULL) {
     i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
     bufferlist bl;

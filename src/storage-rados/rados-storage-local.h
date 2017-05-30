@@ -55,6 +55,8 @@ struct rados_mailbox {
 #define RBOX_METADATA_POP3_ORDER "O"
 /* Received UNIX timestamp in hex */
 #define RBOX_METADATA_RECEIVED_DATE "R"
+/* Received UNIX timestamp in hex */
+#define RBOX_METADATA_SAVE_DATE "S"
 /* Physical message size in hex. Necessary only if it differs from
    the dbox_message_header.message_size_hex, for example because the
    message is compressed. */
