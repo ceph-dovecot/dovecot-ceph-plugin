@@ -22,6 +22,6 @@ libstorage_rados_plugin_la_SOURCES = \
 	rados-save.cpp \
 	rados-sync.cpp \
 	rados-storage.cpp \
-	debug-helper.c
+	debug-helper.c 
 	
 	
