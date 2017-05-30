@@ -97,6 +97,7 @@ void debug_print_obox_mail_index_record(struct obox_mail_index_record *target, c
   RBOX_PRINT_START("obox_mail_index_record")
 
   RBOX_PRINT_DEBUG("guid = %s", guid_128_to_string(target->guid));
+  RBOX_PRINT_DEBUG("oid = %s", guid_128_to_string(target->oid));
 
   RBOX_PRINT_END()
 }
