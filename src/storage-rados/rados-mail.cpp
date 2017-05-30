@@ -39,7 +39,7 @@ static int rados_get_guid(struct mail *_mail) {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
-    obox_rec = rec_data;
+    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
       /* lost for some reason, give up */
