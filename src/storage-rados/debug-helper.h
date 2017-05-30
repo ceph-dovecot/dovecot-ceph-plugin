@@ -28,5 +28,6 @@ void debug_print_mailbox_list_settings(struct mailbox_list_settings *target, con
 void debug_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name);
 void debug_print_mail_index(struct mail_index *target, const char *funcname, const char *name);
 void debug_print_sdbox_index_header(struct sdbox_index_header *target, const char *funcname, const char *name);
+void debug_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname, const char *name);
 
 #endif /* SRC_STORAGE_RADOS_DEBUG_HELPER_H_ */
