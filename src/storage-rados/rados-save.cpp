@@ -100,7 +100,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rados_save_context *ctx = (struct rados_save_context *)_ctx;
   struct mailbox_transaction_context *trans = _ctx->transaction;
-  enum mail_flags save_flags;
+  int save_flags;
   struct istream *crlf_input;
 
   ctx->failed = FALSE;
@@ -127,7 +127,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
 
   // create RADOS object and set state to saving
-  librados::bufferlist state_bl;
+  ceph::bufferlist state_bl;
   state_bl.append("S");
   int ret = ctx->rados_storage.get_io_ctx().setxattr(ctx->cur_oid, "STATE", state_bl);
   if (ret < 0) {
@@ -144,7 +144,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   /* add to index */
   save_flags = _ctx->data.flags & ~MAIL_RECENT;
   mail_index_append(ctx->trans, 0, &ctx->seq);
-  mail_index_update_flags(ctx->trans, ctx->seq, MODIFY_REPLACE, save_flags);
+  mail_index_update_flags(ctx->trans, ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(ctx->trans, ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
   }
@@ -165,13 +165,13 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 size_t rados_stream_mail_to_rados(rados_save_context *ctx) {
   const unsigned char *data;
   ssize_t ret;
-  librados::bufferlist bl;
+  ceph::bufferlist bl;
   size_t size;
   size_t total_size = 0;
 
   do {
     (void)i_stream_read_data(ctx->input, &data, &size, 0);
-    i_debug("rados_stream_mail_to_rados: size=%d", size);
+    i_debug("rados_stream_mail_to_rados: size=%lu", size);
     if (size == 0) {
       /*all sent */
       if (ctx->input->stream_errno != 0) {
