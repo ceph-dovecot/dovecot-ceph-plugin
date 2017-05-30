@@ -29,6 +29,8 @@ extern "C" {
 #include "rados-mail.h"
 
 using namespace librados;  // NOLINT
+using namespace tallence::librmb;
+
 using std::string;
 
 extern struct mail_storage rados_storage;

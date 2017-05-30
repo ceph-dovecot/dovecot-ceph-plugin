@@ -11,7 +11,8 @@ module_LTLIBRARIES = \
 librmb_la_SOURCES = \
 	rados-cluster.cpp \
 	rados-storage.cpp \
-	rados-dictionary.cpp 
+	rados-dictionary.cpp \
+	RadosMailObject.cpp 
 
 librmb_la_CFLAGS = 
 librmb_la_CXXFLAGS = -fpermissive -std=c++11
@@ -19,7 +20,8 @@ librmb_la_CXXFLAGS = -fpermissive -std=c++11
 headers = \
 	rados-cluster.h \
 	rados-storage.h \
-	rados-dictionary.h
+	rados-dictionary.h \
+	RadosMailObject.h
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)
