@@ -6,14 +6,13 @@
 
 #include "rados-storage.h"
 
-using namespace librados;          // NOLINT
-using namespace librmb;            // NOLINT
+using namespace librados;  // NOLINT
+using namespace librmb;    // NOLINT
 
 using std::string;
 
 #define DICT_USERNAME_SEPARATOR '/'
 
-RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username, const string &oid)
-    : io_ctx(*ctx), username(username), oid(oid) {}
+RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username) : io_ctx(*ctx), username(username) {}
 
 RadosStorage::~RadosStorage() { get_io_ctx().close(); }
