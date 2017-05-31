@@ -142,7 +142,7 @@ size_t rados_stream_mail_to_rados(istream *input, struct rados_save_context *ctx
 
   do {
     (void)i_stream_read_data(input, &data, &size, 0);
-    i_debug("rados_stream_mail_to_rados: size=%d", size);
+    i_debug("rados_stream_mail_to_rados: size=%lu", size);
     if (size == 0) {
       /*all sent */
       if (input->stream_errno != 0) {

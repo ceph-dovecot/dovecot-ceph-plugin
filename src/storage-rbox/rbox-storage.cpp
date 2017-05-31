@@ -102,7 +102,7 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   }
 
   string poolname = "mail_storage";
-  ret = storage->cluster.storage_create(poolname, username, "my_oid", &storage->s);
+  ret = storage->cluster.storage_create(poolname, username, &storage->s);
 
   if (ret < 0) {
     *error_r = t_strdup_printf("Error creating RadosStorage()! %s", strerror(-ret));
