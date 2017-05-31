@@ -87,8 +87,7 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
   return 0;
 }
 
-int RadosCluster::storage_create(const string &pool, const string &username, const string &oid,
-                                 RadosStorage **storage) {
+int RadosCluster::storage_create(const string &pool, const string &username, RadosStorage **storage) {
   if (cluster_ref_count == 0) {
     return -ENOENT;
   }
@@ -123,6 +122,6 @@ int RadosCluster::storage_create(const string &pool, const string &username, con
     return err;
   }
 
-  *storage = new RadosStorage(&io_ctx, username, oid);
+  *storage = new RadosStorage(&io_ctx, username);
   return 0;
 }

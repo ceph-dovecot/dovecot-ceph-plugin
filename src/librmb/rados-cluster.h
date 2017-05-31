@@ -22,13 +22,13 @@ class RadosCluster {
 
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
-  int storage_create(const std::string &pool, const std::string &username, const std::string &oid,
-                     RadosStorage **storage);
+  int storage_create(const std::string &pool, const std::string &username, RadosStorage **storage);
 
  private:
   static librados::Rados cluster;
   static int cluster_ref_count;
 };
+
 }  // namespace librmb
 
 #endif  // SRC_LIBRMB_RADOS_CLUSTER_H_

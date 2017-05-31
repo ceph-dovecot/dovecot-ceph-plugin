@@ -103,10 +103,10 @@ static int rados_mail_get_metadata(struct mail *_mail) {
 
   rados_get_index_record(_mail);
 
-  std::map<std::string, librados::bufferlist> attrset;
-  librados::bufferlist received_date_bl;
+  std::map<std::string, ceph::bufferlist> attrset;
+  ceph::bufferlist received_date_bl;
   attrset[RBOX_METADATA_RECEIVED_DATE] = received_date_bl;
-  librados::bufferlist save_date_bl;
+  ceph::bufferlist save_date_bl;
   attrset[RBOX_METADATA_SAVE_DATE] = save_date_bl;
 
   //     int getxattrs(const std::string& oid, std::map<std::string, bufferlist>& attrset);
@@ -231,7 +231,7 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
     i_debug("rados_mail_get_stream: found mail with %ld bytes for oid %s", size_r, r_mail->oid.c_str());
     _mail->transaction->stats.open_lookup_count++;
 
-    librados::bufferlist bl;
+    ceph::bufferlist bl;
     do {
       ret = ((storage->s)->get_io_ctx()).read(r_mail->oid, bl, size_r, ret);
       if (ret <= 0) {
