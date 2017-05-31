@@ -10,8 +10,8 @@ class RadosStorage;
 
 struct rbox_storage {
   struct dbox_storage storage;
-  tallence::librmb::RadosCluster cluster;
-  tallence::librmb::RadosStorage *s;
+  librmb::RadosCluster cluster;
+  librmb::RadosStorage *s;
 };
 
 #endif /* SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_ */

@@ -11,7 +11,6 @@
 
 typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
 
-namespace tallence {
 namespace librmb {
 
 class RadosDictionary {
@@ -40,6 +39,5 @@ class RadosDictionary {
 };
 
 }  // namespace librmb
-}  // namespace tallence
 
 #endif  // SRC_LIBRMB_RADOS_DICTIONARY_H_

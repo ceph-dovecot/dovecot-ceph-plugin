@@ -7,7 +7,6 @@
 
 #include <rados/librados.hpp>
 
-namespace tallence {
 namespace librmb {
 
 class RadosDictionary;
@@ -31,6 +30,5 @@ class RadosCluster {
   static int cluster_ref_count;
 };
 }  // namespace librmb
-}  // namespace tallence
 
 #endif  // SRC_LIBRMB_RADOS_CLUSTER_H_

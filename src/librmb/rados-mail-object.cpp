@@ -3,7 +3,7 @@
 #include "rados-mail-object.h"
 
 using namespace librados;          // NOLINT
-using namespace tallence::librmb;  // NOLINT
+using namespace librmb;            // NOLINT
 
 RadosMailObject::RadosMailObject() {
   // TODO(jrse): Auto-generated constructor stub
