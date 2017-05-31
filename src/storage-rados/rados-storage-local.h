@@ -47,7 +47,7 @@ struct rados_mailbox {
 
 /* Globally unique identifier for the message. Preserved when
    copying. */
-#define RBOX_METADATA_ALL "METADATA"
+#define RBOX_METADATA_STATE "S"
 #define RBOX_METADATA_GUID "G"
 /* POP3 UIDL overriding the default format */
 #define RBOX_METADATA_POP3_UIDL "P"
