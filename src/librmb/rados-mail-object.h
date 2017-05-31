@@ -7,7 +7,6 @@
 
 #include <rados/librados.hpp>
 
-namespace tallence {
 namespace librmb {
 
 class RadosMailObject {
@@ -29,6 +28,5 @@ class RadosMailObject {
 };
 
 }  // namespace librmb
-}  // namespace tallence
 
 #endif  // SRC_LIBRMB_RADOS_MAIL_OBJECT_H_

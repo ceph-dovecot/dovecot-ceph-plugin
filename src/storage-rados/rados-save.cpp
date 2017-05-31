@@ -31,7 +31,7 @@ extern "C" {
 #include "rados-storage.h"
 
 using namespace librados;          // NOLINT
-using namespace tallence::librmb;  // NOLINT
+using namespace librmb;            // NOLINT
 
 using std::string;
 
@@ -305,15 +305,21 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   ctx->finished = TRUE;
 
   if (!ctx->failed) {
-    rados_save_mail_write_metadata(ctx);
-    ctx->mail_count++;
-
     librados::bufferlist state_bl;
     state_bl.append("F");  // finished
     ctx->write_op.setxattr("SAVE", state_bl);
 
-    rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
+    int ret = rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
     i_debug("saving to : %s", ctx->cur_oid.c_str());
+    if (ret < 0) {
+      i_debug("ERRO saving object to rados");
+      ctx->failed = TRUE;
+    }
+  }
+
+  if (!ctx->failed) {
+    rados_save_mail_write_metadata(ctx);
+    ctx->mail_count++;
 
   } else {
     ctx->write_op.remove();

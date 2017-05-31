@@ -28,7 +28,7 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
-using namespace tallence::librmb;  // NOLINT
+using namespace librmb;  // NOLINT
 
 struct rados_mail {
   struct index_mail imail;
