@@ -29,7 +29,7 @@ extern "C" {
 #include "rados-mail.h"
 
 using namespace librados;  // NOLINT
-using namespace tallence::librmb;
+using namespace librmb;
 
 using std::string;
 
