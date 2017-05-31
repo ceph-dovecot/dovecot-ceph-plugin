@@ -30,8 +30,8 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
-using namespace librados;          // NOLINT
-using namespace librmb;            // NOLINT
+using namespace librados;  // NOLINT
+using namespace librmb;    // NOLINT
 
 using std::string;
 
@@ -57,8 +57,10 @@ class rados_save_context {
 
   RadosStorage &rados_storage;
   ObjectWriteOperation write_op;
+  ObjectWriteOperation rollback_op;
+
   string cur_oid;
-  std::vector<std::string> oids;
+  std::vector<std::string> saved_oids;
 
   RadosMailObject *mailObject;
 
@@ -103,11 +105,6 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   string oid(guid_128_to_string(ctx->mail_oid));
   ctx->cur_oid = oid;
   i_debug("rados_save_begin: saving to %s", ctx->cur_oid.c_str());
-
-  // create RADOS object and set state to saving
-  ceph::bufferlist state_bl;
-  state_bl.append("S");
-  ctx->write_op.setxattr("STATE", state_bl);
 
   if (ctx->failed) {
     debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin (ret -1, 1)", NULL);
@@ -157,7 +154,10 @@ size_t rados_stream_mail_to_rados(istream *input, struct rados_save_context *ctx
     bl.clear();
     bl.append((const char *)data, size);
 
+    ceph::bufferlist cmp_bl;
+    cmp_bl.append("S");
     ctx->write_op.write(total_size, bl);
+
     total_size += bl.length();
     i_stream_skip(input, bl.length());
   } while ((size_t)ret == size);
@@ -202,47 +202,12 @@ int rados_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rados_save_flush(struct rados_save_context *ctx, const char *path) {
-  FUNC_START();
-  struct mail_storage *storage = &ctx->mbox->storage->storage;
-  struct stat st;
-  int ret = 0;
-
-  if (o_stream_nfinish(ctx->ctx.data.output) < 0) {
-    mail_storage_set_critical(storage, "write(%s) failed: %s", path, o_stream_get_error(ctx->ctx.data.output));
-    ret = -1;
-  }
-
-  if (ctx->ctx.data.received_date == (time_t)-1) {
-    mail_storage_set_critical(storage, "fstat(%s) failed: %m", path);
-    ret = -1;
-  } else {
-    struct utimbuf ut;
-
-    ut.actime = ioloop_time;
-    ut.modtime = ctx->ctx.data.received_date;
-    if (utime(path, &ut) < 0) {
-      mail_storage_set_critical(storage, "utime(%s) failed: %m", path);
-      ret = -1;
-    }
-  }
-
-  o_stream_destroy(&ctx->ctx.data.output);
-
-  debug_print_mail_save_context(&ctx->ctx, "rados-save::rados_save_flush", NULL);
-  debug_print_mail_storage(storage, "rados-save::rados_save_flush", NULL);
-  FUNC_END();
-  return ret;
-}
-
 static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   FUNC_START();
   struct rados_mailbox *rbox = ctx->mbox;
   struct mail_storage *storage = ctx->ctx.transaction->box->storage;
   auto *rados_storage = (struct rados_storage *)storage;
   struct mail_save_data *mdata = &ctx->ctx.data;
-
-  ObjectWriteOperation op;
 
   if (ctx->ctx.data.guid != NULL) {
     mail_generate_guid_128_hash(ctx->ctx.data.guid, ctx->mail_guid);
@@ -260,39 +225,38 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   {
     bufferlist bl;
     bl.append((const char *)ctx->mail_guid, sizeof(ctx->mail_guid));
-    op.setxattr(RBOX_METADATA_GUID, bl);
-  }
-
-  {
-    bufferlist bl;
-    bl.append(mdata->received_date);
-    op.setxattr(RBOX_METADATA_RECEIVED_DATE, bl);
+    ctx->write_op.setxattr(RBOX_METADATA_GUID, bl);
   }
 
   {
     bufferlist bl;
     bl.append(mdata->save_date);
-    op.setxattr(RBOX_METADATA_SAVE_DATE, bl);
+    ctx->write_op.setxattr(RBOX_METADATA_SAVE_DATE, bl);
   }
 
   if (mdata->pop3_uidl != NULL) {
     i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
     bufferlist bl;
     bl.append(mdata->pop3_uidl);
-    op.setxattr(RBOX_METADATA_POP3_UIDL, bl);
+    ctx->write_op.setxattr(RBOX_METADATA_POP3_UIDL, bl);
   }
 
   if (mdata->pop3_order != 0) {
     bufferlist bl;
     bl.append(mdata->pop3_order);
-    op.setxattr(RBOX_METADATA_POP3_ORDER, bl);
+    ctx->write_op.setxattr(RBOX_METADATA_POP3_ORDER, bl);
   }
 
-  int ret = rados_storage->s->get_io_ctx().operate(ctx->cur_oid, &op);
+  {
+    bufferlist bl;
+    bl.append(mdata->received_date);
+    ctx->write_op.setxattr(RBOX_METADATA_RECEIVED_DATE, bl);
+    ctx->write_op.mtime(&mdata->received_date);
+  }
 
   FUNC_END();
 
-  return ret < 0;
+  return 0;
 }
 
 int rados_save_finish(struct mail_save_context *_ctx) {
@@ -305,27 +269,28 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   ctx->finished = TRUE;
 
   if (!ctx->failed) {
-    librados::bufferlist state_bl;
-    state_bl.append("F");  // finished
-    ctx->write_op.setxattr("SAVE", state_bl);
+    rados_save_mail_write_metadata(ctx);
 
-    int ret = rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
     i_debug("saving to : %s", ctx->cur_oid.c_str());
+    int ret = rados_ctx->s->get_io_ctx().operate(ctx->cur_oid, &ctx->write_op);
+
     if (ret < 0) {
       i_debug("ERRO saving object to rados");
+      i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)", ctx->cur_oid.c_str(), ret,
+              strerror(-ret));
       ctx->failed = TRUE;
     }
   }
 
   if (!ctx->failed) {
-    rados_save_mail_write_metadata(ctx);
     ctx->mail_count++;
-
+    ctx->saved_oids.push_back(ctx->cur_oid);
   } else {
     ctx->write_op.remove();
   }
 
   index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !ctx->failed);
+
   if (ctx->input != NULL)
     i_stream_unref(&ctx->input);
 
