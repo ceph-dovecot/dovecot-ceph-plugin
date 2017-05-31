@@ -12,7 +12,7 @@ using std::list;
 using std::pair;
 using std::string;
 
-using namespace tallence::librmb;  // NOLINT
+using namespace librmb;  // NOLINT
 
 librados::Rados RadosCluster::cluster;
 int RadosCluster::cluster_ref_count = 0;

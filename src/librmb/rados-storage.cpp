@@ -7,7 +7,7 @@
 #include "rados-storage.h"
 
 using namespace librados;          // NOLINT
-using namespace tallence::librmb;  // NOLINT
+using namespace librmb;            // NOLINT
 
 using std::string;
 

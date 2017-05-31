@@ -9,7 +9,6 @@
 
 #include <rados/librados.hpp>
 
-namespace tallence {
 namespace librmb {
 
 class RadosStorage {
@@ -30,6 +29,5 @@ class RadosStorage {
 };
 
 }  // namespace librmb
-}  // namespace tallence
 
 #endif  // SRC_LIBRMB_RADOS_STORAGE_H_
