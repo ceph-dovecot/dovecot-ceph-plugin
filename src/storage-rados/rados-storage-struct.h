@@ -5,6 +5,7 @@
 
 #include "mail-storage-private.h"
 #include "rados-cluster.h"
+#include "rados-storage.h"
 
 struct rados_storage {
   struct mail_storage storage;
