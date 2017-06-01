@@ -322,11 +322,6 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct mailbox_transaction_context *_t = _ctx->transaction;
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
-  uint32_t uid;
-  const char *dir;
-  string_t *src_path, *dest_path;
-  unsigned int n;
-  size_t src_prefixlen, dest_prefixlen;
 
   i_assert(ctx->finished);
 
