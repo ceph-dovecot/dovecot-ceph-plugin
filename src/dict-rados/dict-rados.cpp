@@ -324,10 +324,10 @@ class rados_dict_transaction_context {
   }
 
   ObjectWriteOperation &get_op(const std::string &key) {
-    if (key.find(DICT_PATH_SHARED) == 0) {
+    if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       dirty_shared |= true;
       return write_op_shared;
-    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+    } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
       dirty_private |= true;
       return write_op_private;
     }
@@ -335,17 +335,17 @@ class rados_dict_transaction_context {
   }
 
   void set_locked(const std::string &key) {
-    if (key.find(DICT_PATH_SHARED) == 0) {
+    if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       locked_shared |= true;
-    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+    } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
       locked_private |= true;
     }
   }
 
   bool is_locked(const std::string &key) {
-    if (key.find(DICT_PATH_SHARED) == 0) {
+    if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       return locked_shared;
-    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+    } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
       return locked_private;
     }
     i_unreached();
@@ -639,9 +639,9 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
   set<string> shared_keys;
   while (*paths) {
     string key = *paths++;
-    if (key.find(DICT_PATH_SHARED) == 0) {
+    if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       shared_keys.insert(key);
-    } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+    } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
       private_keys.insert(key);
     }
   }
