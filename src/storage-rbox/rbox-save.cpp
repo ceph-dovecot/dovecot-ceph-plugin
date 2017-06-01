@@ -387,7 +387,7 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
 }
 
 static void remove_from_rados(librmb::RadosStorage *storage, char *oid) {
-  if (oid != 0 && storage != 0 && storage != 0) {
+  if (oid != 0 && storage != 0) {
     i_debug("object to delete is : %s", oid);
     (storage->get_io_ctx()).remove(oid);
   }
