@@ -77,12 +77,14 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
   if (t->save_ctx == NULL) {
+    i_debug("rados_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
     ctx = new rados_save_context(*(storage->s));
     ctx->ctx.transaction = t;
     ctx->mbox = mbox;
     ctx->trans = t->itrans;
     t->save_ctx = &ctx->ctx;
   }
+  debug_print_mailbox_transaction_context(t, "", NULL);
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
 
   ctx->mailObject = new RadosMailObject();
