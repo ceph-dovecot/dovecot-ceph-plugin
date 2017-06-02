@@ -15,7 +15,7 @@ namespace librmb {
 class RadosMailObject {
 
  public:
-  RadosMailObject Object() {}
+  RadosMailObject();
   virtual ~RadosMailObject() {}
 
   void set_oid(const char* oid) { this->oid = oid; }
