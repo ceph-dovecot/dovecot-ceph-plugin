@@ -13,18 +13,15 @@ namespace librmb {
 
 class RadosStorage {
  public:
-  RadosStorage(librados::IoCtx* ctx, const std::string& username, const std::string& oid);
+  RadosStorage(librados::IoCtx* ctx, const std::string& username);
   virtual ~RadosStorage();
-
-  const std::string& get_oid() const { return oid; }
-
-  const std::string& get_username() const { return username; }
 
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 
+  const std::string& get_username() const { return username; }
+
  private:
   librados::IoCtx io_ctx;
-  std::string oid;
   std::string username;
 };
 

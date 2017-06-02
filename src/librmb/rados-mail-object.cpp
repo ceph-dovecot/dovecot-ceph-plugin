@@ -2,18 +2,22 @@
 
 #include "rados-mail-object.h"
 
+#include <cstring>
+
 using namespace librados;          // NOLINT
 using namespace librmb;            // NOLINT
 
-RadosMailObject::RadosMailObject() {
-  // TODO(jrse): Auto-generated constructor stub
-}
+const std::string RadosMailObject::X_ATTR_STATE = "STATE";
+const std::string RadosMailObject::X_ATTR_STATE_VALUES[] = {"S", "F"};
+const std::string RadosMailObject::X_ATTR_VERSION = "VERSION";
+const std::string RadosMailObject::X_ATTR_VERSION_VALUE = "0.1";
 
-RadosMailObject::~RadosMailObject() {
-  // TODO(jrse): Auto-generated destructor stub
-}
+const std::string RadosMailObject::X_ATTR_GUID = "G";
+const std::string RadosMailObject::X_ATTR_RECEIVED_DATE = "R";
+const std::string RadosMailObject::X_ATTR_SAVE_DATE = "S";
+const std::string RadosMailObject::X_ATTR_POP3_UIDL = "P";
+const std::string RadosMailObject::X_ATTR_POP3_ORDER = "O";
 
-void RadosMailObject::addXAttribute(std::string key, const librados::bufferlist &bl) {
-  this->writeOperation.setxattr(key.c_str(), bl);
-}
-void RadosMailObject::fullWrite(const librados::bufferlist &bl) { this->writeOperation.write_full(bl); }
+const std::string RadosMailObject::DATA_BUFFER_NAME = "RADOS_MAIL_BUFFER";
+
+void RadosMailObject::set_guid(const uint8_t* guid) { std::memcpy(this->guid, guid, sizeof(this->guid)); }
