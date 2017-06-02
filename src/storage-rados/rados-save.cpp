@@ -37,7 +37,12 @@ using std::string;
 
 class rados_save_context {
  public:
-  explicit rados_save_context(RadosStorage &rados_storage) : rados_storage(rados_storage) {}
+  explicit rados_save_context(RadosStorage &rados_storage) : mbox(NULL), trans(NULL),
+                                                             mail_count(0), sync_ctx(NULL),
+                                                             seq(0), input(NULL),
+                                                             rados_storage(rados_storage),
+                                                             mail_object(NULL), failed(1),
+                                                             finished(1) {}
 
   struct mail_save_context ctx;
 
@@ -74,6 +79,7 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
   if (t->save_ctx == NULL) {
+    i_debug("rados_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
     r_ctx = new rados_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = mbox;
@@ -83,6 +89,7 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
 
   r_ctx->mail_object = new RadosMailObject();
+  
   FUNC_END();
   return t->save_ctx;
 }
