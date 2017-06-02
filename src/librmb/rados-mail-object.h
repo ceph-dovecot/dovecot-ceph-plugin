@@ -7,26 +7,74 @@
 
 #include <rados/librados.hpp>
 
+#define GUID_128_SIZE 16
+
 namespace librmb {
 
+
 class RadosMailObject {
+
  public:
-  RadosMailObject();
-  virtual ~RadosMailObject();
+  RadosMailObject Object() {}
+  virtual ~RadosMailObject() {}
 
-  std::string getOid() { return this->oid; }
-  void setOid(std::string oid) { this->oid = oid; }
+  void set_oid(const char* oid) { this->oid = oid; }
+  void set_oid(const std::string& oid) { this->oid = oid; }
+  void set_state(const std::string& state) { this->state = state; }
+  void set_version(const std::string& version) { this->version = version; }
 
-  librados::ObjectWriteOperation getObjectWriteOperation() { return writeOperation; }
+  void set_pop3_order(const uint32_t& pop3_order) { this->pop3_order = pop3_order; }
+  void set_pop3_uidl(const std::string& pop3_uidl) { this->pop3_uidl = pop3_uidl; }
+  void set_save_date(const time_t& save_date) { this->save_date = save_date; }
+  void set_received_date(const time_t& received_date) { this->received_date = received_date; }
+  void set_guid(const uint8_t* guid);
 
-  void addXAttribute(std::string key, const librados::bufferlist &bl);
-  void fullWrite(const librados::bufferlist &bl);
+  void set_mail_data(const std::string& data) { this->mail_data = data; }
+
+  const std::string get_oid() { return this->oid; }
+  const std::string get_state() { return state; }
+  const std::string get_initial_state_value() { return X_ATTR_STATE_VALUES[0]; }
+  const std::string get_finised_state_value() { return X_ATTR_STATE_VALUES[1]; }
+  const std::string get_version() { return this->version; }
+
+  const uint32_t get_pop3_order() { return pop3_order; }
+  const std::string get_pop3_uidl() { return pop3_uidl; }
+  const time_t get_save_date() { return save_date; }
+  const time_t get_received_date() { return received_date; }
+  uint8_t* get_guid_ref() { return guid; }
+
+  const std::string get_mail_data() { return mail_data; }
+  std::string& get_mail_data_ref() { return mail_data; }
 
  private:
   std::string oid;
-  librados::ObjectWriteOperation writeOperation;
+  std::string state;
+  std::string version;
+
+  uint32_t pop3_order;
+  std::string pop3_uidl;
+  time_t save_date;
+  time_t received_date;
+  uint8_t guid[GUID_128_SIZE];
+
+  std::string mail_data;
+
+ public:
+  // X_ATTRIBUTES
+  static const std::string X_ATTR_STATE;
+  static const std::string X_ATTR_STATE_VALUES[];
+  static const std::string X_ATTR_VERSION;
+  static const std::string X_ATTR_VERSION_VALUE;
+
+  static const std::string X_ATTR_GUID;
+  static const std::string X_ATTR_RECEIVED_DATE;
+  static const std::string X_ATTR_SAVE_DATE;
+  static const std::string X_ATTR_POP3_UIDL;
+  static const std::string X_ATTR_POP3_ORDER;
+
+  // OTHER
+  static const std::string DATA_BUFFER_NAME;
 };
 
 }  // namespace librmb
-
 #endif  // SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
