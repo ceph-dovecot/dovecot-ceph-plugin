@@ -102,7 +102,7 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
     return err;
   }
   bool pool_found = false;
-  for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); it++) {
+  for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); ++it) {
     if ((*it).second.compare(pool) == 0) {
       pool_found = true;
       break;
