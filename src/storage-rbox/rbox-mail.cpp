@@ -274,7 +274,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct dbox_mail *mail = (struct dbox_mail *)_mail;
   struct index_mail_data *data = &mail->imail.data;
-  struct dbox_file *file;
   struct rbox_storage *rbox_storage = (struct rbox_storage *)_mail->box->storage;
 
   uint64_t file_size;
