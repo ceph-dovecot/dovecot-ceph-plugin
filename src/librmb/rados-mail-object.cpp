@@ -21,3 +21,10 @@ const std::string RadosMailObject::X_ATTR_POP3_ORDER = "O";
 const std::string RadosMailObject::DATA_BUFFER_NAME = "RADOS_MAIL_BUFFER";
 
 void RadosMailObject::set_guid(const uint8_t* guid) { std::memcpy(this->guid, guid, sizeof(this->guid)); }
+
+RadosMailObject::RadosMailObject() {
+  this->pop3_order = 0;
+  this->save_date = 0;
+  this->received_date = 0;
+  this->guid[GUID_128_SIZE] = {};
+}
