@@ -36,9 +36,9 @@ RadosDictionary::RadosDictionary(librados::IoCtx *ctx, const string &username, c
 RadosDictionary::~RadosDictionary() { get_io_ctx().close(); }
 
 const string RadosDictionary::get_full_oid(const std::string &key) {
-  if (key.find(DICT_PATH_SHARED) == 0) {
+  if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
     return get_shared_oid();
-  } else if (key.find(DICT_PATH_PRIVATE) == 0) {
+  } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
     return get_private_oid();
   } else {
     // TODO(peter) i_unreached();
