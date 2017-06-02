@@ -181,8 +181,8 @@ off_t stream_mail_to_rados(const struct rbox_storage *storage, const std::string
     bl.clear();
     bl.append((const char *)data);
 
-    int err = ((storage->s)->get_io_ctx()).write(oid, bl, iov.iov_len, offset);
-    if (err < 0) {
+    ret = ((storage->s)->get_io_ctx()).write(oid, bl, iov.iov_len, offset);
+    if (ret < 0) {
       return -1;
     }
     i_stream_skip(instream, 0);
@@ -387,7 +387,7 @@ static int rbox_save_mail_write_metadata(struct dbox_save_context *ctx, struct d
 }
 
 static void remove_from_rados(librmb::RadosStorage *storage, char *oid) {
-  if (oid != 0 && storage != 0 && storage != 0) {
+  if (oid != 0 && storage != 0) {
     i_debug("object to delete is : %s", oid);
     (storage->get_io_ctx()).remove(oid);
   }
