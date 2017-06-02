@@ -30,8 +30,8 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
-using namespace librados;          // NOLINT
-using namespace librmb;            // NOLINT
+using namespace librados;  // NOLINT
+using namespace librmb;    // NOLINT
 
 using std::string;
 
@@ -95,7 +95,7 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct mailbox_transaction_context *trans = _ctx->transaction;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   struct rados_storage *r_storage = (struct rados_storage *)storage;
-  
+
   int save_flags;
   struct istream *crlf_input;
 
@@ -228,8 +228,7 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   struct rados_storage *r_storage = (struct rados_storage *)storage;
   struct mail_save_data *mdata = &ctx->ctx.data;
 
-  ObjectWriteOperation op;
-
+  librados::ObjectWriteOperation op;
   if (ctx->ctx.data.guid != NULL) {
     mail_generate_guid_128_hash(ctx->ctx.data.guid, ctx->mail_guid);
   } else {
@@ -276,9 +275,6 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   }
 
   {
-    bufferlist bl;
-    bl.append(mdata->received_date);
-    op.setxattr(RadosMailObject::X_ATTR_RECEIVED_DATE.c_str(), bl);
     op.mtime(&mdata->received_date);
   }
   int ret = r_storage->s->get_io_ctx().operate(ctx->mail_object->get_oid(), &op);
@@ -298,17 +294,20 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   struct rados_mailbox *mbox = r_ctx->mbox;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   struct rados_storage *r_storage = (struct rados_storage *)storage;
+  librados::ObjectWriteOperation write_op;
 
   if (!r_ctx->failed) {
     librados::bufferlist state_bl;
     state_bl.append(r_ctx->mail_object->get_finised_state_value());  // finished
     librados::ObjectWriteOperation write_op;
     write_op.setxattr(RadosMailObject::X_ATTR_STATE.c_str(), state_bl);
+  }
+  if (!r_ctx->failed) {
 
     int ret = r_storage->s->get_io_ctx().operate(r_ctx->mail_object->get_oid(), &write_op);
     i_debug("saving to : %s", r_ctx->mail_object->get_oid().c_str());
     if (ret < 0) {
-      i_debug("ERRO saving object to rados");
+      i_debug("ERROR saving object to rados");
       i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)", r_ctx->mail_object->get_oid().c_str(), ret,
               strerror(-ret));
       r_ctx->failed = TRUE;
