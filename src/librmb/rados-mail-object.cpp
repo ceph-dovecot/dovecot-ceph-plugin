@@ -26,5 +26,5 @@ RadosMailObject::RadosMailObject() {
   this->pop3_order = 0;
   this->save_date = 0;
   this->received_date = 0;
-  this->guid[GUID_128_SIZE] = {};
+  memset(this->guid, 0, GUID_128_SIZE);
 }
