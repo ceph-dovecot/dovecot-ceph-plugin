@@ -37,7 +37,12 @@ using std::string;
 
 class rados_save_context {
  public:
-  explicit rados_save_context(RadosStorage &rados_storage) : rados_storage(rados_storage) {}
+  explicit rados_save_context(RadosStorage &rados_storage) : mbox(NULL), trans(NULL),
+                                                             mail_count(0), sync_ctx(NULL),
+                                                             seq(0), input(NULL),
+                                                             rados_storage(rados_storage),
+                                                             mailObject(NULL), failed(1),
+                                                             finished(1) {}
 
   struct mail_save_context ctx;
 
@@ -319,11 +324,6 @@ int rados_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct mailbox_transaction_context *_t = _ctx->transaction;
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
-  uint32_t uid;
-  const char *dir;
-  string_t *src_path, *dest_path;
-  unsigned int n;
-  size_t src_prefixlen, dest_prefixlen;
 
   i_assert(ctx->finished);
 
