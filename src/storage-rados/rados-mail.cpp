@@ -214,7 +214,6 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   time_t time;
 
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
-    i_debug("physical size = %lu", *size_r);
     debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
     return 0;
@@ -223,13 +222,11 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   rados_get_index_record(_mail);
 
   if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time) < 0) {
-    i_debug("read file stat from rados failed : oid: %s", rmail->mail_object->get_oid().c_str());
     FUNC_END_RET("ret == -1; rados_read");
     return -1;
   }
 
   *size_r = file_size;
-  i_debug("rbox_mail_get_physical_size: size = %lu", *size_r);
   FUNC_END();
   return 0;
 }
@@ -243,26 +240,43 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
   struct rados_storage *r_storage = (struct rados_storage *)_mail->box->storage;
   int ret = 0;
 
+
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
-    if (rados_mail_get_physical_size(_mail, &size_r) < 0 || size_r == 0) {
-      i_debug("rados_mail_get_stream: error fetching mails physical size_r is: %ld ", size_r);
+
+    if (rados_mail_get_physical_size(_mail, &size_r) < 0) {
       return -1;
     }
-    _mail->transaction->stats.open_lookup_count++;
 
+    _mail->transaction->stats.open_lookup_count++;
+    int offset = 0;
     librados::bufferlist mail_data_bl;
+
     do {
-      ret = ((r_storage->s)->get_io_ctx()).read(rmail->mail_object->get_oid(), mail_data_bl, size_r, ret);
-      if (ret <= 0) {
+      mail_data_bl.clear();
+      ret = ((r_storage->s)->get_io_ctx())
+                .read(rmail->mail_object->get_oid(), mail_data_bl, r_storage->s->get_read_buffer_size(), offset);
+      if (ret < 0) {
         return -1;
       }
+      if (ret == 0) {
+        break;
+      }
 
-    } while (ret < size_r);
+      try {
+        // TODO(jrse) will fail with bad_alloc exception for big files.
+        // append copy to mail buffer
+        rmail->mail_object->get_mail_data_ref().append(mail_data_bl.to_str());
+      } catch (std::bad_alloc &ba) {
+        FUNC_END_RET("ret == -1, bad_alloc");
+        return -1;
+      }
+      offset += ret;
+    } while (ret > 0);
 
-    mail_data_bl.copy(0, mail_data_bl.length(), rmail->mail_object->get_mail_data_ref());
+    input = i_stream_create_from_data(rmail->mail_object->get_mail_data_ref().c_str(),
+                                      rmail->mail_object->get_mail_data_ref().length());
 
-    input = i_stream_create_from_data(rmail->mail_object->get_mail_data_ref().c_str(), size_r);
     i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME.c_str());
     index_mail_set_read_buffer_size(_mail, input);
 
@@ -282,24 +296,24 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
   FUNC_END();
   return ret;
 }
-void rados_index_mail_free(struct mail *mail) {
+void rados_mail_free(struct mail *mail) {
   struct rados_mail *rmail_ = (struct rados_mail *)mail;
 
   if (rmail_->mail_object != 0) {
-    delete rmail_->mail_object;
+    // delete rmail_->mail_object;
     rmail_->mail_object = 0;
   }
 
   index_mail_free(mail);
 }
 
-void rados_index_mail_expunge(struct mail *mail) {
+void rados_mail_expunge(struct mail *mail) {
   struct rados_mail *rmail_ = (struct rados_mail *)mail;
   index_mail_expunge(mail);
 }
 
 struct mail_vfuncs rados_mail_vfuncs = {index_mail_close,
-                                        rados_index_mail_free,
+                                        rados_mail_free,
                                         index_mail_set_seq,
                                         index_mail_set_uid,
                                         index_mail_set_uid_cache_updates,
@@ -330,7 +344,7 @@ struct mail_vfuncs rados_mail_vfuncs = {index_mail_close,
                                         index_mail_update_modseq,
                                         index_mail_update_pvt_modseq,
                                         NULL,
-                                        rados_index_mail_expunge,
+                                        rados_mail_expunge,
                                         index_mail_set_cache_corrupted,
                                         index_mail_opened,
                                         index_mail_set_cache_corrupted_reason};

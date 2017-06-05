@@ -19,10 +19,13 @@ class RadosStorage {
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 
   const std::string& get_username() const { return username; }
+  const uint64_t get_read_buffer_size() { return read_buffer_size; }
+  void set_read_buffer_size(const uint64_t size) { this->read_buffer_size = size; }
 
  private:
   librados::IoCtx io_ctx;
   std::string username;
+  uint64_t read_buffer_size;
 };
 
 }  // namespace librmb
