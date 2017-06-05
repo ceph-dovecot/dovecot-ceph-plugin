@@ -27,4 +27,5 @@ RadosMailObject::RadosMailObject() {
   this->save_date = 0;
   this->received_date = 0;
   memset(this->guid, 0, GUID_128_SIZE);
+  this->bytes_written = 0;
 }
