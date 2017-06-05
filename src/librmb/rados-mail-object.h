@@ -4,13 +4,13 @@
 #define SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
 
 #include <string>
-
+#include <iostream>
+#include <sstream>
 #include <rados/librados.hpp>
 
 #define GUID_128_SIZE 16
 
 namespace librmb {
-
 
 class RadosMailObject {
 
@@ -29,7 +29,7 @@ class RadosMailObject {
   void set_received_date(const time_t& received_date) { this->received_date = received_date; }
   void set_guid(const uint8_t* guid);
 
-  void set_mail_data(const std::string& data) { this->mail_data = data; }
+  void update_bytes_written(uint64_t& bytes_read) { this->bytes_written += bytes_read; }
 
   const std::string get_oid() { return this->oid; }
   const std::string get_state() { return state; }
@@ -43,21 +43,26 @@ class RadosMailObject {
   const time_t get_received_date() { return received_date; }
   uint8_t* get_guid_ref() { return guid; }
 
-  const std::string get_mail_data() { return mail_data; }
   std::string& get_mail_data_ref() { return mail_data; }
+  const uint64_t get_bytes_written() { return this->bytes_written; }
+
+  librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
+  librados::ObjectReadOperation& get_read_op() { return this->read_op; }
 
  private:
   std::string oid;
   std::string state;
   std::string version;
-
+  std::string mail_data;
   uint32_t pop3_order;
   std::string pop3_uidl;
   time_t save_date;
   time_t received_date;
   uint8_t guid[GUID_128_SIZE];
+  uint64_t bytes_written;
 
-  std::string mail_data;
+  librados::ObjectWriteOperation write_op;
+  librados::ObjectReadOperation read_op;
 
  public:
   // X_ATTRIBUTES
