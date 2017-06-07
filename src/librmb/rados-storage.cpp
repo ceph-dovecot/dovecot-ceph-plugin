@@ -13,6 +13,8 @@ using std::string;
 
 #define DICT_USERNAME_SEPARATOR '/'
 
-RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username) : io_ctx(*ctx), username(username) {}
+RadosStorage::RadosStorage(librados::IoCtx *ctx, const string &username) : io_ctx(*ctx), username(username) {
+  read_buffer_size = 1024;
+}
 
 RadosStorage::~RadosStorage() { get_io_ctx().close(); }
