@@ -37,12 +37,18 @@ using std::string;
 
 class rados_save_context {
  public:
-  explicit rados_save_context(RadosStorage &rados_storage) : mbox(NULL), trans(NULL),
-                                                             mail_count(0), sync_ctx(NULL),
-                                                             seq(0), input(NULL),
-                                                             rados_storage(rados_storage),
-                                                             mailObject(NULL), failed(1),
-                                                             finished(1) {}
+  explicit rados_save_context(RadosStorage &rados_storage)
+      : ctx({}),
+        mbox(NULL),
+        trans(NULL),
+        mail_count(0),
+        sync_ctx(NULL),
+        seq(0),
+        input(NULL),
+        rados_storage(rados_storage),
+        mailObject(NULL),
+        failed(1),
+        finished(1) {}
 
   struct mail_save_context ctx;
 
