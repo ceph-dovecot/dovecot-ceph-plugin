@@ -215,7 +215,6 @@ int rados_sync_finish(struct rados_sync_context **_ctx, bool success) {
 
   index_storage_expunging_deinit(&ctx->mbox->box);
 
-  // clean expunge array
   array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
   array_free(&ctx->expunged_items);
 
