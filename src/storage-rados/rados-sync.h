@@ -11,6 +11,11 @@ enum rados_sync_flags {
   RADOSSYNC_FLAG_FORCE_REBUILD = 0x04
 };
 
+struct expunged_item {
+  uint32_t uid;
+  guid_128_t oid;
+};
+
 struct rados_sync_context {
   struct rados_mailbox *mbox;
   struct mail_index_sync_ctx *index_sync_ctx;
@@ -20,6 +25,7 @@ struct rados_sync_context {
   string_t *path;
   size_t path_dir_prefix_len;
   uint32_t uid_validity;
+  ARRAY(struct expunged_item *) expunged_items;
 };
 
 int rados_sync(struct rados_mailbox *mbox);
