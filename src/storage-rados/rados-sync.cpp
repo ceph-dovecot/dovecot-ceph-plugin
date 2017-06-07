@@ -6,6 +6,7 @@ extern "C" {
 #include "typeof-def.h"
 #include "ioloop.h"
 #include "str.h"
+#include "guid.h"
 
 #include "rados-storage-local.h"
 #include "rados-sync.h"
@@ -25,39 +26,47 @@ static void rados_sync_set_uidvalidity(struct rados_sync_context *ctx) {
   FUNC_END();
 }
 
-static string_t *rados_get_path_prefix(struct rados_mailbox *mbox) {
+// TODO(jrse) nearly a copy of
+//            static int rados_get_index_record(struct mail *_mail)
+// in rados-mail.cpp
+static int rados_get_index_record(struct mail_index_view *_sync_view, uint32_t seq, uint32_t ext_id,
+                                  guid_128_t *index_oid) {
   FUNC_START();
-  string_t *path = str_new(default_pool, 256);
 
-  str_append(path, mailbox_get_path(&mbox->box));
-  str_append_c(path, '/');
-  i_debug("path = %s", (char *)path->data);
-  debug_print_mailbox(&mbox->box, "rados-sync::rados_get_path_prefix", NULL);
+  if (guid_128_is_empty(*index_oid)) {
+    const struct obox_mail_index_record *obox_rec;
+    const void *rec_data;
+    mail_index_lookup_ext(_sync_view, seq, ext_id, &rec_data, NULL);
+    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+
+    if (obox_rec == nullptr) {
+      /* lost for some reason, give up */
+      FUNC_END_RET("ret == -1");
+      return -1;
+    }
+    memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
+  }
+
   FUNC_END();
-  return path;
+  return 0;
 }
-
 static void rados_sync_expunge(struct rados_sync_context *ctx, uint32_t seq1, uint32_t seq2) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
-
-  if (ctx->path == NULL) {
-    ctx->path = rados_get_path_prefix(ctx->mbox);
-    ctx->path_dir_prefix_len = str_len(ctx->path);
-  }
+  guid_128_t oid;
 
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
+    mail_index_expunge(ctx->trans, seq1);
+    // add file to expunged_uids list.
 
-    str_truncate(ctx->path, ctx->path_dir_prefix_len);
-    str_printfa(ctx->path, "%u.", uid);
-    if (i_unlink_if_exists(str_c(ctx->path)) < 0) {
-      /* continue anyway */
+    struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+    item->uid = uid;
+    if (rados_get_index_record(ctx->sync_view, seq1, ((struct rados_mailbox *)box)->ext_id, &item->oid) < 0) {
+      // continue anyway
     } else {
-      if (box->v.sync_notify != NULL) {
-        box->v.sync_notify(box, uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-      }
+      array_append(&ctx->expunged_items, &item, 1);
       mail_index_expunge(ctx->trans, seq1);
     }
   }
@@ -116,6 +125,7 @@ int rados_sync_begin(struct rados_mailbox *mbox, struct rados_sync_context **ctx
 
   ctx = i_new(struct rados_sync_context, 1);
   ctx->mbox = mbox;
+  i_array_init(&ctx->expunged_items, 32);
 
   sync_flags = index_storage_get_sync_flags(&mbox->box) | MAIL_INDEX_SYNC_FLAG_FLUSH_DIRTY;
   if (!force)
@@ -125,6 +135,7 @@ int rados_sync_begin(struct rados_mailbox *mbox, struct rados_sync_context **ctx
                                           static_cast<mail_index_sync_flags>(sync_flags));
   if (ret <= 0) {
     debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_begin (ret <= 0, 1)", NULL);
+    array_free(&ctx->expunged_items);
     i_free(ctx);
     *ctx_r = NULL;
     FUNC_END_RET("ret <= 0");
@@ -140,6 +151,49 @@ int rados_sync_begin(struct rados_mailbox *mbox, struct rados_sync_context **ctx
   return 0;
 }
 
+static void rados_sync_object_expunge(struct rados_sync_context *ctx, struct expunged_item *item) {
+  FUNC_START();
+  struct mailbox *box = &ctx->mbox->box;
+  struct dbox_file *file;
+  struct rbox_file *sfile;
+  int ret;
+
+  struct rados_storage *r_storage = (struct rados_storage *)box->storage;
+  ret = r_storage->s->get_io_ctx().remove(guid_128_to_string(item->oid));
+
+  /* do sync_notify only when the file was unlinked by us */
+  if (ret > 0 && box->v.sync_notify != NULL)
+    box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+
+  FUNC_END();
+}
+static void rados_sync_expunge_rados_objects(struct rados_sync_context *ctx) {
+  FUNC_START();
+  struct expunged_item *const *items, *item;
+  unsigned int count;
+  int i;
+  /* NOTE: Index is no longer locked. Multiple processes may be deleting
+     the objects at the same time. */
+  ctx->mbox->box.tmp_sync_view = ctx->sync_view;
+
+  // rados_sync_object_expunge;
+  items = array_get(&ctx->expunged_items, &count);
+
+  for (i = 0; i < count; i++) {
+    T_BEGIN {
+      item = items[i];
+      rados_sync_object_expunge(ctx, item);
+    }
+    T_END;
+  }
+
+  if (ctx->mbox->box.v.sync_notify != NULL)
+    ctx->mbox->box.v.sync_notify(&ctx->mbox->box, 0, 0);
+
+  ctx->mbox->box.tmp_sync_view = NULL;
+  FUNC_END();
+}
+
 int rados_sync_finish(struct rados_sync_context **_ctx, bool success) {
   FUNC_START();
   struct rados_sync_context *ctx = *_ctx;
@@ -152,13 +206,21 @@ int rados_sync_finish(struct rados_sync_context **_ctx, bool success) {
       debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish (ret -1, 1)", NULL);
       FUNC_END_RET("ret == -1");
       ret = -1;
+    } else {
+      rados_sync_expunge_rados_objects(ctx);
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
   }
+
+  index_storage_expunging_deinit(&ctx->mbox->box);
+
+  // clean expunge array
+  array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
+  array_free(&ctx->expunged_items);
+
   debug_print_rados_sync_context(ctx, "rados-sync::rados_sync_finish", NULL);
-  if (ctx->path != NULL)
-    str_free(&ctx->path);
+
   i_free(ctx);
   FUNC_END();
   return ret;
