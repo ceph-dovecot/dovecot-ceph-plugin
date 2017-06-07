@@ -66,6 +66,7 @@ class rados_save_context {
   struct istream *input;
 
   RadosStorage &rados_storage;
+
   string cur_oid;
   std::vector<std::string> saved_oids;
 
@@ -149,9 +150,8 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   return r_ctx->failed ? -1 : 0;
 }
 
-size_t rados_stream_mail_to_rados(istream *_input, struct rados_save_context *_ctx) {
+size_t rados_stream_mail_to_buffer(istream *_input, struct rados_save_context *_ctx) {
   const unsigned char *data;
-  ceph::bufferlist bl;
   size_t size = 0;
   struct mail_storage *storage = &_ctx->mbox->storage->storage;
   struct rados_storage *r_storage = (struct rados_storage *)storage;
@@ -165,17 +165,7 @@ size_t rados_stream_mail_to_rados(istream *_input, struct rados_save_context *_c
       }
       break;
     }
-
-    bl.clear();
-
-    bl.append((const char *)data, size);
-    int ret = r_storage->s->get_io_ctx().write(_ctx->mail_object->get_oid(), bl, size,
-                                               _ctx->mail_object->get_bytes_written());
-    if (ret < 0) {
-      return -1;
-    }
-    _ctx->mail_object->update_bytes_written(size);
-
+    _ctx->mail_object->get_mail_data_ref().append((const char *)data, size);
     i_stream_skip(_input, size);
   } while (size > 0);
 
@@ -195,7 +185,7 @@ int rados_save_continue(struct mail_save_context *_ctx) {
   }
 
   do {
-    if (rados_stream_mail_to_rados(r_ctx->input, r_ctx) < 0) {
+    if (rados_stream_mail_to_buffer(r_ctx->input, r_ctx) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", "unused JAR");
       }
@@ -283,6 +273,11 @@ int rados_save_finish(struct mail_save_context *_ctx) {
 
   if (!r_ctx->failed) {
     rados_save_mail_write_metadata(r_ctx);
+
+    librados::bufferlist mail_data_bl;
+    mail_data_bl.append(r_ctx->mail_object->get_mail_data_ref());
+    r_ctx->mail_object->get_write_op().write_full(mail_data_bl);
+
     int ret = r_storage->s->get_io_ctx().operate(r_ctx->mail_object->get_oid(), &r_ctx->mail_object->get_write_op());
     i_debug("saving to : %s", r_ctx->mail_object->get_oid().c_str());
     if (ret < 0) {
@@ -297,6 +292,8 @@ int rados_save_finish(struct mail_save_context *_ctx) {
     r_ctx->mail_count++;
     r_ctx->saved_oids.push_back(r_ctx->mail_object->get_oid());
   } else {
+    // revert index attribute also
+
     r_ctx->mail_object->get_write_op().remove();
     remove_from_rados(r_storage->s, r_ctx->mail_object->get_oid());
   }
