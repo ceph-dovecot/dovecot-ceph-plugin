@@ -12,6 +12,8 @@ struct index_mail_data;
 #define FUNC_END() i_debug("[END] %s: %s at line %d\n", __FILE__, __func__, __LINE__)
 #define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
 
+const char *unixdate2str(time_t timestamp);
+
 void debug_print_mail(struct mail *target, const char *funcname, const char *name);
 void debug_print_mailbox(struct mailbox *target, const char *funcname, const char *name);
 void debug_print_rados_mailbox(struct rados_mailbox *target, const char *funcname, const char *name);

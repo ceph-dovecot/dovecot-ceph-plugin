@@ -23,7 +23,7 @@ void storage_rados_plugin_init(struct module *module) {
 }
 
 void storage_rados_plugin_deinit(void) {
-  i_debug("storage_rados_plugin_deinit refcount=%d)", refcount);
+  i_debug("storage_rados_plugin_deinit refcount=%d", refcount);
   if (--refcount > 0)
     return;
   i_debug("storage_rados_plugin_deinit unregisters rados_storage ");
