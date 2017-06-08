@@ -24,17 +24,17 @@ static char *enum_mail_error_strs[] = {"MAIL_ERROR_NONE",     "MAIL_ERROR_TEMP",
                                        "MAIL_ERROR_LIMIT",    "MAIL_ERROR_LOOKUP_ABORTED"};
 static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK", "FILE_LOCK_METHOD_DOTLOCK"};
 
-#define RBOX_PRINT_START(NAME)                    \
-  if (funcname == NULL)                           \
-    funcname = "-";                               \
-  if (name == NULL)                               \
-    name = NAME;                                  \
-  if (target == NULL)                             \
-    i_debug("rds %s: %s = NULL", funcname, name); \
+#define RBOX_PRINT_START(NAME)                \
+  if (funcname == NULL)                       \
+    funcname = "-";                           \
+  if (name == NULL)                           \
+    name = NAME;                              \
+  if (target == NULL)                         \
+    i_debug("%s: %s = NULL", funcname, name); \
   else {
 #define RBOX_PRINT_DEBUG(FORMAT, ...) \
   ;                                   \
-  i_debug("rds %s: %s." FORMAT, funcname, name, __VA_ARGS__)
+  i_debug("%s: %s." FORMAT, funcname, name, __VA_ARGS__)
 #define RBOX_PRINT_END() }
 
 #define STRFTIME_MAX_BUFSIZE (1024 * 64)
@@ -55,7 +55,7 @@ static const char *strftime_real(const char *fmt, const struct tm *tm) {
 
 static const char *t_strflocaltime(const char *fmt, time_t t) { return strftime_real(fmt, localtime(&t)); }
 
-static const char *unixdate2str(time_t timestamp) { return t_strflocaltime("%Y-%m-%d %H:%M:%S", timestamp); }
+const char *unixdate2str(time_t timestamp) { return t_strflocaltime("%Y-%m-%d %H:%M:%S", timestamp); }
 
 void debug_print_mail(struct mail *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail")

@@ -32,13 +32,15 @@ extern "C" {
 
 using namespace librados;  // NOLINT
 using namespace librmb;    // NOLINT
+using namespace ceph;      // NOLINT
 
 using std::string;
 
 class rados_save_context {
  public:
   explicit rados_save_context(RadosStorage &rados_storage)
-      : mbox(NULL),
+      : ctx({}),
+        mbox(NULL),
         trans(NULL),
         mail_count(0),
         sync_ctx(NULL),
@@ -92,7 +94,6 @@ struct mail_save_context *rados_save_alloc(struct mailbox_transaction_context *t
     t->save_ctx = &r_ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rados-save::rados_save_alloc", NULL);
-
 
   FUNC_END();
   return t->save_ctx;
@@ -279,9 +280,8 @@ int rados_save_finish(struct mail_save_context *_ctx) {
     int ret = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &r_ctx->current_object->get_write_op());
     i_debug("saving to : %s", r_ctx->current_object->get_oid().c_str());
     if (ret < 0) {
-      i_debug("ERROR saving object to rados");
-      i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)", r_ctx->current_object->get_oid().c_str(), ret,
-              strerror(-ret));
+      i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)",
+              r_ctx->current_object->get_oid().c_str(), ret, strerror(-ret));
       r_ctx->failed = TRUE;
     }
   }
