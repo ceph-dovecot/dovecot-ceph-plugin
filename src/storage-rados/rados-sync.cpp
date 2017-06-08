@@ -59,7 +59,6 @@ static void rados_sync_expunge(struct rados_sync_context *ctx, uint32_t seq1, ui
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     mail_index_expunge(ctx->trans, seq1);
-    // add file to expunged_uids list.
 
     struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
     item->uid = uid;
