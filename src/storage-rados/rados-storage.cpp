@@ -26,6 +26,7 @@ extern "C" {
 #include "rados-storage-struct.h"
 #include "rados-cluster.h"
 #include "rados-storage.h"
+#include "rados-copy.h"
 #include "rados-mail.h"
 
 using namespace librados;  // NOLINT
@@ -297,19 +298,6 @@ void rados_notify_changes(struct mailbox *box) {
     mailbox_watch_add(box, mailbox_get_path(box));
   debug_print_rados_mailbox(mbox, "rados-storage::rados_notify_changes", NULL);
   FUNC_END();
-}
-
-int rados_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
-  FUNC_START();
-  struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
-
-  debug_print_mail(mail, "rados_mail_copy", NULL);
-  debug_print_mail_save_context(_ctx, "rados_mail_copy", NULL);
-
-  int ret = mail_storage_copy(_ctx, mail);
-
-  FUNC_END();
-  return ret;
 }
 
 struct mail_storage rados_storage = {
