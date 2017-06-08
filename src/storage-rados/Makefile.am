@@ -18,10 +18,10 @@ module_LTLIBRARIES = \
 
 libstorage_rados_plugin_la_SOURCES = \
 	libstorage-rados-plugin.c \
+	rados-copy.cpp \
 	rados-mail.cpp \
 	rados-save.cpp \
 	rados-sync.cpp \
 	rados-storage.cpp \
 	debug-helper.c 
-	
 	
