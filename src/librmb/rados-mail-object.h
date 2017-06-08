@@ -12,6 +12,8 @@
 
 namespace librmb {
 
+typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
+
 class RadosMailObject {
 
  public:
@@ -49,6 +51,11 @@ class RadosMailObject {
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
   librados::ObjectReadOperation& get_read_op() { return this->read_op; }
 
+  AioCompletionPtr get_completion_private() { return this->completion_private; }
+  void rados_transaction_private_complete_callback(rados_completion_t comp, void* arg);
+  bool is_aio_write_successfull() { return this->aio_write_successfull; }
+  bool is_aio_write_finished() { return this->aio_write_finished; }
+
  private:
   std::string oid;
   std::string state;
@@ -63,6 +70,10 @@ class RadosMailObject {
 
   librados::ObjectWriteOperation write_op;
   librados::ObjectReadOperation read_op;
+
+  AioCompletionPtr completion_private;
+  bool aio_write_successfull;
+  bool aio_write_finished;
 
  public:
   // X_ATTRIBUTES
