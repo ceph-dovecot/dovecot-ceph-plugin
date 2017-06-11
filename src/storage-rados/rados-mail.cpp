@@ -23,23 +23,15 @@ extern "C" {
 
 #include "debug-helper.h"
 }
-#include "../librmb/rados-mail-object.h"
+
+#include "rados-mail-object.h"
 #include "rados-mail.h"
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
 using namespace librmb;  // NOLINT
 
-struct rados_mail {
-  struct index_mail imail;
-
-  guid_128_t index_guid;
-  guid_128_t index_oid;
-
-  RadosMailObject *mail_object;
-};
-
-static int rados_get_index_record(struct mail *_mail) {
+int rados_get_index_record(struct mail *_mail) {
   FUNC_START();
   struct rados_mail *rmail = (struct rados_mail *)_mail;
   struct rados_mailbox *rbox = (struct rados_mailbox *)_mail->transaction->box;
@@ -60,7 +52,6 @@ static int rados_get_index_record(struct mail *_mail) {
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
-
   }
 
   FUNC_END();
@@ -239,7 +230,6 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
 
   struct rados_storage *r_storage = (struct rados_storage *)_mail->box->storage;
   int ret = 0;
-
 
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
