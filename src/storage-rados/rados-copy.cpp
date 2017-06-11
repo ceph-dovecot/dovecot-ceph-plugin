@@ -12,6 +12,10 @@ extern "C" {
 #include "debug-helper.h"
 }
 
+#include "rados-mail.h"
+#include "rados-save.h"
+#include "rados-storage-struct.h"
+
 int rados_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
 int rados_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
@@ -75,19 +79,34 @@ int rados_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct 
 static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
+  struct rados_save_context *r_ctx = (struct rados_save_context *)ctx;
   struct mail_private *pmail = (struct mail_private *)mail;
   struct istream *input;
+  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
+  struct rados_storage *r_storage = (struct rados_storage *)storage;
+
+  i_debug("rados_mail_storage_try_copy: mail = %p", mail);
+  debug_print_mail_save_context(*_ctx, "rados_mail_storage_try_copy", NULL);
 
   ctx->copying_via_save = TRUE;
+  r_ctx->copying = TRUE;
 
-  /* we need to open the file in any case. caching metadata is unlikely
-     to help anything. */
-  pmail->v.set_uid_cache_updates(mail, TRUE);
+  if (r_ctx->copying != TRUE) {
+    /* we need to open the file in any case. caching metadata is unlikely
+       to help anything. */
+    pmail->v.set_uid_cache_updates(mail, TRUE);
 
-  if (mail_get_stream_because(mail, NULL, NULL, "copying", &input) < 0) {
-    rados_mail_copy_set_failed(ctx, mail, "stream");
-    FUNC_END_RET("ret == -1, mail_get_stream_because failed");
-    return -1;
+    if (mail_get_stream_because(mail, NULL, NULL, "copying", &input) < 0) {
+      rados_mail_copy_set_failed(ctx, mail, "stream");
+      FUNC_END_RET("ret == -1, mail_get_stream_because failed");
+      return -1;
+    }
+  } else {
+    if (rados_get_index_record(mail) < 0) {
+      rados_mail_copy_set_failed(ctx, mail, "index record");
+      FUNC_END_RET("ret == -1, rados_get_index_record failed");
+      return -1;
+    }
   }
 
   if (rados_mail_save_copy_default_metadata(ctx, mail) < 0) {
@@ -100,20 +119,30 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
     return -1;
   }
 
-  ssize_t ret;
-  do {
-    if (mailbox_save_continue(ctx) < 0)
-      break;
-    ret = i_stream_read(input);
-    i_assert(ret != 0);
-  } while (ret != -1);
+  i_debug("rados_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
 
-  if (input->stream_errno != 0) {
-    mail_storage_set_critical(ctx->transaction->box->storage, "copy: i_stream_read(%s) failed: %s",
-                              i_stream_get_name(input), i_stream_get_error(input));
-    FUNC_END_RET("ret == -1, input->stream_errno != 0");
-    return -1;
+  if (r_ctx->copying != TRUE) {
+    ssize_t ret;
+    do {
+      if (mailbox_save_continue(ctx) < 0)
+        break;
+      ret = i_stream_read(input);
+      i_assert(ret != 0);
+    } while (ret != -1);
+
+    if (input->stream_errno != 0) {
+      mail_storage_set_critical(ctx->transaction->box->storage, "copy: i_stream_read(%s) failed: %s",
+                                i_stream_get_name(input), i_stream_get_error(input));
+      FUNC_END_RET("ret == -1, input->stream_errno != 0");
+      return -1;
+    }
   }
+
+  struct rados_mail *rmail = (struct rados_mail *)mail;
+  std::string src_oid = rmail->mail_object->get_oid();
+  i_debug("rados_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
+  r_ctx->current_object->get_write_op().copy_from(src_oid, r_storage->s->get_io_ctx(),
+                                                  r_storage->s->get_io_ctx().get_last_version());
   FUNC_END();
   return 0;
 }
