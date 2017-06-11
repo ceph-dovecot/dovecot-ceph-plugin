@@ -231,6 +231,12 @@ static void remove_from_rados(librmb::RadosStorage *_storage, const std::string 
   }
 }
 
+// delegate completion call to given rados object
+static void rados_transaction_private_complete_callback(rados_completion_t comp, void *arg) {
+  RadosMailObject *rados_mail_object = reinterpret_cast<RadosMailObject *>(arg);
+  rados_mail_object->rados_transaction_private_complete_callback(comp, NULL);
+}
+
 int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *r_ctx = (struct rados_save_context *)_ctx;
@@ -241,19 +247,31 @@ int rados_save_finish(struct mail_save_context *_ctx) {
   if (!r_ctx->failed) {
     rados_save_mail_write_metadata(r_ctx);
 
+    r_ctx->current_object->get_completion_private()->set_complete_callback(r_ctx->current_object,
+                                                                           rados_transaction_private_complete_callback);
+
     if (r_ctx->copying != TRUE) {
-      ceph::bufferlist mail_data_bl;
+      librados::bufferlist mail_data_bl;
       mail_data_bl.append(r_ctx->current_object->get_mail_data_ref());
       r_ctx->current_object->get_write_op().write_full(mail_data_bl);
     }
 
-    int ret =
-        r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &r_ctx->current_object->get_write_op());
-    i_debug("saving to : %s", r_ctx->current_object->get_oid().c_str());
+    int ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
+                                                     r_ctx->current_object->get_completion_private().get(),
+                                                     &r_ctx->current_object->get_write_op());
+
     if (ret < 0) {
       i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)",
               r_ctx->current_object->get_oid().c_str(), ret, strerror(-ret));
       r_ctx->failed = TRUE;
+    } else {
+      // TODO(jrse) replace wait_for_complete to better suited function and
+      //            remember fkt remove_from_rados() if you move wait_for_complete call
+
+      r_ctx->current_object->get_completion_private()->wait_for_complete();
+      r_ctx->failed = r_ctx->current_object->is_aio_write_successfull();
+
+      i_debug("saving : %s finished", r_ctx->current_object->get_oid().c_str());
     }
   }
 
@@ -261,8 +279,10 @@ int rados_save_finish(struct mail_save_context *_ctx) {
     r_ctx->mail_count++;
     // r_ctx->saved_oids.push_back(r_ctx->current_object->get_oid());
   } else {
-    r_ctx->current_object->get_write_op().remove();
-    remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+    if (r_ctx->current_object->is_aio_write_successfull()) {
+      r_ctx->current_object->get_write_op().remove();
+      remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+    }
   }
 
   r_ctx->finished = TRUE;
