@@ -28,4 +28,18 @@ RadosMailObject::RadosMailObject() {
   this->received_date = 0;
   memset(this->guid, 0, GUID_128_SIZE);
   this->bytes_written = 0;
+  completion_private = std::make_shared<librados::AioCompletion>(*librados::Rados::aio_create_completion());
+  aio_write_successfull = false;
+  aio_write_finished = false;
+}
+
+// exclusive use for write operations (not sure if radps_completion_t can be something else than int
+void RadosMailObject::rados_transaction_private_complete_callback(rados_completion_t comp, void* arg) {
+  int ret_val = (int)comp;
+  if (ret_val < 0) {
+    aio_write_successfull = false;
+  } else {
+    aio_write_successfull = true;
+  }
+  aio_write_finished = true;
 }
