@@ -21,11 +21,15 @@ int rados_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 int rados_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   FUNC_START();
   struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
+  if (_ctx->saving != TRUE) {
+    ctx->copying = TRUE;
+  }
 
   debug_print_mail(mail, "rados_mail_copy", NULL);
   debug_print_mail_save_context(_ctx, "rados_mail_copy", NULL);
 
   int ret = rados_mail_storage_copy(_ctx, mail);
+  ctx->copying = FALSE;
   FUNC_END();
   return ret;
 }
@@ -89,7 +93,6 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
   debug_print_mail_save_context(*_ctx, "rados_mail_storage_try_copy", NULL);
 
   ctx->copying_via_save = TRUE;
-  r_ctx->copying = TRUE;
 
   if (r_ctx->copying != TRUE) {
     /* we need to open the file in any case. caching metadata is unlikely
@@ -138,11 +141,13 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
     }
   }
 
-  struct rados_mail *rmail = (struct rados_mail *)mail;
-  std::string src_oid = rmail->mail_object->get_oid();
-  i_debug("rados_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
-  r_ctx->current_object->get_write_op().copy_from(src_oid, r_storage->s->get_io_ctx(),
-                                                  r_storage->s->get_io_ctx().get_last_version());
+  if (r_ctx->copying == TRUE) {
+    struct rados_mail *rmail = (struct rados_mail *)mail;
+    std::string src_oid = rmail->mail_object->get_oid();
+    i_debug("rados_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
+    r_ctx->current_object->get_write_op().copy_from(src_oid, r_storage->s->get_io_ctx(),
+                                                    r_storage->s->get_io_ctx().get_last_version());
+  }
   FUNC_END();
   return 0;
 }

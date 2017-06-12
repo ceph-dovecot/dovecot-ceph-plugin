@@ -23,7 +23,8 @@ class rados_save_context {
         rados_storage(rados_storage),
         current_object(NULL),
         failed(1),
-        finished(1) {}
+        finished(1),
+        copying(0) {}
 
   struct mail_save_context ctx;
 
