@@ -50,7 +50,8 @@ class rados_save_context {
         rados_storage(rados_storage),
         current_object(NULL),
         failed(1),
-        finished(1) {}
+        finished(1),
+        mail_buffer(NULL) {}
 
   struct mail_save_context ctx;
 
@@ -70,9 +71,8 @@ class rados_save_context {
 
   RadosStorage &rados_storage;
 
-  //  std::vector<RadosMailObject *> rados_mails;
-
   RadosMailObject *current_object;
+  buffer_t *mail_buffer;
 
   unsigned int failed : 1;
   unsigned int finished : 1;
@@ -119,6 +119,17 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   r_ctx->current_object = new RadosMailObject();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
 
+  r_ctx->mail_buffer = buffer_create_dynamic(default_pool, 1014);
+  if (r_ctx->mail_buffer == NULL) {
+    FUNC_END_RET("ret == -1");
+    return -1;
+  }
+
+  if (_ctx->data.output != NULL) {
+    o_stream_unref(&_ctx->data.output);
+  }
+  _ctx->data.output = o_stream_create_buffer(r_ctx->mail_buffer);
+
   bufferlist version_bl;
   version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
 
@@ -146,31 +157,11 @@ int rados_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
   i_stream_unref(&crlf_input);
   debug_print_mail_save_context(_ctx, "rados-save::rados_save_begin", NULL);
+
   FUNC_END();
   return r_ctx->failed ? -1 : 0;
 }
 
-size_t rados_stream_mail_to_buffer(istream *_input, struct rados_save_context *_ctx) {
-  const unsigned char *data;
-  size_t size = 0;
-  struct mail_storage *storage = &_ctx->mbox->storage->storage;
-  struct rados_storage *r_storage = (struct rados_storage *)storage;
-
-  do {
-    (void *)i_stream_read_data(_input, &data, &size, 0);
-    if (size == 0) {
-      /*all sent */
-      if (_input->stream_errno != 0) {
-        return -1;
-      }
-      break;
-    }
-    _ctx->current_object->get_mail_data_ref().append((const char *)data, size);
-    i_stream_skip(_input, size);
-  } while (size > 0);
-
-  return _ctx->current_object->get_bytes_written();
-}
 
 int rados_save_continue(struct mail_save_context *_ctx) {
   FUNC_START();
@@ -185,7 +176,7 @@ int rados_save_continue(struct mail_save_context *_ctx) {
   }
 
   do {
-    if (rados_stream_mail_to_buffer(r_ctx->input, r_ctx) < 0) {
+    if (o_stream_send_istream(_ctx->data.output, r_ctx->input) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", "unused JAR");
       }
@@ -226,6 +217,7 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   i_zero(&rec);
   memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
   memcpy(rec.oid, ctx->mail_oid, sizeof(ctx->mail_oid));
+  i_debug("SAVE OID: %s", guid_128_to_string(rec.oid));
   mail_index_update_ext(ctx->trans, ctx->seq, mbox->ext_id, &rec, NULL);
 
   {
@@ -259,9 +251,9 @@ static int rados_save_mail_write_metadata(struct rados_save_context *ctx) {
   return 0;
 }
 static void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
-  i_debug("object to delete oid is: %s", _oid);
+  i_debug("object to delete oid is: %s", _oid.c_str());
   if ((_storage->get_io_ctx()).remove(_oid) < 0) {
-    i_debug("Librados obj: %s , could not be removed", _oid);
+    i_debug("Librados obj: %s , could not be removed", _oid.c_str());
   }
 }
 // delegate completion call to given rados object
@@ -273,46 +265,38 @@ static void rados_transaction_private_complete_callback(rados_completion_t comp,
 int rados_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rados_save_context *r_ctx = (struct rados_save_context *)_ctx;
-  struct rados_mailbox *mbox = r_ctx->mbox;
-  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-  struct rados_storage *r_storage = (struct rados_storage *)storage;
+  struct rados_storage *r_storage = (struct rados_storage *)&r_ctx->mbox->storage->storage;
+  int ret = -1;
 
   if (!r_ctx->failed) {
     rados_save_mail_write_metadata(r_ctx);
 
-    r_ctx->current_object->get_completion_private()->set_complete_callback(r_ctx->current_object,
-                                                                           rados_transaction_private_complete_callback);
+    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
+        r_ctx->current_object, rados_transaction_private_complete_callback);
+
+    if (ret < 0) {
+      r_ctx->failed = TRUE;
+    }
 
     librados::bufferlist mail_data_bl;
-    mail_data_bl.append(r_ctx->current_object->get_mail_data_ref());
+    mail_data_bl.append(str_c(r_ctx->mail_buffer));
     r_ctx->current_object->get_write_op().write_full(mail_data_bl);
-
-    int ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
-                                                     r_ctx->current_object->get_completion_private().get(),
-                                                     &r_ctx->current_object->get_write_op());
-
+    ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
+                                                 r_ctx->current_object->get_completion_private().get(),
+                                                 &r_ctx->current_object->get_write_op());
+    if (ret < 0) {
+      r_ctx->failed = TRUE;
+    }
+  }
+  if (!r_ctx->failed) {
+    //   int ret =
+    ret = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &r_ctx->current_object->get_write_op());
     if (ret < 0) {
       i_debug("rados_save_finish(): saving object %s to rados failed err=%d(%s)",
               r_ctx->current_object->get_oid().c_str(), ret, strerror(-ret));
       r_ctx->failed = TRUE;
     } else {
-      // TODO(jrse) replace wait_for_complete to better suited function and
-      //            remember fkt remove_from_rados() if you move wait_for_complete call
-
-      r_ctx->current_object->get_completion_private()->wait_for_complete();
-      r_ctx->failed = r_ctx->current_object->is_aio_write_successfull();
-
-      i_debug("saving : %s finished", r_ctx->current_object->get_oid().c_str());
-    }
-  }
-
-  if (!r_ctx->failed) {
-    r_ctx->mail_count++;
-    // r_ctx->saved_oids.push_back(r_ctx->current_object->get_oid());
-  } else {
-    if (r_ctx->current_object->is_aio_write_successfull()) {
-      r_ctx->current_object->get_write_op().remove();
-      remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+      r_ctx->mail_count++;
     }
   }
 
@@ -334,8 +318,6 @@ void rados_save_cancel(struct mail_save_context *_ctx) {
 
   r_ctx->failed = TRUE;
   (void)rados_save_finish(_ctx);
-
-  // delete save_oids.
 
   debug_print_mail_save_context(_ctx, "rados-save::rados_save_cancel", NULL);
   FUNC_END();
@@ -376,6 +358,17 @@ void rados_transaction_save_commit_post(struct mail_save_context *_ctx,
                                         struct mail_index_transaction_commit_result *result) {
   FUNC_START();
   struct rados_save_context *r_ctx = (struct rados_save_context *)_ctx;
+  struct rados_storage *r_storage = (struct rados_storage *)&r_ctx->mbox->storage->storage;
+
+  r_ctx->current_object->get_completion_private()->wait_for_complete();
+  r_ctx->failed = r_ctx->current_object->is_aio_write_successfull();
+
+  if (r_ctx->failed) {
+    if (r_ctx->current_object->is_aio_write_successfull()) {
+      r_ctx->current_object->get_write_op().remove();
+      remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+    }
+  }
 
   _ctx->transaction = NULL; /* transaction is already freed */
 
@@ -389,6 +382,7 @@ void rados_transaction_save_commit_post(struct mail_save_context *_ctx,
 
 void rados_transaction_save_rollback(struct mail_save_context *_ctx) {
   FUNC_START();
+
   struct rados_save_context *r_ctx = (struct rados_save_context *)_ctx;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   struct rados_storage *r_storage = (struct rados_storage *)storage;
@@ -405,6 +399,7 @@ void rados_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   debug_print_mail_save_context(_ctx, "rados-save::rados_transaction_save_rollback", NULL);
 
+  buffer_free(&r_ctx->mail_buffer);
   delete r_ctx->current_object;
   delete r_ctx;
   FUNC_END();

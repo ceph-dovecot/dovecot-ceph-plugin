@@ -8,8 +8,14 @@
 
 #include <map>
 #include <string>
+#include <iostream>
+#include <vector>
 
 extern "C" {
+
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #include "lib.h"
 #include "typeof-def.h"
@@ -20,9 +26,11 @@ extern "C" {
 #include "str.h"
 
 #include "rados-storage-local.h"
-
+#include "ostream.h"
 #include "debug-helper.h"
 }
+
+
 #include "../librmb/rados-mail-object.h"
 #include "rados-mail.h"
 #include "rados-storage-struct.h"
@@ -30,13 +38,15 @@ extern "C" {
 
 using namespace librmb;  // NOLINT
 
+using std::string;
+
 struct rados_mail {
   struct index_mail imail;
 
   guid_128_t index_guid;
   guid_128_t index_oid;
-
   RadosMailObject *mail_object;
+  char *mail_buffer;
 };
 
 static int rados_get_index_record(struct mail *_mail) {
@@ -60,7 +70,6 @@ static int rados_get_index_record(struct mail *_mail) {
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
-
   }
 
   FUNC_END();
@@ -213,13 +222,13 @@ static int rados_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   uint64_t file_size;
   time_t time;
 
+  rados_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     debug_print_mail(_mail, "rados-mail::rados_mail_get_physical_size (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
     return 0;
   }
-
-  rados_get_index_record(_mail);
+  i_debug("rmail->mail_object->get_oid() %s", rmail->mail_object->get_oid().c_str());
 
   if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time) < 0) {
     FUNC_END_RET("ret == -1; rados_read");
@@ -240,43 +249,46 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
   struct rados_storage *r_storage = (struct rados_storage *)_mail->box->storage;
   int ret = 0;
 
-
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
 
     if (rados_mail_get_physical_size(_mail, &size_r) < 0) {
+      FUNC_END_RET("ret == -1; get mail size");
       return -1;
     }
 
-    _mail->transaction->stats.open_lookup_count++;
-    int offset = 0;
-    librados::bufferlist mail_data_bl;
+    if (size_r <= 0) {
+      i_debug("size is: %d", size_r);
+      FUNC_END_RET("ret == -1; mail_size <= 0");
+      return -1;
+   }
 
-    do {
-      mail_data_bl.clear();
-      ret = ((r_storage->s)->get_io_ctx())
-                .read(rmail->mail_object->get_oid(), mail_data_bl, r_storage->s->get_read_buffer_size(), offset);
-      if (ret < 0) {
-        return -1;
-      }
-      if (ret == 0) {
-        break;
-      }
+   rmail->mail_buffer = p_new(default_pool, char, size_r);
+   if (rmail->mail_buffer == NULL) {
+     FUNC_END_RET("ret == -1; out of memory");
+     return -1;
+   }
+   _mail->transaction->stats.open_lookup_count++;
 
-      try {
-        // TODO(jrse) will fail with bad_alloc exception for big files.
-        // append copy to mail buffer
-        rmail->mail_object->get_mail_data_ref().append(mail_data_bl.to_str());
-      } catch (std::bad_alloc &ba) {
-        FUNC_END_RET("ret == -1, bad_alloc");
-        return -1;
-      }
-      offset += ret;
+   int offset = 0;
+   librados::bufferlist mail_data_bl;
+   std::string str_buf;
+   do {
+     mail_data_bl.clear();
+     ret = ((r_storage->s)->get_io_ctx()).read(rmail->mail_object->get_oid(), mail_data_bl, size_r, offset);
+     if (ret < 0) {
+       FUNC_END_RET("ret == -1");
+       return -1;
+     }
+     if (ret == 0) {
+       break;
+     }
+     memcpy(&rmail->mail_buffer[offset], mail_data_bl.to_str().c_str(), ret * sizeof(char));
+     offset += ret;
+
     } while (ret > 0);
 
-    input = i_stream_create_from_data(rmail->mail_object->get_mail_data_ref().c_str(),
-                                      rmail->mail_object->get_mail_data_ref().length());
-
+    input = i_stream_create_from_data(rmail->mail_buffer, size_r);
     i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME.c_str());
     index_mail_set_read_buffer_size(_mail, input);
 
@@ -294,14 +306,16 @@ static int rados_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, 
   ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
   debug_print_mail(_mail, "rados-mail::rados_mail_get_stream", NULL);
   FUNC_END();
+  i_debug("ok i'm done ");
   return ret;
 }
 void rados_mail_free(struct mail *mail) {
   struct rados_mail *rmail_ = (struct rados_mail *)mail;
 
+  free(rmail_->mail_buffer);
   if (rmail_->mail_object != 0) {
-    // delete rmail_->mail_object;
-    rmail_->mail_object = 0;
+    delete rmail_->mail_object;
+    rmail_->mail_object = NULL;
   }
 
   index_mail_free(mail);
