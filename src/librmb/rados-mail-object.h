@@ -5,6 +5,7 @@
 
 #include <string>
 #include <iostream>
+#include <vector>
 #include <sstream>
 #include <rados/librados.hpp>
 
@@ -18,7 +19,9 @@ class RadosMailObject {
 
  public:
   RadosMailObject();
-  virtual ~RadosMailObject() {}
+  virtual ~RadosMailObject() {
+
+  }
 
   void set_oid(const char* oid) { this->oid = oid; }
   void set_oid(const std::string& oid) { this->oid = oid; }
@@ -30,8 +33,6 @@ class RadosMailObject {
   void set_save_date(const time_t& save_date) { this->save_date = save_date; }
   void set_received_date(const time_t& received_date) { this->received_date = received_date; }
   void set_guid(const uint8_t* guid);
-
-  void update_bytes_written(uint64_t& bytes_read) { this->bytes_written += bytes_read; }
 
   const std::string get_oid() { return this->oid; }
   const std::string get_state() { return state; }
@@ -45,31 +46,26 @@ class RadosMailObject {
   const time_t get_received_date() { return received_date; }
   uint8_t* get_guid_ref() { return guid; }
 
-  std::string& get_mail_data_ref() { return mail_data; }
-  const uint64_t get_bytes_written() { return this->bytes_written; }
-
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
-  librados::ObjectReadOperation& get_read_op() { return this->read_op; }
 
   AioCompletionPtr get_completion_private() { return this->completion_private; }
   void rados_transaction_private_complete_callback(rados_completion_t comp, void* arg);
   bool is_aio_write_successfull() { return this->aio_write_successfull; }
   bool is_aio_write_finished() { return this->aio_write_finished; }
 
+
  private:
   std::string oid;
   std::string state;
   std::string version;
-  std::string mail_data;
+
   uint32_t pop3_order;
   std::string pop3_uidl;
   time_t save_date;
   time_t received_date;
   uint8_t guid[GUID_128_SIZE];
-  uint64_t bytes_written;
 
   librados::ObjectWriteOperation write_op;
-  librados::ObjectReadOperation read_op;
 
   AioCompletionPtr completion_private;
   bool aio_write_successfull;
