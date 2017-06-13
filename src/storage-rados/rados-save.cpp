@@ -269,9 +269,9 @@ int rados_save_finish(struct mail_save_context *_ctx) {
       //            remember fkt remove_from_rados() if you move wait_for_complete call
 
       r_ctx->current_object->get_completion_private()->wait_for_complete();
-      r_ctx->failed = r_ctx->current_object->is_aio_write_successfull();
+      r_ctx->failed = !r_ctx->current_object->is_aio_write_successful();
 
-      i_debug("saving : %s finished", r_ctx->current_object->get_oid().c_str());
+      i_debug("saving : %s finished, failed = %s", r_ctx->current_object->get_oid().c_str(), btoa(r_ctx->failed));
     }
   }
 
@@ -279,7 +279,7 @@ int rados_save_finish(struct mail_save_context *_ctx) {
     r_ctx->mail_count++;
     // r_ctx->saved_oids.push_back(r_ctx->current_object->get_oid());
   } else {
-    if (r_ctx->current_object->is_aio_write_successfull()) {
+    if (r_ctx->current_object->is_aio_write_successful()) {
       r_ctx->current_object->get_write_op().remove();
       remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
     }
