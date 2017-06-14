@@ -1,8 +1,8 @@
-AC_INIT([dovecot-rados-plugin], [1.0], [p.mauritius@tallence.com])
+AC_INIT([dovecot-rbox-plugin], [1.0], [p.mauritius@tallence.com])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADERS([dovecot-rados-plugin-config.h])
+AC_CONFIG_HEADERS([dovecot-rbox-plugin-config.h])
 
 AM_INIT_AUTOMAKE([no-define foreign tar-ustar])
 
@@ -33,7 +33,6 @@ Makefile
 src/Makefile
 src/librmb/Makefile
 src/dict-rados/Makefile
-src/storage-rados/Makefile
 src/storage-rbox/Makefile
 ])
 

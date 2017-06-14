@@ -10,10 +10,8 @@
 #include "mail-storage-private.h"
 #include "mailbox-list.h"
 #include "mailbox-list-private.h"
-#include "rbox-storage.h"
+#include "rbox-storage-local.h"
 #include "rbox-sync.h"
-#include "dbox-file.h"
-#include "rbox-file.h"
 #include "debug-helper.h"
 
 static char *enum_mail_access_type_strs[] = {"MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH",
@@ -42,24 +40,6 @@ static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_MET
 
 #define STRFTIME_MAX_BUFSIZE (1024 * 64)
 
-/* Obtain a backtrace and print it to stdout. */
-void print_trace(void) {
-        void *array[20];
-        size_t size;
-        char **strings;
-        size_t i;
-
-        size = backtrace(array, 20);
-        strings = backtrace_symbols(array, size);
-
-        i_debug("Obtained %zd stack frames", size);
-
-        for (i = 0; i < size; i++)
-                i_debug("%s", strings[i]);
-
-        free(strings);
-}
-
 static const char *strftime_real(const char *fmt, const struct tm *tm) {
   size_t bufsize = strlen(fmt) + 32;
   char *buf = t_buffer_get(bufsize);
@@ -76,9 +56,9 @@ static const char *strftime_real(const char *fmt, const struct tm *tm) {
 
 static const char *t_strflocaltime(const char *fmt, time_t t) { return strftime_real(fmt, localtime(&t)); }
 
-const char *rbox_unixdate2str(time_t timestamp) { return t_strflocaltime("%Y-%m-%d %H:%M:%S", timestamp); }
+const char *unixdate2str(time_t timestamp) { return t_strflocaltime("%Y-%m-%d %H:%M:%S", timestamp); }
 
-void rbox_dbg_print_mail(struct mail *target, const char *funcname, const char *name) {
+void debug_print_mail(struct mail *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail")
 
   RBOX_PRINT_DEBUG("uid = %d", target->uid)
@@ -95,16 +75,17 @@ void rbox_dbg_print_mail(struct mail *target, const char *funcname, const char *
   RBOX_PRINT_DEBUG("access_type = %s", enum_mail_access_type_strs[target->access_type]);
   RBOX_PRINT_DEBUG("lookup_abort = %s", enum_mail_lookup_abort_strs[target->lookup_abort]);
 
-  rbox_dbg_print_mailbox(target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
-  RBOX_PRINT_DEBUG("box = %p", target->box);
-  // rbox_dbg_print_mailbox_transaction_context(target->transaction, NULL, "transaction");
+  // debug_print_mailbox_transaction_context(target->transaction, NULL, "transaction");
   RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
+
+  // RBOX_PRINT_DEBUG("box = %p", target->box);
+  debug_print_mailbox(target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_rbox_index_header(struct rbox_index_header *target, const char *funcname, const char *name) {
-  RBOX_PRINT_START("rbox_index_header")
+void debug_print_sdbox_index_header(struct sdbox_index_header *target, const char *funcname, const char *name) {
+  RBOX_PRINT_START("sdbox_index_header")
 
   RBOX_PRINT_DEBUG("rebuild_count = %u", target->rebuild_count);
   RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
@@ -113,27 +94,27 @@ void rbox_dbg_print_rbox_index_header(struct rbox_index_header *target, const ch
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname,
-                                           const char *name) {
+void debug_print_obox_mail_index_record(struct obox_mail_index_record *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("obox_mail_index_record")
 
   RBOX_PRINT_DEBUG("guid = %s", guid_128_to_string(target->guid));
+  RBOX_PRINT_DEBUG("oid = %s", guid_128_to_string(target->oid));
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name) {
+void debug_print_mailbox_metadata(struct mailbox_metadata *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mailbox_metadata")
 
   RBOX_PRINT_DEBUG("guid = %s", guid_128_to_string(target->guid));
   RBOX_PRINT_DEBUG("virtual_size = %lu", target->virtual_size);
   RBOX_PRINT_DEBUG("physical_size = %lu", target->physical_size);
-  RBOX_PRINT_DEBUG("first_save_date = %lu (%s)", target->first_save_date, rbox_unixdate2str(target->first_save_date));
+  RBOX_PRINT_DEBUG("first_save_date = %lu (%s)", target->first_save_date, unixdate2str(target->first_save_date));
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mailbox(struct mailbox *target, const char *funcname, const char *name) {
+void debug_print_mailbox(struct mailbox *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mailbox")
 
   RBOX_PRINT_DEBUG("name = %s", target->name);
@@ -186,32 +167,32 @@ void rbox_dbg_print_mailbox(struct mailbox *target, const char *funcname, const 
   RBOX_PRINT_DEBUG("list_index_has_changed_quick = %u", target->list_index_has_changed_quick);
   RBOX_PRINT_DEBUG("corrupted_mailbox_name = %u", target->corrupted_mailbox_name);
 
-  // rbox_dbg_print_mail_storage(target->storage, "storage");
+  // debug_print_mail_storage(target->storage, "storage");
   RBOX_PRINT_DEBUG("storage = %p", target->storage);
-  rbox_dbg_print_mailbox_list(target->list, funcname, t_strdup_printf("  %s.%s", name, "list"));
-  // DEBUG("list = %p", target->list);
-  // rbox_dbg_print_mail_index(target->index, "index");
+  debug_print_mailbox_list(target->list, funcname, t_strdup_printf("  %s.%s", name, "list"));
+  // RBOX_PRINT_DEBUG("list = %p", target->list);
+  // debug_print_mail_index(target->index, "index");
   RBOX_PRINT_DEBUG("index = %p", target->index);
-  // rbox_dbg_print_mail_index(target->index_pvt, "index_pvt");
+  // debug_print_mail_index(target->index_pvt, "index_pvt");
   RBOX_PRINT_DEBUG("index_pvt = %p", target->index_pvt);
 
   RBOX_PRINT_END()
 }
-void rbox_dbg_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name) {
+void debug_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("rbox_mailbox")
 
   RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
-  rbox_dbg_print_mailbox(&target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
+  debug_print_mailbox(&target->box, funcname, t_strdup_printf("  %s.%s", name, "box"));
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_index_mail_data(struct index_mail_data *target, const char *funcname, const char *name) {
+void debug_print_index_mail_data(struct index_mail_data *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("index_mail_data")
 
-  RBOX_PRINT_DEBUG("date = %lu (%s)", target->date, rbox_unixdate2str(target->date));
-  RBOX_PRINT_DEBUG("received_date = %lu (%s)", target->received_date, rbox_unixdate2str(target->received_date));
-  RBOX_PRINT_DEBUG("save_date = %lu (%s)", target->save_date, rbox_unixdate2str(target->save_date));
+  RBOX_PRINT_DEBUG("date = %lu (%s)", target->date, unixdate2str(target->date));
+  RBOX_PRINT_DEBUG("received_date = %lu (%s)", target->received_date, unixdate2str(target->received_date));
+  RBOX_PRINT_DEBUG("save_date = %lu (%s)", target->save_date, unixdate2str(target->save_date));
 
   RBOX_PRINT_DEBUG("virtual_size = %lu", target->virtual_size);
   RBOX_PRINT_DEBUG("physical_size = %lu", target->physical_size);
@@ -233,7 +214,7 @@ void rbox_dbg_print_index_mail_data(struct index_mail_data *target, const char *
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mail_save_context(struct mail_save_context *target, const char *funcname, const char *name) {
+void debug_print_mail_save_context(struct mail_save_context *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail_save_context")
 
   RBOX_PRINT_DEBUG("unfinished = %u", target->unfinished);
@@ -243,22 +224,33 @@ void rbox_dbg_print_mail_save_context(struct mail_save_context *target, const ch
   RBOX_PRINT_DEBUG("moving = %u", target->moving);
   RBOX_PRINT_DEBUG("copying_or_moving = %u", target->copying_or_moving);
   RBOX_PRINT_DEBUG("dest_mail_external = %u", target->dest_mail_external);
-  RBOX_PRINT_DEBUG("data.uid = %u", target->data.uid);
 
-  // rbox_dbg_print_mail(target->dest_mail, NULL, "dest_mail");
+  // debug_print_mail(target->dest_mail, NULL, "dest_mail");
   RBOX_PRINT_DEBUG("dest_mail = %p", target->dest_mail);
-  // rbox_dbg_print_mail(target->copy_src_mail, NULL, "copy_src_mail");
+  if (target->dest_mail != NULL) {
+    debug_print_mail(target->dest_mail, funcname, "dest_mail");
+  }
+  // debug_print_mail(target->copy_src_mail, NULL, "copy_src_mail");
   RBOX_PRINT_DEBUG("copy_src_mail = %p", target->copy_src_mail);
-  // rbox_dbg_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
+  if (target->copy_src_mail != NULL) {
+    debug_print_mail(target->copy_src_mail, funcname, "copy_src_mail");
+  }
+  // debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
   RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
-  // rbox_dbg_print_mail_save_data(&mailSaveContext->data, NULL, "data");
-  RBOX_PRINT_DEBUG("data.guid = %s", target->data.guid);
+  // debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
+  RBOX_PRINT_DEBUG("data = %p", target->data);
+  /*
+    if (target->data != NULL) {
+      RBOX_PRINT_DEBUG("data.uid = %u", target->data.uid);
+      RBOX_PRINT_DEBUG("data.guid = %s", target->data.guid);
+    }
+  */
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mailbox_transaction_context(struct mailbox_transaction_context *target, const char *funcname,
-                                                const char *name) {
+void debug_print_mailbox_transaction_context(struct mailbox_transaction_context *target, const char *funcname,
+                                             const char *name) {
   RBOX_PRINT_START("mailbox_transaction_context")
 
   RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
@@ -283,22 +275,22 @@ void rbox_dbg_print_mailbox_transaction_context(struct mailbox_transaction_conte
   RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
   RBOX_PRINT_DEBUG("pvt_saves size = %ld", target->pvt_saves.arr.element_size);
 
-  // rbox_dbg_print_mailbox(mailboxTransactionContext->box, NULL, "box");
+  // debug_print_mailbox(mailboxTransactionContext->box, NULL, "box");
   RBOX_PRINT_DEBUG("box = %p", target->box);
-  // rbox_dbg_print_mail_save_context(target->save_ctx, NULL, "save_ctx");
+  // debug_print_mail_save_context(target->save_ctx, NULL, "save_ctx");
   RBOX_PRINT_DEBUG("save_ctx = %p", target->save_ctx);
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mail_save_data(struct mail_save_data *target, const char *funcname, const char *name) {
+void debug_print_mail_save_data(struct mail_save_data *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail_save_data")
 
   RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
   RBOX_PRINT_DEBUG("pvt_flags = 0x%04x", target->pvt_flags);
   RBOX_PRINT_DEBUG("min_modseq = %lu", target->min_modseq);
-  RBOX_PRINT_DEBUG("received_date = %lu (%s)", target->received_date, rbox_unixdate2str(target->received_date));
-  RBOX_PRINT_DEBUG("save_date = %lu (%s)", target->save_date, rbox_unixdate2str(target->save_date));
+  RBOX_PRINT_DEBUG("received_date = %lu (%s)", target->received_date, unixdate2str(target->received_date));
+  RBOX_PRINT_DEBUG("save_date = %lu (%s)", target->save_date, unixdate2str(target->save_date));
   RBOX_PRINT_DEBUG("received_tz_offset = %d", target->received_tz_offset);
   RBOX_PRINT_DEBUG("guid = %s", target->guid);
   RBOX_PRINT_DEBUG("pop3_uidl = %s", target->pop3_uidl);
@@ -312,44 +304,41 @@ void rbox_dbg_print_mail_save_data(struct mail_save_data *target, const char *fu
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mail_storage(struct mail_storage *target, const char *funcname, const char *name) {
-	RBOX_PRINT_START("mail_storage")
+void debug_print_mail_storage(struct mail_storage *target, const char *funcname, const char *name) {
+  RBOX_PRINT_START("mail_storage")
 
-		RBOX_PRINT_DEBUG("name = %s", target->name);
-		RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
-		RBOX_PRINT_DEBUG("class_flags = 0x%04x", target->class_flags);
-		if (target->pool != NULL) {
-			RBOX_PRINT_DEBUG("pool name = %s", target->pool->v->get_name(target->pool));
-		}
-		RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
-		RBOX_PRINT_DEBUG("obj_refcount = %d", target->obj_refcount);
-		RBOX_PRINT_DEBUG("unique_root_dir = %s", target->unique_root_dir);
-		RBOX_PRINT_DEBUG("error_string = %s", target->error_string);
-		RBOX_PRINT_DEBUG("error = %s", enum_mail_error_strs[target->error]);
-		RBOX_PRINT_DEBUG("temp_path_prefix = %s", target->temp_path_prefix);
-		RBOX_PRINT_DEBUG("shared_attr_dict_failed = %u", target->shared_attr_dict_failed);
+  RBOX_PRINT_DEBUG("name = %s", target->name);
+  RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
+  RBOX_PRINT_DEBUG("class_flags = 0x%04x", target->class_flags);
+  if (target->pool != NULL) {
+    RBOX_PRINT_DEBUG("pool name = %s", target->pool->v->get_name(target->pool));
+  }
+  RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
+  RBOX_PRINT_DEBUG("obj_refcount = %d", target->obj_refcount);
+  RBOX_PRINT_DEBUG("unique_root_dir = %s", target->unique_root_dir);
+  RBOX_PRINT_DEBUG("error_string = %s", target->error_string);
+  RBOX_PRINT_DEBUG("error = %s", enum_mail_error_strs[target->error]);
+  RBOX_PRINT_DEBUG("temp_path_prefix = %s", target->temp_path_prefix);
+  RBOX_PRINT_DEBUG("shared_attr_dict_failed = %u", target->shared_attr_dict_failed);
 
-		RBOX_PRINT_DEBUG("prev = %p", target->prev);
-		RBOX_PRINT_DEBUG("next = %p", target->next);
-		RBOX_PRINT_DEBUG("mailboxes = %p", target->mailboxes);
-		RBOX_PRINT_DEBUG("storage_class = %p", target->storage_class);
-		RBOX_PRINT_DEBUG("set = %p", target->set);
-		if (target->set != NULL) {
-			RBOX_PRINT_DEBUG("mail_location = %s", target->set->mail_location);
-		}
-		RBOX_PRINT_DEBUG("callback_context = %p", target->callback_context);
-		RBOX_PRINT_DEBUG("_shared_attr_dict = %p", target->_shared_attr_dict);
+  RBOX_PRINT_DEBUG("prev = %p", target->prev);
+  RBOX_PRINT_DEBUG("next = %p", target->next);
+  RBOX_PRINT_DEBUG("mailboxes = %p", target->mailboxes);
+  RBOX_PRINT_DEBUG("storage_class = %p", target->storage_class);
+  RBOX_PRINT_DEBUG("set = %p", target->set);
+  RBOX_PRINT_DEBUG("callback_context = %p", target->callback_context);
+  RBOX_PRINT_DEBUG("_shared_attr_dict = %p", target->_shared_attr_dict);
 
-		RBOX_PRINT_DEBUG("error_stack size = %ld", target->error_stack.arr.element_size);
-		RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
+  RBOX_PRINT_DEBUG("error_stack size = %ld", target->error_stack.arr.element_size);
+  RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
 
-		rbox_dbg_print_mail_user(target->user, NULL, "user");
-		//RBOX_PRINT_DEBUG("user = %p", target->user);
+  // debug_print_mail_user(mailStorage->user, NULL, "user");
+  RBOX_PRINT_DEBUG("user = %p", target->user);
 
-	RBOX_PRINT_END()
+  RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, const char *name) {
+void debug_print_mail_user(struct mail_user *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail_user")
 
   if (target->pool != NULL) {
@@ -366,7 +355,7 @@ void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, co
   RBOX_PRINT_DEBUG("auth_user = %s", target->auth_user);
   RBOX_PRINT_DEBUG("userdb_fields = %s", target->userdb_fields != NULL ? *target->userdb_fields : "NULL");
   RBOX_PRINT_DEBUG("error = %s", target->error);
-  RBOX_PRINT_DEBUG("session_create_time = %s", rbox_unixdate2str(target->session_create_time));
+  RBOX_PRINT_DEBUG("session_create_time = %ld", target->session_create_time);
 
   RBOX_PRINT_DEBUG("creator = %p", target->creator);
   RBOX_PRINT_DEBUG("_service_user = %p", target->_service_user);
@@ -404,22 +393,24 @@ void rbox_dbg_print_mail_user(struct mail_user *target, const char *funcname, co
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_rbox_sync_context(struct rbox_sync_context *target, const char *funcname, const char *name) {
+void debug_print_rbox_sync_context(struct rbox_sync_context *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("rbox_sync_context")
+
+  RBOX_PRINT_DEBUG("path = %s", target->path != NULL ? (char *)target->path->data : "NULL");
+  RBOX_PRINT_DEBUG("path_dir_prefix_len = %lu", target->path_dir_prefix_len);
+  RBOX_PRINT_DEBUG("uid_validity = %u", target->uid_validity);
 
   RBOX_PRINT_DEBUG("index_sync_ctx = %p", target->index_sync_ctx);
   RBOX_PRINT_DEBUG("sync_view = %p", target->sync_view);
   RBOX_PRINT_DEBUG("trans = %p", target->trans);
-  RBOX_PRINT_DEBUG("flags = 0x%04x", target->flags);
-  // TODO ARRAY_TYPE(uint32_t) expunged_uids;
 
-  // rbox_dbg_print_mailbox(&rboxSyncContext->mbox->box, NULL, "mbox->box");
-  // DEBUG("mbox->box._path = %s", rboxSyncContext->mbox->box._path);
+  // debug_print_mailbox(&radosSyncContext->mbox->box, NULL, "mbox->box");
+  // DEBUG("mbox->box._path = %s", radosSyncContext->mbox->box._path);
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mailbox_list(struct mailbox_list *target, const char *funcname, const char *name) {
+void debug_print_mailbox_list(struct mailbox_list *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mailbox_list")
 
   RBOX_PRINT_DEBUG("name = %s", target->name);
@@ -437,7 +428,7 @@ void rbox_dbg_print_mailbox_list(struct mailbox_list *target, const char *funcna
   RBOX_PRINT_DEBUG("changelog = %p", target->changelog);
 
   RBOX_PRINT_DEBUG("root_permissions.file_uid = %u", target->root_permissions.file_uid);
-  RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
+  // RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.);
 
   RBOX_PRINT_DEBUG("subscriptions_mtime = %ld", target->subscriptions_mtime);
   RBOX_PRINT_DEBUG("subscriptions_read_time = %ld", target->subscriptions_read_time);
@@ -451,14 +442,13 @@ void rbox_dbg_print_mailbox_list(struct mailbox_list *target, const char *funcna
   RBOX_PRINT_DEBUG("guid_cache_updated = %u", target->guid_cache_updated);
   RBOX_PRINT_DEBUG("guid_cache_invalidated = %u", target->guid_cache_invalidated);
 
-  // rbox_dbg_print_%s_settings(&mailboxList->set, funcname, "set");
+  // debug_print_%s_settings(&mailboxList->set, funcname, "set");
   RBOX_PRINT_DEBUG("set.inbox_path = %s", target->set.inbox_path);
 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mailbox_list_settings(struct mailbox_list_settings *target, const char *funcname,
-                                          const char *name) {
+void debug_print_mailbox_list_settings(struct mailbox_list_settings *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mailbox_list_settings")
 
   RBOX_PRINT_DEBUG("layout = %s", target->layout);
@@ -481,7 +471,7 @@ void rbox_dbg_print_mailbox_list_settings(struct mailbox_list_settings *target, 
   RBOX_PRINT_END()
 }
 
-void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, const char *name) {
+void debug_print_mail_index(struct mail_index *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail_index")
 
   RBOX_PRINT_DEBUG("dir = %s", target->dir);
@@ -505,7 +495,7 @@ void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, 
   RBOX_PRINT_DEBUG("filepath = %s", target->filepath);
   RBOX_PRINT_DEBUG("fd = %d", target->fd);
   RBOX_PRINT_DEBUG("map = %p", target->map);
-  RBOX_PRINT_DEBUG("last_mmap_error_time = %s", rbox_unixdate2str(target->last_mmap_error_time));
+  RBOX_PRINT_DEBUG("last_mmap_error_time = %ld", target->last_mmap_error_time);
   RBOX_PRINT_DEBUG("indexid = %u", target->indexid);
   RBOX_PRINT_DEBUG("inconsistency_id = %u", target->inconsistency_id);
   RBOX_PRINT_DEBUG("last_read_log_file_seq = %u", target->last_read_log_file_seq);
@@ -548,49 +538,6 @@ void rbox_dbg_print_mail_index(struct mail_index *target, const char *funcname, 
   RBOX_PRINT_DEBUG("sync_lost_handlers size = %ld", target->sync_lost_handlers.arr.element_size);
   RBOX_PRINT_DEBUG("keywords size = %ld", target->keywords.arr.element_size);
   RBOX_PRINT_DEBUG("module_contexts size = %ld", target->module_contexts.arr.element_size);
-
-  RBOX_PRINT_END()
-}
-
-void rbox_dbg_print_dbox_file(struct dbox_file *target, const char *funcname, const char *name) {
-  RBOX_PRINT_START("dbox_file")
-
-  RBOX_PRINT_DEBUG("storage = %p", target->storage);
-  RBOX_PRINT_DEBUG("refcount = %d", target->refcount);
-  RBOX_PRINT_DEBUG("create_time = %s", rbox_unixdate2str(target->create_time));
-  RBOX_PRINT_DEBUG("file_version = %u", target->file_version);
-  RBOX_PRINT_DEBUG("file_header_size = %u", target->file_header_size);
-  RBOX_PRINT_DEBUG("msg_header_size = %u", target->msg_header_size);
-  RBOX_PRINT_DEBUG("cur_path = %s", target->cur_path);
-  RBOX_PRINT_DEBUG("primary_path = %s", target->primary_path);
-  RBOX_PRINT_DEBUG("alt_path = %s", target->alt_path);
-  RBOX_PRINT_DEBUG("fd = %d", target->fd);
-  RBOX_PRINT_DEBUG("input = %p", target->input);
-  RBOX_PRINT_DEBUG("lock = %p", target->lock);
-  RBOX_PRINT_DEBUG("cur_offset = %lu", target->cur_offset);
-  RBOX_PRINT_DEBUG("cur_physical_size = %lu", target->cur_physical_size);
-  RBOX_PRINT_DEBUG("metadata_pool = %p", target->metadata_pool);
-  RBOX_PRINT_DEBUG("metadata size = %ld", target->metadata.arr.element_size);
-  RBOX_PRINT_DEBUG("metadata_read_offset = %lu", target->metadata_read_offset);
-  RBOX_PRINT_DEBUG("appending = %u", target->appending);
-  RBOX_PRINT_DEBUG("corrupted = %u", target->corrupted);
-
-  RBOX_PRINT_END()
-}
-
-void rbox_dbg_print_rbox_file(struct rbox_file *target, const char *funcname, const char *name) {
-  RBOX_PRINT_START("rbox_file")
-
-  rbox_dbg_print_dbox_file(&target->file, funcname, "file");
-  if (target->mbox != NULL) {
-    rbox_dbg_print_mailbox(&target->mbox->box, funcname, "mbox");
-  } else {
-    RBOX_PRINT_DEBUG("mbox = %p", target->mbox);
-  }
-  RBOX_PRINT_DEBUG("uid = %u", target->uid);
-  RBOX_PRINT_DEBUG("attachment_pool = %p", target->attachment_pool);
-  RBOX_PRINT_DEBUG("attachment_paths = %ld", target->attachment_paths.arr.element_size);
-  RBOX_PRINT_DEBUG("written_to_disk = %s", btoa(target->written_to_disk));
 
   RBOX_PRINT_END()
 }
