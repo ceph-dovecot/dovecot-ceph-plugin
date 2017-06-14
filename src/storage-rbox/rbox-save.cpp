@@ -272,15 +272,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     }
   }
 
-  r_ctx->current_object->get_completion_private()->wait_for_complete();
-  r_ctx->failed = r_ctx->current_object->is_aio_write_successful();
-
-  if (r_ctx->failed) {
-    r_ctx->current_object->get_write_op().remove();
-    remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
-    r_ctx->mail_count--;
-  }
-
   r_ctx->finished = TRUE;
 
   if (r_ctx->copying != TRUE) {
@@ -359,6 +350,16 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
+
+  r_ctx->current_object->get_completion_private()->wait_for_complete();
+  r_ctx->failed = r_ctx->current_object->is_aio_write_successful();
+
+  if (r_ctx->failed) {
+    r_ctx->current_object->get_write_op().remove();
+    remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+    r_ctx->mail_count--;
+  }
+
   if (!r_ctx->finished) {
     rbox_save_cancel(&r_ctx->ctx);
   }
