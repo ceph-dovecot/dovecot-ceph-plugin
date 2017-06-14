@@ -1,3 +1,4 @@
+
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 extern "C" {
@@ -8,33 +9,33 @@ extern "C" {
 #include "mail-storage.h"
 #include "mail-copy.h"
 
-#include "rados-storage-local.h"
+#include "rbox-storage-local.h"
 #include "debug-helper.h"
 }
 
-#include "rados-mail.h"
-#include "rados-save.h"
-#include "rados-storage-struct.h"
+#include "rbox-mail.h"
+#include "rbox-save.h"
+#include "rbox-storage-struct.h"
 
-int rados_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
+int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
-int rados_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
+int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   FUNC_START();
-  struct rados_save_context *ctx = (struct rados_save_context *)_ctx;
+  struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
   if (_ctx->saving != TRUE) {
     ctx->copying = TRUE;
   }
 
-  debug_print_mail(mail, "rados_mail_copy", NULL);
-  debug_print_mail_save_context(_ctx, "rados_mail_copy", NULL);
+  debug_print_mail(mail, "rbox_mail_copy", NULL);
+  debug_print_mail_save_context(_ctx, "rbox_mail_copy", NULL);
 
-  int ret = rados_mail_storage_copy(_ctx, mail);
+  int ret = rbox_mail_storage_copy(_ctx, mail);
   ctx->copying = FALSE;
   FUNC_END();
   return ret;
 }
 
-static void rados_mail_copy_set_failed(struct mail_save_context *ctx, struct mail *mail, const char *func) {
+static void rbox_mail_copy_set_failed(struct mail_save_context *ctx, struct mail *mail, const char *func) {
   const char *errstr;
   enum mail_error error;
 
@@ -45,14 +46,14 @@ static void rados_mail_copy_set_failed(struct mail_save_context *ctx, struct mai
   mail_storage_set_error(ctx->transaction->box->storage, error, t_strdup_printf("%s (%s)", errstr, func));
 }
 
-int rados_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct mail *mail) {
+int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct mail *mail) {
   FUNC_START();
   const char *from_envelope, *guid;
   time_t received_date;
 
   if (ctx->data.received_date == (time_t)-1) {
     if (mail_get_received_date(mail, &received_date) < 0) {
-      rados_mail_copy_set_failed(ctx, mail, "received-date");
+      rbox_mail_copy_set_failed(ctx, mail, "received-date");
       FUNC_END_RET("ret == -1, mail_get_received_date failed");
       return -1;
     }
@@ -60,7 +61,7 @@ int rados_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct 
   }
   if (ctx->data.from_envelope == NULL) {
     if (mail_get_special(mail, MAIL_FETCH_FROM_ENVELOPE, &from_envelope) < 0) {
-      rados_mail_copy_set_failed(ctx, mail, "from-envelope");
+      rbox_mail_copy_set_failed(ctx, mail, "from-envelope");
       FUNC_END_RET("ret == -1, mail_get_special envelope failed");
       return -1;
     }
@@ -69,7 +70,7 @@ int rados_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct 
   }
   if (ctx->data.guid == NULL) {
     if (mail_get_special(mail, MAIL_FETCH_GUID, &guid) < 0) {
-      rados_mail_copy_set_failed(ctx, mail, "guid");
+      rbox_mail_copy_set_failed(ctx, mail, "guid");
       FUNC_END_RET("ret == -1, mail_get_special guid failed");
       return -1;
     }
@@ -80,17 +81,17 @@ int rados_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct 
   return 0;
 }
 
-static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
+static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
-  struct rados_save_context *r_ctx = (struct rados_save_context *)ctx;
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
   struct mail_private *pmail = (struct mail_private *)mail;
   struct istream *input;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-  struct rados_storage *r_storage = (struct rados_storage *)storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
 
-  i_debug("rados_mail_storage_try_copy: mail = %p", mail);
-  debug_print_mail_save_context(*_ctx, "rados_mail_storage_try_copy", NULL);
+  i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
+  debug_print_mail_save_context(*_ctx, "rbox_mail_storage_try_copy", NULL);
 
   ctx->copying_via_save = TRUE;
 
@@ -100,19 +101,19 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
     pmail->v.set_uid_cache_updates(mail, TRUE);
 
     if (mail_get_stream_because(mail, NULL, NULL, "copying", &input) < 0) {
-      rados_mail_copy_set_failed(ctx, mail, "stream");
+      rbox_mail_copy_set_failed(ctx, mail, "stream");
       FUNC_END_RET("ret == -1, mail_get_stream_because failed");
       return -1;
     }
   } else {
-    if (rados_get_index_record(mail) < 0) {
-      rados_mail_copy_set_failed(ctx, mail, "index record");
-      FUNC_END_RET("ret == -1, rados_get_index_record failed");
+    if (rbox_get_index_record(mail) < 0) {
+      rbox_mail_copy_set_failed(ctx, mail, "index record");
+      FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;
     }
   }
 
-  if (rados_mail_save_copy_default_metadata(ctx, mail) < 0) {
+  if (rbox_mail_save_copy_default_metadata(ctx, mail) < 0) {
     FUNC_END_RET("ret == -1, mail_save_copy_default_metadata failed");
     return -1;
   }
@@ -122,7 +123,7 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
     return -1;
   }
 
-  i_debug("rados_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
+  i_debug("rbox_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
 
   if (r_ctx->copying != TRUE) {
     ssize_t ret;
@@ -142,9 +143,9 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
   }
 
   if (r_ctx->copying == TRUE) {
-    struct rados_mail *rmail = (struct rados_mail *)mail;
+    struct rbox_mail *rmail = (struct rbox_mail *)mail;
     std::string src_oid = rmail->mail_object->get_oid();
-    i_debug("rados_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
+    i_debug("rbox_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
     r_ctx->current_object->get_write_op().copy_from(src_oid, r_storage->s->get_io_ctx(),
                                                     r_storage->s->get_io_ctx().get_last_version());
   }
@@ -152,7 +153,7 @@ static int rados_mail_storage_try_copy(struct mail_save_context **_ctx, struct m
   return 0;
 }
 
-int rados_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
+int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   FUNC_START();
   i_assert(ctx->copying_or_moving);
 
@@ -163,10 +164,10 @@ int rados_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     mailbox_keywords_ref(ctx->data.keywords);
   }
 
-  if (rados_mail_storage_try_copy(&ctx, mail) < 0) {
+  if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
     if (ctx != NULL)
       mailbox_save_cancel(&ctx);
-    FUNC_END_RET("ret == -1, rados_mail_storage_try_copy failed");
+    FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed");
     return -1;
   }
   FUNC_END();
