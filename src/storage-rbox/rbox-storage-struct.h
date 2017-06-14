@@ -3,13 +3,12 @@
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 
-#include "dbox-storage.h"
+#include "mail-storage-private.h"
 #include "rados-cluster.h"
-
-class RadosStorage;
+#include "rados-storage.h"
 
 struct rbox_storage {
-  struct dbox_storage storage;
+  struct mail_storage storage;
   librmb::RadosCluster cluster;
   librmb::RadosStorage *s;
 };

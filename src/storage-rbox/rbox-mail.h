@@ -1,27 +1,24 @@
-#ifndef RBOX_MAIL_H
-#define RBOX_MAIL_H
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+
+#ifndef SRC_STORAGE_RBOX_RBOX_MAIL_H_
+#define SRC_STORAGE_RBOX_RBOX_MAIL_H_
 
 #include "index-mail.h"
+
+#include "rados-mail-object.h"
 
 struct rbox_mail {
   struct index_mail imail;
 
-  struct rbox_file *open_file;
-  uoff_t offset;
+  guid_128_t index_guid;
+  guid_128_t index_oid;
+
+  librmb::RadosMailObject *mail_object;
+  char *mail_buffer;
 };
 
-struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
-                             struct mailbox_header_lookup_ctx *wanted_headers);
-void rbox_mail_close(struct mail *mail);
+extern int rbox_get_index_record(struct mail *_mail);
+extern struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
+                                     struct mailbox_header_lookup_ctx *wanted_headers);
 
-int rbox_mail_get_physical_size(struct mail *mail, uoff_t *size_r);
-int rbox_mail_get_virtual_size(struct mail *mail, uoff_t *size_r);
-int rbox_mail_get_received_date(struct mail *mail, time_t *date_r);
-int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r);
-int rbox_mail_get_special(struct mail *mail, enum mail_fetch_field field, const char **value_r);
-int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
-                         struct message_size *body_size, struct istream **stream_r);
-
-int rbox_mail_metadata_read(struct rbox_mail *mail, struct dbox_file **file_r);
-
-#endif
+#endif  // SRC_STORAGE_RBOX_RBOX_MAIL_H_
