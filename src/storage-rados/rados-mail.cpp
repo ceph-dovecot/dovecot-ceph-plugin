@@ -30,26 +30,14 @@ extern "C" {
 #include "debug-helper.h"
 }
 
-
-#include "../librmb/rados-mail-object.h"
+#include "rados-mail-object.h"
 #include "rados-mail.h"
 #include "rados-storage-struct.h"
 #include "rados-storage.h"
 
 using namespace librmb;  // NOLINT
 
-using std::string;
-
-struct rados_mail {
-  struct index_mail imail;
-
-  guid_128_t index_guid;
-  guid_128_t index_oid;
-  RadosMailObject *mail_object;
-  char *mail_buffer;
-};
-
-static int rados_get_index_record(struct mail *_mail) {
+int rados_get_index_record(struct mail *_mail) {
   FUNC_START();
   struct rados_mail *rmail = (struct rados_mail *)_mail;
   struct rados_mailbox *rbox = (struct rados_mailbox *)_mail->transaction->box;

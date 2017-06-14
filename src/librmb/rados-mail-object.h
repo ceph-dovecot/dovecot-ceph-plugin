@@ -5,7 +5,6 @@
 
 #include <string>
 #include <iostream>
-#include <vector>
 #include <sstream>
 #include <rados/librados.hpp>
 
@@ -16,7 +15,6 @@ namespace librmb {
 typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
 
 class RadosMailObject {
-
  public:
   RadosMailObject();
   virtual ~RadosMailObject() {
@@ -50,7 +48,7 @@ class RadosMailObject {
 
   AioCompletionPtr get_completion_private() { return this->completion_private; }
   void rados_transaction_private_complete_callback(rados_completion_t comp, void* arg);
-  bool is_aio_write_successfull() { return this->aio_write_successfull; }
+  bool is_aio_write_successful() { return this->aio_write_successful; }
   bool is_aio_write_finished() { return this->aio_write_finished; }
 
 
@@ -68,7 +66,7 @@ class RadosMailObject {
   librados::ObjectWriteOperation write_op;
 
   AioCompletionPtr completion_private;
-  bool aio_write_successfull;
+  bool aio_write_successful;
   bool aio_write_finished;
 
  public:
