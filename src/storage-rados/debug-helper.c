@@ -226,8 +226,14 @@ void debug_print_mail_save_context(struct mail_save_context *target, const char 
 
   // debug_print_mail(target->dest_mail, NULL, "dest_mail");
   RBOX_PRINT_DEBUG("dest_mail = %p", target->dest_mail);
+  if (target->dest_mail != NULL) {
+    debug_print_mail(target->dest_mail, funcname, "dest_mail");
+  }
   // debug_print_mail(target->copy_src_mail, NULL, "copy_src_mail");
   RBOX_PRINT_DEBUG("copy_src_mail = %p", target->copy_src_mail);
+  if (target->copy_src_mail != NULL) {
+    debug_print_mail(target->copy_src_mail, funcname, "copy_src_mail");
+  }
   // debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
   RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
   // debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
