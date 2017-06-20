@@ -230,61 +230,77 @@ static void rbox_transaction_private_complete_callback(rados_completion_t comp, 
           rados_mail_object->is_aio_write_successful());
 }
 
-//@TODO(jrse) clean up method (if else .....)
+void clean_up_failed(struct rbox_save_context *_r_ctx) {
+  struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
+
+  mail_index_expunge(_r_ctx->trans, _r_ctx->seq);
+  mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
+
+  /* delete aio operate */
+  _r_ctx->current_object->get_completion_private()->wait_for_complete();
+  _r_ctx->current_object->get_write_op().remove();
+  remove_from_rados(r_storage->s, _r_ctx->current_object->get_oid());
+  _r_ctx->mail_count--;
+}
+
+void clean_up_write_finish(struct mail_save_context *_ctx) {
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+
+  if (r_ctx->copying != TRUE) {
+    index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !r_ctx->failed);
+    if (r_ctx->input != NULL)
+      i_stream_unref(&r_ctx->input);
+  }
+  index_save_context_free(_ctx);
+}
+
 int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   int ret = -1;
 
-  if (!r_ctx->failed) {
-    rbox_save_mail_write_metadata(r_ctx);
-
-    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
-        r_ctx->current_object, rbox_transaction_private_complete_callback);
-
-    if (ret < 0) {
-      r_ctx->failed = TRUE;
-    }
-
-	if (r_ctx->copying != TRUE) {
-    	librados::bufferlist mail_data_bl;
-	    mail_data_bl.append(str_c(r_ctx->mail_buffer));
-    	r_ctx->current_object->get_write_op().write_full(mail_data_bl);
-    }
-
-	  // MAKE SYNC, ASYNC
-    ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
-                                                 r_ctx->current_object->get_completion_private().get(),
-                                                 &r_ctx->current_object->get_write_op());
-    if (ret < 0) {
-      r_ctx->failed = TRUE;
-    }
+  r_ctx->finished = TRUE;
+  i_debug("finish called !");
+  if (_ctx->data.save_date != (time_t)-1) {
+    struct index_mail *mail = (struct index_mail *)_ctx->dest_mail;
+    uint32_t t = _ctx->data.save_date;
+    index_mail_cache_add(mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
   }
 
   if (!r_ctx->failed) {
-    if (ret < 0) {
-      i_debug("rbox_save_finish(): saving object %s to rbox failed err=%d(%s)",
-              r_ctx->current_object->get_oid().c_str(), ret, strerror(-ret));
-      r_ctx->failed = TRUE;
-    } else {
-      r_ctx->mail_count++;
+    T_BEGIN {
+      rbox_save_mail_write_metadata(r_ctx);
+
+      ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
+          r_ctx->current_object, rbox_transaction_private_complete_callback);
+      if (ret == 0) {
+        if (r_ctx->copying != TRUE) {
+          librados::bufferlist mail_data_bl;
+          mail_data_bl.append(str_c(r_ctx->mail_buffer));
+          r_ctx->current_object->get_write_op().write_full(mail_data_bl);
+        }
+        // MAKE SYNC, ASYNC
+        ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
+                                                     r_ctx->current_object->get_completion_private().get(),
+                                                     &r_ctx->current_object->get_write_op());
+      }
+      r_ctx->failed = ret < 0;
     }
+    T_END;
   }
 
-   r_ctx->finished = TRUE;
-
-   if (r_ctx->copying != TRUE) {
-     index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !r_ctx->failed);
-     if (r_ctx->input != NULL)
-       i_stream_unref(&r_ctx->input);
+  if (r_ctx->failed) {
+    clean_up_failed(r_ctx);
+  } else {
+    r_ctx->mail_count++;
   }
-  // make sure we don't need it anymore.
-  index_save_context_free(_ctx);
+  clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
   FUNC_END();
   return r_ctx->failed ? -1 : 0;
 }
+
 
 void rbox_save_cancel(struct mail_save_context *_ctx) {
   FUNC_START();
@@ -334,16 +350,16 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  //@Todo(jrse) do this for finish and for rollback.
-  _ctx->transaction = NULL; /* transaction is already freed */
+  // wait for rados async write to complete
+  // TODO(jrse): add to rollback
   r_ctx->current_object->get_completion_private()->wait_for_complete();
   r_ctx->failed = !r_ctx->current_object->is_aio_write_successful();
 
   if (r_ctx->failed) {
-    r_ctx->current_object->get_write_op().remove();
-    remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
-    r_ctx->mail_count--;
-   }
+    clean_up_failed(r_ctx);
+  }
+
+  _ctx->transaction = NULL; /* transaction is already freed */
 
    mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
