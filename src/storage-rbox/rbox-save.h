@@ -53,4 +53,6 @@ class rbox_save_context {
   unsigned int copying : 1;
 };
 
+void rbox_add_to_index(struct mail_save_context *_ctx);
+
 #endif /* SRC_STORAGE_RBOX_RBOX_SAVE_H_ */

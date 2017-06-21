@@ -59,6 +59,44 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   return t->save_ctx;
 }
 
+void rbox_add_to_index(struct mail_save_context *_ctx) {
+  struct mail_save_data *mdata = &_ctx->data;
+  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  enum mail_flags save_flags;
+
+  /* add to index */
+  save_flags = mdata->flags & ~MAIL_RECENT;
+  mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
+  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
+  if (_ctx->data.keywords != NULL) {
+    mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
+  }
+  if (_ctx->data.min_modseq != 0) {
+    mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
+  }
+
+  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+
+  guid_128_generate(r_ctx->mail_oid);
+
+  r_ctx->current_object = new RadosMailObject();
+  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+
+  if (mdata->guid != NULL) {
+    mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
+  } else {
+    guid_128_generate(r_ctx->mail_guid);
+  }
+
+  /* save the 128bit GUID/OID to index record */
+  struct obox_mail_index_record rec;
+  i_zero(&rec);
+  memcpy(rec.guid, r_ctx->mail_guid, sizeof(r_ctx->mail_guid));
+  memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
+  i_debug("SAVE OID: %s", guid_128_to_string(rec.oid));
+  mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
+}
+
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
@@ -67,16 +105,17 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct mailbox_transaction_context *trans = _ctx->transaction;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
-
-  int save_flags;
   struct istream *crlf_input;
 
   r_ctx->failed = FALSE;
 
-  guid_128_generate(r_ctx->mail_oid);
+  if (r_ctx->copying != TRUE) {
+    rbox_add_to_index(_ctx);
+    crlf_input = i_stream_create_crlf(input);
+    r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
+    i_stream_unref(&crlf_input);
+  }
 
-  r_ctx->current_object = new RadosMailObject();
-  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
 
   r_ctx->mail_buffer = buffer_create_dynamic(default_pool, 1014);
   if (r_ctx->mail_buffer == NULL) {
@@ -99,24 +138,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     return -1;
   }
 
-  /* add to index */
-  save_flags = _ctx->data.flags & ~MAIL_RECENT;
-  mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
-  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
-  if (_ctx->data.keywords != NULL) {
-    mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
-  }
-  if (_ctx->data.min_modseq != 0) {
-    mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
-  }
-
-  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
-
-  if (r_ctx->copying != TRUE) {
-    crlf_input = i_stream_create_crlf(input);
-    r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
-    i_stream_unref(&crlf_input);
-  }
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
 
   FUNC_END();
@@ -170,20 +191,6 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   struct mail_save_data *mdata = &ctx->ctx.data;
 
-  if (ctx->ctx.data.guid != NULL) {
-    mail_generate_guid_128_hash(ctx->ctx.data.guid, ctx->mail_guid);
-  } else {
-    guid_128_generate(ctx->mail_guid);
-  }
-
-  /* save the 128bit GUID/OID to index record */
-  struct obox_mail_index_record rec;
-  i_zero(&rec);
-  memcpy(rec.guid, ctx->mail_guid, sizeof(ctx->mail_guid));
-  memcpy(rec.oid, ctx->mail_oid, sizeof(ctx->mail_oid));
-  i_debug("SAVE OID: %s", guid_128_to_string(rec.oid));
-  mail_index_update_ext(ctx->trans, ctx->seq, mbox->ext_id, &rec, NULL);
-
   {
     bufferlist bl;
     bl.append((const char *)ctx->mail_guid, sizeof(ctx->mail_guid));
@@ -225,18 +232,15 @@ static void remove_from_rados(librmb::RadosStorage *_storage, const std::string 
 // delegate completion call to given rados object
 static void rbox_transaction_private_complete_callback(rados_completion_t comp, void *arg) {
   RadosMailObject *rados_mail_object = reinterpret_cast<RadosMailObject *>(arg);
-  rados_mail_object->rados_transaction_private_complete_callback(comp, NULL);
-  i_debug("mail_saved ! %s is sucessful %d ", rados_mail_object->get_oid().c_str(),
-          rados_mail_object->is_aio_write_successful());
+  i_debug("mail_saved ! %s callback ", rados_mail_object->get_oid().c_str());
 }
 
 void clean_up_failed(struct rbox_save_context *_r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
 
+  // do some expunges
   mail_index_expunge(_r_ctx->trans, _r_ctx->seq);
-  mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
-
-  /* delete aio operate */
+  // TOD(jrse) reenable it  mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
   _r_ctx->current_object->get_completion_private()->wait_for_complete();
   _r_ctx->current_object->get_write_op().remove();
   remove_from_rados(r_storage->s, _r_ctx->current_object->get_oid());
@@ -261,7 +265,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   int ret = -1;
 
   r_ctx->finished = TRUE;
-  i_debug("finish called !");
   if (_ctx->data.save_date != (time_t)-1) {
     struct index_mail *mail = (struct index_mail *)_ctx->dest_mail;
     uint32_t t = _ctx->data.save_date;
@@ -269,25 +272,23 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
 
   if (!r_ctx->failed) {
-    T_BEGIN {
-      rbox_save_mail_write_metadata(r_ctx);
+    rbox_save_mail_write_metadata(r_ctx);
 
-      ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
-          r_ctx->current_object, rbox_transaction_private_complete_callback);
-      if (ret == 0) {
-        if (r_ctx->copying != TRUE) {
-          librados::bufferlist mail_data_bl;
-          mail_data_bl.append(str_c(r_ctx->mail_buffer));
-          r_ctx->current_object->get_write_op().write_full(mail_data_bl);
-        }
-        // MAKE SYNC, ASYNC
-        ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
-                                                     r_ctx->current_object->get_completion_private().get(),
-                                                     &r_ctx->current_object->get_write_op());
+    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
+        r_ctx->current_object, rbox_transaction_private_complete_callback);
+    if (ret == 0) {
+      if (r_ctx->copying != TRUE) {
+        i_debug("copying is true ");
+        librados::bufferlist mail_data_bl;
+        mail_data_bl.append(str_c(r_ctx->mail_buffer));
+        r_ctx->current_object->get_write_op().write_full(mail_data_bl);
+      }
+      // MAKE SYNC, ASYNC
+      ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
+                                                   r_ctx->current_object->get_completion_private().get(),
+                                                   &r_ctx->current_object->get_write_op());
       }
       r_ctx->failed = ret < 0;
-    }
-    T_END;
   }
 
   if (r_ctx->failed) {
@@ -350,13 +351,18 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  // wait for rados async write to complete
-  // TODO(jrse): add to rollback
-  r_ctx->current_object->get_completion_private()->wait_for_complete();
-  r_ctx->failed = !r_ctx->current_object->is_aio_write_successful();
-
-  if (r_ctx->failed) {
-    clean_up_failed(r_ctx);
+  if (r_ctx->copying != TRUE) {
+    int ret = r_storage->s->get_io_ctx().aio_flush();
+    if (ret != 0) {
+      r_ctx->failed = true;
+    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+      r_ctx->failed = true;
+    }
+    // clean
+    r_ctx->current_object->get_write_op().remove();
+    if (r_ctx->failed) {
+      clean_up_failed(r_ctx);
+    }
   }
 
   _ctx->transaction = NULL; /* transaction is already freed */
