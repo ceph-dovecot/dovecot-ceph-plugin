@@ -47,9 +47,6 @@ class RadosMailObject {
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
 
   AioCompletionPtr get_completion_private() { return this->completion_private; }
-  void rados_transaction_private_complete_callback(rados_completion_t comp, void* arg);
-  bool is_aio_write_successful() { return this->aio_write_successful; }
-  bool is_aio_write_finished() { return this->aio_write_finished; }
 
 
  private:
@@ -66,8 +63,6 @@ class RadosMailObject {
   librados::ObjectWriteOperation write_op;
 
   AioCompletionPtr completion_private;
-  bool aio_write_successful;
-  bool aio_write_finished;
 
  public:
   // X_ATTRIBUTES

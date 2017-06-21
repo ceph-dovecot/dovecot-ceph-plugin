@@ -67,7 +67,6 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       // continue anyway
     } else {
       array_append(&ctx->expunged_items, &item, 1);
-      mail_index_expunge(ctx->trans, seq1);
     }
   }
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_expunge", NULL);
