@@ -92,70 +92,42 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
   debug_print_mail_save_context(*_ctx, "rbox_mail_storage_try_copy", NULL);
+  int ret_val = 0;
 
-  ctx->copying_via_save = TRUE;
-
-  if (r_ctx->copying != TRUE) {
-    /* we need to open the file in any case. caching metadata is unlikely
-       to help anything. */
-    pmail->v.set_uid_cache_updates(mail, TRUE);
-
-    if (mail_get_stream_because(mail, NULL, NULL, "copying", &input) < 0) {
-      rbox_mail_copy_set_failed(ctx, mail, "stream");
-      FUNC_END_RET("ret == -1, mail_get_stream_because failed");
-      return -1;
-    }
-  } else {
+  if (r_ctx->copying == TRUE) {
     if (rbox_get_index_record(mail) < 0) {
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;
     }
-  }
-
-  if (rbox_mail_save_copy_default_metadata(ctx, mail) < 0) {
-    FUNC_END_RET("ret == -1, mail_save_copy_default_metadata failed");
-    return -1;
-  }
-
-  if (mailbox_save_begin(_ctx, input) < 0) {
-    FUNC_END_RET("ret == -1, mailbox_save_begin failed");
-    return -1;
-  }
-
-  i_debug("rbox_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
-
-  if (r_ctx->copying != TRUE) {
-    ssize_t ret;
-    do {
-      if (mailbox_save_continue(ctx) < 0)
-        break;
-      ret = i_stream_read(input);
-      i_assert(ret != 0);
-    } while (ret != -1);
-
-    if (input->stream_errno != 0) {
-      mail_storage_set_critical(ctx->transaction->box->storage, "copy: i_stream_read(%s) failed: %s",
-                                i_stream_get_name(input), i_stream_get_error(input));
-      FUNC_END_RET("ret == -1, input->stream_errno != 0");
+    if (rbox_mail_save_copy_default_metadata(ctx, mail) < 0) {
+      FUNC_END_RET("ret == -1, mail_save_copy_default_metadata failed");
       return -1;
     }
-  }
+    rbox_add_to_index(ctx);
+    index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    i_debug("rbox_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
 
-  if (r_ctx->copying == TRUE) {
+    librados::ObjectWriteOperation write_op;
     struct rbox_mail *rmail = (struct rbox_mail *)mail;
     std::string src_oid = rmail->mail_object->get_oid();
     i_debug("rbox_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
-    r_ctx->current_object->get_write_op().copy_from(src_oid, r_storage->s->get_io_ctx(),
-                                                    r_storage->s->get_io_ctx().get_last_version());
+
+    write_op.copy_from(src_oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+    ret_val = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &write_op);
   }
   FUNC_END();
-  return 0;
+  return ret_val;
 }
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
+
   FUNC_START();
+
   i_assert(ctx->copying_or_moving);
+  r_ctx->finished = TRUE;
 
   if (ctx->data.keywords != NULL) {
     /* keywords gets unreferenced twice: first in
@@ -171,5 +143,6 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     return -1;
   }
   FUNC_END();
-  return mailbox_save_finish(&ctx);
+
+  return mail_storage_copy(ctx, mail);
 }
