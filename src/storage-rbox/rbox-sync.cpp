@@ -9,7 +9,7 @@ extern "C" {
 #include "str.h"
 #include "guid.h"
 
-#include "rbox-storage-local.h"
+#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
@@ -51,6 +51,7 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
   FUNC_END();
   return 0;
 }
+
 static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
@@ -166,6 +167,7 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 
   FUNC_END();
 }
+
 static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
