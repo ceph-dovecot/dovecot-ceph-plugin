@@ -51,7 +51,10 @@ Shared key/values are not supported right now.
 
 ### Storage RADOS Plugin
 
-The name of the mailbox format is `rados`. Add the plugin to 10-mail.conf as mail_location. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
+The name of the mailbox format is `rbox`. Add the plugin to 10-mail.conf as mail_location. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
 
-    mail_location = rados:/home/user/dovecot/var/mail/rados/%u
+    mail_location = rbox:/home/user/dovecot/var/mail/rados/%u
 
+## Thanks
+
+This plugin borrows heavily from Dovecot itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary an storage API.
