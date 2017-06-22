@@ -1,7 +1,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_LOCAL_H_
-#define SRC_STORAGE_RBOX_RBOX_STORAGE_LOCAL_H_
+#ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_H_
+#define SRC_STORAGE_RBOX_RBOX_STORAGE_H_
 
 #include "index-storage.h"
 
@@ -22,12 +22,6 @@ struct sdbox_index_header {
   guid_128_t mailbox_guid;
   uint8_t flags; /* enum dbox_index_header_flags */
   uint8_t unused[3];
-};
-
-struct rbox_storage__ {
-  struct mail_storage storage;
-  //  RadosCluster cluster;
-  //  RadosStorage *s;
 };
 
 struct obox_mail_index_record {
@@ -87,17 +81,17 @@ extern void rbox_transaction_save_rollback(struct mail_save_context *ctx);
 extern int rbox_mailbox_open(struct mailbox *box);
 extern int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory);
 extern int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items,
-                                      struct mailbox_metadata *metadata_r);
+                                     struct mailbox_metadata *metadata_r);
 
 extern struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags);
 extern void rbox_notify_changes(struct mailbox *box);
 
 extern struct mail_storage *rbox_storage_alloc(void);
 extern void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
-                                            struct mailbox_list_settings *set);
+                                           struct mailbox_list_settings *set);
 
 extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
-                                           enum mailbox_flags flags);
+                                          enum mailbox_flags flags);
 
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);
 int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);
@@ -110,4 +104,4 @@ void rbox_transaction_save_commit_post(struct mail_save_context *ctx,
                                        struct mail_index_transaction_commit_result *result);
 void rbox_transaction_save_rollback(struct mail_save_context *ctx);
 
-#endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_LOCAL_H_
+#endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_H_
