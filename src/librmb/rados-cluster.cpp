@@ -16,6 +16,7 @@ using namespace librmb;  // NOLINT
 
 librados::Rados RadosCluster::cluster;
 int RadosCluster::cluster_ref_count = 0;
+const std::string RadosCluster::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
 
 RadosCluster::RadosCluster() {}
 
@@ -108,6 +109,8 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
       break;
     }
   }
+
+
   if (pool_found != true) {
     err = cluster.pool_create(pool.c_str());
     if (err < 0) {
@@ -122,6 +125,15 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
     return err;
   }
 
-  *storage = new RadosStorage(&io_ctx, username);
+  std::string max_write_size;
+  err = cluster.conf_get(RadosCluster::CFG_OSD_MAX_WRITE_SIZE.c_str(), max_write_size);
+  if (err < 0) {
+    // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
+    return err;
+  }
+
+  //"found: max write size " << max_write_size.c_str() << "\n";
+
+  *storage = new RadosStorage(&io_ctx, username, std::stoi(max_write_size));
   return 0;
 }
