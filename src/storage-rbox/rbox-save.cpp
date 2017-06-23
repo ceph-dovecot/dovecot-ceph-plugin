@@ -100,11 +100,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  i_debug(" rbox_save_begin");
-
-  struct mailbox_transaction_context *trans = _ctx->transaction;
-  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   struct istream *crlf_input;
 
   r_ctx->failed = FALSE;
@@ -131,16 +126,11 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
 
   r_ctx->current_object->get_write_op().setxattr(RadosMailObject::X_ATTR_VERSION.c_str(), version_bl);
-  if (r_ctx->failed) {
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin (ret -1, 1)", NULL);
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
 
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
 
   FUNC_END();
-  return r_ctx->failed ? -1 : 0;
+  return 0;
 }
 
 int rbox_save_continue(struct mail_save_context *_ctx) {
