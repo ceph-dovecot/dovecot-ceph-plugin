@@ -152,7 +152,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   do {
     if (o_stream_send_istream(_ctx->data.output, r_ctx->input) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
-        mail_storage_set_critical(storage, "write(%s) failed: %m", "unused JAR");
+        mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
       }
       r_ctx->failed = TRUE;
       debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue (ret -1, 2)", NULL);
@@ -184,7 +184,8 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
   }
   {
     bufferlist bl;
-    bl.append(mdata->save_date);
+    long ts = static_cast<long int>(mdata->save_date);
+    bl.append(std::to_string(ts));
     ctx->current_object->get_write_op().setxattr(RadosMailObject::X_ATTR_SAVE_DATE.c_str(), bl);
   }
 
@@ -197,7 +198,7 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
 
   if (mdata->pop3_order != 0) {
     bufferlist bl;
-    bl.append(mdata->pop3_order);
+    bl.append(std::to_string(mdata->pop3_order));
     ctx->current_object->get_write_op().setxattr(RadosMailObject::X_ATTR_POP3_ORDER.c_str(), bl);
   }
 
@@ -268,9 +269,12 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
         rbox_save_mail_write_metadata(r_ctx);
+
+        // TODO (jrse)
+        // size_t write_buffer = buffer_get_size(r_ctx->mail_buffer);
+
         librados::bufferlist mail_data_bl;
         mail_data_bl.append(str_c(r_ctx->mail_buffer));
-        r_ctx->current_object->get_write_op().write_full(mail_data_bl);
 
         // MAKE SYNC, ASYNC
         ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),

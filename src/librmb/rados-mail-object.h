@@ -44,6 +44,8 @@ class RadosMailObject {
   const time_t get_received_date() { return received_date; }
   uint8_t* get_guid_ref() { return guid; }
 
+  const uint64_t get_object_size() { return this->object_size; }
+  void set_object_size(uint64_t& size) { this->object_size = size; }
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
 
   AioCompletionPtr get_completion_private() { return this->completion_private; }
@@ -59,6 +61,7 @@ class RadosMailObject {
   time_t save_date;
   time_t received_date;
   uint8_t guid[GUID_128_SIZE];
+  uint64_t object_size;  // byte
 
   librados::ObjectWriteOperation write_op;
 
