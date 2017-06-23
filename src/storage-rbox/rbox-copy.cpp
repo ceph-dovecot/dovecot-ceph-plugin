@@ -9,7 +9,7 @@ extern "C" {
 #include "mail-storage.h"
 #include "mail-copy.h"
 
-#include "rbox-storage-local.h"
+#include "rbox-storage.h"
 #include "debug-helper.h"
 }
 
