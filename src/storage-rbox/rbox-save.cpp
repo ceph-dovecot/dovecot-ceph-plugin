@@ -21,7 +21,7 @@ extern "C" {
 #include "ostream.h"
 #include "str.h"
 #include "index-mail.h"
-#include "rbox-storage-local.h"
+#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
@@ -115,7 +115,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
   }
-
 
   r_ctx->mail_buffer = buffer_create_dynamic(default_pool, 1014);
   if (r_ctx->mail_buffer == NULL) {
@@ -215,7 +214,7 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
     ctx->current_object->get_write_op().setxattr(RadosMailObject::X_ATTR_POP3_ORDER.c_str(), bl);
   }
 
-  { ctx->current_object->get_write_op().mtime(&mdata->received_date); }
+  ctx->current_object->get_write_op().mtime(&mdata->received_date);
 
   FUNC_END();
   return 0;
@@ -255,8 +254,9 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
 
   if (r_ctx->copying != TRUE) {
     index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !r_ctx->failed);
-    if (r_ctx->input != NULL)
+    if (r_ctx->input != NULL) {
       i_stream_unref(&r_ctx->input);
+    }
   }
   index_save_context_free(_ctx);
 }
@@ -277,6 +277,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   if (!r_ctx->failed) {
     ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
         r_ctx->current_object, rbox_transaction_private_complete_callback);
+
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
         i_debug("copying is true ");
@@ -299,12 +300,13 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   } else {
     r_ctx->mail_count++;
   }
+
   clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
+
   FUNC_END();
   return r_ctx->failed ? -1 : 0;
 }
-
 
 void rbox_save_cancel(struct mail_save_context *_ctx) {
   FUNC_START();
@@ -361,6 +363,7 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
     } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
       r_ctx->failed = true;
     }
+
     // clean
     r_ctx->current_object->get_write_op().remove();
     if (r_ctx->failed) {
@@ -370,13 +373,15 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
 
   _ctx->transaction = NULL; /* transaction is already freed */
 
-   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
+  mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
-   (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
-   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
-   //@Todo(jrse) create cleanup function
-   rbox_transaction_save_rollback(_ctx);
-   FUNC_END();
+  (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
+  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
+
+  // TODO(jrse) create cleanup function
+  rbox_transaction_save_rollback(_ctx);
+
+  FUNC_END();
 }
 
 void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {

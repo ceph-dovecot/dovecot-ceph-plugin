@@ -18,7 +18,7 @@ extern "C" {
 #include "mailbox-list-private.h"
 #include "index-pop3-uidl.h"
 
-#include "rbox-storage-local.h"
+#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
@@ -30,7 +30,7 @@ extern "C" {
 #include "rbox-mail.h"
 
 using namespace librados;  // NOLINT
-using namespace librmb;
+using namespace librmb;    // NOLINT
 
 using std::string;
 
@@ -47,6 +47,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage = p_new(pool, struct rbox_storage, 1);
   storage->storage = rbox_storage;
   storage->storage.pool = pool;
+
   debug_print_mail_storage(&storage->storage, "rados-storage::rados_storage_alloc", NULL);
   FUNC_END();
   return &storage->storage;
@@ -56,7 +57,7 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   FUNC_START();
   if (set->layout == NULL) {
     set->layout = MAILBOX_LIST_NAME_FS;
-    // set->layout = MAILBOX_LIST_NAME_INDEX;
+    // TODO(peter): better default? set->layout = MAILBOX_LIST_NAME_INDEX;
   }
   if (*set->maildir_name == '\0')
     set->maildir_name = RBOX_MAILDIR_NAME;
@@ -73,10 +74,8 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
   string error_msg;
-  int ret = storage->cluster.init(&error_msg);
 
-  if (ret < 0) {
-    // TODO(peter) free rbox_storage?
+  if (storage->cluster.init(&error_msg) < 0) {
     *error_r = t_strdup_printf("%s", error_msg.c_str());
     return -1;
   }
@@ -87,7 +86,7 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   }
 
   string poolname = "mail_storage";
-  ret = storage->cluster.storage_create(poolname, username, &storage->s);
+  int ret = storage->cluster.storage_create(poolname, username, &storage->s);
 
   if (ret < 0) {
     *error_r = t_strdup_printf("Error creating rboxStorage()! %s", strerror(-ret));
@@ -113,7 +112,7 @@ static void rbox_storage_destroy(struct mail_storage *_storage) {
 }
 
 struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
-                                    enum mailbox_flags flags) {
+                                   enum mailbox_flags flags) {
   FUNC_START();
   struct rbox_mailbox *mbox;
   struct index_mailbox_context *ibox;
@@ -216,13 +215,6 @@ int rbox_mailbox_open(struct mailbox *box) {
   return 0;
 }
 
-static void rbox_mailbox_close(struct mailbox *box) {
-  FUNC_START();
-  debug_print_mailbox(box, "rbox_mailbox_close", NULL);
-  index_storage_mailbox_close(box);
-  FUNC_END();
-}
-
 int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
@@ -259,7 +251,7 @@ static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update 
 }
 
 int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items,
-                               struct mailbox_metadata *metadata_r) {
+                              struct mailbox_metadata *metadata_r) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
 
@@ -290,12 +282,14 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
 
 void rbox_notify_changes(struct mailbox *box) {
   FUNC_START();
+
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
 
   if (box->notify_callback == NULL)
     mailbox_watch_remove_all(box);
   else
     mailbox_watch_add(box, mailbox_get_path(box));
+
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_notify_changes", NULL);
   FUNC_END();
 }
@@ -308,53 +302,53 @@ struct mail_storage rbox_storage = {
         MAIL_STORAGE_CLASS_FLAG_BINARY_DATA),
 
     .v = {
-        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings,
-        NULL, rbox_mailbox_alloc, NULL, NULL,
+        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings, NULL,
+        rbox_mailbox_alloc, NULL, NULL,
     }};
 
 struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
-                                              index_storage_mailbox_enable,
-                                              index_storage_mailbox_exists,
-                                              rbox_mailbox_open,
-                                              rbox_mailbox_close,
-                                              index_storage_mailbox_free,
-                                              rbox_mailbox_create,
-                                              rbox_mailbox_update,
-                                              index_storage_mailbox_delete,
-                                              index_storage_mailbox_rename,
-                                              index_storage_get_status,
-                                              rbox_mailbox_get_metadata,
-                                              index_storage_set_subscribed,
-                                              index_storage_attribute_set,
-                                              index_storage_attribute_get,
-                                              index_storage_attribute_iter_init,
-                                              index_storage_attribute_iter_next,
-                                              index_storage_attribute_iter_deinit,
-                                              index_storage_list_index_has_changed,
-                                              index_storage_list_index_update_sync,
-                                              rbox_storage_sync_init,
-                                              index_mailbox_sync_next,
-                                              index_mailbox_sync_deinit,
-                                              NULL,
-                                              rbox_notify_changes,
-                                              index_transaction_begin,
-                                              index_transaction_commit,
-                                              index_transaction_rollback,
-                                              NULL,
-                                              rbox_mail_alloc,
-                                              index_storage_search_init,
-                                              index_storage_search_deinit,
-                                              index_storage_search_next_nonblock,
-                                              index_storage_search_next_update_seq,
-                                              rbox_save_alloc,
-                                              rbox_save_begin,
-                                              rbox_save_continue,
-                                              rbox_save_finish,
-                                              rbox_save_cancel,
-                                              rbox_mail_copy,
-                                              rbox_transaction_save_commit_pre,
-                                              rbox_transaction_save_commit_post,
-                                              rbox_transaction_save_rollback,
-                                              index_storage_is_inconsistent};
+                                             index_storage_mailbox_enable,
+                                             index_storage_mailbox_exists,
+                                             rbox_mailbox_open,
+                                             index_storage_mailbox_close,
+                                             index_storage_mailbox_free,
+                                             rbox_mailbox_create,
+                                             rbox_mailbox_update,
+                                             index_storage_mailbox_delete,
+                                             index_storage_mailbox_rename,
+                                             index_storage_get_status,
+                                             rbox_mailbox_get_metadata,
+                                             index_storage_set_subscribed,
+                                             index_storage_attribute_set,
+                                             index_storage_attribute_get,
+                                             index_storage_attribute_iter_init,
+                                             index_storage_attribute_iter_next,
+                                             index_storage_attribute_iter_deinit,
+                                             index_storage_list_index_has_changed,
+                                             index_storage_list_index_update_sync,
+                                             rbox_storage_sync_init,
+                                             index_mailbox_sync_next,
+                                             index_mailbox_sync_deinit,
+                                             NULL,
+                                             rbox_notify_changes,
+                                             index_transaction_begin,
+                                             index_transaction_commit,
+                                             index_transaction_rollback,
+                                             NULL,
+                                             rbox_mail_alloc,
+                                             index_storage_search_init,
+                                             index_storage_search_deinit,
+                                             index_storage_search_next_nonblock,
+                                             index_storage_search_next_update_seq,
+                                             rbox_save_alloc,
+                                             rbox_save_begin,
+                                             rbox_save_continue,
+                                             rbox_save_finish,
+                                             rbox_save_cancel,
+                                             rbox_mail_copy,
+                                             rbox_transaction_save_commit_pre,
+                                             rbox_transaction_save_commit_post,
+                                             rbox_transaction_save_rollback,
+                                             index_storage_is_inconsistent};
 
 struct mailbox rbox_mailbox = {};

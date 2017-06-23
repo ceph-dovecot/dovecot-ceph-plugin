@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #include <map>
 #include <string>
@@ -12,10 +14,6 @@
 #include <vector>
 
 extern "C" {
-
-#include <sys/resource.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 #include "lib.h"
 #include "typeof-def.h"
@@ -25,7 +23,7 @@ extern "C" {
 #include "ioloop.h"
 #include "str.h"
 
-#include <rbox-storage-local.h>
+#include "rbox-storage.h"
 #include "ostream.h"
 #include "debug-helper.h"
 }
@@ -65,7 +63,7 @@ int rbox_get_index_record(struct mail *_mail) {
 }
 
 struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
-                              struct mailbox_header_lookup_ctx *wanted_headers) {
+                             struct mailbox_header_lookup_ctx *wanted_headers) {
   FUNC_START();
 
   pool_t pool = pool_alloconly_create("mail", 2048);
@@ -237,8 +235,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_END();
   return 0;
 }
+
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
-                                 struct message_size *body_size, struct istream **stream_r) {
+                                struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
   struct index_mail *mail = (struct index_mail *)_mail;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
@@ -259,31 +258,32 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       i_debug("size is: %d", size_r);
       FUNC_END_RET("ret == -1; mail_size <= 0");
       return -1;
-   }
+    }
 
-   rmail->mail_buffer = p_new(default_pool, char, size_r);
-   if (rmail->mail_buffer == NULL) {
-     FUNC_END_RET("ret == -1; out of memory");
-     return -1;
-   }
-   _mail->transaction->stats.open_lookup_count++;
+    rmail->mail_buffer = p_new(default_pool, char, size_r);
+    if (rmail->mail_buffer == NULL) {
+      FUNC_END_RET("ret == -1; out of memory");
+      return -1;
+    }
+    _mail->transaction->stats.open_lookup_count++;
 
-   int offset = 0;
-   librados::bufferlist mail_data_bl;
-   std::string str_buf;
-   do {
-     mail_data_bl.clear();
-     ret = ((r_storage->s)->get_io_ctx()).read(rmail->mail_object->get_oid(), mail_data_bl, size_r, offset);
-     if (ret < 0) {
-       FUNC_END_RET("ret == -1");
-       return -1;
-     }
-     if (ret == 0) {
-       break;
-     }
-     memcpy(&rmail->mail_buffer[offset], mail_data_bl.to_str().c_str(), ret * sizeof(char));
-     offset += ret;
+    int offset = 0;
+    librados::bufferlist mail_data_bl;
+    std::string str_buf;
+    do {
+      mail_data_bl.clear();
+      ret = ((r_storage->s)->get_io_ctx()).read(rmail->mail_object->get_oid(), mail_data_bl, size_r, offset);
+      if (ret < 0) {
+        FUNC_END_RET("ret == -1");
+        return -1;
+      }
 
+      if (ret == 0) {
+        break;
+      }
+
+      memcpy(&rmail->mail_buffer[offset], mail_data_bl.to_str().c_str(), ret * sizeof(char));
+      offset += ret;
     } while (ret > 0);
 
     input = i_stream_create_from_data(rmail->mail_buffer, size_r);
@@ -307,6 +307,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   i_debug("ok i'm done ");
   return ret;
 }
+
 void rbox_mail_free(struct mail *mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)mail;
 
@@ -317,11 +318,6 @@ void rbox_mail_free(struct mail *mail) {
   }
 
   index_mail_free(mail);
-}
-
-void rbox_mail_expunge(struct mail *mail) {
-  struct rbox_mail *rmail_ = (struct rbox_mail *)mail;
-  index_mail_expunge(mail);
 }
 
 struct mail_vfuncs rbox_mail_vfuncs = {index_mail_close,
@@ -356,7 +352,7 @@ struct mail_vfuncs rbox_mail_vfuncs = {index_mail_close,
                                        index_mail_update_modseq,
                                        index_mail_update_pvt_modseq,
                                        NULL,
-                                       rbox_mail_expunge,
+                                       index_mail_expunge,
                                        index_mail_set_cache_corrupted,
                                        index_mail_opened,
                                        index_mail_set_cache_corrupted_reason};
