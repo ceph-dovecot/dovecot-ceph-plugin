@@ -175,9 +175,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 
 static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
   FUNC_START();
-  struct rbox_mailbox *mbox = ctx->mbox;
-  struct mail_storage *storage = ctx->ctx.transaction->box->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   struct mail_save_data *mdata = &ctx->ctx.data;
 
   {
@@ -211,7 +208,6 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
 }
 
 static void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
-  i_debug("object to delete oid is: %s", _oid.c_str());
   if ((_storage->get_io_ctx()).remove(_oid) < 0) {
     i_debug("Librados obj: %s , could not be removed", _oid.c_str());
   }
@@ -225,17 +221,18 @@ static void rbox_transaction_private_complete_callback(rados_completion_t comp, 
 
 void clean_up_failed(struct rbox_save_context *_r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
-
-  // do some expunges
-  mail_index_expunge(_r_ctx->trans, _r_ctx->seq);
-  int ret = r_storage->s->get_io_ctx().aio_flush_async(_r_ctx->current_object->get_completion_private().get());
-  if (ret > 0) {
+  int ret = r_storage->s->get_io_ctx().aio_flush();
+  //.aio_flush_async(_r_ctx->current_object->get_completion_private().get());
+  if (ret >= 0) {
     if (_r_ctx->current_object->get_completion_private()->get_return_value() >= 0) {
-      mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
       _r_ctx->current_object->get_write_op().remove();
       remove_from_rados(r_storage->s, _r_ctx->current_object->get_oid());
     }
   }
+  // clean up index
+  mail_index_expunge(_r_ctx->trans, _r_ctx->seq);
+  mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
+
   _r_ctx->mail_count--;
 }
 
@@ -244,10 +241,10 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
 
   if (r_ctx->copying != TRUE) {
     index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !r_ctx->failed);
-    if (r_ctx->input != NULL) {
-      i_stream_unref(&r_ctx->input);
-    }
   }
+  if (r_ctx->input != NULL) {
+    i_stream_unref(&r_ctx->input);
+    }
   index_save_context_free(_ctx);
 }
 
@@ -270,7 +267,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
-        i_debug("copying is true ");
         rbox_save_mail_write_metadata(r_ctx);
         librados::bufferlist mail_data_bl;
         mail_data_bl.append(str_c(r_ctx->mail_buffer));
@@ -285,11 +281,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     r_ctx->failed = ret < 0;
   }
 
-  if (r_ctx->failed) {
-    clean_up_failed(r_ctx);
-  } else {
-    r_ctx->mail_count++;
-  }
 
   clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
@@ -320,8 +311,26 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   string_t *src_path, *dest_path;
   unsigned int n;
   size_t src_prefixlen, dest_prefixlen;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   i_assert(r_ctx->finished);
+
+  if (r_ctx->copying != TRUE) {
+    int ret = r_storage->s->get_io_ctx().aio_flush();
+    if (ret != 0) {
+      r_ctx->failed = true;
+      // TEST < nach >
+    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+      r_ctx->failed = true;
+    }
+
+    if (r_ctx->failed) {
+      // delete index entry and delete object if it exist
+      // remove entry from index is not successful in rbox_transaction_commit_post
+      clean_up_failed(r_ctx);
+    }
+    r_ctx->current_object->get_write_op().remove();
+  }
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;
@@ -344,22 +353,6 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
                                        struct mail_index_transaction_commit_result *result) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-
-  if (r_ctx->copying != TRUE) {
-    int ret = r_storage->s->get_io_ctx().aio_flush_async(r_ctx->current_object->get_completion_private().get());
-    if (ret != 0) {
-      r_ctx->failed = true;
-    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
-      r_ctx->failed = true;
-    }
-
-    // clean
-    r_ctx->current_object->get_write_op().remove();
-    if (r_ctx->failed) {
-      clean_up_failed(r_ctx);
-    }
-  }
 
   _ctx->transaction = NULL; /* transaction is already freed */
 
@@ -368,7 +361,6 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
 
-  // TODO(jrse) create cleanup function
   rbox_transaction_save_rollback(_ctx);
 
   FUNC_END();
@@ -389,7 +381,8 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     (void)rbox_sync_finish(&r_ctx->sync_ctx, FALSE);
 
   if (r_ctx->failed) {
-    remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
+    // delete index entry and delete object if it exist
+    clean_up_failed(r_ctx);
   }
 
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
