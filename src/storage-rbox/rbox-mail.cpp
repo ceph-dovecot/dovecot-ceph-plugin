@@ -116,37 +116,27 @@ static int rbox_mail_get_metadata(struct mail *_mail) {
 
   rmail->mail_object->set_pop3_uidl(attrset[RadosMailObject::X_ATTR_POP3_UIDL].to_str());
 
-  uint32_t pop3_order = 0;
   if (attrset[RadosMailObject::X_ATTR_POP3_ORDER].length() > 0) {
-    attrset[RadosMailObject::X_ATTR_POP3_ORDER].copy(0, sizeof(pop3_order), reinterpret_cast<char *>(pop3_order));
-  }
-  rmail->mail_object->set_pop3_order(pop3_order);
-
-  int length = 0;
-  time_t received_date = 0;
-  length = attrset[RadosMailObject::X_ATTR_RECEIVED_DATE].length();
-  if (length > sizeof(received_date)) {
-    FUNC_END_RET("ret == -1; value in X_ATTR_RECEIVED_DATE to long");
-    return -1;
+    int pop3_order = std::stoi(attrset[RadosMailObject::X_ATTR_POP3_ORDER].to_str().c_str());
+    rmail->mail_object->set_pop3_order(pop3_order);
   }
 
   time_t send_date = 0;
-  length = attrset[RadosMailObject::X_ATTR_SAVE_DATE].length();
-  if (length > sizeof(send_date)) {
-    FUNC_END_RET("ret == -1; value in X_ATTR_SAVE_DATE to long");
+  int length = attrset[RadosMailObject::X_ATTR_SAVE_DATE].length();
+  if (length <= 0) {
+    rmail->mail_object->set_save_date(0);
+  } else {
+    long ts = std::stol(attrset[RadosMailObject::X_ATTR_SAVE_DATE].to_str().c_str());
+    rmail->mail_object->set_save_date(static_cast<time_t>(ts));
+  }
+  uint64_t object_size = 0;
+  time_t received_date_rados = 0;
+  if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &received_date_rados) < 0) {
+    FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
     return -1;
   }
-  attrset[RadosMailObject::X_ATTR_SAVE_DATE].copy(0, length, reinterpret_cast<char *>(&send_date));
-  rmail->mail_object->set_save_date(send_date);
-  uint64_t file_size = 0;
-  time_t received_date_rados;
-
-  if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &received_date_rados) < 0) {
-    FUNC_END_RET("ret == -1; cannot stat object to get received date and oid.");
-    return -1;
-  }
-
   rmail->mail_object->set_received_date(received_date_rados);
+  rmail->mail_object->set_object_size(object_size);
 
   FUNC_END();
   return 0;
