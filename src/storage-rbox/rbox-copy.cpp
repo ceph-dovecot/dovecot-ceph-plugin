@@ -115,6 +115,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     i_debug("rbox_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
 
     write_op.copy_from(src_oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+    write_op.mtime(&ctx->data.received_date);
+
     ret_val = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &write_op);
   }
   FUNC_END();
