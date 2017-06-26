@@ -40,7 +40,8 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  if (guid_128_is_empty(rmail->index_oid)) {
+  // if (guid_128_is_empty(rmail->index_oid))
+  {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
@@ -68,6 +69,8 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 
   pool_t pool = pool_alloconly_create("mail", 2048);
   struct rbox_mail *mail = p_new(pool, struct rbox_mail, 1);
+  i_zero(mail);
+
   mail->imail.mail.pool = pool;
 
   index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
@@ -208,6 +211,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   uint64_t file_size;
   time_t time;
 
+  i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
+
   rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     debug_print_mail(_mail, "rbox-mail::rbox_mail_get_physical_size (ret 0, 1)", NULL);
@@ -235,6 +240,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   unsigned int ret = 0;
+
+  i_debug("rbox_mail_get_stream(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
@@ -295,7 +302,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
   debug_print_mail(_mail, "rbox-mail::rbox_mail_get_stream", NULL);
   FUNC_END();
-  i_debug("ok i'm done ");
   return ret;
 }
 
