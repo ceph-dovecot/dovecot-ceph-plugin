@@ -257,7 +257,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
-    rmail->mail_buffer = p_new(default_pool, char, size_r);
+    rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
     if (rmail->mail_buffer == NULL) {
       FUNC_END_RET("ret == -1; out of memory");
       return -1;
@@ -279,6 +279,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       if (ret == 0) {
         break;
       }
+
       mail_data_bl.copy(0, ret, &rmail->mail_buffer[0]);
 
       offset += ret;
