@@ -222,8 +222,9 @@ static void rbox_transaction_private_complete_callback(rados_completion_t comp, 
 
 void clean_up_failed(struct rbox_save_context *_r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
-  int ret = r_storage->s->get_io_ctx().aio_flush();
-  //.aio_flush_async(_r_ctx->current_object->get_completion_private().get());
+
+  int ret = _r_ctx->current_object->get_completion_private()->wait_for_safe_and_cb();
+
   if (ret >= 0) {
     if (_r_ctx->current_object->get_completion_private()->get_return_value() >= 0) {
       _r_ctx->current_object->get_write_op().remove();
@@ -245,7 +246,7 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
   }
   if (r_ctx->input != NULL) {
     i_stream_unref(&r_ctx->input);
-    }
+  }
   index_save_context_free(_ctx);
 }
 
@@ -286,7 +287,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     r_ctx->failed = ret < 0;
   }
 
-
   clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
 
@@ -321,7 +321,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   i_assert(r_ctx->finished);
 
   if (r_ctx->copying != TRUE) {
-    int ret = r_storage->s->get_io_ctx().aio_flush();
+    int ret = r_ctx->current_object->get_completion_private()->wait_for_safe_and_cb();
     if (ret != 0) {
       r_ctx->failed = true;
       // TEST < nach >
