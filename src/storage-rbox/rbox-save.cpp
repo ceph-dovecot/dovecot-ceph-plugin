@@ -271,10 +271,11 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         rbox_save_mail_write_metadata(r_ctx);
 
         // TODO (jrse)
-        // size_t write_buffer = buffer_get_size(r_ctx->mail_buffer);
-
+        size_t write_buffer_size = buffer_get_size(r_ctx->mail_buffer);
         librados::bufferlist mail_data_bl;
         mail_data_bl.append(str_c(r_ctx->mail_buffer));
+
+        r_ctx->current_object->get_write_op().write_full(mail_data_bl);
 
         // MAKE SYNC, ASYNC
         ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
