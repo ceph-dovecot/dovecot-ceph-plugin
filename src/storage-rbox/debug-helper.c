@@ -14,6 +14,8 @@
 #include "rbox-sync.h"
 #include "debug-helper.h"
 
+// #define RBOX_DEBUG
+
 static char *enum_mail_access_type_strs[] = {"MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH",
                                              "MAIL_ACCESS_TYPE_SORT"};
 static char *enum_mail_lookup_abort_strs[] = {"MAIL_LOOKUP_ABORT_NEVER", "MAIL_LOOKUP_ABORT_READ_MAIL",
@@ -25,6 +27,7 @@ static char *enum_mail_error_strs[] = {"MAIL_ERROR_NONE",     "MAIL_ERROR_TEMP",
                                        "MAIL_ERROR_LIMIT",    "MAIL_ERROR_LOOKUP_ABORTED"};
 static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK", "FILE_LOCK_METHOD_DOTLOCK"};
 
+#ifdef RBOX_DEBUG
 #define RBOX_PRINT_START(NAME)                \
   if (funcname == NULL)                       \
     funcname = "-";                           \
@@ -37,6 +40,11 @@ static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_MET
   ;                                   \
   i_debug("%s: %s." FORMAT, funcname, name, __VA_ARGS__)
 #define RBOX_PRINT_END() }
+#else
+#define RBOX_PRINT_START(NAME)
+#define RBOX_PRINT_DEBUG(FORMAT, ...)
+#define RBOX_PRINT_END()
+#endif
 
 #define STRFTIME_MAX_BUFSIZE (1024 * 64)
 
