@@ -234,7 +234,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct istream *input;
 
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  int ret = 0;
+  unsigned int ret = 0;
 
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
@@ -259,6 +259,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     int offset = 0;
     librados::bufferlist mail_data_bl;
+
     std::string str_buf;
     do {
       mail_data_bl.clear();
@@ -271,8 +272,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       if (ret == 0) {
         break;
       }
+      mail_data_bl.copy(0, ret, &rmail->mail_buffer[0]);
 
-      memcpy(&rmail->mail_buffer[offset], mail_data_bl.to_str().c_str(), ret * sizeof(char));
       offset += ret;
     } while (ret > 0);
 
@@ -301,7 +302,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 void rbox_mail_free(struct mail *mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)mail;
 
-  free(rmail_->mail_buffer);
+  if (rmail_->mail_buffer != NULL) {
+    free(rmail_->mail_buffer);
+  }
   if (rmail_->mail_object != 0) {
     delete rmail_->mail_object;
     rmail_->mail_object = NULL;
