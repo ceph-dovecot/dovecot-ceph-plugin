@@ -17,9 +17,7 @@ typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
 class RadosMailObject {
  public:
   RadosMailObject();
-  virtual ~RadosMailObject() {
-
-  }
+  virtual ~RadosMailObject() {}
 
   void set_oid(const char* oid) { this->oid = oid; }
   void set_oid(const std::string& oid) { this->oid = oid; }
@@ -45,6 +43,7 @@ class RadosMailObject {
   uint8_t* get_guid_ref() { return guid; }
 
   const uint64_t get_object_size() { return this->object_size; }
+
   void set_object_size(uint64_t& size) { this->object_size = size; }
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
 
