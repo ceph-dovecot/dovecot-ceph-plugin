@@ -62,7 +62,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  enum mail_flags save_flags;
+  int save_flags;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
