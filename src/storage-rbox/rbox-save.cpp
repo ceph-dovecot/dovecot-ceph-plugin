@@ -173,7 +173,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
+int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
 
@@ -208,17 +208,12 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx) {
   return 0;
 }
 
-static void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
+void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
   if ((_storage->get_io_ctx()).remove(_oid) < 0) {
     i_debug("Librados obj: %s , could not be removed", _oid.c_str());
   }
 }
 
-// delegate completion call to given rados object
-static void rbox_transaction_private_complete_callback(rados_completion_t comp, void *arg) {
-  RadosMailObject *rados_mail_object = reinterpret_cast<RadosMailObject *>(arg);
-  i_debug("mail_saved ! %s callback ", rados_mail_object->get_oid().c_str());
-}
 
 void clean_up_failed(struct rbox_save_context *_r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
@@ -250,6 +245,45 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
   index_save_context_free(_ctx);
 }
 
+void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64_t max_size,
+                            struct rbox_save_context *r_ctx) {
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+  size_t write_buffer_size = buffer_length;
+
+  assert(max_size > 0);
+
+  int rest = write_buffer_size % max_size;
+  // TODO(jrse) move op_lit to rados_object
+  std::vector<AioCompletionPtr> op_list;
+
+  int div = write_buffer_size / max_size + (rest > 0 ? 1 : 0);
+  for (int i = 0; i < div; i++) {
+    int offset = i * max_size;
+    librados::ObjectWriteOperation op;
+
+    int length = max_size;
+    if (buffer_length < ((i + 1) * length)) {
+      length = rest;
+    }
+    const char *buf = (char *)buffer->data + offset;
+    librados::bufferlist tmp;
+    tmp.append(buf, length);
+    op.write(offset, tmp);
+
+    AioCompletionPtr ptr = std::make_shared<librados::AioCompletion>(*librados::Rados::aio_create_completion());
+
+    i_debug("creation aio operation %s:", r_ctx->current_object->get_oid().c_str());
+    // MAKE SYNC, ASYNC
+    r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(), ptr.get(), &op);
+    op_list.push_back(ptr);
+  }
+
+  // Iterate and print values of vector
+  for (AioCompletionPtr n : op_list) {
+    n->wait_for_safe_and_cb();
+  }
+}
+
 int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
@@ -264,24 +298,29 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
 
   if (!r_ctx->failed) {
-    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(
-        r_ctx->current_object, rbox_transaction_private_complete_callback);
+    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(r_ctx->current_object, nullptr);
 
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
         rbox_save_mail_write_metadata(r_ctx);
 
-        // TODO (jrse)
         size_t write_buffer_size = buffer_get_size(r_ctx->mail_buffer);
-        librados::bufferlist mail_data_bl;
-        mail_data_bl.append(str_c(r_ctx->mail_buffer));
+        int max_write_size = r_storage->s->get_max_write_size_bytes();
+        if (write_buffer_size > max_write_size) {
+          i_debug("file to big %lu buffer , max %d ", (unsigned long)write_buffer_size,
+                  r_storage->s->get_max_write_size_bytes());
+          split_buffer_operation(r_ctx->mail_buffer, write_buffer_size, max_write_size, r_ctx);
 
-        r_ctx->current_object->get_write_op().write_full(mail_data_bl);
-
+        } else {
+          librados::bufferlist mail_data_bl;
+          mail_data_bl.append(str_c(r_ctx->mail_buffer));
+          r_ctx->current_object->get_write_op().write_full(mail_data_bl);
+        }
         // MAKE SYNC, ASYNC
         ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
                                                      r_ctx->current_object->get_completion_private().get(),
                                                      &r_ctx->current_object->get_write_op());
+        i_debug("async operate executed oid: %s , ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
       }
     }
     r_ctx->failed = ret < 0;
@@ -309,6 +348,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mailbox_transaction_context *_t = _ctx->transaction;
+
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
   uint32_t uid;
@@ -321,11 +361,19 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   i_assert(r_ctx->finished);
 
   if (r_ctx->copying != TRUE) {
-    int ret = r_ctx->current_object->get_completion_private()->wait_for_safe_and_cb();
+    int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
     if (ret != 0) {
       r_ctx->failed = true;
       // TEST < nach >
     } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+      r_ctx->failed = true;
+    }
+
+    // debug !!!!
+    uint64_t file_size;
+    time_t obj_m_time;
+    if (((r_storage->s)->get_io_ctx()).stat(r_ctx->current_object->get_oid(), &file_size, &obj_m_time) < 0) {
+      i_debug("SAVE_FAILED %s, size %lu", r_ctx->current_object->get_oid().c_str(), (unsigned long)file_size);
       r_ctx->failed = true;
     }
 
@@ -336,6 +384,8 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     }
     r_ctx->current_object->get_write_op().remove();
   }
+
+
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;

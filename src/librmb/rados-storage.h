@@ -21,6 +21,7 @@ class RadosStorage {
   const std::string& get_username() const { return username; }
 
   const int get_max_write_size() const { return max_write_size; }
+  const int get_max_write_size_bytes() const { return max_write_size * 1024 * 1024; }
 
  private:
   librados::IoCtx io_ctx;
