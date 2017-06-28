@@ -14,6 +14,7 @@ extern struct mail_storage rbox_storage;
 static int refcount = 0;
 
 void storage_rbox_plugin_init(struct module *module) {
+  (void)module;
   i_debug("storage_rbox_plugin_init refcount=%d", refcount);
   if (refcount++ > 0)
     return;
