@@ -41,7 +41,10 @@ static char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_MET
   i_debug("%s: %s." FORMAT, funcname, name, __VA_ARGS__)
 #define RBOX_PRINT_END() }
 #else
-#define RBOX_PRINT_START(NAME)
+#define RBOX_PRINT_START(NAME) \
+  (void)target;                \
+  (void)funcname;              \
+  (void)name;
 #define RBOX_PRINT_DEBUG(FORMAT, ...)
 #define RBOX_PRINT_END()
 #endif
@@ -246,7 +249,7 @@ void debug_print_mail_save_context(struct mail_save_context *target, const char 
   // debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
   RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
   // debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
-  RBOX_PRINT_DEBUG("data = %p", target->data);
+  RBOX_PRINT_DEBUG("data = %p", &target->data);
   /*
     if (target->data != NULL) {
       RBOX_PRINT_DEBUG("data.uid = %u", target->data.uid);

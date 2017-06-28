@@ -215,8 +215,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
-    i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d, size=%d", rmail->mail_object->get_oid().c_str(), _mail->uid,
-            size_r);
+    i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
+            *size_r);
     debug_print_mail(_mail, "rbox-mail::rbox_mail_get_physical_size (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
 
@@ -224,12 +224,12 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   }
 
   if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time) < 0) {
-    i_debug("no_object: rmail->mail_object->get_oid() %s, size %d", rmail->mail_object->get_oid().c_str(), file_size);
+    i_debug("no_object: rmail->mail_object->get_oid() %s, size %lu", rmail->mail_object->get_oid().c_str(), file_size);
 
     FUNC_END_RET("ret == -1; rbox_read");
     return -1;
   }
-  i_debug("rmail->mail_object->get_oid() %s, size %d", rmail->mail_object->get_oid().c_str(), file_size);
+  i_debug("rmail->mail_object->get_oid() %s, size %lu", rmail->mail_object->get_oid().c_str(), file_size);
 
   *size_r = file_size;
   FUNC_END();

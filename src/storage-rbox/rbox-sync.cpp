@@ -189,7 +189,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   }
 
   if (ctx->mbox->box.v.sync_notify != NULL)
-    ctx->mbox->box.v.sync_notify(&ctx->mbox->box, 0, 0);
+    ctx->mbox->box.v.sync_notify(&ctx->mbox->box, 0, static_cast<mailbox_sync_type>(0));
 
   ctx->mbox->box.tmp_sync_view = NULL;
   FUNC_END();
