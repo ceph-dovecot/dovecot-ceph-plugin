@@ -215,16 +215,21 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
+    i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d, size=%d", rmail->mail_object->get_oid().c_str(), _mail->uid,
+            size_r);
     debug_print_mail(_mail, "rbox-mail::rbox_mail_get_physical_size (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
+
     return 0;
   }
-  i_debug("rmail->mail_object->get_oid() %s", rmail->mail_object->get_oid().c_str());
 
   if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time) < 0) {
+    i_debug("no_object: rmail->mail_object->get_oid() %s, size %d", rmail->mail_object->get_oid().c_str(), file_size);
+
     FUNC_END_RET("ret == -1; rbox_read");
     return -1;
   }
+  i_debug("rmail->mail_object->get_oid() %s, size %d", rmail->mail_object->get_oid().c_str(), file_size);
 
   *size_r = file_size;
   FUNC_END();
@@ -252,7 +257,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     }
 
     if (size_r <= 0) {
-      i_debug("size is: %d", size_r);
       FUNC_END_RET("ret == -1; mail_size <= 0");
       return -1;
     }
@@ -262,6 +266,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1; out of memory");
       return -1;
     }
+
+    memset(rmail->mail_buffer, '\0', sizeof(char) * size_r + 1);
     _mail->transaction->stats.open_lookup_count++;
 
     int offset = 0;
@@ -308,6 +314,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
 void rbox_mail_free(struct mail *mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)mail;
+  debug_print_mail(mail, "rbox-mail::rbox_mail_free", NULL);
 
   if (rmail_->mail_buffer != NULL) {
     free(rmail_->mail_buffer);
