@@ -15,6 +15,7 @@ struct rbox_mail {
 
   librmb::RadosMailObject *mail_object;
   char *mail_buffer;
+  uint32_t last_seq;  //@TODO(jrse): init with -1
 };
 
 extern int rbox_get_index_record(struct mail *_mail);
