@@ -49,7 +49,6 @@ class RadosMailObject {
 
   AioCompletionPtr get_completion_private() { return this->completion_private; }
 
-
  private:
   std::string oid;
   std::string state;

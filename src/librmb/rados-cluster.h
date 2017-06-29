@@ -29,7 +29,7 @@ class RadosCluster {
   static int cluster_ref_count;
 
  public:
-  static const std::string CFG_OSD_MAX_WRITE_SIZE;
+  static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
 }  // namespace librmb
