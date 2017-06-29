@@ -20,6 +20,7 @@ class RadosCluster {
   int init(std::string *error_r);
   void deinit();
 
+  int pool_create(const std::string &pool);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
   int storage_create(const std::string &pool, const std::string &username, RadosStorage **storage);
