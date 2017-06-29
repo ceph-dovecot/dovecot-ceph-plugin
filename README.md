@@ -52,11 +52,9 @@ If the index data for a mailbox gets lost, there is currently no to to reconstru
 
 To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`. Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
 
-    mail_location = rbox:/home/user/dovecot/var/mail/rados/%u:pool=mail_storage
+    mail_location = rbox:/home/user/dovecot/var/mail/rados/%u
 
-The configuration parameters are:
-
-* **pool**: The RADOS pool to use for the mail objects. The pool name ist optional and defaults to _mail_storage_. If the pool is missing, it will be created.
+The RADOS pool to use for the mail objects defaults to _mail_storage_. If the pool is missing, it will be created.
 
 See also [Common Configuration](#common-configuration) for more information.
 
