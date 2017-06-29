@@ -93,7 +93,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   i_zero(&rec);
   memcpy(rec.guid, r_ctx->mail_guid, sizeof(r_ctx->mail_guid));
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
-  i_debug("SAVE OID: %s", guid_128_to_string(rec.oid));
+  i_debug("SAVE OID: %s, %d uid", guid_128_to_string(rec.oid), _ctx->dest_mail->uid);
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 }
 
@@ -212,6 +212,7 @@ void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) 
   if ((_storage->get_io_ctx()).remove(_oid) < 0) {
     i_debug("Librados obj: %s , could not be removed", _oid.c_str());
   }
+  i_debug("removed oid=%s", _oid.c_str());
 }
 
 
@@ -375,8 +376,10 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     if (((r_storage->s)->get_io_ctx()).stat(r_ctx->current_object->get_oid(), &file_size, &obj_m_time) < 0) {
       i_debug("SAVE_FAILED %s, size %lu", r_ctx->current_object->get_oid().c_str(), (unsigned long)file_size);
       r_ctx->failed = true;
+    } else {
+      i_debug("OID %s SAVED", r_ctx->current_object->get_oid().c_str());
     }
-
+    
     if (r_ctx->failed) {
       // delete index entry and delete object if it exist
       // remove entry from index is not successful in rbox_transaction_commit_post
@@ -444,6 +447,10 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   buffer_free(&r_ctx->mail_buffer);
   delete r_ctx->current_object;
+  guid_128_empty(r_ctx->mail_guid);
+  guid_128_empty(r_ctx->mail_oid);
+
   delete r_ctx;
+
   FUNC_END();
 }
