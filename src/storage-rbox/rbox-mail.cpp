@@ -229,7 +229,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     FUNC_END_RET("ret == -1; rbox_read");
     return -1;
   }
-  i_debug("rbox_mail_get_physical_size %s, size %lld", rmail->mail_object->get_oid().c_str(), file_size);
+
+  i_debug("rmail->mail_object->get_oid() %s, size %lu", rmail->mail_object->get_oid().c_str(), file_size);
 
   *size_r = file_size;
   FUNC_END();
