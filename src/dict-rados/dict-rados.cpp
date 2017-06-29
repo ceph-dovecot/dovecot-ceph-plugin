@@ -45,7 +45,7 @@ using std::set;
 
 #define DICT_USERNAME_SEPARATOR '/'
 static const char CACHE_DELETED[] = "_DELETED_";
-using namespace librmb;
+using namespace librmb;  // NOLINT
 
 struct rados_dict {
   struct dict dict;
@@ -70,7 +70,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   struct rados_dict *dict;
   const char *const *args;
   string oid = "";
-  string pool = "librmb";
+  string pool = "mail_dictionaries";
 
   i_debug("rados_dict_init(uri=%s)", uri);
 
@@ -623,8 +623,6 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
                                                      enum dict_iterate_flags flags) {
   RadosDictionary *d = ((struct rados_dict *)_dict)->d;
 
-  i_debug("rados_dict_iterate_init()");
-
   /* these flags are not supported for now */
   i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_VALUE) == 0);
   i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_KEY) == 0);
@@ -639,6 +637,8 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
   set<string> shared_keys;
   while (*paths) {
     string key = *paths++;
+    i_debug("rados_dict_iterate_init(%s)", key.c_str());
+
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       shared_keys.insert(key);
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -678,7 +678,7 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
       int err = d->get_io_ctx().aio_operate(d->get_full_oid(DICT_PATH_PRIVATE), private_read_completion,
                                             &private_read_op, &bl);
       i_debug("rados_dict_iterate_init(): private err=%d(%s)", err, strerror(-err));
-      iter->failed = err < 0;
+      // iter->failed = err < 0;
     }
 
     if (!iter->failed && shared_keys.size() > 0) {
@@ -701,19 +701,25 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
       int err =
           d->get_io_ctx().aio_operate(d->get_full_oid(DICT_PATH_SHARED), shared_read_completion, &shared_read_op, &bl);
       i_debug("rados_dict_iterate_init(): shared err=%d(%s)", err, strerror(-err));
-      iter->failed = err < 0;
+      // iter->failed = err < 0;
     }
 
-    if (!iter->failed) {
+    if (!iter->failed && private_keys.size() > 0) {
       int err = private_read_completion->wait_for_complete_and_cb();
-      err = private_read_completion->get_return_value();
+      i_debug("rados_dict_iterate_init(): priv wait_for_complete_and_cb() err=%d(%s)", err, strerror(-err));
       iter->failed = err < 0;
+      err = private_read_completion->get_return_value();
+      i_debug("rados_dict_iterate_init(): priv get_return_value() err=%d(%s)", err, strerror(-err));
+      iter->failed |= err < 0;
     }
 
-    if (!iter->failed) {
-      int err = shared_read_completion->wait_for_complete();
-      shared_read_completion->get_return_value();
+    if (!iter->failed && shared_keys.size() > 0) {
+      int err = shared_read_completion->wait_for_complete_and_cb();
+      i_debug("rados_dict_iterate_init(): shared wait_for_complete_and_cb() err=%d(%s)", err, strerror(-err));
       iter->failed = err < 0;
+      err = shared_read_completion->get_return_value();
+      i_debug("rados_dict_iterate_init(): shared get_return_value() err=%d(%s)", err, strerror(-err));
+      iter->failed |= err < 0;
     }
 
     private_read_completion->release();
@@ -786,5 +792,5 @@ int rados_dict_iterate_deinit(struct dict_iterate_context *ctx) {
 
   delete iter;
 
-  return ret;
+  return 0;
 }
