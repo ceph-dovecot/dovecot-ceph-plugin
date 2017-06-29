@@ -40,8 +40,7 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  // if (guid_128_is_empty(rmail->index_oid))
-  {
+  if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
@@ -57,6 +56,7 @@ int rbox_get_index_record(struct mail *_mail) {
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
+    rmail->last_seq = _mail->seq;
   }
 
   FUNC_END();
@@ -102,7 +102,8 @@ static int rbox_mail_get_metadata(struct mail *_mail) {
   std::map<std::string, librados::bufferlist> attrset;
   int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
   if (ret < 0) {
-    i_debug("rbox_mail_get_metadata: getxattrs failed : oid: %s", rmail->mail_object->get_oid().c_str());
+    i_debug("rbox_mail_get_metadata: getxattrs failed : oid: %s, ret_val = %d", rmail->mail_object->get_oid().c_str(),
+            ret);
     FUNC_END_RET("ret == -1; rbox getxattrs");
     return -1;
   }
@@ -208,8 +209,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
 
-  uint64_t file_size;
-  time_t time;
+  uint64_t file_size = -1;
+  time_t time = 0;
 
   i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
@@ -318,7 +319,7 @@ void rbox_mail_free(struct mail *mail) {
   debug_print_mail(mail, "rbox-mail::rbox_mail_free", NULL);
 
   if (rmail_->mail_buffer != NULL) {
-    free(rmail_->mail_buffer);
+    i_free(rmail_->mail_buffer);
   }
   if (rmail_->mail_object != 0) {
     delete rmail_->mail_object;
@@ -328,9 +329,16 @@ void rbox_mail_free(struct mail *mail) {
   index_mail_free(mail);
 }
 
+void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
+  index_mail_set_seq(_mail, seq, saving);
+
+  // update stuff.
+  rbox_get_index_record(_mail);
+}
+
 struct mail_vfuncs rbox_mail_vfuncs = {index_mail_close,
                                        rbox_mail_free,
-                                       index_mail_set_seq,
+                                       rbox_index_mail_set_seq,
                                        index_mail_set_uid,
                                        index_mail_set_uid_cache_updates,
                                        index_mail_prefetch,
