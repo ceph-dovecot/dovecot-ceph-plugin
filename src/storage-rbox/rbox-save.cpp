@@ -377,9 +377,9 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
       i_debug("SAVE_FAILED %s, size %lu", r_ctx->current_object->get_oid().c_str(), (unsigned long)file_size);
       r_ctx->failed = true;
     } else {
-      i_debug("OID %s SAVED", r_ctx->current_object->get_oid().c_str());
+      i_debug("OID %s , length=%jd SAVED", r_ctx->current_object->get_oid().c_str(), file_size);
     }
-    
+
     if (r_ctx->failed) {
       // delete index entry and delete object if it exist
       // remove entry from index is not successful in rbox_transaction_commit_post
