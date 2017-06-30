@@ -40,6 +40,7 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
+  i_debug("last_seq %lu, mail_seq %lu", rmail->last_seq, _mail->seq);
   if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
@@ -47,7 +48,8 @@ int rbox_get_index_record(struct mail *_mail) {
     obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
-      i_debug("no index entry for %d, mail_object->oid %s", _mail->seq, rmail->mail_object->get_oid().c_str());
+      i_debug("no index entry for %d, ext_id=%d ,mail_object->oid='%s'", _mail->seq, rbox->ext_id,
+              rmail->mail_object->get_oid().c_str());
       /* lost for some reason, give up */
       FUNC_END_RET("ret == -1");
       return -1;

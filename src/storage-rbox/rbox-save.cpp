@@ -62,20 +62,24 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+
   int save_flags;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
+  i_debug("add seq %d to index ", r_ctx->seq);
+
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
+  i_debug("update flags for seq %d ", r_ctx->seq);
+
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
   }
   if (_ctx->data.min_modseq != 0) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
-
-  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 
   guid_128_generate(r_ctx->mail_oid);
 
@@ -93,8 +97,11 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   i_zero(&rec);
   memcpy(rec.guid, r_ctx->mail_guid, sizeof(r_ctx->mail_guid));
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
-  i_debug("SAVE OID: %s, %d uid", guid_128_to_string(rec.oid), _ctx->dest_mail->uid);
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
+
+  i_debug("SAVE OID: %s, %d uid , seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
+
+  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 }
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
@@ -216,22 +223,22 @@ void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) 
 }
 
 
-void clean_up_failed(struct rbox_save_context *_r_ctx) {
-  struct rbox_storage *r_storage = (struct rbox_storage *)&_r_ctx->mbox->storage->storage;
+void clean_up_failed(struct rbox_save_context *r_ctx) {
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  int ret = _r_ctx->current_object->get_completion_private()->wait_for_safe_and_cb();
+  int ret = r_ctx->current_object->get_completion_private()->wait_for_safe_and_cb();
 
   if (ret >= 0) {
-    if (_r_ctx->current_object->get_completion_private()->get_return_value() >= 0) {
-      _r_ctx->current_object->get_write_op().remove();
-      remove_from_rados(r_storage->s, _r_ctx->current_object->get_oid());
+    if (r_ctx->current_object->get_completion_private()->get_return_value() >= 0) {
+      r_ctx->current_object->get_write_op().remove();
+      remove_from_rados(r_storage->s, r_ctx->current_object->get_oid());
     }
   }
   // clean up index
-  mail_index_expunge(_r_ctx->trans, _r_ctx->seq);
-  mail_cache_transaction_reset(_r_ctx->ctx.transaction->cache_trans);
-
-  _r_ctx->mail_count--;
+  mail_index_expunge(r_ctx->trans, r_ctx->seq);
+  mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
+  r_ctx->current_object->get_completion_private()->release();
+  r_ctx->mail_count--;
 }
 
 void clean_up_write_finish(struct mail_save_context *_ctx) {
@@ -255,7 +262,7 @@ void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64
 
   int rest = write_buffer_size % max_size;
   // TODO(jrse) move op_lit to rados_object
-  std::vector<AioCompletionPtr> op_list;
+  std::vector<AioCompletion *> op_list;
 
   int div = write_buffer_size / max_size + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; i++) {
@@ -271,17 +278,18 @@ void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64
     tmp.append(buf, length);
     op.write(offset, tmp);
 
-    AioCompletionPtr ptr = std::make_shared<librados::AioCompletion>(*librados::Rados::aio_create_completion());
+    AioCompletion *completion = librados::Rados::aio_create_completion();
 
     i_debug("creation aio operation %s:", r_ctx->current_object->get_oid().c_str());
     // MAKE SYNC, ASYNC
-    r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(), ptr.get(), &op);
-    op_list.push_back(ptr);
+    r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(), completion, &op);
+    op_list.push_back(completion);
   }
 
   // Iterate and print values of vector
-  for (AioCompletionPtr n : op_list) {
+  for (AioCompletion *n : op_list) {
     n->wait_for_safe_and_cb();
+    n->release();
   }
 }
 
@@ -319,7 +327,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         }
         // MAKE SYNC, ASYNC
         ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
-                                                     r_ctx->current_object->get_completion_private().get(),
+                                                     r_ctx->current_object->get_completion_private(),
                                                      &r_ctx->current_object->get_write_op());
         i_debug("async operate executed oid: %s , ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
       }
@@ -365,7 +373,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
     if (ret != 0) {
       r_ctx->failed = true;
-      // TEST < nach >
+
     } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
       r_ctx->failed = true;
     }
@@ -385,10 +393,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
       // remove entry from index is not successful in rbox_transaction_commit_post
       clean_up_failed(r_ctx);
     }
-    r_ctx->current_object->get_write_op().remove();
   }
-
-
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;
