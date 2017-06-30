@@ -34,19 +34,19 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
                                  guid_128_t *index_oid) {
   FUNC_START();
 
-  if (guid_128_is_empty(*index_oid)) {
-    const struct obox_mail_index_record *obox_rec;
-    const void *rec_data;
-    mail_index_lookup_ext(_sync_view, seq, ext_id, &rec_data, NULL);
-    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+  // if (guid_128_is_empty(*index_oid)) {
+  const struct obox_mail_index_record *obox_rec;
+  const void *rec_data;
+  mail_index_lookup_ext(_sync_view, seq, ext_id, &rec_data, NULL);
+  obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
-    if (obox_rec == nullptr) {
-      /* lost for some reason, give up */
-      FUNC_END_RET("ret == -1");
-      return -1;
-    }
-    memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
+  if (obox_rec == nullptr) {
+    /* lost for some reason, give up */
+    FUNC_END_RET("ret == -1");
+    return -1;
   }
+  memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
+  //}
 
   FUNC_END();
   return 0;
@@ -154,17 +154,17 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
-  struct dbox_file *file;
-  struct rbox_file *sfile;
   int ret;
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   ret = r_storage->s->get_io_ctx().remove(guid_128_to_string(item->oid));
+  i_debug("sync: removing oid: %s, success: %d", guid_128_to_string(item->oid), ret);
 
   /* do sync_notify only when the file was unlinked by us */
-  if (ret > 0 && box->v.sync_notify != NULL)
+  if (ret >= 0 && box->v.sync_notify != NULL) {
+    i_debug("sync: notify oid: %s, success: %d", guid_128_to_string(item->oid), ret);
     box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-
+  }
   FUNC_END();
 }
 
