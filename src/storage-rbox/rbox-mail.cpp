@@ -47,6 +47,7 @@ int rbox_get_index_record(struct mail *_mail) {
     obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
+      i_debug("no index entry for %d, mail_object->oid %s", _mail->seq, rmail->mail_object->get_oid().c_str());
       /* lost for some reason, give up */
       FUNC_END_RET("ret == -1");
       return -1;
@@ -136,6 +137,7 @@ static int rbox_mail_get_metadata(struct mail *_mail) {
   uint64_t object_size = 0;
   time_t received_date_rados = 0;
   if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &received_date_rados) < 0) {
+    i_debug("cannot stat object %s to get received date and object size ", rmail->mail_object->get_oid().c_str());
     FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
     return -1;
   }
