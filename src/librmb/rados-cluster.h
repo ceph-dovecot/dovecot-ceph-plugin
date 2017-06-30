@@ -20,6 +20,7 @@ class RadosCluster {
   int init(std::string *error_r);
   void deinit();
 
+  int pool_create(const std::string &pool);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
   int storage_create(const std::string &pool, const std::string &username, RadosStorage **storage);
@@ -29,7 +30,7 @@ class RadosCluster {
   static int cluster_ref_count;
 
  public:
-  static const std::string CFG_OSD_MAX_WRITE_SIZE;
+  static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
 }  // namespace librmb
