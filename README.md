@@ -139,8 +139,6 @@ To compile the plugin you need a configured or installed dovecot.
 
 ## Thanks
 
-The development of this software is sponsored Deutsche Telekom. We would like to take this opportunity to thank Deutsche Telekom. 
+<img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Telekom_Logo_2013.svg" width="75">  The development of this software is sponsored Deutsche Telekom. We would like to take this opportunity to thank Deutsche Telekom. 
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Telekom_Logo_2013.svg" width="100">
-
-<br />This plugin borrows heavily from [Dovecot](https://github.com/dovecot/core) itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.
+This plugin borrows heavily from [Dovecot](https://github.com/dovecot/core) itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.
