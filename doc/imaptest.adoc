@@ -1,0 +1,75 @@
+ImapTest with POP3
+===================
+
+To run ImapTest with the pop3 protocol some configuration and parameter settings are required.
+
+== User Configuration
+Create 100 user:
+Name = t1 .. t100, Password = t
+
+etc/passwd:
+
+----
+t1:{PLAIN}t::::::
+t2:{PLAIN}t::::::
+t3:{PLAIN}t::::::
+...
+t100:{PLAIN}t::::::
+----
+
+Script to create the users:
+
+----
+#!/bin/bash
+for i in {1..100}
+    do 
+         echo "t$i:{PLAIN}t::::::" >> passwd
+    done
+----
+
+== Dovecot Configuration
+Enable POP3 and LMTP via etc/dovecot/dovecot.conf:
+
+----
+protocols = imap lmtp pop3
+----
+
+Add or change the following entry of etc/dovecot/conf.d/10-master.conf:
+
+----
+service lmtp {
+  unix_listener lmtp {
+    #mode = 0666
+  }
+
+  inet_listener lmtp {
+    address = 127.0.0.1 ::1
+    port = 10024
+  }
+}
+----
+
+== ImapTest Configuration
+In the root of ImapTest you find the configuration file pop3-profile.conf. Change the following entries:
+
+----
+lmtp_port = 10024
+#lmtp_max_parallel_count = 500
+total_user_count = 100
+rampup_time = 30s
+
+user aggressive {
+  #username_prefix = test
+  username_format = t%n
+  count = 100%
+
+  ...
+}
+----
+
+== ImapTest Parameter
+Run ImapTest with the following parameters:
+
+----
+src/imaptest user=t%d pass=t port=10110 profile=pop3-profile.conf output=<path to output file>
+----
