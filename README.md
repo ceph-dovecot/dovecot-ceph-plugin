@@ -10,7 +10,7 @@ As a bonus, a dictionary plugin is included, which allows the storage of Dovecot
 
 The mails are saved directly as RADOS objects. All other data are stored as before in the file system. This applies in particular to the data of the lib-index of Dovecot. We assume the file system is designed as shared storage based on CephFS.
 
-Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get tored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by the lib-index and ends up in CephFS volumes.
+Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get stored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by the lib-index and ends up in CephFS volumes.
 
 Because of the way MUAs access the mails, it may be necessary to provide a local cache of mails from Dovecot. The cache can be located in the main memory or on local SSD storage. However, this optimization is optional and will be implemented only if necessary.
 
@@ -46,7 +46,7 @@ RECORD: seq=1, uid=568, flags=0x19 (Seen Answered Draft)
                    : message_count = 1404118538
 ````
 
-If the index data for a mailbox gets lost, there is currently no to to reconstruct the mailbox from the RADOS objects. We want to use a RADOS namespace per user to make object iteration for a recovery possible.
+If the index data for a mailbox gets lost, there is currently no way to reconstruct the mailbox from the RADOS objects. We want to use a RADOS namespace per user to make object iteration for a recovery possible.
 
 ### Configuration
 
@@ -142,10 +142,10 @@ To compile the plugin you need a configured or installed dovecot.
 <table border="0">
   <tr>
     <td><img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Telekom_Logo_2013.svg"</td>
-    <td>The development of this software is sponsored Deutsche Telekom. We would like to take this opportunity to thank Deutsche Telekom.</td>
+    <td>The development of this software is sponsored by Deutsche Telekom. We would like to take this opportunity to thank Deutsche Telekom.</td>
   </tr>
   <tr>
     <td><img src="https://upload.wikimedia.org/wikipedia/commons/3/37/Dovecot-logo.png"</td>
-    <td>This plugin borrows heavily from [Dovecot](https://github.com/dovecot/core) itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.</td>
+    <td>This plugin borrows heavily from <a href="https://github.com/dovecot/core/">Dovecot</a> itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.</td>
   </tr>
 </table>
