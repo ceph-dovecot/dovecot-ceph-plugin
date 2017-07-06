@@ -158,13 +158,15 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   ret = r_storage->s->get_io_ctx().remove(guid_128_to_string(item->oid));
-  i_debug("sync: removing oid: %s, success: %d", guid_128_to_string(item->oid), ret);
+  i_debug("sync: removing oid: %s, success: %d , sync_notifx: %lu", guid_128_to_string(item->oid), ret,
+          box->v.sync_notify);
 
   /* do sync_notify only when the file was unlinked by us */
   if (ret >= 0 && box->v.sync_notify != NULL) {
     i_debug("sync: notify oid: %s, success: %d", guid_128_to_string(item->oid), ret);
     box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
   }
+
   FUNC_END();
 }
 
@@ -173,6 +175,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   struct expunged_item *const *items, *item;
   unsigned int count;
   int i;
+
   /* NOTE: Index is no longer locked. Multiple processes may be deleting
      the objects at the same time. */
   ctx->mbox->box.tmp_sync_view = ctx->sync_view;
@@ -202,6 +205,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
   *_ctx = NULL;
   if (success) {
+    mail_index_view_ref(ctx->sync_view);
     if (mail_index_sync_commit(&ctx->index_sync_ctx) < 0) {
       mailbox_set_index_error(&ctx->mbox->box);
       debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_finish (ret -1, 1)", NULL);
@@ -209,6 +213,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       ret = -1;
     } else {
       rbox_sync_expunge_rbox_objects(ctx);
+      mail_index_view_close(&ctx->sync_view);
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
