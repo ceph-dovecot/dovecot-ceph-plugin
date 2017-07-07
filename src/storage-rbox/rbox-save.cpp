@@ -302,6 +302,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   r_ctx->finished = TRUE;
   if (_ctx->data.save_date != (time_t)-1) {
     struct index_mail *mail = (struct index_mail *)_ctx->dest_mail;
+
     uint32_t t = _ctx->data.save_date;
     index_mail_cache_add(mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
   }
@@ -333,6 +334,26 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       }
     }
     r_ctx->failed = ret < 0;
+  }
+
+  // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
+  // rbox_transaction_save_commit_pre is called.
+  if (r_ctx->copying != TRUE) {
+    int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
+    if (ret != 0) {
+      r_ctx->failed = true;
+
+    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+      r_ctx->failed = true;
+    }
+
+    i_debug("OID %s , SAVED", r_ctx->current_object->get_oid().c_str());  //, file_size);
+
+    if (r_ctx->failed) {
+      // delete index entry and delete object if it exist
+      // remove entry from index is not successful in rbox_transaction_commit_post
+      clean_up_failed(r_ctx);
+    }
   }
 
   clean_up_write_finish(_ctx);
@@ -368,32 +389,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   i_assert(r_ctx->finished);
-
-  if (r_ctx->copying != TRUE) {
-    int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
-    if (ret != 0) {
-      r_ctx->failed = true;
-
-    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
-      r_ctx->failed = true;
-    }
-
-    /* debug !!!!
-    uint64_t file_size;
-    time_t obj_m_time;
-    if (((r_storage->s)->get_io_ctx()).stat(r_ctx->current_object->get_oid(), &file_size, &obj_m_time) < 0) {
-      i_debug("SAVE_FAILED %s, size %lu", r_ctx->current_object->get_oid().c_str(), (unsigned long)file_size);
-      r_ctx->failed = true;
-    } else {*/
-    i_debug("OID %s , SAVED", r_ctx->current_object->get_oid().c_str());  //, file_size);
-    /*}*/
-
-    if (r_ctx->failed) {
-      // delete index entry and delete object if it exist
-      // remove entry from index is not successful in rbox_transaction_commit_post
-      clean_up_failed(r_ctx);
-    }
-  }
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;
