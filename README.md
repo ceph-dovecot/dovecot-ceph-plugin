@@ -60,7 +60,62 @@ See also [Common Configuration](#common-configuration) for more information.
 
 ## Testing
 
-TODO
+We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Ceph cluster we used for the first tests runs locally and has been created using _vstart.sh_ (See [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md)). We test the protocols IMAP and POP3. Before you can start the tests you have to fit the environment.
+
+### Common
+Create 100 user:
+Name = t1 .. t100, Password = t
+
+etc/passwd:
+
+````
+t1:{PLAIN}t::::::
+t2:{PLAIN}t::::::
+t3:{PLAIN}t::::::
+...
+t100:{PLAIN}t::::::
+````
+
+Script to create the users:
+
+````
+#!/bin/bash
+for i in {1..100}
+    do 
+         echo "t$i:{PLAIN}t::::::" >> passwd
+    done
+````
+
+### IMAP
+...
+
+### POP3
+If POP3 is used for the ImapTest, it is necessary to add or modify some configuration entries.
+
+#### Dovecot / LMTP
+Enable POP3 and LMTP via etc/dovecot/dovecot.conf:
+
+````
+protocols = imap pop3 lmtp
+````
+
+Add or change the following entry of etc/dovecot/conf.d/10-master.conf:
+
+````
+service lmtp {
+  unix_listener lmtp {
+    #mode = 0666
+  }
+
+  inet_listener lmtp {
+    address = 127.0.0.1 ::1
+    port = 10024
+  }
+}
+````
+
+#### ImapTest
+To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/imaptest.adoc)
 
 ## RADOS Dictionary Plugin
 
