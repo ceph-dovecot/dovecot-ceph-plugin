@@ -92,6 +92,12 @@ for i in {1..100}
 ### POP3
 If POP3 is used for the ImapTest, it is necessary to add or modify some configuration entries.
 
+#### System
+
+````
+ulimit -n 3072
+````
+
 #### Dovecot / LMTP
 Enable POP3 and LMTP via etc/dovecot/dovecot.conf:
 
@@ -102,6 +108,9 @@ protocols = imap pop3 lmtp
 Add or change the following entry of etc/dovecot/conf.d/10-master.conf:
 
 ````
+default_process_limit = 500
+default_client_limit = 3000
+
 service lmtp {
   unix_listener lmtp {
     #mode = 0666
@@ -115,7 +124,7 @@ service lmtp {
 ````
 
 #### ImapTest
-To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/imaptest.adoc)
+To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/profile-pop3.conf)
 
 ## RADOS Dictionary Plugin
 
