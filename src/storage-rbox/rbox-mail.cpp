@@ -65,7 +65,6 @@ int rbox_get_index_record(struct mail *_mail) {
   }
   uint64_t obj_size = -1;
   rmail->mail_object->set_object_size(obj_size);
-
   FUNC_END();
   return 0;
 }
@@ -82,10 +81,7 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 
   index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
 
-  mail->mail_object = new RadosMailObject();
-
   FUNC_END();
-
   return &mail->imail.mail.mail;
 }
 
@@ -252,7 +248,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   *size_r = file_size;
   FUNC_END();
-  return 0;
+  return file_size > 0 ? 0 : -1;
 }
 
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
@@ -272,11 +268,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {
       FUNC_END_RET("ret == -1; get mail size");
-      return -1;
-    }
-
-    if (size_r <= 0) {
-      FUNC_END_RET("ret == -1; mail_size <= 0");
       return -1;
     }
 
@@ -331,42 +322,30 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   return ret;
 }
 
-void rbox_mail_free(struct mail *mail) {
-  struct rbox_mail *rmail_ = (struct rbox_mail *)mail;
-  debug_print_mail(mail, "rbox-mail::rbox_mail_free", NULL);
-
+void rbox_mail_close(struct mail *_mail) {
+  struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   if (rmail_->mail_buffer != NULL) {
     i_free(rmail_->mail_buffer);
   }
-  if (rmail_->mail_object != 0) {
+  if (rmail_->mail_object != NULL) {
     delete rmail_->mail_object;
     rmail_->mail_object = NULL;
   }
-
-  index_mail_free(mail);
+  index_mail_close(_mail);
 }
 
 void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
-
-  if (rmail_->mail_buffer != NULL) {
-    i_free(rmail_->mail_buffer);
-  }
-  if (rmail_->mail_object != 0) {
-    delete rmail_->mail_object;
-    rmail_->mail_object = NULL;
-  }
-
+  // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
-
+  // init new mail object and load oid and uuid from index
   rmail_->mail_object = new RadosMailObject();
-  // update stuff.
   rbox_get_index_record(_mail);
-
 }
 
-struct mail_vfuncs rbox_mail_vfuncs = {index_mail_close,
-                                       rbox_mail_free,
+// rbox_mail_free,
+struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
+                                       index_mail_free,
                                        rbox_index_mail_set_seq,
                                        index_mail_set_uid,
                                        index_mail_set_uid_cache_updates,
