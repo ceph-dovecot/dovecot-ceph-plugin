@@ -198,8 +198,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     return -1;
   }
 
-  data->save_date = rmail->mail_object->get_save_date();
-  *date_r = data->save_date;
+  *date_r = data->save_date = rmail->mail_object->get_save_date();
 
   i_debug("save date = %s", ctime(date_r));
   debug_print_mail(_mail, "rbox-mail::rbox_mail_get_save_date", NULL);
@@ -337,19 +336,16 @@ void rbox_mail_close(struct mail *_mail) {
 void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   struct index_mail *mail = (struct index_mail *)_mail;
-
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
 
-  if (mail->data.seq == seq && saving) {
-    // clean up mail buffer
-    if (rmail_->mail_buffer != NULL) {
-      i_free(rmail_->mail_buffer);
-    }
-    if (rmail_->mail_object != NULL) {
-      delete rmail_->mail_object;
-      rmail_->mail_object = NULL;
-    }
+  // clean up mail buffer
+  if (rmail_->mail_buffer != NULL) {
+    i_free(rmail_->mail_buffer);
+  }
+  if (rmail_->mail_object != NULL) {
+    delete rmail_->mail_object;
+    rmail_->mail_object = NULL;
   }
 
   // init new mail object and load oid and uuid from index
