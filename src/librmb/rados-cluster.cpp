@@ -7,7 +7,6 @@
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
 #include "rados-storage.h"
-
 using std::list;
 using std::pair;
 using std::string;
@@ -145,6 +144,8 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
     // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
     return err;
   }
+
+  io_ctx.set_namespace(username);
 
   // "found: max write size " << max_write_size.c_str() << "\n";
 
