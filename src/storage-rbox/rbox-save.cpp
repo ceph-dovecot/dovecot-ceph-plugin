@@ -24,6 +24,7 @@ extern "C" {
 #include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include "time.h"
 }
 
 #include "rados-mail-object.h"
@@ -311,6 +312,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
     uint32_t t = _ctx->data.save_date;
     index_mail_cache_add(mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
+  } else {
+    _ctx->data.save_date = time(NULL);
   }
 
   if (!r_ctx->failed) {
@@ -398,7 +401,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
       }
 
       i_debug("OID %s , SAVED success=%s", r_ctx->current_object->get_oid().c_str(),
-              r_ctx->failed ? "true" : "false");  //, file_size);
+              r_ctx->failed ? "false" : "true");  //, file_size);
 
       if (r_ctx->failed) {
         break;
@@ -476,6 +479,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     delete *it;
   }
+  r_ctx->objects.clear();
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
