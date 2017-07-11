@@ -51,6 +51,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = mbox;
     r_ctx->trans = t->itrans;
+    r_ctx->current_object = nullptr;
     t->save_ctx = &r_ctx->ctx;
   }
   debug_print_mail_save_context(t->save_ctx, "rbox-save::rbox_save_alloc", NULL);
@@ -82,6 +83,11 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   }
 
   guid_128_generate(r_ctx->mail_oid);
+
+  // save old ptr.
+  if (r_ctx->current_object != nullptr) {
+    r_ctx->objects.push_back(r_ctx->current_object);
+  }
 
   r_ctx->current_object = new RadosMailObject();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
@@ -315,7 +321,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         rbox_save_mail_write_metadata(r_ctx);
 
         size_t write_buffer_size = buffer_get_size(r_ctx->mail_buffer);
+
         int max_write_size = r_storage->s->get_max_write_size_bytes();
+        i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
+
         if (write_buffer_size > max_write_size) {
           i_debug("file to big %lu buffer , max %d ", (unsigned long)write_buffer_size,
                   r_storage->s->get_max_write_size_bytes());
@@ -336,25 +345,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     r_ctx->failed = ret < 0;
   }
 
-  // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
-  // rbox_transaction_save_commit_pre is called.
-  if (r_ctx->copying != TRUE) {
-    int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
-    if (ret != 0) {
-      r_ctx->failed = true;
-
-    } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
-      r_ctx->failed = true;
-    }
-
-    i_debug("OID %s , SAVED", r_ctx->current_object->get_oid().c_str());  //, file_size);
-
-    if (r_ctx->failed) {
-      // delete index entry and delete object if it exist
-      // remove entry from index is not successful in rbox_transaction_commit_post
-      clean_up_failed(r_ctx);
-    }
-  }
 
   clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
@@ -389,6 +379,43 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   i_assert(r_ctx->finished);
+
+  r_ctx->objects.push_back(r_ctx->current_object);
+
+  if (r_ctx->copying != TRUE) {
+    // wait for all writes to finish!
+    // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
+    // rbox_transaction_save_commit_pre is called.
+    for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
+         ++it) {
+      r_ctx->current_object = *it;
+
+      int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
+      if (ret != 0) {
+        r_ctx->failed = true;
+      } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+        r_ctx->failed = true;
+      }
+
+      i_debug("OID %s , SAVED success=%s", r_ctx->current_object->get_oid().c_str(),
+              r_ctx->failed ? "true" : "false");  //, file_size);
+
+      if (r_ctx->failed) {
+        break;
+      }
+    }
+    // if one write fails! all writes will be reverted and r_ctx->failed is true!
+    if (r_ctx->failed) {
+      for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
+           ++it) {
+        r_ctx->current_object = *it;
+        // delete index entry and delete object if it exist
+        // remove entry from index is not successful in rbox_transaction_commit_post
+        // clean up will wait for object operation to complete
+        clean_up_failed(r_ctx);
+      }
+    }
+  }
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;
@@ -446,7 +473,10 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
 
   buffer_free(&r_ctx->mail_buffer);
-  delete r_ctx->current_object;
+  for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
+    delete *it;
+  }
+
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
 
