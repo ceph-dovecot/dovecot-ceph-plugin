@@ -49,22 +49,27 @@ class RadosMailObject {
   librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
 
   librados::AioCompletion* get_completion_private() { return this->completion_private; }
+  bool has_active_op() { return active_op; }
+  void set_active_op(bool active) { this->active_op = active; }
 
  private:
   std::string oid;
+
+  // XATTR
   std::string state;
   std::string version;
-
   uint32_t pop3_order;
   std::string pop3_uidl;
   time_t save_date;
   time_t received_date;
+
   uint8_t guid[GUID_128_SIZE];
   uint64_t object_size;  // byte
 
   librados::ObjectWriteOperation write_op;
 
   librados::AioCompletion* completion_private;
+  bool active_op;
 
  public:
   // X_ATTRIBUTES
