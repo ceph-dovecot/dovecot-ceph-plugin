@@ -33,4 +33,5 @@ RadosMailObject::RadosMailObject() {
   completion_private = librados::Rados::aio_create_completion();
   // std::make_shared<librados::AioCompletion>(*librados::Rados::aio_create_completion());
   this->object_size = -1;
+  this->active_op = false;
 }

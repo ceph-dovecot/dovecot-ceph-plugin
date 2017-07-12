@@ -304,7 +304,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  int ret = -1;
+  int ret = 0;
 
   r_ctx->finished = TRUE;
   if (_ctx->data.save_date != (time_t)-1) {
@@ -317,10 +317,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
 
   if (!r_ctx->failed) {
-    ret = r_ctx->current_object->get_completion_private()->set_complete_callback(r_ctx->current_object, nullptr);
-
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
+        ret = r_ctx->current_object->get_completion_private()->set_complete_callback(r_ctx->current_object, nullptr);
         rbox_save_mail_write_metadata(r_ctx);
 
         size_t write_buffer_size = buffer_get_size(r_ctx->mail_buffer);
@@ -342,12 +341,13 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         ret = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(),
                                                      r_ctx->current_object->get_completion_private(),
                                                      &r_ctx->current_object->get_write_op());
+        // set current_objects operation to active!
+        r_ctx->current_object->set_active_op(true);
         i_debug("async operate executed oid: %s , ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
       }
     }
     r_ctx->failed = ret < 0;
   }
-
 
   clean_up_write_finish(_ctx);
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
@@ -385,14 +385,15 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   r_ctx->objects.push_back(r_ctx->current_object);
 
-  if (r_ctx->copying != TRUE) {
+  // if we come from copy mail, there is no operation to wait for.
+  if (r_ctx->current_object->has_active_op()) {
     // wait for all writes to finish!
     // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
     // rbox_transaction_save_commit_pre is called.
     for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
          ++it) {
       r_ctx->current_object = *it;
-
+      // note: wait_for_complete_and_cb will also wait if there is no active op.
       int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
       if (ret != 0) {
         r_ctx->failed = true;
