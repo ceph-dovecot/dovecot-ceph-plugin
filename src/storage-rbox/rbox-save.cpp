@@ -385,28 +385,28 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   r_ctx->objects.push_back(r_ctx->current_object);
 
-  // if we come from copy mail, there is no operation to wait for.
-  if (r_ctx->current_object->has_active_op()) {
     // wait for all writes to finish!
     // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
     // rbox_transaction_save_commit_pre is called.
     for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
          ++it) {
       r_ctx->current_object = *it;
-      // note: wait_for_complete_and_cb will also wait if there is no active op.
-      int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
-      if (ret != 0) {
-        r_ctx->failed = true;
-      } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
-        r_ctx->failed = true;
-      }
+      // if we come from copy mail, there is no operation to wait for.
+      if (r_ctx->current_object->has_active_op()) {
+        // note: wait_for_complete_and_cb will also wait if there is no active op.
+        int ret = r_ctx->current_object->get_completion_private()->wait_for_complete_and_cb();
+        if (ret != 0) {
+          r_ctx->failed = true;
+        } else if (r_ctx->current_object->get_completion_private()->get_return_value() < 0) {
+          r_ctx->failed = true;
+        }
+        i_debug("OID %s , SAVED success=%s", r_ctx->current_object->get_oid().c_str(),
+                r_ctx->failed ? "false" : "true");  //, file_size);
 
-      i_debug("OID %s , SAVED success=%s", r_ctx->current_object->get_oid().c_str(),
-              r_ctx->failed ? "false" : "true");  //, file_size);
-
-      if (r_ctx->failed) {
-        break;
-      }
+        if (r_ctx->failed) {
+          break;
+        }
+       }
     }
     // if one write fails! all writes will be reverted and r_ctx->failed is true!
     if (r_ctx->failed) {
@@ -419,7 +419,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
         clean_up_failed(r_ctx);
       }
     }
-  }
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE) < 0) {
     r_ctx->failed = TRUE;
