@@ -8,7 +8,7 @@ extern "C" {
 #include "istream.h"
 #include "mail-storage.h"
 #include "mail-copy.h"
-
+#include "mailbox-list-private.h"
 #include "rbox-storage.h"
 #include "debug-helper.h"
 }
@@ -113,11 +113,27 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     struct rbox_mail *rmail = (struct rbox_mail *)mail;
     std::string src_oid = rmail->mail_object->get_oid();
     i_debug("rbox_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
+    i_debug("namespace src %s, namespace dest %s", mail->box->list->ns->owner->username,
+            ctx->dest_mail->box->list->ns->owner->username);
 
-    write_op.copy_from(src_oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+    librados::IoCtx src_ctx;
+    char *ns_src_mail = mail->box->list->ns->owner->username;
+    char *ns_dest_mail = ctx->dest_mail->box->list->ns->owner->username;
+    if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
+      src_ctx.dup(r_storage->s->get_io_ctx());
+      src_ctx.set_namespace(ns_src_mail);
+      r_storage->s->get_io_ctx().set_namespace(ns_dest_mail);
+    } else {
+      // src_ctx = destination ctx
+      src_ctx = r_storage->s->get_io_ctx();
+    }
+
+    write_op.copy_from(src_oid, src_ctx, src_ctx.get_last_version());
     write_op.mtime(&ctx->data.received_date);
-
     ret_val = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &write_op);
+
+    // set io_ctx context to src mail
+    r_storage->s->get_io_ctx().set_namespace(ns_src_mail);
   }
   FUNC_END();
   return ret_val;

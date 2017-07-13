@@ -260,15 +260,15 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
   index_save_context_free(_ctx);
 }
 
-void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64_t max_size,
-                            struct rbox_save_context *r_ctx) {
+int split_buffer_and_exec(const buffer_t *buffer, size_t buffer_length, uint64_t max_size,
+                          struct rbox_save_context *r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   size_t write_buffer_size = buffer_length;
-
+  int ret_val = 0;
   assert(max_size > 0);
 
   int rest = write_buffer_size % max_size;
-  // TODO(jrse) move op_lit to rados_object
+  // TODO(jrse) move op_list to rados_object
   std::vector<AioCompletion *> op_list;
 
   int div = write_buffer_size / max_size + (rest > 0 ? 1 : 0);
@@ -281,9 +281,9 @@ void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64
       length = rest;
     }
     const char *buf = (char *)buffer->data + offset;
-    librados::bufferlist tmp;
-    tmp.append(buf, length);
-    op.write(offset, tmp);
+    librados::bufferlist tmp_buffer;
+    tmp_buffer.append(buf, length);
+    op.write(offset, tmp_buffer);
 
     AioCompletion *completion = librados::Rados::aio_create_completion();
 
@@ -293,11 +293,12 @@ void split_buffer_operation(const buffer_t *buffer, size_t buffer_length, uint64
     op_list.push_back(completion);
   }
 
-  // Iterate and print values of vector
   for (AioCompletion *n : op_list) {
     n->wait_for_safe_and_cb();
+
     n->release();
   }
+  return ret_val;
 }
 
 int rbox_save_finish(struct mail_save_context *_ctx) {
@@ -330,7 +331,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         if (write_buffer_size > max_write_size) {
           i_debug("file to big %lu buffer , max %d ", (unsigned long)write_buffer_size,
                   r_storage->s->get_max_write_size_bytes());
-          split_buffer_operation(r_ctx->mail_buffer, write_buffer_size, max_write_size, r_ctx);
+
+          ret = split_buffer_and_exec(r_ctx->mail_buffer, write_buffer_size, max_write_size, r_ctx);
 
         } else {
           librados::bufferlist mail_data_bl;
