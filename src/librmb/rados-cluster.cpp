@@ -145,8 +145,6 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
     return err;
   }
 
-  io_ctx.set_namespace(username);
-
   // "found: max write size " << max_write_size.c_str() << "\n";
 
   *storage = new RadosStorage(&io_ctx, username, std::stoi(max_write_size));
