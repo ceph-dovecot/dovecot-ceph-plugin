@@ -275,13 +275,13 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       i_free(rmail->mail_buffer);
     }
 
-    rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
+    rmail->mail_buffer = p_new(default_pool, char, size_r);
     if (rmail->mail_buffer == NULL) {
       FUNC_END_RET("ret == -1; out of memory");
       return -1;
     }
 
-    memset(rmail->mail_buffer, '\0', sizeof(char) * size_r + 1);
+    memset(rmail->mail_buffer, '\0', sizeof(char) * size_r);
     _mail->transaction->stats.open_lookup_count++;
 
     int offset = 0;
