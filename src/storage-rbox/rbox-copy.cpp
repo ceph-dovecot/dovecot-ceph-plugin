@@ -90,9 +90,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
   librados::IoCtx src_io_ctx;
-
-  const char *ns_src_mail = mail->box->list->ns->owner->username;
-  const char *ns_dest_mail = ctx->dest_mail->box->list->ns->owner->username;
+  const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
+  const char *ns_dest_mail =
+      ctx->dest_mail->box->list->ns->owner != nullptr ? ctx->dest_mail->box->list->ns->owner->username : "";
 
   i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
   debug_print_mail_save_context(*_ctx, "rbox_mail_storage_try_copy", NULL);
