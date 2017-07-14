@@ -40,8 +40,9 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  i_debug("last_seq %lu, mail_seq %lu, ext_id =  %lu, uid=%d, old_oid=%s", rmail->last_seq, _mail->seq, rbox->ext_id,
-          _mail->uid, rmail->mail_object->get_oid().c_str());
+  i_debug("last_seq %lu, mail_seq %lu, ext_id =  %lu, uid=%lu, old_oid=%s", (unsigned long)rmail->last_seq,
+          (unsigned long)_mail->seq, (unsigned long)rbox->ext_id, (unsigned long)_mail->uid,
+          rmail->mail_object->get_oid().c_str());
 
   if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
@@ -270,6 +271,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
+    if (rmail->mail_buffer != NULL) {
+      i_free(rmail->mail_buffer);
+    }
+
     rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
     if (rmail->mail_buffer == NULL) {
       FUNC_END_RET("ret == -1; out of memory");
@@ -296,6 +301,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       }
 
       mail_data_bl.copy(0, ret, &rmail->mail_buffer[0]);
+      i_debug("rbox_mail_get_stream(oid=%s, size_r = %lu, read_from_rados = %d):",
+              rmail->mail_object->get_oid().c_str(), size_r, ret);
 
       offset += ret;
     } while (ret > 0);
@@ -344,6 +351,7 @@ void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
     i_free(rmail_->mail_buffer);
   }
   if (rmail_->mail_object != NULL) {
+    rmail_->mail_object->get_completion_op_map()->clear();
     delete rmail_->mail_object;
     rmail_->mail_object = NULL;
   }
