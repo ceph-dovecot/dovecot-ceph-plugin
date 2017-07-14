@@ -85,55 +85,56 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
-  struct mail_private *pmail = (struct mail_private *)mail;
-  struct istream *input;
-  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+  struct rbox_mail *rmail = (struct rbox_mail *)mail;
+
+  librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
+  librados::IoCtx src_io_ctx;
+
+  char *ns_src_mail = mail->box->list->ns->owner->username;
+  char *ns_dest_mail = ctx->dest_mail->box->list->ns->owner->username;
 
   i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
   debug_print_mail_save_context(*_ctx, "rbox_mail_storage_try_copy", NULL);
   int ret_val = 0;
 
   if (r_ctx->copying == TRUE) {
+    i_debug("namespace src %s, namespace dest %s", ns_src_mail, ns_dest_mail);
+
     if (rbox_get_index_record(mail) < 0) {
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;
     }
+
     if (rbox_mail_save_copy_default_metadata(ctx, mail) < 0) {
       FUNC_END_RET("ret == -1, mail_save_copy_default_metadata failed");
       return -1;
     }
+
     rbox_add_to_index(ctx);
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
-    i_debug("rbox_mail_storage_try_copy: dest mail oid = %s", r_ctx->current_object->get_oid().c_str());
 
-    librados::ObjectWriteOperation write_op;
-    struct rbox_mail *rmail = (struct rbox_mail *)mail;
     std::string src_oid = rmail->mail_object->get_oid();
-    i_debug("rbox_mail_storage_try_copy: source mail oid = %s", src_oid.c_str());
-    i_debug("namespace src %s, namespace dest %s", mail->box->list->ns->owner->username,
-            ctx->dest_mail->box->list->ns->owner->username);
+    std::string dest_oid = r_ctx->current_object->get_oid();
+    i_debug("rbox_mail_storage_try_copy: from source %s to dest  %s", src_oid.c_str(), dest_oid.c_str());
 
-    librados::IoCtx src_ctx;
-    char *ns_src_mail = mail->box->list->ns->owner->username;
-    char *ns_dest_mail = ctx->dest_mail->box->list->ns->owner->username;
     if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
-      src_ctx.dup(r_storage->s->get_io_ctx());
-      src_ctx.set_namespace(ns_src_mail);
-      r_storage->s->get_io_ctx().set_namespace(ns_dest_mail);
+      src_io_ctx.dup(dest_io_ctx);
+      src_io_ctx.set_namespace(ns_src_mail);
+      dest_io_ctx.set_namespace(ns_dest_mail);
     } else {
-      // src_ctx = destination ctx
-      src_ctx = r_storage->s->get_io_ctx();
+      src_io_ctx = dest_io_ctx;
     }
 
-    write_op.copy_from(src_oid, src_ctx, src_ctx.get_last_version());
+    librados::ObjectWriteOperation write_op;
+    write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
     write_op.mtime(&ctx->data.received_date);
-    ret_val = r_storage->s->get_io_ctx().operate(r_ctx->current_object->get_oid(), &write_op);
+    ret_val = dest_io_ctx.operate(dest_oid, &write_op);
 
-    // set io_ctx context to src mail
-    r_storage->s->get_io_ctx().set_namespace(ns_src_mail);
+    // reset io_ctx
+    dest_io_ctx.set_namespace(ns_src_mail);
   }
   FUNC_END();
   return ret_val;
