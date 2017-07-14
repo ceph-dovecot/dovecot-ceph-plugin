@@ -30,8 +30,7 @@ RadosMailObject::RadosMailObject() {
   this->save_date = 0;
   this->received_date = 0;
   memset(this->guid, 0, GUID_128_SIZE);
-  completion_private = librados::Rados::aio_create_completion();
-  // std::make_shared<librados::AioCompletion>(*librados::Rados::aio_create_completion());
   this->object_size = -1;
   this->active_op = false;
+  this->mail_buffer = NULL;
 }

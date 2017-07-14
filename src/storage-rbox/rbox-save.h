@@ -24,8 +24,7 @@ class rbox_save_context {
         current_object(NULL),
         failed(1),
         finished(1),
-        copying(0),
-		mail_buffer(NULL) {}
+        copying(0) {}
 
   struct mail_save_context ctx;
 
@@ -46,7 +45,6 @@ class rbox_save_context {
    librmb::RadosStorage &rados_storage;
    std::vector<librmb::RadosMailObject *> objects;
    librmb::RadosMailObject *current_object;
-   buffer_t *mail_buffer;
 
    unsigned int failed : 1;
    unsigned int finished : 1;

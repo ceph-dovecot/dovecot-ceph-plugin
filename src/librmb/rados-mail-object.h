@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <rados/librados.hpp>
-
+#include <map>
 #define GUID_128_SIZE 16
 
 namespace librmb {
@@ -16,8 +16,7 @@ class RadosMailObject {
  public:
   RadosMailObject();
   virtual ~RadosMailObject() {
-    completion_private->release();
-    write_op.remove();
+
   }
 
   void set_oid(const char* oid) { this->oid = oid; }
@@ -46,11 +45,14 @@ class RadosMailObject {
   const uint64_t get_object_size() { return this->object_size; }
 
   void set_object_size(uint64_t& size) { this->object_size = size; }
-  librados::ObjectWriteOperation& get_write_op() { return this->write_op; }
 
-  librados::AioCompletion* get_completion_private() { return this->completion_private; }
   bool has_active_op() { return active_op; }
   void set_active_op(bool active) { this->active_op = active; }
+  std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* get_completion_op_map() {
+    return &completion_op;
+  }
+  void set_mail_buffer(char* mail_buffer) { this->mail_buffer = mail_buffer; }
+  char* get_mail_buffer() { return this->mail_buffer; }
 
  private:
   std::string oid;
@@ -65,11 +67,11 @@ class RadosMailObject {
 
   uint8_t guid[GUID_128_SIZE];
   uint64_t object_size;  // byte
+  std::map<librados::AioCompletion*, librados::ObjectWriteOperation*> completion_op;
 
-  librados::ObjectWriteOperation write_op;
-
-  librados::AioCompletion* completion_private;
   bool active_op;
+  // used as pointer to a buffer_t (to avoid using dovecot datatypes in library)
+  char* mail_buffer;
 
  public:
   // X_ATTRIBUTES
