@@ -206,8 +206,10 @@ int rbox_mailbox_open(struct mailbox *box) {
     return -1;
   }
 
-  i_debug("Namespace owner : %s setting rados namespace", box->list->ns->owner->username);
-  ((struct rbox_storage *)box->storage)->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
+  if (box->list->ns->owner != nullptr) {
+    i_debug("Namespace owner : %s setting rados namespace", box->list->ns->owner->username);
+    ((struct rbox_storage *)box->storage)->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
+  }
 
   mail_index_set_fsync_mode(
       box->index, box->storage->set->parsed_fsync_mode,
