@@ -151,6 +151,25 @@ static int rbox_mail_get_metadata(struct mail *_mail) {
   return 0;
 }
 
+static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, const char **value_r) {
+  struct mail *mail = (struct mail *)rmail;
+  struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
+  std::map<std::string, ceph::bufferlist> attrset;
+  if (rmail->mail_object != NULL) {
+    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
+    if (ret < 0) {
+      return ret;
+    }
+    std::string skey(1, (char)key);
+    if (attrset.find(skey) != attrset.end()) {
+      i_debug("Our GUID = %s", attrset[skey].to_str().c_str());
+      *value_r = strdup(attrset[skey].to_str().c_str());
+      return 0;
+    }
+  }
+  return -1;
+}
+
 static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   FUNC_START();
   struct index_mail *mail = (struct index_mail *)_mail;
@@ -328,6 +347,73 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   return ret;
 }
 
+static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
+                                    enum index_cache_field cache_field, const char **value_r) {
+  struct index_mail *imail = &mail->imail;
+  struct index_mailbox_context *ibox = INDEX_STORAGE_CONTEXT(imail->mail.mail.box);
+  const char *value;
+  string_t *str;
+  uint32_t order;
+
+  str = str_new(imail->mail.data_pool, 64);
+  if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
+                              ibox->cache_fields[cache_field].idx) > 0) {
+    if (cache_field == MAIL_CACHE_POP3_ORDER) {
+      i_assert(str_len(str) == sizeof(order));
+      memcpy(&order, str_data(str), sizeof(order));
+      str_truncate(str, 0);
+      if (order != 0)
+        str_printfa(str, "%u", order);
+      else {
+        /* order=0 means it doesn't exist. we don't
+           want to return "0" though, because then the
+           mails get ordered to beginning, while
+           nonexistent are supposed to be ordered at
+           the end. */
+      }
+    }
+    *value_r = str_c(str);
+    return 0;
+  }
+
+  if (rbox_mail_metadata_get(mail, key, &value) < 0)
+    return -1;
+
+  if (value == NULL)
+    value = "";
+  if (cache_field != MAIL_CACHE_POP3_ORDER) {
+    index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, value, strlen(value) + 1);
+  } else {
+    if (str_to_uint(value, &order) < 0)
+      order = 0;
+    index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, &order, sizeof(order));
+  }
+
+  /* don't return pointer to dbox metadata directly, since it may
+     change unexpectedly */
+  str_truncate(str, 0);
+  str_append(str, value);
+  *value_r = str_c(str);
+  return 0;
+}
+
+int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const char **value_r) {
+  struct rbox_mail *mail = (struct rbox_mail *)_mail;
+  int ret;
+
+  /* keep the UIDL in cache file, otherwise POP3 would open all
+     mail files and read the metadata. same for GUIDs if they're
+     used. */
+  switch (field) {
+    case MAIL_FETCH_GUID:
+      return rbox_get_cached_metadata(mail, RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+    default:
+      break;
+  }
+
+  return index_mail_get_special(_mail, field, value_r);
+}
+
 void rbox_mail_close(struct mail *_mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   if (rmail_->mail_buffer != NULL) {
@@ -387,7 +473,7 @@ struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
                                        index_mail_get_header_stream,
                                        rbox_mail_get_stream,
                                        index_mail_get_binary_stream,
-                                       index_mail_get_special,
+                                       rbox_mail_get_special,
                                        index_mail_get_real_mail,
                                        index_mail_update_flags,
                                        index_mail_update_keywords,
