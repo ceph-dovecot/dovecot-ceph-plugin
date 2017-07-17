@@ -7,6 +7,11 @@
 
 #include <rados/librados.hpp>
 
+
+const char *SETTINGS_RBOX_POOL_NAME = "rbox_pool_name";
+const char *SETTINGS_DEF_RADOS_POOL = "mail_storage";
+const char *DEF_USERNAME = "unkown";
+
 extern "C" {
 
 #include "lib.h"
@@ -72,25 +77,30 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 static int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
-
   string error_msg;
 
   if (storage->cluster.init(&error_msg) < 0) {
     *error_r = t_strdup_printf("%s", error_msg.c_str());
+    FUNC_END_RET("ret == -1");
     return -1;
   }
 
-  string username = "unknown";
-  if (storage->storage.user != NULL) {
+  string username = DEF_USERNAME;
+  if (storage->storage.user != nullptr) {
     username = storage->storage.user->username;
   }
 
-  string poolname = "mail_storage";
-  int ret = storage->cluster.storage_create(poolname, username, &storage->s);
+  const char *poolname = SETTINGS_DEF_RADOS_POOL;
+  const char *settings_poolname = mail_user_plugin_getenv(storage->storage.user, SETTINGS_RBOX_POOL_NAME);
+  if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
+    poolname = settings_poolname;
+  }
 
+  int ret = storage->cluster.storage_create(poolname, username, &storage->s);
   if (ret < 0) {
     *error_r = t_strdup_printf("Error creating rboxStorage()! %s", strerror(-ret));
     storage->cluster.deinit();
+    FUNC_END_RET("ret == -1");
     return -1;
   }
 
@@ -191,9 +201,9 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, 
   } else {
     i_zero(hdr);
     memcpy(hdr, data, I_MIN(data_size, sizeof(*hdr)));
-    if (guid_128_is_empty(hdr->mailbox_guid))
+    if (guid_128_is_empty(hdr->mailbox_guid)) {
       ret = -1;
-    else {
+    } else {
       /* data is valid. remember it in case mailbox
          is being reset */
       mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, hdr, sizeof(*hdr));
@@ -255,7 +265,7 @@ int rbox_mailbox_open(struct mailbox *box) {
   /* get/generate mailbox guid */
   if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
     /* looks like the mailbox is corrupted */
-    //(void)rbox_sync(mbox, 0 /*SDBOX_SYNC_FLAG_FORCE*/);
+    // (void)rbox_sync(mbox, 0 /*SDBOX_SYNC_FLAG_FORCE*/);
     if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
       i_zero(&hdr);
   }
