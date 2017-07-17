@@ -12,11 +12,6 @@ const std::string RadosMailObject::X_ATTR_STATE_VALUES[] = {"S", "F"};
 const std::string RadosMailObject::X_ATTR_VERSION = "VERSION";
 const std::string RadosMailObject::X_ATTR_VERSION_VALUE = "0.1";
 
-const std::string RadosMailObject::X_ATTR_GUID = "G";
-const std::string RadosMailObject::X_ATTR_RECEIVED_DATE = "R";
-const std::string RadosMailObject::X_ATTR_SAVE_DATE = "S";
-const std::string RadosMailObject::X_ATTR_POP3_UIDL = "P";
-const std::string RadosMailObject::X_ATTR_POP3_ORDER = "O";
 
 const std::string RadosMailObject::DATA_BUFFER_NAME = "RADOS_MAIL_BUFFER";
 

@@ -32,6 +32,8 @@ extern "C" {
 #include "rados-storage.h"
 #include "rbox-save.h"
 
+#include "rbox-mail.h"
+
 using namespace librados;  // NOLINT
 using namespace librmb;    // NOLINT
 using namespace ceph;      // NOLINT
@@ -191,36 +193,46 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
   struct mail_save_data *mdata = &ctx->ctx.data;
 
   {
+    std::string key = RadosMailObject::X_ATTR_VERSION;
     bufferlist version_bl;
     version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
-    write_op_xattr->setxattr(RadosMailObject::X_ATTR_VERSION.c_str(), version_bl);
+    write_op_xattr->setxattr(key.c_str(), version_bl);
   }
   {
+    std::string key(1, (char)RBOX_METADATA_GUID);
     bufferlist bl;
     bl.append(guid_128_to_string(ctx->mail_guid));
-    write_op_xattr->setxattr(RadosMailObject::X_ATTR_GUID.c_str(), bl);
+    write_op_xattr->setxattr(key.c_str(), bl);
   }
   {
+    std::string key(1, (char)RBOX_METADATA_RECEIVED_TIME);
     bufferlist bl;
-    long ts = static_cast<long int>(mdata->save_date);
+    long ts = static_cast<long int>(mdata->received_date);
     bl.append(std::to_string(ts));
-    write_op_xattr->setxattr(RadosMailObject::X_ATTR_SAVE_DATE.c_str(), bl);
+    write_op_xattr->setxattr(key.c_str(), bl);
   }
 
-  if (mdata->pop3_uidl != NULL) {
-    i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
-    bufferlist bl;
-    bl.append(mdata->pop3_uidl);
-    write_op_xattr->setxattr(RadosMailObject::X_ATTR_POP3_UIDL.c_str(), bl);
+  {
+    if (mdata->pop3_uidl != NULL) {
+      std::string key(1, (char)RBOX_METADATA_POP3_UIDL);
+
+      i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
+      bufferlist bl;
+      bl.append(mdata->pop3_uidl);
+      write_op_xattr->setxattr(key.c_str(), bl);
+    }
+  }
+  {
+    if (mdata->pop3_order != 0) {
+      std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
+
+      bufferlist bl;
+      bl.append(std::to_string(mdata->pop3_order));
+      write_op_xattr->setxattr(key.c_str(), bl);
+    }
   }
 
-  if (mdata->pop3_order != 0) {
-    bufferlist bl;
-    bl.append(std::to_string(mdata->pop3_order));
-    write_op_xattr->setxattr(RadosMailObject::X_ATTR_POP3_ORDER.c_str(), bl);
-  }
-
-  write_op_xattr->mtime(&mdata->received_date);
+  write_op_xattr->mtime(&mdata->save_date);
 
   FUNC_END();
   return 0;
