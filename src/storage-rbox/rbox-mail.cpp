@@ -112,41 +112,56 @@ static int rbox_mail_get_metadata(struct mail *_mail) {
     return -1;
   }
 
-  rmail->mail_object->set_state(attrset[RadosMailObject::X_ATTR_STATE].to_str());
-  rmail->mail_object->set_version(attrset[RadosMailObject::X_ATTR_VERSION].to_str());
-
-  guid_128_t guid;
-  if (guid_128_from_string(attrset[RadosMailObject::X_ATTR_GUID].to_str().c_str(), guid) < 0) {
-    FUNC_END_RET("ret == -1; value in X_ATTR_GUID guid invalid");
-    return -1;
+  {
+    std::string key = RadosMailObject::X_ATTR_STATE;
+    rmail->mail_object->set_state(attrset[key].to_str());
   }
-  rmail->mail_object->set_guid(guid);
-
-  rmail->mail_object->set_pop3_uidl(attrset[RadosMailObject::X_ATTR_POP3_UIDL].to_str());
-
-  if (attrset[RadosMailObject::X_ATTR_POP3_ORDER].length() > 0) {
-    int pop3_order = std::stoi(attrset[RadosMailObject::X_ATTR_POP3_ORDER].to_str().c_str());
-    rmail->mail_object->set_pop3_order(pop3_order);
+  {
+    std::string key = RadosMailObject::X_ATTR_VERSION;
+    rmail->mail_object->set_version(attrset[key].to_str());
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_GUID);
+    guid_128_t guid;
+    if (guid_128_from_string(attrset[key].to_str().c_str(), guid) < 0) {
+      FUNC_END_RET("ret == -1; value in X_ATTR_GUID guid invalid");
+      return -1;
+    }
+    rmail->mail_object->set_guid(guid);
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_POP3_UIDL);
+    rmail->mail_object->set_pop3_uidl(attrset[key].to_str());
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
+    if (attrset[key].length() > 0) {
+      int pop3_order = std::stoi(attrset[key].to_str().c_str());
+      rmail->mail_object->set_pop3_order(pop3_order);
+    }
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_RECEIVED_TIME);
+    int length = attrset[key].length();
+    if (length <= 0) {
+      rmail->mail_object->set_received_date(0);
+    } else {
+      long ts = std::stol(attrset[key].to_str().c_str());
+      rmail->mail_object->set_received_date(static_cast<time_t>(ts));
+    }
   }
 
-  time_t send_date = 0;
-  int length = attrset[RadosMailObject::X_ATTR_SAVE_DATE].length();
-  if (length <= 0) {
-    rmail->mail_object->set_save_date(0);
-  } else {
-    long ts = std::stol(attrset[RadosMailObject::X_ATTR_SAVE_DATE].to_str().c_str());
-    rmail->mail_object->set_save_date(static_cast<time_t>(ts));
+  {
+    uint64_t object_size = 0;
+    time_t save_date_rados = 0;
+    if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &save_date_rados) < 0) {
+      i_debug("cannot stat object %s to get received date and object size ", rmail->mail_object->get_oid().c_str());
+      FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
+      return -1;
+    }
+    rmail->mail_object->set_save_date(save_date_rados);
+    rmail->mail_object->set_object_size(object_size);
   }
-  uint64_t object_size = 0;
-  time_t received_date_rados = 0;
-  if (((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &received_date_rados) < 0) {
-    i_debug("cannot stat object %s to get received date and object size ", rmail->mail_object->get_oid().c_str());
-    FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
-    return -1;
-  }
-  rmail->mail_object->set_received_date(received_date_rados);
-  rmail->mail_object->set_object_size(object_size);
-
   FUNC_END();
   return 0;
 }

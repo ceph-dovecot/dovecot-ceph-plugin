@@ -80,11 +80,6 @@ class RadosMailObject {
   static const std::string X_ATTR_VERSION;
   static const std::string X_ATTR_VERSION_VALUE;
 
-  static const std::string X_ATTR_GUID;
-  static const std::string X_ATTR_RECEIVED_DATE;
-  static const std::string X_ATTR_SAVE_DATE;
-  static const std::string X_ATTR_POP3_UIDL;
-  static const std::string X_ATTR_POP3_ORDER;
 
   // OTHER
   static const std::string DATA_BUFFER_NAME;
