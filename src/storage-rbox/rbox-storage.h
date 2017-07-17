@@ -39,32 +39,6 @@ struct rbox_mailbox {
   guid_128_t mailbox_guid;
 };
 
-/* Globally unique identifier for the message. Preserved when
-   copying. */
-#define RBOX_METADATA_STATE "S"
-#define RBOX_METADATA_GUID "G"
-/* POP3 UIDL overriding the default format */
-#define RBOX_METADATA_POP3_UIDL "P"
-/* POP3 message ordering (for migrated mails) */
-#define RBOX_METADATA_POP3_ORDER "O"
-/* Received UNIX timestamp in hex */
-#define RBOX_METADATA_RECEIVED_DATE "R"
-/* Received UNIX timestamp in hex */
-#define RBOX_METADATA_SAVE_DATE "S"
-/* Physical message size in hex. Necessary only if it differs from
-   the dbox_message_header.message_size_hex, for example because the
-   message is compressed. */
-#define RBOX_METADATA_PHYSICAL_SIZE "Z"
-/* Virtual message size in hex (line feeds counted as CRLF) */
-#define RBOX_METADATA_VIRTUAL_SIZE "V"
-/* Pointer to external message data. Format is:
-   1*(<start offset> <byte count> <options> <ref>) */
-#define RBOX_METADATA_EXT_REF "X"
-/* Mailbox name where this message was originally saved to.
-   When rebuild finds a message whose mailbox is unknown, it's
-   placed to this mailbox. */
-#define RBOX_METADATA_ORIG_MAILBOX "B"
-
 extern struct mail_vfuncs rbox_mail_vfuncs;
 
 extern struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);

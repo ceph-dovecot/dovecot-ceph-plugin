@@ -135,6 +135,9 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   mbox->box.v = rbox_mailbox_vfuncs;
   mbox->box.mail_vfuncs = &rbox_mail_vfuncs;
 
+  i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
+          storage->set->mail_location);
+
   index_storage_mailbox_alloc(&mbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
 
   ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&mbox->box));
@@ -169,9 +172,43 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {
   return 0;
 }
 
+int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, bool log_error, bool *need_resize_r) {
+  struct mail_index_view *view;
+  const void *data;
+  size_t data_size;
+  int ret = 0;
+
+  i_assert(mbox->box.opened);
+
+  view = mail_index_view_open(mbox->box.index);
+  mail_index_get_header_ext(view, mbox->hdr_ext_id, &data, &data_size);
+  if (data_size < SDBOX_INDEX_HEADER_MIN_SIZE && (!mbox->box.creating || data_size != 0)) {
+    if (log_error) {
+      mail_storage_set_critical(&mbox->storage->storage, "sdbox %s: Invalid dbox header size",
+                                mailbox_get_path(&mbox->box));
+    }
+    ret = -1;
+  } else {
+    i_zero(hdr);
+    memcpy(hdr, data, I_MIN(data_size, sizeof(*hdr)));
+    if (guid_128_is_empty(hdr->mailbox_guid))
+      ret = -1;
+    else {
+      /* data is valid. remember it in case mailbox
+         is being reset */
+      mail_index_set_ext_init_data(mbox->box.index, mbox->hdr_ext_id, hdr, sizeof(*hdr));
+    }
+  }
+  mail_index_view_close(&view);
+  *need_resize_r = data_size < sizeof(*hdr);
+  return ret;
+}
+
 int rbox_mailbox_open(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct sdbox_index_header hdr;
+  bool need_resize;
 
   if (rbox_mailbox_alloc_index(mbox) < 0)
     return -1;
@@ -214,6 +251,21 @@ int rbox_mailbox_open(struct mailbox *box) {
   mail_index_set_fsync_mode(
       box->index, box->storage->set->parsed_fsync_mode,
       static_cast<mail_index_fsync_mask>(MAIL_INDEX_FSYNC_MASK_APPENDS | MAIL_INDEX_FSYNC_MASK_EXPUNGES));
+
+  /* get/generate mailbox guid */
+  if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
+    /* looks like the mailbox is corrupted */
+    //(void)rbox_sync(mbox, 0 /*SDBOX_SYNC_FLAG_FORCE*/);
+    if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
+      i_zero(&hdr);
+  }
+
+  if (guid_128_is_empty(hdr.mailbox_guid)) {
+    /* regenerate it */
+    //    if (rbox_mailbox_create_indexes(box, NULL, NULL) < 0 || rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
+    //      return -1;
+  }
+  memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
 
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open", NULL);
   FUNC_END();
