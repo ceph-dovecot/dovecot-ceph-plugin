@@ -23,7 +23,7 @@ class RadosCluster {
   int pool_create(const std::string &pool);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
-  int storage_create(const std::string &pool, const std::string &username, RadosStorage **storage);
+  int storage_create(const std::string &pool, RadosStorage **storage);
 
  private:
   static librados::Rados cluster;

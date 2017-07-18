@@ -177,8 +177,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     }
     std::string skey(1, (char)key);
     if (attrset.find(skey) != attrset.end()) {
-      i_debug("Our GUID = %s", attrset[skey].to_str().c_str());
-      *value_r = strdup(attrset[skey].to_str().c_str());
+      *value_r = i_strdup(attrset[skey].to_str().c_str());
       return 0;
     }
   }
@@ -404,7 +403,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, &order, sizeof(order));
   }
 
-  /* don't return pointer to dbox metadata directly, since it may
+  /* don't return pointer to rbox metadata directly, since it may
      change unexpectedly */
   str_truncate(str, 0);
   str_append(str, value);

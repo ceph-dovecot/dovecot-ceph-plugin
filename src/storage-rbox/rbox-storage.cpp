@@ -7,10 +7,9 @@
 
 #include <rados/librados.hpp>
 
-
 const char *SETTINGS_RBOX_POOL_NAME = "rbox_pool_name";
 const char *SETTINGS_DEF_RADOS_POOL = "mail_storage";
-const char *DEF_USERNAME = "unkown";
+const char *DEF_USERNAME = "unknown";
 
 extern "C" {
 
@@ -52,6 +51,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage = p_new(pool, struct rbox_storage, 1);
   storage->storage = rbox_storage;
   storage->storage.pool = pool;
+  storage->s = nullptr;
 
   debug_print_mail_storage(&storage->storage, "rados-storage::rados_storage_alloc", NULL);
   FUNC_END();
@@ -77,33 +77,7 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 static int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
-  string error_msg;
-
-  if (storage->cluster.init(&error_msg) < 0) {
-    *error_r = t_strdup_printf("%s", error_msg.c_str());
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
-
-  string username = DEF_USERNAME;
-  if (storage->storage.user != nullptr) {
-    username = storage->storage.user->username;
-  }
-
-  const char *poolname = SETTINGS_DEF_RADOS_POOL;
-  const char *settings_poolname = mail_user_plugin_getenv(storage->storage.user, SETTINGS_RBOX_POOL_NAME);
-  if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
-    poolname = settings_poolname;
-  }
-
-  int ret = storage->cluster.storage_create(poolname, username, &storage->s);
-  if (ret < 0) {
-    *error_r = t_strdup_printf("Error creating rboxStorage()! %s", strerror(-ret));
-    storage->cluster.deinit();
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
-
+  // RADOS initialization postponed to mailbox_open
   FUNC_END();
   return 0;
 }
@@ -251,6 +225,27 @@ int rbox_mailbox_open(struct mailbox *box) {
     debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open (ret -1, 4)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
+  }
+
+  string error_msg;
+  if (mbox->storage->cluster.init(&error_msg) < 0) {
+    FUNC_END_RET("ret == -1");
+    return -1;
+  }
+
+  if (mbox->storage->s == nullptr) {
+    const char *poolname = SETTINGS_DEF_RADOS_POOL;
+    const char *settings_poolname = mail_user_plugin_getenv(mbox->storage->storage.user, SETTINGS_RBOX_POOL_NAME);
+    if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
+      poolname = settings_poolname;
+    }
+
+    int ret = mbox->storage->cluster.storage_create(poolname, &mbox->storage->s);
+    if (ret < 0) {
+      mbox->storage->cluster.deinit();
+      FUNC_END_RET("ret == -1");
+      return -1;
+    }
   }
 
   if (box->list->ns->owner != nullptr) {
