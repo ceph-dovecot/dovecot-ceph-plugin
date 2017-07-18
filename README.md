@@ -69,6 +69,12 @@ Add for example to dovecot.conf:
 
 See also [Common Configuration](#common-configuration) for more information.
 
+#### shared/public folder
+
+To configure shared folder access the acl plugin needs to be activated in the dovecot configuration as usual.
+In the namespace configuration you need to use 'rbox' format as mailbox format. The configuration follows the mdbox configuration so rbox:%%h as location is sufficient.  
+Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folder no namepsace is set.
+
 ## Testing
 
 We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Ceph cluster we used for the first tests runs locally and has been created using _vstart.sh_ (See [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md)). We test the protocols IMAP and POP3. Before you can start the tests you have to fit the environment.
