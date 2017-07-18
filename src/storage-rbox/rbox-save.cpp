@@ -7,7 +7,7 @@
 #include <string>
 #include <map>
 #include <vector>
-
+#include <time.h>
 #include <rados/librados.hpp>
 
 extern "C" {
@@ -231,7 +231,7 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
       write_op_xattr->setxattr(key.c_str(), bl);
     }
   }
-
+  i_debug("save_date %s", std::ctime(&mdata->save_date));
   write_op_xattr->mtime(&mdata->save_date);
 
   FUNC_END();
@@ -347,14 +347,12 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   int ret = 0;
 
   r_ctx->finished = TRUE;
-  if (_ctx->data.save_date != (time_t)-1) {
-    struct index_mail *mail = (struct index_mail *)_ctx->dest_mail;
-
-    uint32_t t = _ctx->data.save_date;
-    index_mail_cache_add(mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
-  } else {
+  if (_ctx->data.save_date == (time_t)-1) {
     _ctx->data.save_date = time(NULL);
   }
+  uint32_t save_date = _ctx->data.save_date;
+  index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
+  i_debug("oid: %s , save_date: %s", r_ctx->current_object->get_oid().c_str(), std::ctime(&_ctx->data.save_date));
 
   if (!r_ctx->failed) {
     if (ret == 0) {
