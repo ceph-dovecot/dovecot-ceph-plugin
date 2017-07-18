@@ -50,11 +50,22 @@ If the index data for a mailbox gets lost, there is currently no way to reconstr
 
 ### Configuration
 
-To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`. Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
+To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`. 
+Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
+All Dovecot placeholders for _mail_location_ can be applied.
+
+The RADOS pool to use for the mail objects defaults to _mail_storage_. 
+If the pool is missing, it will be created. 
+The default pool name can be overridden with the plugin configuration entry _rbox_pool_name_.
+
+Add for example to dovecot.conf:
 
     mail_location = rbox:/home/user/dovecot/var/mail/rados/%u
 
-The RADOS pool to use for the mail objects defaults to _mail_storage_. If the pool is missing, it will be created.
+    mail_plugins = $mail_plugins storage_rbox
+    plugin {
+      rbox_pool_name = mail_storage
+    }
 
 See also [Common Configuration](#common-configuration) for more information.
 
@@ -137,9 +148,13 @@ Dovecot uses two namespaces for dictionary K/V.
 
 ### Configuration
 
-To load the plugin, add _dict_rados_ to the list of mail plugins. The name of the dict driver is `rados`. Add the plugin for example to `10-mail.conf` as _mail\_attribute\_dict_. See [Dovecot Dictionaries](http://wiki.dovecot.org/Dictionary) for details.  
+To load the plugin, add _dict_rados_ to the list of mail plugins. 
+The name of the dict driver is `rados`. 
+Add the plugin for example to `10-mail.conf` as _mail\_attribute\_dict_. 
+See [Dovecot Dictionaries](http://wiki.dovecot.org/Dictionary) for details.  
 
     mail_attribute_dict = rados:oid=metadata:pool=mail_dictionary
+    mail_plugins = $mail_plugins dict_rados
 
 The configuration parameters are:
 
@@ -163,9 +178,12 @@ Any other way to get a Ceph cluster is valid, too.
 ## Common Configuration
 
 ### Dovecot
-To load the plugins, add _dict_rados_ or _storage_rbox_ to the list of mail plugins to load. There are several ways to do this. Add the plugin for example to `10-mail.conf` to _mail\_plugins_. See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%28mail_plugins%29) for details.  
+To load the plugins, add _dict_rados_ or _storage_rbox_ to the list of mail plugins to load. 
+There are several ways to do this. 
+Add the plugin for example to `10-mail.conf` to _mail\_plugins_. 
+See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%28mail_plugins%29) for details.  
 
-    mail_plugins = storage_rbox dict_rados 
+    mail_plugins = $mail_plugins storage_rbox dict_rados 
     
 ### Ceph
 The plugin uses the default way for Ceph configuration described in [Step 2: Configuring a Cluster Handle](http://docs.ceph.com/docs/master/rados/api/librados-intro/#step-2-configuring-a-cluster-handle):
