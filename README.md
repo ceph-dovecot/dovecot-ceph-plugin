@@ -60,9 +60,8 @@ See also [Common Configuration](#common-configuration) for more information.
 
 #### shared/public folder
 
-To configure the shared folder the acl plugin needs to be activated in the dovecot configuration as usual. 
-In the namespace config you need to use 'rbox' format in the location parameter. The configuration fallows the mdbox configuration soo rbox:%%h as location is sufficient.  
-
+To configure shared folder access the acl plugin needs to be activated in the dovecot configuration as usual.
+In the namespace configuration you need to use 'rbox' format as mailbox format. The configuration follows the mdbox configuration so rbox:%%h as location is sufficient.  
 Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folder no namepsace is set.
 
 ## Testing
