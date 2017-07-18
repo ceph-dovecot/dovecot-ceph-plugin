@@ -119,7 +119,7 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
   return 0;
 }
 
-int RadosCluster::storage_create(const string &pool, const string &username, RadosStorage **storage) {
+int RadosCluster::storage_create(const string &pool, RadosStorage **storage) {
   if (cluster_ref_count == 0) {
     return -ENOENT;
   }
@@ -147,6 +147,6 @@ int RadosCluster::storage_create(const string &pool, const string &username, Rad
 
   // "found: max write size " << max_write_size.c_str() << "\n";
 
-  *storage = new RadosStorage(&io_ctx, username, std::stoi(max_write_size));
+  *storage = new RadosStorage(&io_ctx, std::stoi(max_write_size));
   return 0;
 }
