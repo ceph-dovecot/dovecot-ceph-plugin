@@ -7,10 +7,9 @@
 
 #include <rados/librados.hpp>
 
-
 const char *SETTINGS_RBOX_POOL_NAME = "rbox_pool_name";
 const char *SETTINGS_DEF_RADOS_POOL = "mail_storage";
-const char *DEF_USERNAME = "unkown";
+const char *DEF_USERNAME = "unknown";
 
 extern "C" {
 
