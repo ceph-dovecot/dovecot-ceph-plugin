@@ -9,6 +9,7 @@
 
 struct rbox_storage {
   struct mail_storage storage;
+
   librmb::RadosCluster cluster;
   librmb::RadosStorage *s;
 };
