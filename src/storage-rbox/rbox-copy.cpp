@@ -86,9 +86,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)mail;
+  librados::IoCtx src_io_ctx;
 
   librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
-  librados::IoCtx src_io_ctx;
   const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
   const char *ns_dest_mail =
       ctx->dest_mail->box->list->ns->owner != nullptr ? ctx->dest_mail->box->list->ns->owner->username : "";
@@ -118,6 +118,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     std::string src_oid = rmail->mail_object->get_oid();
     std::string dest_oid = r_ctx->current_object->get_oid();
     i_debug("rbox_mail_storage_try_copy: from source %s to dest  %s", src_oid.c_str(), dest_oid.c_str());
+    librados::ObjectWriteOperation write_op;
 
     if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
       src_io_ctx.dup(dest_io_ctx);
@@ -126,11 +127,21 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     } else {
       src_io_ctx = dest_io_ctx;
     }
-
-    librados::ObjectWriteOperation write_op;
+    i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
     write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
-    write_op.mtime(&ctx->data.received_date);
+    time_t now = time(NULL);
+
+    // because we create a copy, save date needs to be updated
+    // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+    // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+    // write_op.mtime(&ctx->data.save_date);
+
+    write_op.mtime(NULL);
+
+    i_debug("cpy_time: oid: %s , save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
+
     ret_val = dest_io_ctx.operate(dest_oid, &write_op);
+    i_debug("copy failed: %s , ret_val = %d , mtime %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
 
     // reset io_ctx
     dest_io_ctx.set_namespace(ns_src_mail);
