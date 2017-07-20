@@ -23,15 +23,15 @@ extern "C" {
 #include "ioloop.h"
 #include "str.h"
 
-#include "rbox-storage.h"
 #include "ostream.h"
 #include "debug-helper.h"
 }
 
 #include "rados-mail-object.h"
-#include "rbox-mail.h"
-#include "rbox-storage-struct.h"
+#include "rbox-storage.hpp"
 #include "rados-storage.h"
+
+#include "rbox-mail.h"
 
 using namespace librmb;  // NOLINT
 
