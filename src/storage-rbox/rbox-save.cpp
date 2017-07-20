@@ -21,15 +21,13 @@ extern "C" {
 #include "ostream.h"
 #include "str.h"
 #include "index-mail.h"
-#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 #include "time.h"
 }
 
 #include "rados-mail-object.h"
-#include "rbox-storage-struct.h"
-#include "rados-storage.h"
+#include "rbox-storage.hpp"
 #include "rbox-save.h"
 
 #include "rbox-mail.h"
