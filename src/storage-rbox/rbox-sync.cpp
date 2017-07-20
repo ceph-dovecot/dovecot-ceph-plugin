@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
@@ -9,12 +8,11 @@ extern "C" {
 #include "str.h"
 #include "guid.h"
 
-#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
 
-#include "rbox-storage-struct.h"
+#include "rbox-storage.hpp"
 
 static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
   FUNC_START();
@@ -158,7 +156,7 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   ret = r_storage->s->get_io_ctx().remove(guid_128_to_string(item->oid));
-  i_debug("sync: removing oid: %s, success: %d , sync_notifx: %lu", guid_128_to_string(item->oid), ret,
+  i_debug("sync: removing oid: %s, success: %d , sync_notifx: %p", guid_128_to_string(item->oid), ret,
           box->v.sync_notify);
 
   /* do sync_notify only when the file was unlinked by us */
@@ -260,6 +258,7 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     ret = rbox_sync(mbox);
 
   struct mailbox_sync_context *ctx = index_mailbox_sync_init(box, flags, ret < 0);
+
   debug_print_mailbox(box, "rbox-sync::rbox_storage_sync_init", NULL);
   FUNC_END();
   return ctx;

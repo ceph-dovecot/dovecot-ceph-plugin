@@ -33,6 +33,4 @@ int rbox_sync(struct rbox_mailbox *mbox);
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, bool force);
 int rbox_sync_finish(struct rbox_sync_context **ctx, bool success);
 
-struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags);
-
 #endif /* SRC_STORAGE_RBOX_RBOX_SYNC_H_ */

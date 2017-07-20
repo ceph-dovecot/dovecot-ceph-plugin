@@ -10,7 +10,7 @@
 #include "mail-storage-private.h"
 #include "mailbox-list.h"
 #include "mailbox-list-private.h"
-#include "rbox-storage.h"
+#include "rbox-storage.hpp"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 

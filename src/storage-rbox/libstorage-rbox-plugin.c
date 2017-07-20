@@ -9,9 +9,20 @@
 #include "mail-copy.h"
 #include "libstorage-rbox-plugin.h"
 
-extern struct mail_storage rbox_storage;
+#include "rbox-storage.h"
 
 static int refcount = 0;
+
+struct mail_storage rbox_storage = {
+    .name = "rbox",
+    .class_flags = MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS |
+                   MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUID128 | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS |
+                   MAIL_STORAGE_CLASS_FLAG_BINARY_DATA,
+
+    .v = {
+        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings, NULL,
+        rbox_mailbox_alloc, NULL, NULL,
+    }};
 
 void storage_rbox_plugin_init(struct module *module) {
   i_debug("storage_rbox_plugin_init refcount=%d", refcount);

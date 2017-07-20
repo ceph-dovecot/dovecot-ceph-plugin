@@ -21,13 +21,12 @@ extern "C" {
 #include "mail-index-modseq.h"
 #include "mailbox-list-private.h"
 #include "index-pop3-uidl.h"
-
-#include "rbox-storage.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
 
-#include "rbox-storage-struct.h"
+#include "rbox-storage.hpp"
+
 #include "rados-cluster.h"
 #include "rados-storage.h"
 #include "rbox-copy.h"
@@ -38,7 +37,6 @@ using namespace librmb;    // NOLINT
 
 using std::string;
 
-extern struct mail_storage rbox_storage;
 extern struct mailbox rbox_mailbox;
 extern struct mailbox_vfuncs rbox_mailbox_vfuncs;
 
@@ -74,7 +72,7 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   FUNC_END();
 }
 
-static int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
+int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
   // RADOS initialization postponed to mailbox_open
@@ -82,7 +80,7 @@ static int rbox_storage_create(struct mail_storage *_storage, struct mail_namesp
   return 0;
 }
 
-static void rbox_storage_destroy(struct mail_storage *_storage) {
+void rbox_storage_destroy(struct mail_storage *_storage) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
@@ -355,18 +353,6 @@ void rbox_notify_changes(struct mailbox *box) {
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_notify_changes", NULL);
   FUNC_END();
 }
-
-struct mail_storage rbox_storage = {
-    .name = RBOX_STORAGE_NAME,
-    .class_flags = static_cast<mail_storage_class_flags>(
-        MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS |
-        MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUID128 | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS |
-        MAIL_STORAGE_CLASS_FLAG_BINARY_DATA),
-
-    .v = {
-        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings, NULL,
-        rbox_mailbox_alloc, NULL, NULL,
-    }};
 
 struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
                                              index_storage_mailbox_enable,

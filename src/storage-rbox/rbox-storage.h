@@ -3,17 +3,25 @@
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_H_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_H_
 
-#include "index-storage.h"
-
 #define RBOX_STORAGE_NAME "rbox"
 
-#define RBOX_SUBSCRIPTION_FILE_NAME "subscriptions"
-#define RBOX_UIDVALIDITY_FILE_NAME "dovecot-uidvalidity"
-#define RBOX_TEMP_FILE_PREFIX ".temp."
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "index-storage.h"
 
-#define RBOX_MAILBOX_DIR_NAME "mailboxes"
-#define RBOX_TRASH_DIR_NAME "trash"
-#define RBOX_MAILDIR_NAME "rbox-Mails"
+extern int rbox_storage_create(struct mail_storage *storage, struct mail_namespace *ns, const char **error_r);
+extern struct mail_storage *rbox_storage_alloc(void);
+extern void rbox_storage_destroy(struct mail_storage *storage);
+extern void rbox_storage_get_list_settings(const struct mail_namespace *ns, struct mailbox_list_settings *set);
+extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
+                                          enum mailbox_flags flags);
+
+extern struct mail_storage rbox_storage;
+
+#ifdef __cplusplus
+}
+#endif
 
 #define SDBOX_INDEX_HEADER_MIN_SIZE (sizeof(uint32_t))
 struct sdbox_index_header {
@@ -38,44 +46,5 @@ struct rbox_mailbox {
 
   guid_128_t mailbox_guid;
 };
-
-extern struct mail_vfuncs rbox_mail_vfuncs;
-
-extern struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);
-extern int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);
-extern int rbox_save_continue(struct mail_save_context *ctx);
-extern int rbox_save_finish(struct mail_save_context *ctx);
-extern void rbox_save_cancel(struct mail_save_context *ctx);
-
-extern int rbox_transaction_save_commit_pre(struct mail_save_context *ctx);
-extern void rbox_transaction_save_commit_post(struct mail_save_context *ctx,
-                                              struct mail_index_transaction_commit_result *result);
-extern void rbox_transaction_save_rollback(struct mail_save_context *ctx);
-
-extern int rbox_mailbox_open(struct mailbox *box);
-extern int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory);
-extern int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items,
-                                     struct mailbox_metadata *metadata_r);
-
-extern struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags);
-extern void rbox_notify_changes(struct mailbox *box);
-
-extern struct mail_storage *rbox_storage_alloc(void);
-extern void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
-                                           struct mailbox_list_settings *set);
-
-extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
-                                          enum mailbox_flags flags);
-
-struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);
-int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);
-int rbox_save_continue(struct mail_save_context *ctx);
-int rbox_save_finish(struct mail_save_context *ctx);
-void rbox_save_cancel(struct mail_save_context *ctx);
-
-int rbox_transaction_save_commit_pre(struct mail_save_context *ctx);
-void rbox_transaction_save_commit_post(struct mail_save_context *ctx,
-                                       struct mail_index_transaction_commit_result *result);
-void rbox_transaction_save_rollback(struct mail_save_context *ctx);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_H_

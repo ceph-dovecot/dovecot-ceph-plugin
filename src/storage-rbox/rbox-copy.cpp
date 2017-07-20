@@ -9,13 +9,12 @@ extern "C" {
 #include "mail-storage.h"
 #include "mail-copy.h"
 #include "mailbox-list-private.h"
-#include "rbox-storage.h"
 #include "debug-helper.h"
 }
 
+#include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-save.h"
-#include "rbox-storage-struct.h"
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
