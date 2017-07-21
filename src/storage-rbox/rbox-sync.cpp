@@ -333,6 +333,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   FUNC_END();
   return 0;
 }
+
 static void remove_callback(rados_completion_t comp, void *arg) {
   struct expunge_callback_data *data = (struct expunge_callback_data *)arg;
   // callback
@@ -343,6 +344,7 @@ static void remove_callback(rados_completion_t comp, void *arg) {
   }
   i_debug("sync: expunge object: %s, processid %d", guid_128_to_string(data->item->oid), getpid());
 }
+
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
@@ -359,6 +361,8 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 
   completion->set_complete_callback((void *)cb_data, remove_callback);
   ret = r_storage->s->get_io_ctx().aio_remove(oid, completion);
+
+  completion->wait_for_complete_and_cb();
 
   FUNC_END();
 }
