@@ -21,9 +21,6 @@ void RadosMailObject::set_guid(const uint8_t* guid) {
 }
 
 RadosMailObject::RadosMailObject() {
-  this->pop3_order = 0;
-  this->save_date = 0;
-  this->received_date = 0;
   memset(this->guid, 0, GUID_128_SIZE);
   this->object_size = -1;
   this->active_op = false;
