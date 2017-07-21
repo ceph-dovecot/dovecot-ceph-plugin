@@ -23,6 +23,7 @@ extern "C" {
 #include "index-pop3-uidl.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include "mailbox-uidvalidity.h"
 }
 
 #include "rbox-storage.hpp"
@@ -186,15 +187,8 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, 
   return ret;
 }
 
-int rbox_mailbox_open(struct mailbox *box) {
-  FUNC_START();
+int rbox_open_mailbox(struct mailbox *box) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  struct sdbox_index_header hdr;
-  bool need_resize;
-
-  if (rbox_mailbox_alloc_index(mbox) < 0)
-    return -1;
-
   const char *box_path = mailbox_get_path(box);
   struct stat st;
 
@@ -224,7 +218,15 @@ int rbox_mailbox_open(struct mailbox *box) {
     FUNC_END_RET("ret == -1");
     return -1;
   }
+  mail_index_set_fsync_mode(
+      box->index, box->storage->set->parsed_fsync_mode,
+      static_cast<mail_index_fsync_mask>(MAIL_INDEX_FSYNC_MASK_APPENDS | MAIL_INDEX_FSYNC_MASK_EXPUNGES));
+  return 0;
+}
 
+int rbox_create_rados_connection(struct mailbox *box) {
+  /* rados cluster connection */
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   string error_msg;
   if (mbox->storage->cluster.init(&error_msg) < 0) {
     FUNC_END_RET("ret == -1");
@@ -250,24 +252,138 @@ int rbox_mailbox_open(struct mailbox *box) {
     i_debug("Namespace owner : %s setting rados namespace", box->list->ns->owner->username);
     ((struct rbox_storage *)box->storage)->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
   }
+  return 0;
+}
 
-  mail_index_set_fsync_mode(
-      box->index, box->storage->set->parsed_fsync_mode,
-      static_cast<mail_index_fsync_mask>(MAIL_INDEX_FSYNC_MASK_APPENDS | MAIL_INDEX_FSYNC_MASK_EXPUNGES));
+uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
+  const char *path;
+
+  path = mailbox_list_get_root_forced(list, MAILBOX_LIST_PATH_TYPE_CONTROL);
+  path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
+  return mailbox_uidvalidity_next(list, path);
+}
+
+static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
+                               const struct mailbox_update *update) {
+  struct sdbox_index_header hdr, new_hdr;
+  bool need_resize;
+
+  if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0) {
+    i_zero(&hdr);
+    need_resize = TRUE;
+  }
+
+  new_hdr = hdr;
+
+  if (update != NULL && !guid_128_is_empty(update->mailbox_guid)) {
+    memcpy(new_hdr.mailbox_guid, update->mailbox_guid, sizeof(new_hdr.mailbox_guid));
+  } else if (guid_128_is_empty(new_hdr.mailbox_guid)) {
+    guid_128_generate(new_hdr.mailbox_guid);
+  }
+
+  if (need_resize) {
+    mail_index_ext_resize_hdr(trans, mbox->hdr_ext_id, sizeof(new_hdr));
+  }
+  if (memcmp(&hdr, &new_hdr, sizeof(hdr)) != 0) {
+    mail_index_update_header_ext(trans, mbox->hdr_ext_id, 0, &new_hdr, sizeof(new_hdr));
+  }
+  memcpy(mbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
+}
+
+int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
+                                struct mail_index_transaction *trans) {
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct mail_index_transaction *new_trans = NULL;
+  const struct mail_index_header *hdr;
+  uint32_t uid_validity, uid_next;
+
+  if (trans == NULL) {
+    new_trans = mail_index_transaction_begin(box->view, 0);
+    trans = new_trans;
+  }
+
+  hdr = mail_index_get_header(box->view);
+  if (update != NULL && update->uid_validity != 0)
+    uid_validity = update->uid_validity;
+  else if (hdr->uid_validity != 0)
+    uid_validity = hdr->uid_validity;
+  else {
+    /* set uidvalidity */
+    uid_validity = rbox_get_uidvalidity_next(box->list);
+  }
+
+  if (hdr->uid_validity != uid_validity) {
+    mail_index_update_header(trans, offsetof(struct mail_index_header, uid_validity), &uid_validity,
+                             sizeof(uid_validity), TRUE);
+  }
+  if (update != NULL && hdr->next_uid < update->min_next_uid) {
+    uid_next = update->min_next_uid;
+    mail_index_update_header(trans, offsetof(struct mail_index_header, next_uid), &uid_next, sizeof(uid_next), TRUE);
+  }
+  if (update != NULL && update->min_first_recent_uid != 0 && hdr->first_recent_uid < update->min_first_recent_uid) {
+    uint32_t first_recent_uid = update->min_first_recent_uid;
+
+    mail_index_update_header(trans, offsetof(struct mail_index_header, first_recent_uid), &first_recent_uid,
+                             sizeof(first_recent_uid), FALSE);
+  }
+  if (update != NULL && update->min_highest_modseq != 0 &&
+      mail_index_modseq_get_highest(box->view) < update->min_highest_modseq) {
+    mail_index_modseq_enable(box->index);
+    mail_index_update_highest_modseq(trans, update->min_highest_modseq);
+  }
+
+  if (box->inbox_user && box->creating) {
+    /* initialize pop3-uidl header when creating mailbox
+       (not on mailbox_update()) */
+    index_pop3_uidl_set_max_uid(box, trans, 0);
+  }
+
+  rbox_update_header(mbox, trans, update);
+  if (new_trans != NULL) {
+    if (mail_index_transaction_commit(&new_trans) < 0) {
+      mailbox_set_index_error(box);
+      return -1;
+    }
+  }
+  return 0;
+}
+int rbox_mailbox_open(struct mailbox *box) {
+  FUNC_START();
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct sdbox_index_header hdr;
+  bool need_resize;
+
+  if (rbox_mailbox_alloc_index(mbox) < 0)
+    return -1;
+
+  if (rbox_open_mailbox(box) < 0) {
+    return -1;
+  }
+
+  if (box->creating) {
+    /* wait for mailbox creation to initialize the index */
+    return 0;
+  }
+
+  if (rbox_create_rados_connection(box) < 0) {
+    return -1;
+  }
 
   /* get/generate mailbox guid */
   if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
     /* looks like the mailbox is corrupted */
-    // (void)rbox_sync(mbox, 0 /*SDBOX_SYNC_FLAG_FORCE*/);
+    (void)rbox_sync(mbox /*, 0 SDBOX_SYNC_FLAG_FORCE*/);
     if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
       i_zero(&hdr);
   }
 
   if (guid_128_is_empty(hdr.mailbox_guid)) {
     /* regenerate it */
-    //    if (rbox_mailbox_create_indexes(box, NULL, NULL) < 0 || rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
-    //      return -1;
+    if (rbox_mailbox_create_indexes(box, NULL, NULL) < 0 || rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0) {
+      return -1;
+    }
   }
+
   memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
 
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open", NULL);
@@ -275,6 +391,14 @@ int rbox_mailbox_open(struct mailbox *box) {
   return 0;
 }
 
+static void rbox_mailbox_close(struct mailbox *box) {
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
+
+  /*if (rbox->corrupted_rebuild_count != 0) {
+    (void)rbox_sync(rbox);
+  }*/
+  index_storage_mailbox_close(box);
+}
 int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
@@ -358,7 +482,7 @@ struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
                                              index_storage_mailbox_enable,
                                              index_storage_mailbox_exists,
                                              rbox_mailbox_open,
-                                             index_storage_mailbox_close,
+                                             rbox_mailbox_close,
                                              index_storage_mailbox_free,
                                              rbox_mailbox_create,
                                              rbox_mailbox_update,
