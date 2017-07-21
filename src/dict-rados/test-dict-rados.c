@@ -571,7 +571,17 @@ int main(int argc, const char *argv[]) {
     }
   }
   ret = rados_conf_parse_env(rados, NULL);
+  if (ret < 0) {
+    printf("couldn't configure cluster handle! error %d\n", ret);
+    ret = EXIT_FAILURE;
+    goto out;
+  }
   ret = rados_conf_read_file(rados, NULL);
+  if (ret < 0) {
+    printf("couldn't read config file! error %d\n", ret);
+    ret = EXIT_FAILURE;
+    goto out;
+  }
 
   /*
    * Now we need to get the rados object its config info. It can
