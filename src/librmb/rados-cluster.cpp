@@ -23,9 +23,9 @@ RadosCluster::~RadosCluster() {}
 
 int RadosCluster::init(string *error_r) {
   const char *const *args;
-  int ret = 0;
 
   if (cluster_ref_count == 0) {
+    int ret = 0;
     if (ret >= 0) {
       ret = cluster.init(nullptr);
       if (ret < 0) {
