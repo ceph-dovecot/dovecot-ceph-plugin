@@ -28,6 +28,11 @@ struct rbox_sync_context {
   ARRAY(struct expunged_item *) expunged_items;
 };
 
+struct expunge_callback_data {
+  struct mailbox *box;
+  struct expunged_item *item;
+};
+
 int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags);
 
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, bool force,

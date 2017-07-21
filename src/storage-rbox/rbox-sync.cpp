@@ -333,22 +333,32 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   FUNC_END();
   return 0;
 }
-
+static void remove_callback(rados_completion_t comp, void *arg) {
+  struct expunge_callback_data *data = (struct expunge_callback_data *)arg;
+  // callback
+  /* do sync_notify only when the file was unlinked by us */
+  if (data->box->v.sync_notify != NULL) {
+    i_debug("sync: notify oid: %s", guid_128_to_string(data->item->oid));
+    data->box->v.sync_notify(data->box, data->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+  }
+  i_debug("sync: expunge object: %s, processid %d", guid_128_to_string(data->item->oid), getpid());
+}
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   int ret;
-
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  ret = r_storage->s->get_io_ctx().remove(guid_128_to_string(item->oid));
-  i_debug("sync: removing oid: %s, success: %d , sync_notifx: %p", guid_128_to_string(item->oid), ret,
-          box->v.sync_notify);
 
-  /* do sync_notify only when the file was unlinked by us */
-  if (ret >= 0 && box->v.sync_notify != NULL) {
-    i_debug("sync: notify oid: %s, success: %d", guid_128_to_string(item->oid), ret);
-    box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-  }
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+
+  const char *oid = guid_128_to_string(item->oid);
+
+  struct expunge_callback_data *cb_data = i_new(struct expunge_callback_data, 1);
+  cb_data->item = item;
+  cb_data->box = box;
+
+  completion->set_complete_callback((void *)cb_data, remove_callback);
+  ret = r_storage->s->get_io_ctx().aio_remove(oid, completion);
 
   FUNC_END();
 }
