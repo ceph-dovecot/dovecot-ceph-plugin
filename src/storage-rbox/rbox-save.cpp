@@ -401,11 +401,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
-  uint32_t uid;
-  const char *dir;
-  string_t *src_path, *dest_path;
-  unsigned int n;
-  size_t src_prefixlen, dest_prefixlen;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   i_assert(r_ctx->finished);
