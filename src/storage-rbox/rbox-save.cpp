@@ -141,6 +141,8 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
 
   r_ctx->objects.push_back(r_ctx->current_object);
+  if (_ctx->data.received_date == (time_t)-1)
+    _ctx->data.received_date = ioloop_time;
 
   FUNC_END();
   return 0;
