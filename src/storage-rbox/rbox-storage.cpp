@@ -24,6 +24,7 @@ extern "C" {
 #include "rbox-sync.h"
 #include "debug-helper.h"
 #include "mailbox-uidvalidity.h"
+#include "index-rebuild.h"
 }
 
 #include "rbox-storage.hpp"
@@ -255,13 +256,22 @@ int rbox_create_rados_connection(struct mailbox *box) {
   return 0;
 }
 
-uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
-  const char *path;
+static void rbox_sync_update_header(struct index_rebuild_context *ctx) {
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)ctx->box;
+  struct sdbox_index_header hdr;
+  bool need_resize;
 
-  path = mailbox_list_get_root_forced(list, MAILBOX_LIST_PATH_TYPE_CONTROL);
-  path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
-  return mailbox_uidvalidity_next(list, path);
+  if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0)
+    i_zero(&hdr);
+  if (guid_128_is_empty(hdr.mailbox_guid))
+    guid_128_generate(hdr.mailbox_guid);
+  if (++hdr.rebuild_count == 0)
+    hdr.rebuild_count = 1;
+  /* mailbox is being reset. this gets written directly there */
+  mail_index_set_ext_init_data(ctx->box->index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
 }
+
+
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
                                const struct mailbox_update *update) {
@@ -290,6 +300,13 @@ static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_tran
   memcpy(mbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
 }
 
+uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
+  const char *path;
+
+  path = mailbox_list_get_root_forced(list, MAILBOX_LIST_PATH_TYPE_CONTROL);
+  path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
+  return mailbox_uidvalidity_next(list, path);
+}
 int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                 struct mail_index_transaction *trans) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
@@ -372,7 +389,7 @@ int rbox_mailbox_open(struct mailbox *box) {
   /* get/generate mailbox guid */
   if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0) {
     /* looks like the mailbox is corrupted */
-    (void)rbox_sync(mbox /*, 0 SDBOX_SYNC_FLAG_FORCE*/);
+    (void)rbox_sync(mbox, RBOX_SYNC_FLAG_FORCE);
     if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0)
       i_zero(&hdr);
   }
@@ -389,6 +406,17 @@ int rbox_mailbox_open(struct mailbox *box) {
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open", NULL);
   FUNC_END();
   return 0;
+}
+
+void rbox_set_mailbox_corrupted(struct mailbox *box) {
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct sdbox_index_header hdr;
+  bool need_resize;
+
+  if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0 || hdr.rebuild_count == 0)
+    mbox->corrupted_rebuild_count = 1;
+  else
+    mbox->corrupted_rebuild_count = hdr.rebuild_count;
 }
 
 static void rbox_mailbox_close(struct mailbox *box) {

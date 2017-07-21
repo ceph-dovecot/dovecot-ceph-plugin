@@ -17,6 +17,8 @@ extern void rbox_storage_get_list_settings(const struct mail_namespace *ns, stru
 extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
                                           enum mailbox_flags flags);
 
+extern void rbox_set_mailbox_corrupted(struct mailbox *box);
+
 extern struct mail_storage rbox_storage;
 
 #ifdef __cplusplus
@@ -45,6 +47,7 @@ struct rbox_mailbox {
   uint32_t ext_id;
 
   guid_128_t mailbox_guid;
+  uint32_t corrupted_rebuild_count;
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_H_
