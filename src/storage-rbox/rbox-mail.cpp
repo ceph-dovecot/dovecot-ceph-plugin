@@ -215,7 +215,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct istream *input;
 
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  unsigned int ret = 0;
+  int ret = 0;
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
@@ -256,7 +256,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         break;
       }
 
-      mail_data_bl.copy(0, ret, &rmail->mail_buffer[0]);
+      mail_data_bl.copy(0, (unsigned)ret, &rmail->mail_buffer[0]);
       i_debug("rbox_mail_get_stream(oid=%s, size_r = %lu, read_from_rados = %d):",
               rmail->mail_object->get_oid().c_str(), size_r, ret);
 

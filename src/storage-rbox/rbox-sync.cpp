@@ -19,7 +19,6 @@ extern "C" {
 static int rbox_sync_index_rebuild_dir(struct index_rebuild_context *ctx, const char *path, bool primary) {
   struct mail_storage *storage = ctx->box->storage;
   DIR *dir;
-  struct dirent *d;
   int ret = 0;
 
   dir = opendir(path);
@@ -37,7 +36,9 @@ static int rbox_sync_index_rebuild_dir(struct index_rebuild_context *ctx, const 
   }
   /*TODO(jrse) do we need to copy files?
    *
-   * do {
+   *
+   struct dirent *d;
+   do {
      errno = 0;
      if ((d = readdir(dir)) == NULL)
        break;

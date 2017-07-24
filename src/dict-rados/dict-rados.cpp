@@ -325,10 +325,10 @@ class rados_dict_transaction_context {
 
   ObjectWriteOperation &get_op(const std::string &key) {
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
-      dirty_shared |= true;
+      dirty_shared = true;
       return write_op_shared;
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
-      dirty_private |= true;
+      dirty_private = true;
       return write_op_private;
     }
     i_unreached();
@@ -336,9 +336,9 @@ class rados_dict_transaction_context {
 
   void set_locked(const std::string &key) {
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
-      locked_shared |= true;
+      locked_shared = true;
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
-      locked_private |= true;
+      locked_private = true;
     }
   }
 

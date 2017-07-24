@@ -23,37 +23,33 @@ RadosCluster::~RadosCluster() {}
 
 int RadosCluster::init(string *error_r) {
   const char *const *args;
-  int ret = 0;
 
   if (cluster_ref_count == 0) {
-    if (ret >= 0) {
-      ret = cluster.init(nullptr);
-      if (ret < 0) {
-        *error_r = "Couldn't create the cluster handle! " + string(strerror(-ret));
-      }
+    int ret = 0;
+    ret = cluster.init(nullptr);
+    if (ret < 0) {
+      *error_r = "Couldn't create the cluster handle! " + string(strerror(-ret));
+      return ret;
     }
 
-    if (ret >= 0) {
-      ret = cluster.conf_parse_env(nullptr);
-      if (ret < 0) {
-        *error_r = "Cannot parse config environment! " + string(strerror(-ret));
-      }
+    ret = cluster.conf_parse_env(nullptr);
+    if (ret < 0) {
+      *error_r = "Cannot parse config environment! " + string(strerror(-ret));
+      return ret;
     }
 
-    if (ret >= 0) {
-      ret = cluster.conf_read_file(nullptr);
-      if (ret < 0) {
-        *error_r = "Cannot read config file! " + string(strerror(-ret));
-      }
+    ret = cluster.conf_read_file(nullptr);
+    if (ret < 0) {
+      *error_r = "Cannot read config file! " + string(strerror(-ret));
+      return ret;
     }
 
-    if (ret >= 0) {
-      ret = cluster.connect();
-      if (ret < 0) {
-        *error_r = "Cannot connect to cluster! " + string(strerror(-ret));
-      } else {
-        cluster_ref_count++;
-      }
+    ret = cluster.connect();
+    if (ret < 0) {
+      *error_r = "Cannot connect to cluster! " + string(strerror(-ret));
+      return ret;
+    } else {
+      cluster_ref_count++;
     }
   }
 
