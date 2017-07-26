@@ -1,6 +1,8 @@
 
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <ctime>
+
 extern "C" {
 
 #include "lib.h"
@@ -21,9 +23,10 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   FUNC_START();
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
-  if (_ctx->saving != TRUE) {
-    ctx->copying = TRUE;
-  }
+
+  ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
+                 strcmp(mail->box->storage->name, _ctx->dest_mail->box->storage->name) == 0;
+  i_debug("rbox_mail_copy: copying = %s", btoa(ctx->copying));
 
   debug_print_mail(mail, "rbox_mail_copy", NULL);
   debug_print_mail_save_context(_ctx, "rbox_mail_copy", NULL);
@@ -141,7 +144,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     i_debug("cpy_time: oid: %s , save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
 
     ret_val = dest_io_ctx.operate(dest_oid, &write_op);
-    i_debug("copy failed: %s , ret_val = %d , mtime %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
+    i_debug("copy finished: oid = %s , ret_val = %d , mtime = %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
 
     // reset io_ctx
     dest_io_ctx.set_namespace(ns_src_mail);
