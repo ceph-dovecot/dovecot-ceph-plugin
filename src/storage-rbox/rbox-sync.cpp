@@ -236,7 +236,6 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
   }
   i_warning("rbox %s: Rebuilding index", mailbox_get_path(&mbox->box));
 
-
   view = mail_index_view_open(mbox->box.index);
   trans = mail_index_transaction_begin(view, MAIL_INDEX_TRANSACTION_FLAG_EXTERNAL);
 
@@ -286,7 +285,8 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
     sync_flags |= MAIL_INDEX_SYNC_FLAG_REQUIRE_CHANGES;
 
   for (i = 0;; i++) {
-    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans, sync_flags);
+    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
+                                            static_cast<mail_index_sync_flags>(sync_flags));
 
     if (mail_index_reset_fscked(mbox->box.index))
       rbox_set_mailbox_corrupted(&mbox->box);
@@ -300,7 +300,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
       return ret;
     }
     if (rebuild)
-          ret = 0;
+      ret = 0;
     else {
       if ((ret = rbox_sync_index(ctx)) > 0)
         break;
@@ -327,7 +327,6 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
       return -1;
     }
   }
-
 
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_begin", NULL);
   *ctx_r = ctx;
@@ -445,7 +444,7 @@ int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  enum rbox_sync_flags sdbox_sync_flags = 0;
+  int sdbox_sync_flags = 0;
 
   int ret = 0;
 
@@ -461,17 +460,17 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
   if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->corrupted_rebuild_count != 0)) {
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0)
       sdbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
-    ret = rbox_sync(mbox, sdbox_sync_flags);
+    ret = rbox_sync(mbox, static_cast<rbox_sync_flags>(sdbox_sync_flags));
   }
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);
-/*
-  if (index_mailbox_want_full_sync(&mbox->box, flags) && ret == 0)
-    ret = rbox_sync(mbox);
+  /*
+    if (index_mailbox_want_full_sync(&mbox->box, flags) && ret == 0)
+      ret = rbox_sync(mbox);
 
-  struct mailbox_sync_context *ctx = index_mailbox_sync_init(box, flags, ret < 0);
+    struct mailbox_sync_context *ctx = index_mailbox_sync_init(box, flags, ret < 0);
 
-  debug_print_mailbox(box, "rbox-sync::rbox_storage_sync_init", NULL);
+    debug_print_mailbox(box, "rbox-sync::rbox_storage_sync_init", NULL);
 
-  return ctx;*/
+    return ctx;*/
 }
