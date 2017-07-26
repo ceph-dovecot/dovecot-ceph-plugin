@@ -2,6 +2,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include <sys/stat.h>
+#include <dirent.h>
 
 #include <string>
 
@@ -256,7 +257,7 @@ int rbox_create_rados_connection(struct mailbox *box) {
   return 0;
 }
 
-static void rbox_sync_update_header(struct index_rebuild_context *ctx) {
+void rbox_sync_update_header(struct index_rebuild_context *ctx) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)ctx->box;
   struct sdbox_index_header hdr;
   bool need_resize;
@@ -270,8 +271,6 @@ static void rbox_sync_update_header(struct index_rebuild_context *ctx) {
   /* mailbox is being reset. this gets written directly there */
   mail_index_set_ext_init_data(ctx->box->index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
 }
-
-
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
                                const struct mailbox_update *update) {
@@ -315,7 +314,7 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   uint32_t uid_validity, uid_next;
 
   if (trans == NULL) {
-    new_trans = mail_index_transaction_begin(box->view, 0);
+    new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
     trans = new_trans;
   }
 
@@ -427,23 +426,83 @@ static void rbox_mailbox_close(struct mailbox *box) {
   }*/
   index_storage_mailbox_close(box);
 }
+
+static int dir_is_empty(struct mail_storage *storage, const char *path) {
+  DIR *dir;
+  struct dirent *d;
+  int ret = 1;
+
+  dir = opendir(path);
+  if (dir == NULL) {
+    if (errno == ENOENT) {
+      /* race condition with DELETE/RENAME? */
+      return 1;
+    }
+    mail_storage_set_critical(storage, "opendir(%s) failed: %m", path);
+    return -1;
+  }
+  while ((d = readdir(dir)) != NULL) {
+    if (*d->d_name == '.')
+      continue;
+
+    ret = 0;
+    break;
+  }
+  if (closedir(dir) < 0) {
+    mail_storage_set_critical(storage, "closedir(%s) failed: %m", path);
+    ret = -1;
+  }
+  return ret;
+}
+
 int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  const char *alt_path;
+  struct stat st;
   int ret;
 
   if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
     debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_create (ret <= 0, 1)", NULL);
-    FUNC_END_RET("ret < 0");
+    FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
     return ret;
   }
 
-  ret = update == NULL ? 0 : index_storage_mailbox_update(box, update);
+  if (mailbox_open(box) < 0) {
+    FUNC_END_RET("mailbox_open: ret < 0");
+    return -1;
+  }
 
-  i_debug("mailbox update = %p", update);
+  if (mail_index_get_header(box->view)->uid_validity != 0) {
+    mail_storage_set_error(box->storage, MAIL_ERROR_EXISTS, "Mailbox already exists");
+    FUNC_END_RET("Mailbox already exists: ret == -1");
+    return -1;
+  }
+
+  /* if alt path already exists and contains files, rebuild storage so
+     that we don't start overwriting files. */
+  ret = mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_ALT_MAILBOX, &alt_path);
+  if (ret > 0 && stat(alt_path, &st) == 0) {
+    ret = dir_is_empty(box->storage, alt_path);
+    if (ret < 0)
+      return -1;
+    if (ret == 0) {
+      mail_storage_set_critical(&storage->storage,
+                                "Mailbox %s has existing files in alt path, "
+                                "rebuilding storage to avoid losing messages",
+                                box->vname);
+      rbox_set_mailbox_corrupted(box);
+      return -1;
+    }
+    /* dir is empty, ignore it */
+  }
+
+  i_debug("rbox_mailbox_create: mailbox update guid = %s",
+          update != NULL ? guid_128_to_string(update->mailbox_guid) : "Invalid update");
   debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_create", NULL);
   FUNC_END();
-  return ret;
+  return rbox_mailbox_create_indexes(box, update, NULL);
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
