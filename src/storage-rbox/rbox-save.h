@@ -39,18 +39,19 @@ class rbox_save_context {
   struct rbox_sync_context *sync_ctx;
 
   /* updated for each appended mail: */
-   uint32_t seq;
-   struct istream *input;
+  uint32_t seq;
+  struct istream *input;
 
-   librmb::RadosStorage &rados_storage;
-   std::vector<librmb::RadosMailObject *> objects;
-   librmb::RadosMailObject *current_object;
+  librmb::RadosStorage &rados_storage;
+  std::vector<librmb::RadosMailObject *> objects;
+  librmb::RadosMailObject *current_object;
 
-   unsigned int failed : 1;
-   unsigned int finished : 1;
-   unsigned int copying : 1;
+  unsigned int failed : 1;
+  unsigned int finished : 1;
+  unsigned int copying : 1;
 };
 
 void rbox_add_to_index(struct mail_save_context *_ctx);
+void rbox_move_index(struct mail_save_context *_ctx);
 
 #endif /* SRC_STORAGE_RBOX_RBOX_SAVE_H_ */
