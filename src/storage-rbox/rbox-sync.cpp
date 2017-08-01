@@ -370,8 +370,9 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
-  unsigned int count;
-  int i;
+  struct expunged_item *const *moved_items, *moved_item;
+  unsigned int count, moved_count;
+  int i, j;
 
   /* NOTE: Index is no longer locked. Multiple processes may be deleting
      the objects at the same time. */
@@ -380,12 +381,25 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   // rbox_sync_object_expunge;
   items = array_get(&ctx->expunged_items, &count);
 
-  for (i = 0; i < count; i++) {
-    T_BEGIN {
-      item = items[i];
-      rbox_sync_object_expunge(ctx, item);
+  if (count > 0) {
+    moved_items = array_get(&ctx->mbox->moved_items, &moved_count);
+    for (i = 0; i < count; i++) {
+      T_BEGIN {
+        item = items[i];
+        bool moved = FALSE;
+        for (j = 0; j < moved_count; j++) {
+          moved_item = moved_items[j];
+          if (guid_128_equals(moved_item->oid, item->oid)) {
+            moved = TRUE;
+            break;
+          }
+        }
+        if (moved != TRUE) {
+          rbox_sync_object_expunge(ctx, item);
+        }
+      }
+      T_END;
     }
-    T_END;
   }
 
   if (ctx->mbox->box.v.sync_notify != NULL)
