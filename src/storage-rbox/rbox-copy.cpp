@@ -17,6 +17,7 @@ extern "C" {
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-save.h"
+#include "rbox-sync.h"
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
@@ -89,6 +90,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)mail;
+  struct rbox_mailbox *rmailbox = (struct rbox_mailbox *)mail->box;
   librados::IoCtx src_io_ctx;
 
   librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
@@ -114,40 +116,51 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
 
-    rbox_add_to_index(ctx);
-    index_copy_cache_fields(ctx, mail, r_ctx->seq);
-    mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    if (ctx->moving != TRUE) {
+      rbox_add_to_index(ctx);
+      index_copy_cache_fields(ctx, mail, r_ctx->seq);
+      mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
 
-    std::string src_oid = rmail->mail_object->get_oid();
-    std::string dest_oid = r_ctx->current_object->get_oid();
-    i_debug("rbox_mail_storage_try_copy: from source %s to dest  %s", src_oid.c_str(), dest_oid.c_str());
-    librados::ObjectWriteOperation write_op;
+      std::string src_oid = rmail->mail_object->get_oid();
+      std::string dest_oid = r_ctx->current_object->get_oid();
+      i_debug("rbox_mail_storage_try_copy: from source %s to dest %s", src_oid.c_str(), dest_oid.c_str());
+      librados::ObjectWriteOperation write_op;
 
-    if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
-      src_io_ctx.dup(dest_io_ctx);
-      src_io_ctx.set_namespace(ns_src_mail);
-      dest_io_ctx.set_namespace(ns_dest_mail);
+      if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
+        src_io_ctx.dup(dest_io_ctx);
+        src_io_ctx.set_namespace(ns_src_mail);
+        dest_io_ctx.set_namespace(ns_dest_mail);
+      } else {
+        src_io_ctx = dest_io_ctx;
+      }
+      i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
+      write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+      time_t now = time(NULL);
+
+      // because we create a copy, save date needs to be updated
+      // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+      // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+      // write_op.mtime(&ctx->data.save_date);
+      time_t save_time = time(NULL);
+      write_op.mtime(NULL);
+
+      i_debug("cpy_time: oid: %s , save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
+
+      ret_val = dest_io_ctx.operate(dest_oid, &write_op);
+      i_debug("copy finished: oid = %s , ret_val = %d , mtime = %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
+
+      // reset io_ctx
+      dest_io_ctx.set_namespace(ns_src_mail);
     } else {
-      src_io_ctx = dest_io_ctx;
+      std::string src_oid = rmail->mail_object->get_oid();
+      struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      guid_128_from_string(src_oid.c_str(), item->oid);
+      array_append(&rmailbox->moved_items, &item, 1);
+
+      rbox_move_index(ctx);
+      index_copy_cache_fields(ctx, mail, r_ctx->seq);
+      mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
     }
-    i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
-    write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
-    time_t now = time(NULL);
-
-    // because we create a copy, save date needs to be updated
-    // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
-    // and restore it in read_metadata function. => save_date of copy/move will be same as source.
-    // write_op.mtime(&ctx->data.save_date);
-    time_t save_time = time(NULL);
-    write_op.mtime(NULL);
-
-    i_debug("cpy_time: oid: %s , save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
-
-    ret_val = dest_io_ctx.operate(dest_oid, &write_op);
-    i_debug("copy finished: oid = %s , ret_val = %d , mtime = %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
-
-    // reset io_ctx
-    dest_io_ctx.set_namespace(ns_src_mail);
   }
   FUNC_END();
   return ret_val;
