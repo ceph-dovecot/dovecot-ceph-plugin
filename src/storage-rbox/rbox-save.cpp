@@ -106,6 +106,52 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 }
 
+void rbox_move_index(struct mail_save_context *_ctx) {
+  struct mail_save_data *mdata = &_ctx->data;
+  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+
+  int save_flags;
+
+  /* add to index */
+  save_flags = mdata->flags & ~MAIL_RECENT;
+  mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
+  i_debug("add seq %d to index ", r_ctx->seq);
+
+  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
+  i_debug("update flags for seq %d ", r_ctx->seq);
+
+  if (_ctx->data.keywords != NULL) {
+    mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
+  }
+  if (_ctx->data.min_modseq != 0) {
+    mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
+  }
+
+  struct rbox_mail *r_src_mail = (struct rbox_mail *)_ctx->copy_src_mail;
+  guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
+
+  r_ctx->current_object = new RadosMailObject();
+  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+
+  if (mdata->guid != NULL) {
+    mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
+  } else {
+    guid_128_generate(r_ctx->mail_guid);
+  }
+
+  /* save the 128bit GUID/OID to index record */
+  struct obox_mail_index_record rec;
+  i_zero(&rec);
+  memcpy(rec.guid, r_ctx->mail_guid, sizeof(r_ctx->mail_guid));
+  memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
+  mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
+
+  i_debug("SAVE OID: %s, %d uid , seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
+
+  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+}
+
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
@@ -419,7 +465,8 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     }
   }
 
-  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE, RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC) < 0) {
+  int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
+  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
     debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
