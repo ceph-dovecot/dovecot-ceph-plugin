@@ -79,7 +79,6 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
   i_zero(mail);
 
   mail->imail.mail.pool = pool;
-
   index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
 
   FUNC_END();
@@ -200,7 +199,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   }
   i_debug("rmail->mail_object->get_oid() %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
           _mail->uid);
-
 
   *size_r = file_size;
   FUNC_END();
