@@ -48,6 +48,8 @@ struct rbox_mailbox {
 
   guid_128_t mailbox_guid;
   uint32_t corrupted_rebuild_count;
+
+  ARRAY(struct expunged_item *) moved_items;
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_H_
