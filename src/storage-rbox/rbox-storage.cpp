@@ -119,6 +119,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   mbox->box.list = list;
   mbox->box.v = rbox_mailbox_vfuncs;
   mbox->box.mail_vfuncs = &rbox_mail_vfuncs;
+  i_array_init(&mbox->moved_items, 32);
 
   i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
           storage->set->mail_location);
@@ -306,6 +307,7 @@ uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
   path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
   return mailbox_uidvalidity_next(list, path);
 }
+
 int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                 struct mail_index_transaction *trans) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
@@ -419,12 +421,21 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
 }
 
 static void rbox_mailbox_close(struct mailbox *box) {
+  FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
+
+  if (array_is_created(&rbox->moved_items)) {
+    if (array_count(&rbox->moved_items) > 0) {
+      array_delete(&rbox->moved_items, array_count(&rbox->moved_items) - 1, 1);
+    }
+    array_free(&rbox->moved_items);
+  }
 
   /*if (rbox->corrupted_rebuild_count != 0) {
     (void)rbox_sync(rbox);
   }*/
   index_storage_mailbox_close(box);
+  FUNC_END();
 }
 
 static int dir_is_empty(struct mail_storage *storage, const char *path) {
