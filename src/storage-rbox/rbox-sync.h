@@ -5,11 +5,7 @@
 
 struct mailbox;
 
-enum rbox_sync_flags {
-  RBOX_SYNC_FLAG_FORCE = 0x01,
-  RBOX_SYNC_FLAG_FSYNC = 0x02,
-  RBOX_SYNC_FLAG_FORCE_REBUILD = 0x04
-};
+enum rbox_sync_flags { RBOX_SYNC_FLAG_FORCE = 0x01, RBOX_SYNC_FLAG_FSYNC = 0x02, RBOX_SYNC_FLAG_FORCE_REBUILD = 0x04 };
 
 struct expunged_item {
   uint32_t uid;
