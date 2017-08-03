@@ -1,0 +1,36 @@
+@startditaa -E -r
+
+                +-----+             +-------+                               +------+             +-------+
+                | APP |             |  MUA  |                               |CLIENT|             |HOST/VM|
+                +--+--+             +---+---+                               +---+--+             +---+---+
+                   |                    |                                       |                    |
+                   |                    |                                       |                    |
+                   |                    v                                       |                    |
+                   |          +---------------------------------------+         |                    |
+                   |          | DOVECOT                               |         |                    |
+                   |          |                                       |         v                    v
+                   |          +-------------------+-------------------+-------------------+-------------------+
+                   |          | LIBRMB            | CEPH FILE SYSTEM  |CEPH OBJECT GATEWAY| CEPH BLOCK DEVICE |
+                   |          |                   |                   |                   |                   |
+                   v          | Email             | A POSIX-compliant | A bucket+based    | A reliable and    |
+         +--------------------+ abstraction on top| distrbuted file   | REST gateway,     | fully-distributed |
+         | LIBRADOS           | of librados       | system, with a    | compatible with   | block device with |
+         |                    | with a Dovecot    | Linux kernel      | S3 and Swift      | a Linux kernel    |
+         | A library allowing | storage layer     | client and support|                   | client and        |
+         | apps to directly   |                   | for FUSE          |                   | client and        |
+         | access RADOS       |                   |                   |                   | QEMU/KVM driver   |
+         | with support for C,|                   |                   |                   |                   |
+         | C✛✛, Java, Python, |               cF84|               cDDD|               cEEE|               cEEE|
+         | Ruby and PHP       +-------------------+-------------------+-------------------+-------------------+
+       +-+                                                                                                    +-+
+       | |                                                                                                c9DE| |
+       | +----------------------------------------------------------------------------------------------------+ |
+       |                                                                                                        |
+       | RADOS                                                                                                  |
+       |                                                                                                        |
+       | A software based, reliable, autonomous, distributed object store comprised of                          |
+       | self healing, self managing, intelligent storage nodes and lightweight monitors.                       |
+       |                                                                                                    cF87|
+       +--------------------------------------------------------------------------------------------------------+
+
+@endditaa
