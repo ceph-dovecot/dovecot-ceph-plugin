@@ -274,10 +274,10 @@ int rados_dict_lookup(struct dict *dict, pool_t pool, const char *key, const cha
     ret = res.ret;
     if (res.ret > 0) {
       *value_r = p_strdup(orig_pool, res.value);
+      i_debug("rados_dict_lookup(%s)=%s", key, *value_r);
     }
   }
 
-  i_debug("rados_dict_lookup(%s)=%s", key, *value_r);
 
   return ret;
 }
