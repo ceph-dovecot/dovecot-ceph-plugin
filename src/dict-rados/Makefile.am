@@ -8,11 +8,14 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 LIBDICT_RADOS_PLUGIN = libdict_rados_plugin.la
 
+shlibs = \
+	../librmb/librmb.la
+
 libdict_rados_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)
 libdict_rados_plugin_la_CFLAGS = 
 libdict_rados_plugin_la_CXXFLAGS = -fpermissive -std=c++11
 libdict_rados_plugin_la_LDFLAGS = -module -avoid-version
-libdict_rados_plugin_la_LIBADD = $(LIBDOVECOT) -lrmb
+libdict_rados_plugin_la_LIBADD = $(LIBDOVECOT) $(shlibs)
 
 module_dir = $(moduledir)
 module_LTLIBRARIES = \
@@ -30,13 +33,12 @@ test_programs = \
 	test-dict-rados
 
 test_libs = \
-	../librmb/librmb.la
+	$(shlibs)
 
 test_dict_rados_SOURCES = \
 	test-dict-rados.c \
 	libdict-rados-plugin.c \
     dict-rados.cpp 
-
 
 test_dict_rados_LDADD = $(LIBDICT_RADOS_PLUGIN) $(LIBDOVECOT) $(LIBDOVECOT_STORAGE)
 test_dict_rados_DEPENDENCIES = $(test_libs) $(LIBDOVECOT_DEPS)  $(LIBDOVECOT_STORAGE_DEPS)
