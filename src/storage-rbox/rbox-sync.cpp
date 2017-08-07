@@ -34,23 +34,7 @@ static int rbox_sync_index_rebuild_dir(struct index_rebuild_context *ctx, const 
     mail_storage_set_critical(storage, "opendir(%s) failed: %m", path);
     return -1;
   }
-  /*TODO(jrse) do we need to copy files?
-   *
-   *
-   struct dirent *d;
-   do {
-     errno = 0;
-     if ((d = readdir(dir)) == NULL)
-       break;
 
-     ret = sdbox_sync_add_file(ctx, d->d_name, primary);
-   } while (ret >= 0);
-   if (errno != 0) {
-     mail_storage_set_critical(storage,
-       "readdir(%s) failed: %m", path);
-     ret = -1;
-   }
- */
   if (closedir(dir) < 0) {
     mail_storage_set_critical(storage, "closedir(%s) failed: %m", path);
     ret = -1;
@@ -135,14 +119,16 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
 
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
-    mail_index_expunge(ctx->trans, seq1);
+    if (!mail_index_transaction_is_expunged(ctx->trans, seq1)) {
+      mail_index_expunge(ctx->trans, seq1);
 
-    struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
-    item->uid = uid;
-    if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
-      // continue anyway
-    } else {
-      array_append(&ctx->expunged_items, &item, 1);
+      struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      item->uid = uid;
+      if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
+        // continue anyway
+      } else {
+        array_append(&ctx->expunged_items, &item, 1);
+      }
     }
   }
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_expunge", NULL);
@@ -293,6 +279,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
     if (ret <= 0) {
       debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_begin (ret <= 0, 1)", NULL);
+      array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
       array_free(&ctx->expunged_items);
       i_free(ctx);
       *ctx_r = NULL;
@@ -345,7 +332,7 @@ static void remove_callback(rados_completion_t comp, void *arg) {
   i_debug("sync: expunge object: %s, processid %d", guid_128_to_string(data->item->oid), getpid());
 }
 
-static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
+void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   int ret;
