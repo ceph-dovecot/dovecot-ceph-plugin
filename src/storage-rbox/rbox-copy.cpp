@@ -135,14 +135,13 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       }
       i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
       write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
-      time_t now = time(NULL);
 
       // because we create a copy, save date needs to be updated
       // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
       // and restore it in read_metadata function. => save_date of copy/move will be same as source.
       // write_op.mtime(&ctx->data.save_date);
       time_t save_time = time(NULL);
-      write_op.mtime(NULL);
+      write_op.mtime(&save_time);
 
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
 
