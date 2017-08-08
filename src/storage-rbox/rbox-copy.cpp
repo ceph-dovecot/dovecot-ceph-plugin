@@ -144,10 +144,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       time_t save_time = time(NULL);
       write_op.mtime(NULL);
 
-      i_debug("cpy_time: oid: %s , save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
+      i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&rmail->imail.data.save_date));
 
       ret_val = dest_io_ctx.operate(dest_oid, &write_op);
-      i_debug("copy finished: oid = %s , ret_val = %d , mtime = %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
+      i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", src_oid.c_str(), ret_val, ctx->data.save_date);
 
       // reset io_ctx
       dest_io_ctx.set_namespace(ns_src_mail);
