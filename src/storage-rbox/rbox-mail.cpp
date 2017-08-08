@@ -178,7 +178,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   uint64_t file_size = -1;
   time_t time = 0;
 
-  i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
+  i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
   rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
@@ -215,7 +215,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   int ret = 0;
 
-  i_debug("rbox_mail_get_stream(oid=%s, uid=%d):", rmail->mail_object->get_oid().c_str(), _mail->uid);
+  i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
   if (mail->data.stream == NULL) {
     uoff_t size_r = 0;
