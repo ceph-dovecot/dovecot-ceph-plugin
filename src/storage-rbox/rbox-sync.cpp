@@ -342,7 +342,7 @@ static void remove_callback(rados_completion_t comp, void *arg) {
     i_debug("sync: notify oid: %s", guid_128_to_string(data->item->oid));
     data->box->v.sync_notify(data->box, data->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
   }
-  i_debug("sync: expunge object: %s, processid %d", guid_128_to_string(data->item->oid), getpid());
+  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(data->item->oid), getpid());
 }
 
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
