@@ -234,7 +234,8 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr) {
+int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
+                                  long unsigned int message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
 
@@ -269,7 +270,7 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
     }
   }
   {
-    if (mdata->pop3_order != 0) {
+    if (mdata->pop3_order != NULL) {
       std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
 
       bufferlist bl;
@@ -277,6 +278,44 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
       write_op_xattr->setxattr(key.c_str(), bl);
     }
   }
+  {
+    if (mdata->from_envelope != 0) {
+      std::string key(1, (char)RBOX_METADATA_FROM_ENVELOPE);
+      bufferlist bl;
+      bl.append(mdata->from_envelope);
+      write_op_xattr->setxattr(key.c_str(), bl);
+    }
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_VIRTUAL_SIZE);
+    bufferlist bl;
+    std::string value = std::to_string(message_size);
+    bl.append(value);
+    write_op_xattr->setxattr(key.c_str(), bl);
+  }
+  {
+    std::string key(1, (char)RBOX_METADATA_PHYSICAL_SIZE);
+    bufferlist bl;
+    std::string value = std::to_string(message_size);
+    bl.append(value);
+    write_op_xattr->setxattr(key.c_str(), bl);
+  }
+  {
+    std::string flags = std::to_string(mdata->flags);
+    std::string key(1, (char)RBOX_METADATA_OLDV1_FLAGS);
+    bufferlist bl;
+    bl.append(flags);
+    write_op_xattr->setxattr(key.c_str(), bl);
+  }
+
+  {
+    std::string pvt_flags = std::to_string(mdata->pvt_flags);
+    std::string key(1, (char)RBOX_METADATA_PVT_FLAGS);
+    bufferlist bl;
+    bl.append(pvt_flags);
+    write_op_xattr->setxattr(key.c_str(), bl);
+  }
+
   i_debug("save_date %s", std::ctime(&mdata->save_date));
   write_op_xattr->mtime(&mdata->save_date);
 
@@ -405,11 +444,11 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       if (r_ctx->copying != TRUE) {
         // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
         librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
-        rbox_save_mail_write_metadata(r_ctx, write_op_xattr);
 
         buffer_t *mail_buffer = (buffer_t *)r_ctx->current_object->get_mail_buffer();
-
         size_t write_buffer_size = buffer_get_used_size(mail_buffer);
+        
+        rbox_save_mail_write_metadata(r_ctx, write_op_xattr, write_buffer_size);
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 

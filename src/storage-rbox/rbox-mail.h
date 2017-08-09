@@ -31,6 +31,11 @@ enum rbox_metadata_key {
      placed to this mailbox. */
   RBOX_METADATA_ORIG_MAILBOX = 'B',
 
+  /*
+   * Mails from envelope
+   */
+  RBOX_METADATA_FROM_ENVELOPE = 'A',
+  RBOX_METADATA_PVT_FLAGS = 'C',
   /* metadata used by old Dovecot versions */
   RBOX_METADATA_OLDV1_EXPUNGED = 'E',
   RBOX_METADATA_OLDV1_FLAGS = 'F',
