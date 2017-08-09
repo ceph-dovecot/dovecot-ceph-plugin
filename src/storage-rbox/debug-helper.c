@@ -79,10 +79,10 @@ void print_trace(void) {
   size = backtrace(array, 20);
   strings = backtrace_symbols(array, size);
 
-  i_info("\nObtained %zd stack frames", size);
+  i_debug("");
   for (i = 1; i < size; i++)
-    i_info("stack[%d] >>> %s", i, strings[i]);
-  i_info("");
+    i_debug("stack[%d]: %s", i, strings[i]);
+  i_debug("");
 
   free(strings);
 }
