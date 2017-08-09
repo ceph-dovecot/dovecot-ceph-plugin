@@ -25,6 +25,7 @@ extern "C" {
 
 #include "ostream.h"
 #include "debug-helper.h"
+#include "index-pop3-uidl.h"
 }
 
 #include "rados-mail-object.h"
@@ -378,6 +379,23 @@ int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const
   switch (field) {
     case MAIL_FETCH_GUID:
       return rbox_get_cached_metadata(mail, RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+    case MAIL_FETCH_UIDL_BACKEND:
+      if (!index_pop3_uidl_can_exist(_mail)) {
+        *value_r = "";
+        return 0;
+      }
+      ret = rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
+      if (ret == 0) {
+        index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
+      }
+      return ret;
+    case MAIL_FETCH_POP3_ORDER:
+      if (!index_pop3_uidl_can_exist(_mail)) {
+        /* we're assuming that if there's a POP3 order, there's
+           also a UIDL */
+        *value_r = "";
+        return 0;
+      }
     default:
       break;
   }
