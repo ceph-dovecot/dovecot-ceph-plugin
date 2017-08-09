@@ -396,6 +396,7 @@ int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const
         *value_r = "";
         return 0;
       }
+      return rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER, value_r);
     default:
       break;
   }
