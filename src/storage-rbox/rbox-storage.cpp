@@ -227,7 +227,7 @@ int rbox_open_mailbox(struct mailbox *box) {
   return 0;
 }
 
-int rbox_create_rados_connection(struct mailbox *box) {
+int rbox_open_rados_connection(struct mailbox *box) {
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   string error_msg;
@@ -381,10 +381,6 @@ int rbox_mailbox_open(struct mailbox *box) {
   if (box->creating) {
     /* wait for mailbox creation to initialize the index */
     return 0;
-  }
-
-  if (rbox_create_rados_connection(box) < 0) {
-    return -1;
   }
 
   /* get/generate mailbox guid */

@@ -159,6 +159,11 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   r_ctx->failed = FALSE;
 
+  if (rbox_open_rados_connection(_ctx->dest_mail->box) < 0) {
+    FUNC_END_RET("ret == -1 connection to rados failed"); 
+    return -1;
+  }
+
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
     crlf_input = i_stream_create_crlf(input);

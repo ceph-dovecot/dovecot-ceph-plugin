@@ -104,6 +104,12 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
   std::map<std::string, ceph::bufferlist> attrset;
+
+  if (rbox_open_rados_connection(mail->box) < 0) {
+    i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
+    return -1;
+  }
+
   if (rmail->mail_object != NULL) {
     int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
     if (ret < 0) {
@@ -249,6 +255,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
   if (mail->data.stream == NULL) {
+    if (rbox_open_rados_connection(_mail->box) < 0) {
+      FUNC_END_RET("ret == -1;  connection to rados failed");
+      return -1;
+    }
+
     uoff_t size_r = 0;
 
     if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {

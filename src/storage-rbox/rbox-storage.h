@@ -21,6 +21,8 @@ extern void rbox_set_mailbox_corrupted(struct mailbox *box);
 
 extern struct mail_storage rbox_storage;
 
+extern int rbox_open_rados_connection(struct mailbox *box);
+
 #ifdef __cplusplus
 }
 #endif
