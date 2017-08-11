@@ -179,6 +179,10 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     return 0;
   }
 
+  if (rbox_open_rados_connection(_mail->box) < 0) {
+    FUNC_END_RET("ret == -1;  connection to rados failed");
+    return -1;
+  }
   uint64_t object_size = 0;
   time_t save_date_rados = 0;
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
@@ -222,6 +226,12 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
     return 0;
   }
+  
+  if (rbox_open_rados_connection(_mail->box) < 0) {
+    FUNC_END_RET("ret == -1;  connection to rados failed");
+    return -1;
+  }
+  
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time);
   if (ret_val < 0) {
     if (ret_val == ((-1) * ENOENT)) {

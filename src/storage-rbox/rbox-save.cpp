@@ -160,7 +160,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   r_ctx->failed = FALSE;
 
   if (rbox_open_rados_connection(_ctx->dest_mail->box) < 0) {
-    FUNC_END_RET("ret == -1 connection to rados failed"); 
+    FUNC_END_RET("ret == -1 connection to rados failed");
     return -1;
   }
 
@@ -250,6 +250,14 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
     version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
     write_op_xattr->setxattr(key.c_str(), version_bl);
   }
+
+  {
+    std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
+    bufferlist bl;
+    bl.append(guid_128_to_string(ctx->mbox->mailbox_guid));
+    write_op_xattr->setxattr(key.c_str(), bl);
+  }
+
   {
     std::string key(1, (char)RBOX_METADATA_GUID);
     bufferlist bl;
@@ -452,7 +460,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
         buffer_t *mail_buffer = (buffer_t *)r_ctx->current_object->get_mail_buffer();
         size_t write_buffer_size = buffer_get_used_size(mail_buffer);
-        
+
         rbox_save_mail_write_metadata(r_ctx, write_op_xattr, write_buffer_size);
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));

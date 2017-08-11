@@ -8,6 +8,10 @@
 #include "rados-mail-object.h"
 
 enum rbox_metadata_key {
+  /*
+   * mailbox global unique id the mail currently is in.
+   */
+  RBOX_METADATA_MAILBOX_GUID = 'M',
   /* Globally unique identifier for the message. Preserved when
      copying. */
   RBOX_METADATA_GUID = 'G',
