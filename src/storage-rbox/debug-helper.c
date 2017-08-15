@@ -69,6 +69,24 @@ static const char *t_strflocaltime(const char *fmt, time_t t) { return strftime_
 
 const char *unixdate2str(time_t timestamp) { return t_strflocaltime("%Y-%m-%d %H:%M:%S", timestamp); }
 
+/* Obtain a backtrace and print it to stdout. */
+void print_trace(void) {
+  void *array[20];
+  size_t size;
+  char **strings;
+  size_t i;
+
+  size = backtrace(array, 20);
+  strings = backtrace_symbols(array, size);
+
+  i_debug("");
+  for (i = 1; i < size; i++)
+    i_debug("stack[%d]: %s", i, strings[i]);
+  i_debug("");
+
+  free(strings);
+}
+
 void debug_print_mail(struct mail *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("mail")
 
