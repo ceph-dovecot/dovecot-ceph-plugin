@@ -344,7 +344,10 @@ class rados_dict_transaction_context {
     guid_128_generate(guid);
     FUNC_END();
   }
-  ~rados_dict_transaction_context() {}
+  ~rados_dict_transaction_context() {
+    FUNC_START();
+    FUNC_END();
+  }
 
   ObjectWriteOperation &get_op(const std::string &key) {
     if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -417,12 +420,13 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp, 
 
   std::lock_guard<std::mutex> lock(transaction_lock);
 
-  c->result_private = c->completion_private->get_return_value();
   i_debug("rados_dict_transaction_private_complete_callback() result=%d (%s)", c->result_private,
           strerror(-c->result_private));
   if (c->dirty_shared) {
     finished = c->result_private != -ENORESULT;
   }
+
+  c->result_private = c->completion_private->get_return_value();
 
   if (finished) {
     i_debug("rados_dict_transaction_private_complete_callback() finished...");
@@ -447,11 +451,11 @@ static void rados_dict_transaction_shared_complete_callback(completion_t comp, v
 
   std::lock_guard<std::mutex> lock(transaction_lock);
 
-  c->result_shared = c->completion_shared->get_return_value();
-
   if (c->dirty_private) {
     finished = c->result_private != -ENORESULT;
   }
+
+  c->result_shared = c->completion_shared->get_return_value();
 
   if (finished) {
     i_debug("rados_dict_transaction_shared_complete_callback() finished...");
@@ -463,7 +467,7 @@ static void rados_dict_transaction_shared_complete_callback(completion_t comp, v
                                                  : DICT_COMMIT_RET_OK),
                   c->context);
     }
-    // delete c;
+    delete c;
   }
   FUNC_END();
 }
