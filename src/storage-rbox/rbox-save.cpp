@@ -283,7 +283,7 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
     }
   }
   {
-    if (mdata->pop3_order != NULL) {
+    if (mdata->pop3_order != 0) {
       std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
 
       bufferlist bl;
