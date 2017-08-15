@@ -253,7 +253,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
 
   if (box->list->ns->owner != nullptr) {
     i_debug("Namespace owner : %s setting rados namespace", box->list->ns->owner->username);
-    ((struct rbox_storage *)box->storage)->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
+    mbox->storage->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
   }
   return 0;
 }
