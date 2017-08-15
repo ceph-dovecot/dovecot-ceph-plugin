@@ -8,9 +8,21 @@ struct index_mail_data;
 
 #define btoa(x) ((x) ? "true" : "false")
 
+#define PRINT_FUNC
+
+#ifdef PRINT_FUNC
 #define FUNC_START() i_debug("[START] %s: %s at line %d", __FILE__, __func__, __LINE__)
+#define FUNC_START_PID() i_debug("[START (%d)] %s: %s at line %d", getpid(), __FILE__, __func__, __LINE__)
 #define FUNC_END() i_debug("[END] %s: %s at line %d\n", __FILE__, __func__, __LINE__)
 #define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
+#else
+#define FUNC_START()
+#define FUNC_START_PID()
+#define FUNC_END()
+#define FUNC_END_RET(ret)
+#endif
+
+void print_trace(void);
 
 const char *unixdate2str(time_t timestamp);
 
