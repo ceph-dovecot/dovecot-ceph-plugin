@@ -6,10 +6,9 @@
 #include <list>
 #include <string>
 #include <cstdint>
+#include <mutex>
 
 #include <rados/librados.hpp>
-
-typedef std::shared_ptr<librados::AioCompletion> AioCompletionPtr;
 
 namespace librmb {
 
@@ -28,7 +27,9 @@ class RadosDictionary {
 
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 
-  std::list<AioCompletionPtr> completions;
+  void remove_completion(librados::AioCompletion* c);
+  void push_back_completion(librados::AioCompletion* c);
+  void wait_for_completions();
 
   int get(const std::string& key, std::string* value_r);
 
@@ -36,6 +37,9 @@ class RadosDictionary {
   librados::IoCtx io_ctx;
   std::string oid;
   std::string username;
+
+  std::list<librados::AioCompletion*> completions;
+  std::mutex completions_mutex;
 };
 
 }  // namespace librmb
