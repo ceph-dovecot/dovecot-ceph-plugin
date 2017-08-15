@@ -198,8 +198,8 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
-  
-  if (rbox_open_rados_connection(mail->box) < 0) {
+
+  if (rbox_open_rados_connection(ctx->dest_mail->box) < 0) {
     FUNC_END_RET("ret == -1, connection to rados failed");
     return -1;
   }
