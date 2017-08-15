@@ -8,7 +8,6 @@
 #include <set>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <utility>
 #include <cstdint>
 
@@ -21,7 +20,6 @@ using namespace librmb;            // NOLINT
 
 using std::string;
 using std::stringstream;
-using std::vector;
 using std::map;
 using std::pair;
 using std::set;
@@ -36,10 +34,10 @@ RadosDictionary::RadosDictionary(librados::IoCtx *ctx, const string &username, c
 RadosDictionary::~RadosDictionary() { get_io_ctx().close(); }
 
 const string RadosDictionary::get_full_oid(const std::string &key) {
-  if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
-    return get_shared_oid();
-  } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
+  if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
     return get_private_oid();
+  } else if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
+    return get_shared_oid();
   } else {
     // TODO(peter) i_unreached();
   }
@@ -77,4 +75,24 @@ int RadosDictionary::get(const string &key, string *value_r) {
   }
 
   return err;
+}
+
+void RadosDictionary::remove_completion(librados::AioCompletion *c) {
+  completions_mutex.lock();
+  completions.remove(c);
+  completions_mutex.unlock();
+}
+void RadosDictionary::push_back_completion(librados::AioCompletion *c) {
+  completions_mutex.lock();
+  completions.push_back(c);
+  completions_mutex.unlock();
+}
+
+void RadosDictionary::wait_for_completions() {
+  while (!completions.empty()) {
+    auto c = completions.front();
+    c->wait_for_complete_and_cb();
+    remove_completion(c);
+    c->release();
+  }
 }

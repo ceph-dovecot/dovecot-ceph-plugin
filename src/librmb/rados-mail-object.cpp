@@ -9,7 +9,7 @@ using namespace librmb;    // NOLINT
 
 const std::string RadosMailObject::X_ATTR_STATE = "STATE";
 const std::string RadosMailObject::X_ATTR_STATE_VALUES[] = {"S", "F"};
-const std::string RadosMailObject::X_ATTR_VERSION = "VERSION";
+const std::string RadosMailObject::X_ATTR_VERSION = "V";
 const std::string RadosMailObject::X_ATTR_VERSION_VALUE = "0.1";
 
 
