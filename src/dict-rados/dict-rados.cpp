@@ -414,60 +414,74 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
 
 static void rados_dict_transaction_private_complete_callback(completion_t comp, void *arg) {
   FUNC_START();
-  rados_dict_transaction_context *c = reinterpret_cast<rados_dict_transaction_context *>(arg);
-  RadosDictionary *d = ((struct rados_dict *)c->ctx.dict)->d;
+  rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(arg);
+  RadosDictionary *d = ((struct rados_dict *)ctx->ctx.dict)->d;
   bool finished = true;
 
   std::lock_guard<std::mutex> lock(transaction_lock);
 
-  i_debug("rados_dict_transaction_private_complete_callback() result=%d (%s)", c->result_private,
-          strerror(-c->result_private));
-  if (c->dirty_shared) {
-    finished = c->result_private != -ENORESULT;
+  i_debug("rados_dict_transaction_private_complete_callback() result=%d (%s)", ctx->result_private,
+          strerror(-ctx->result_private));
+  if (ctx->dirty_shared) {
+    finished = ctx->result_private != -ENORESULT;
   }
 
-  c->result_private = c->completion_private->get_return_value();
+  ctx->result_private = ctx->completion_private->get_return_value();
+
+  if (ctx->locked_private) {
+    int err = d->get_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    i_debug("rados_dict_transaction_private_complete_callback(): unlock(%s) ret=%d (%s)", d->get_private_oid().c_str(),
+            err, strerror(-err));
+  }
 
   if (finished) {
     i_debug("rados_dict_transaction_private_complete_callback() finished...");
-    if (c->callback != nullptr) {
+    if (ctx->callback != nullptr) {
       i_debug("rados_dict_transaction_private_complete_callback() call callback func...");
-      c->callback(c->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND
-                                          : (c->get_result(c->result_private) < 0 || c->get_result(c->result_shared) < 0
-                                                 ? DICT_COMMIT_RET_FAILED
-                                                 : DICT_COMMIT_RET_OK),
-                  c->context);
+      ctx->callback(ctx->atomic_inc_not_found
+                        ? DICT_COMMIT_RET_NOTFOUND
+                        : (ctx->get_result(ctx->result_private) < 0 || ctx->get_result(ctx->result_shared) < 0
+                               ? DICT_COMMIT_RET_FAILED
+                               : DICT_COMMIT_RET_OK),
+                    ctx->context);
     }
-    delete c;
+    delete ctx;
   }
   FUNC_END();
 }
 
 static void rados_dict_transaction_shared_complete_callback(completion_t comp, void *arg) {
   FUNC_START();
-  rados_dict_transaction_context *c = reinterpret_cast<rados_dict_transaction_context *>(arg);
-  RadosDictionary *d = ((struct rados_dict *)c->ctx.dict)->d;
+  rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(arg);
+  RadosDictionary *d = ((struct rados_dict *)ctx->ctx.dict)->d;
   bool finished = true;
 
   std::lock_guard<std::mutex> lock(transaction_lock);
 
-  if (c->dirty_private) {
-    finished = c->result_private != -ENORESULT;
+  if (ctx->dirty_private) {
+    finished = ctx->result_private != -ENORESULT;
   }
 
-  c->result_shared = c->completion_shared->get_return_value();
+  ctx->result_shared = ctx->completion_shared->get_return_value();
+
+  if (ctx->locked_shared) {
+    int err = d->get_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    i_debug("rados_dict_transaction_shared_complete_callback(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(),
+            err, strerror(-err));
+  }
 
   if (finished) {
     i_debug("rados_dict_transaction_shared_complete_callback() finished...");
-    if (c->callback != nullptr) {
+    if (ctx->callback != nullptr) {
       i_debug("rados_dict_transaction_shared_complete_callback() call callback func...");
-      c->callback(c->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND
-                                          : (c->get_result(c->result_private) < 0 || c->get_result(c->result_shared) < 0
-                                                 ? DICT_COMMIT_RET_FAILED
-                                                 : DICT_COMMIT_RET_OK),
-                  c->context);
+      ctx->callback(ctx->atomic_inc_not_found
+                        ? DICT_COMMIT_RET_NOTFOUND
+                        : (ctx->get_result(ctx->result_private) < 0 || ctx->get_result(ctx->result_shared) < 0
+                               ? DICT_COMMIT_RET_FAILED
+                               : DICT_COMMIT_RET_OK),
+                    ctx->context);
     }
-    delete c;
+    delete ctx;
   }
   FUNC_END();
 }
@@ -519,6 +533,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
       i_debug("rados_dict_transaction_commit(): aio_operate(%s) ret=%d (%s)", d->get_shared_oid().c_str(), ret,
               strerror(-ret));
       failed |= ret < 0;
+
       if (!failed && async) {
         d->push_back_completion(ctx->completion_shared);
       }
