@@ -181,6 +181,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     }
 
     completion->wait_for_complete();
+    completion->release();
     // reset io_ctx
     dest_io_ctx.set_namespace(ns_src_mail);
   }

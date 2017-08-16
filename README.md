@@ -30,6 +30,11 @@ A mail is immutable regarding its RFC5322 content and some attributes know at th
 * Save Date= "S", long stored as string
 * POP3 UIDL = "P", string
 * POP3 Order = "O", unsigned int stored as string
+* Mailbox GUID = "M", Mailbox Guid as hex string
+* Physical Size = "Z", mails physical size
+* Virtual Size = "V", mails's virtual size
+* Mail UID = "U", uint32_t mail uid
+* Version = "I", rbox-storage version
 
 All writable attributes like flags or keywords are stored in Dovecot index files only. 
 
@@ -106,7 +111,10 @@ for i in {1..100}
 ````
 
 ### IMAP
-...
+It is not ncecessary to add or modify test profiles.
+imap test can be started with the following command.
+
+imaptest user=t%d pass=t port=10143
 
 ### POP3
 If POP3 is used for the ImapTest, it is necessary to add or modify some configuration entries.
@@ -115,6 +123,8 @@ If POP3 is used for the ImapTest, it is necessary to add or modify some configur
 
 ````
 ulimit -n 3072
+ulimit -s unlimited
+
 ````
 
 #### Dovecot / LMTP
