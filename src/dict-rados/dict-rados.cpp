@@ -16,7 +16,7 @@
 
 #include <utility>
 #include <cstdint>
-#include <mutex>
+#include <mutex>  // NOLINT
 
 #include <rados/librados.hpp>
 
