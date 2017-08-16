@@ -243,14 +243,14 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
                                   long unsigned int message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-
+  struct mail_save_context *_ctx = (struct mail_save_context *)ctx;
+  
   {
-    std::string key = RadosMailObject::X_ATTR_VERSION;
+    std::string key(1, (char)RBOX_METADATA_VERSION);
     bufferlist version_bl;
     version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
     write_op_xattr->setxattr(key.c_str(), version_bl);
   }
-
   {
     std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
     bufferlist bl;
@@ -283,7 +283,7 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
     }
   }
   {
-    if (mdata->pop3_order != NULL) {
+    if (mdata->pop3_order != 0) {
       std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
 
       bufferlist bl;
@@ -492,98 +492,129 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
-int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
-  FUNC_START();
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct mailbox_transaction_context *_t = _ctx->transaction;
-
-  const struct mail_index_header *hdr;
+static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TYPE(seq_range) * uids) {
   struct seq_range_iter iter;
+  unsigned int n = 0;
+  uint32_t uid;
+  bool ret;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  i_assert(r_ctx->finished);
-
-  r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
-
-  // if one write fails! all writes will be reverted and r_ctx->failed is true!
-  if (r_ctx->failed) {
-    for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
-         ++it) {
-      r_ctx->current_object = *it;
-      // delete index entry and delete object if it exist
-      // remove entry from index is not successful in rbox_transaction_commit_post
-      // clean up will wait for object operation to complete
-      clean_up_failed(r_ctx);
-    }
-  }
-
-  int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
-  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
-    r_ctx->failed = TRUE;
-    rbox_transaction_save_rollback(_ctx);
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
-
-  hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
-  mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
-  _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
-
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
-  FUNC_END();
-  return 0;
-}
-
-void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
-                                       struct mail_index_transaction_commit_result *result) {
-  FUNC_START();
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-
-  _ctx->transaction = NULL; /* transaction is already freed */
-
-  mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
-
-  (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
-
-  rbox_transaction_save_rollback(_ctx);
-
-  FUNC_END();
-}
-
-void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
-  FUNC_START();
-
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
-
-  if (!r_ctx->finished) {
-    rbox_save_cancel(&r_ctx->ctx);
-  }
-
-  if (r_ctx->sync_ctx != NULL)
-    (void)rbox_sync_finish(&r_ctx->sync_ctx, FALSE);
-
-  if (r_ctx->failed) {
-    // delete index entry and delete object if it exist
-    clean_up_failed(r_ctx);
-  }
-
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
+  seq_range_array_iter_init(&iter, uids);
 
   for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    buffer_t *mail_buffer = (buffer_t *)(*it)->get_mail_buffer();
-    buffer_free(&mail_buffer);
-    delete *it;
+    r_ctx->current_object = *it;
+    ret = seq_range_array_iter_nth(&iter, n++, &uid);
+    i_assert(ret);
+    {
+      std::string value = std::to_string(uid);
+      std::string key(1, (char)RBOX_METADATA_MAIL_UID);
+      bufferlist bl;
+      bl.append(value);
+      int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), key.c_str(), bl);
+      if (ret_val < 0) {
+        return -1;
+      }
+    }
   }
-  r_ctx->objects.clear();
+  i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
+  return 0;
+  }
 
-  guid_128_empty(r_ctx->mail_guid);
-  guid_128_empty(r_ctx->mail_oid);
+  int rbox_transaction_save_commit_pre(struct mail_save_context * _ctx) {
+    FUNC_START();
+    struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+    struct mailbox_transaction_context *_t = _ctx->transaction;
 
-  delete r_ctx;
+    const struct mail_index_header *hdr;
+    struct seq_range_iter iter;
+    struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  FUNC_END();
-}
+    i_assert(r_ctx->finished);
+
+    r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
+
+    // if one write fails! all writes will be reverted and r_ctx->failed is true!
+    if (r_ctx->failed) {
+        // delete index entry and delete object if it exist
+        // remove entry from index is not successful in rbox_transaction_commit_post
+        // clean up will wait for object operation to complete
+        clean_up_failed(r_ctx);
+    }
+
+    int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
+    if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
+      r_ctx->failed = TRUE;
+      rbox_transaction_save_rollback(_ctx);
+      debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
+      FUNC_END_RET("ret == -1");
+      return -1;
+    }
+
+    hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
+    mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
+    _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
+    i_debug("RBOX_SAVE_UID: %d", hdr->next_uid);
+
+    uint32_t uid;
+    seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
+
+    rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids);
+
+    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
+    FUNC_END();
+    return 0;
+  }
+
+  void rbox_transaction_save_commit_post(struct mail_save_context * _ctx,
+                                         struct mail_index_transaction_commit_result * result) {
+    FUNC_START();
+    struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+
+    _ctx->transaction = NULL; /* transaction is already freed */
+
+    mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
+
+    (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
+    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
+
+    rbox_transaction_save_rollback(_ctx);
+
+    FUNC_END();
+  }
+
+  void rbox_transaction_save_rollback(struct mail_save_context * _ctx) {
+    FUNC_START();
+
+    struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+    struct mail_storage *storage = &r_ctx->mbox->storage->storage;
+    struct rbox_storage *r_storage = (struct rbox_storage *)storage;
+
+    if (!r_ctx->finished) {
+      rbox_save_cancel(&r_ctx->ctx);
+    }
+
+    if (r_ctx->sync_ctx != NULL)
+      (void)rbox_sync_finish(&r_ctx->sync_ctx, FALSE);
+
+    if (r_ctx->failed) {
+      // delete index entry and delete object if it exist
+      clean_up_failed(r_ctx);
+    }
+
+    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
+
+    for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end();
+         ++it) {
+      buffer_t *mail_buffer = (buffer_t *)(*it)->get_mail_buffer();
+      buffer_free(&mail_buffer);
+      delete *it;
+    }
+    r_ctx->objects.clear();
+
+    guid_128_empty(r_ctx->mail_guid);
+    guid_128_empty(r_ctx->mail_oid);
+
+    delete r_ctx;
+
+    FUNC_END();
+  }

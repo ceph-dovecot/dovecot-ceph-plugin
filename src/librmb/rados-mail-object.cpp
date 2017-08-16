@@ -7,12 +7,7 @@
 using namespace librados;  // NOLINT
 using namespace librmb;    // NOLINT
 
-const std::string RadosMailObject::X_ATTR_STATE = "STATE";
-const std::string RadosMailObject::X_ATTR_STATE_VALUES[] = {"S", "F"};
-const std::string RadosMailObject::X_ATTR_VERSION = "VERSION";
 const std::string RadosMailObject::X_ATTR_VERSION_VALUE = "0.1";
-
-
 const std::string RadosMailObject::DATA_BUFFER_NAME = "RADOS_MAIL_BUFFER";
 
 void RadosMailObject::set_guid(const uint8_t* guid) {
