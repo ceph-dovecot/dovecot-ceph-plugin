@@ -116,6 +116,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
     librados::ObjectWriteOperation write_op;
+    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
     if (ctx->moving != TRUE) {
       rbox_add_to_index(ctx);
       index_copy_cache_fields(ctx, mail, r_ctx->seq);
@@ -132,9 +133,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       } else {
         src_io_ctx = dest_io_ctx;
       }
-      i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
+	  i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
       write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
-
+      
       // we need to update the mailbox x attr.
       {
         std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
@@ -152,10 +153,11 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       write_op.mtime(&save_time);
 
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
+      
+      ret_val = dest_io_ctx.aio_operate(dest_oid, completion, &write_op);
+      i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
 
-      ret_val = dest_io_ctx.operate(dest_oid, &write_op);
-      i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", src_oid.c_str(), ret_val, save_time);
-
+      completion->wait_for_complete();
       // reset io_ctx
       dest_io_ctx.set_namespace(ns_src_mail);
     } else {
@@ -198,7 +200,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
-  
+
   if (rbox_open_rados_connection(mail->box) < 0) {
     FUNC_END_RET("ret == -1, connection to rados failed");
     return -1;
