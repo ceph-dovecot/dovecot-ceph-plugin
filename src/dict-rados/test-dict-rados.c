@@ -89,7 +89,7 @@ static void test_lookup_callback(const struct dict_lookup_result *result, void *
   else {
     i_debug("test_lookup_callback(): value=%s", result->value);
     if (context != NULL) {
-      *((char **)context) = i_strdup(result->value);
+      *((char **)context) = p_strdup(test_pool, result->value);
     }
   }
   pending--;

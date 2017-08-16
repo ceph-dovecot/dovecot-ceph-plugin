@@ -544,10 +544,12 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
         if (ctx->dirty_private) {
           ctx->completion_private->wait_for_complete();
           failed = ctx->completion_private->get_return_value() < 0;
+          ctx->completion_private->release();
         }
         if (ctx->dirty_shared) {
           ctx->completion_shared->wait_for_complete();
           failed |= ctx->completion_shared->get_return_value() < 0;
+          ctx->completion_shared->release();
         }
         if (callback != NULL) {
           callback(failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK, context);
