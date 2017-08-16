@@ -437,6 +437,12 @@ void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_ite
   cb_data->box = box;
 
   completion->set_complete_callback((void *)cb_data, remove_callback);
+
+  if (rbox_open_rados_connection(box) < 0) {
+    i_debug("rbox_sync_object_expunge: connection to rados failed");
+    return;
+  }
+
   ret = r_storage->s->get_io_ctx().aio_remove(oid, completion);
 
   completion->wait_for_complete_and_cb();
