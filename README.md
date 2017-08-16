@@ -24,7 +24,7 @@ The mail objects and CephFS should be placed in different RADOS pools. The mail 
 
 A mail is immutable regarding its RFC5322 content and some attributes know at the time of saving. The RFC5322 content is written as RADOS object data without any modifications. The immutable attributes Dovecot is using, are stored as RADOS xattr. Their values are stored in string representation. Right now, the following attributes are stored with the objects
 
-* rbox format version = "VERSION", currently "0.1"
+* rbox format version = "I", currently "0.1"
 * GUID = "G", UUID as hex string
 * Received Date = "R", long stored as string
 * Save Date= "S", long stored as string
@@ -34,7 +34,6 @@ A mail is immutable regarding its RFC5322 content and some attributes know at th
 * Physical Size = "Z", mails physical size
 * Virtual Size = "V", mails's virtual size
 * Mail UID = "U", uint32_t mail uid
-* Version = "I", rbox-storage version
 
 All writable attributes like flags or keywords are stored in Dovecot index files only. 
 
