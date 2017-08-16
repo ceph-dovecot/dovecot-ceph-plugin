@@ -133,9 +133,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       } else {
         src_io_ctx = dest_io_ctx;
       }
-	  i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
+      i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
       write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
-      
+
       // we need to update the mailbox x attr.
       {
         std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
@@ -153,13 +153,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       write_op.mtime(&save_time);
 
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
-      
+
       ret_val = dest_io_ctx.aio_operate(dest_oid, completion, &write_op);
       i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
 
-      completion->wait_for_complete();
-      // reset io_ctx
-      dest_io_ctx.set_namespace(ns_src_mail);
     } else {
       std::string src_oid = rmail->mail_object->get_oid();
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
@@ -177,10 +174,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         struct rbox_mailbox *r_ctx = (struct rbox_mailbox *)ctx->dest_mail->box;
         bl.append(guid_128_to_string(r_ctx->mailbox_guid));
         write_op.setxattr(key.c_str(), bl);
-        int ret_val = dest_io_ctx.operate(src_oid, &write_op);
+
+        int ret_val = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
         i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), ret_val);
       }
     }
+
+    completion->wait_for_complete();
+    // reset io_ctx
+    dest_io_ctx.set_namespace(ns_src_mail);
   }
   FUNC_END();
   return ret_val;
