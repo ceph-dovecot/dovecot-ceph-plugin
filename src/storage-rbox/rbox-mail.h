@@ -35,6 +35,8 @@ enum rbox_metadata_key {
      placed to this mailbox. */
   RBOX_METADATA_ORIG_MAILBOX = 'B',
 
+  RBOX_METADATA_MAIL_UID = 'U',
+  RBOX_METADATA_VERSION = 'I',
   /*
    * Mails from envelope
    */

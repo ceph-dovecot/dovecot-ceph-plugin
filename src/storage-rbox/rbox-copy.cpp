@@ -116,6 +116,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
     librados::ObjectWriteOperation write_op;
+    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
     if (ctx->moving != TRUE) {
       rbox_add_to_index(ctx);
       index_copy_cache_fields(ctx, mail, r_ctx->seq);
@@ -153,11 +154,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
 
-      ret_val = dest_io_ctx.operate(dest_oid, &write_op);
-      i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", src_oid.c_str(), ret_val, save_time);
+      ret_val = dest_io_ctx.aio_operate(dest_oid, completion, &write_op);
+      i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
 
-      // reset io_ctx
-      dest_io_ctx.set_namespace(ns_src_mail);
     } else {
       std::string src_oid = rmail->mail_object->get_oid();
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
@@ -175,10 +174,16 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         struct rbox_mailbox *r_ctx = (struct rbox_mailbox *)ctx->dest_mail->box;
         bl.append(guid_128_to_string(r_ctx->mailbox_guid));
         write_op.setxattr(key.c_str(), bl);
-        int ret_val = dest_io_ctx.operate(src_oid, &write_op);
+
+        int ret_val = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
         i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), ret_val);
       }
     }
+
+    completion->wait_for_complete();
+    completion->release();
+    // reset io_ctx
+    dest_io_ctx.set_namespace(ns_src_mail);
   }
   FUNC_END();
   return ret_val;

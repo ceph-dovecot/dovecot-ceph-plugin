@@ -27,9 +27,6 @@ class RadosMailObject {
   void set_guid(const uint8_t* guid);
 
   const std::string get_oid() { return this->oid; }
-  const std::string get_state() { return state; }
-  const std::string get_initial_state_value() { return X_ATTR_STATE_VALUES[0]; }
-  const std::string get_finised_state_value() { return X_ATTR_STATE_VALUES[1]; }
   const std::string get_version() { return this->version; }
 
   uint8_t* get_guid_ref() { return guid; }
@@ -63,9 +60,6 @@ class RadosMailObject {
 
  public:
   // X_ATTRIBUTES
-  static const std::string X_ATTR_STATE;
-  static const std::string X_ATTR_STATE_VALUES[];
-  static const std::string X_ATTR_VERSION;
   static const std::string X_ATTR_VERSION_VALUE;
 
 
