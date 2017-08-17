@@ -44,7 +44,7 @@ static char pool_name[256];
 static struct ioloop *test_ioloop = NULL;
 static pool_t test_pool;
 
-static char *uri;
+static char uri[1024];
 
 extern struct dict dict_driver_rados;
 
@@ -573,6 +573,9 @@ int main(int argc, const char *argv[]) {
                            test_teardown,
                            NULL};
 
+  printf("%s Version %s \nreport bugs to %s \n", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME,
+         DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION, DOVECOT_RADOS_PLUGINS_PACKAGE_BUGREPORT);
+
   // prepare Ceph
   int ret = 0;
   int pool_created = 0;
@@ -652,7 +655,7 @@ int main(int argc, const char *argv[]) {
   guid_128_t guid;
   guid_128_generate(guid);
   sprintf(pool_name, "test_dict_rados_%s", guid_128_to_string(guid));
-  uri = t_strdup_printf("oid=metadata:pool=%s", pool_name);
+  sprintf(uri, "oid=metadata:pool=%s", pool_name);
 
   ret = rados_pool_create(rados, pool_name);
   if (ret < 0 && ret != -EEXIST) {

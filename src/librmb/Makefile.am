@@ -3,9 +3,7 @@ AM_CPPFLAGS =
 
 AM_CXXFLAGS = 
 
-# noinst_LTLIBRARIES = librmb.la
-
-module_LTLIBRARIES = \
+lib_LTLIBRARIES = \
 	librmb.la
 
 librmb_la_SOURCES = \
