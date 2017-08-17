@@ -85,6 +85,12 @@ Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folde
 
 We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Ceph cluster we used for the first tests runs locally and has been created using _vstart.sh_ (See [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md)). We test the protocols IMAP and POP3. Before you can start the tests you have to fit the environment.
 
+For librmb we use [googletest](https://github.com/google/googletest) C++ Framework. 
+
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md). 
+
+    ../src/vstart.sh -X -n -l 
+
 ### Common
 Create 100 user:
 Name = t1 .. t100, Password = t

@@ -244,7 +244,7 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
   struct mail_save_context *_ctx = (struct mail_save_context *)ctx;
-  
+
   {
     std::string key(1, (char)RBOX_METADATA_VERSION);
     bufferlist version_bl;
@@ -352,16 +352,7 @@ bool wait_for_rados_operations(std::vector<librmb::RadosMailObject *> &object_li
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
-      for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
-               (*it_cur_obj)->get_completion_op_map()->begin();
-           map_it != (*it_cur_obj)->get_completion_op_map()->end(); ++map_it) {
-        map_it->first->wait_for_complete_and_cb();
-        ctx_failed = map_it->first->get_return_value() < 0 || ctx_failed ? true : false;
-        // clean up
-        map_it->first->release();
-        map_it->second->remove();
-        delete map_it->second;
-      }
+      ctx_failed = (*it_cur_obj)->wait_for_write_operations_complete();
       i_debug("OID %s, SAVED success=%s", (*it_cur_obj)->get_oid().c_str(),
               ctx_failed ? "false" : "true");  //, file_size);
       (*it_cur_obj)->get_completion_op_map()->clear();
@@ -398,46 +389,6 @@ void clean_up_write_finish(struct mail_save_context *_ctx) {
   index_save_context_free(_ctx);
 }
 
-int split_buffer_and_exec_op(const buffer_t *buffer, size_t buffer_length, uint64_t max_size,
-                             struct rbox_save_context *r_ctx, librados::ObjectWriteOperation *write_op_xattr) {
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  size_t write_buffer_size = buffer_length;
-  int ret_val = 0;
-  assert(max_size > 0);
-
-  int rest = write_buffer_size % max_size;
-  int div = write_buffer_size / max_size + (rest > 0 ? 1 : 0);
-  for (int i = 0; i < div; i++) {
-    int offset = i * max_size;
-
-    librados::ObjectWriteOperation *op = i == 0 ? write_op_xattr : new librados::ObjectWriteOperation();
-
-    int length = max_size;
-    if (buffer_length < ((i + 1) * length)) {
-      length = rest;
-    }
-    const char *buf = (char *)buffer->data + offset;
-    librados::bufferlist tmp_buffer;
-    tmp_buffer.append(buf, length);
-    op->write(offset, tmp_buffer);
-
-    AioCompletion *completion = librados::Rados::aio_create_completion();
-    completion->set_complete_callback(r_ctx->current_object, nullptr);
-
-    (*r_ctx->current_object->get_completion_op_map())[completion] = op;
-
-    i_debug("creation aio operation %s, div=%d, offset=%d, length=%d", r_ctx->current_object->get_oid().c_str(), div,
-            offset, length);
-
-    ret_val = r_storage->s->get_io_ctx().aio_operate(r_ctx->current_object->get_oid(), completion, op);
-    if (ret_val < 0) {
-      break;
-    }
-  }
-
-  return ret_val;
-}
-
 int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
@@ -465,8 +416,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 
-        // ObjectWriteOperation write_op_xattr is used for mails with data < max_write_size
-        ret = split_buffer_and_exec_op(mail_buffer, write_buffer_size, max_write_size, r_ctx, write_op_xattr);
+        ret = r_storage->s->split_buffer_and_exec_op((char *)mail_buffer->data, write_buffer_size,
+                                                     r_ctx->current_object, write_op_xattr, max_write_size);
         r_ctx->current_object->set_active_op(true);
         i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
       }

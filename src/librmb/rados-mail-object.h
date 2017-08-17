@@ -43,6 +43,8 @@ class RadosMailObject {
   void set_mail_buffer(char* mail_buffer) { this->mail_buffer = mail_buffer; }
   char* get_mail_buffer() { return this->mail_buffer; }
 
+  bool wait_for_write_operations_complete();
+
  private:
   std::string oid;
 

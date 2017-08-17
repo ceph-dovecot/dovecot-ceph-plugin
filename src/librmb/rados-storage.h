@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include <rados/librados.hpp>
+#include "rados-mail-object.h"
 
 namespace librmb {
 
@@ -20,6 +21,9 @@ class RadosStorage {
 
   const int get_max_write_size() const { return max_write_size; }
   const int get_max_write_size_bytes() const { return max_write_size * 1024 * 1024; }
+
+  int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
+                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 
  private:
   librados::IoCtx io_ctx;

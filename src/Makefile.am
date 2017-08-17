@@ -1,1 +1,1 @@
-SUBDIRS = librmb dict-rados storage-rbox
+SUBDIRS = librmb dict-rados storage-rbox tests
