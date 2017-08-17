@@ -6,9 +6,18 @@ SUBDIRS = \
 	src 
 
 EXTRA_DIST = \
+	COPYINGq \
 	ChangeLog
 
-nodist_pkginclude_HEADERS = config.h dovecot-rados-plugins-config.h
+EXTRA_DIST = \
+	COPYING.LGPL \
+	COPYING.MIT \
+	ChangeLog \
+	update-version.sh \
+	run-test-valgrind.supp \
+	$(conf_DATA)
+
+nodist_pkginclude_HEADERS = config-local.h dovecot-rados-plugins-config.h
 
 ChangeLog:
 	git log --name-status --pretty="format:%ai %aN <%aE> (%h)%n%n%w(80,4,4)%s%n%n%b" . > ChangeLog || rm -f ChangeLog

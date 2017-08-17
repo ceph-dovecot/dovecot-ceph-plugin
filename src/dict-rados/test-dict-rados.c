@@ -573,7 +573,7 @@ int main(int argc, const char *argv[]) {
                            test_teardown,
                            NULL};
 
-  printf("%s Version %s \nreport bugs to %s \n", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME,
+  printf("%s Version %s \nreport bugs to v%s \n\n", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME,
          DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION, DOVECOT_RADOS_PLUGINS_PACKAGE_BUGREPORT);
 
   // prepare Ceph
