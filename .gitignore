@@ -77,3 +77,5 @@ libtool
 *.app
 /.settings/
 /dovecot/
+/build-aux/
+/m4/
