@@ -1,1 +1,15 @@
-SUBDIRS = librmb dict-rados storage-rbox tests
+if BUILD_DICT_RADOS
+DICT_RADOS = dict-rados
+endif
+if BUILD_STORAGE_RBOX
+STORAGE_RBOX = storage-rbox
+endif
+if BUILD_LIBRMB_TESTS
+BUILD_LIBRMB_TESTS = tests
+endif
+
+SUBDIRS = \
+    librmb \
+	$(DICT_RADOS) \
+    $(STORAGE_RBOX) \
+	$(BUILD_LIBRMB_TESTS)
