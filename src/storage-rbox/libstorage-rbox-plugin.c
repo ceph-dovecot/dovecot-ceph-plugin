@@ -1,15 +1,12 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include "lib.h"
-#include "config.h"
 #include "mail-storage.h"
 
-#include "index-storage.h"
-#include "index-mail.h"
-#include "mail-copy.h"
 #include "libstorage-rbox-plugin.h"
-
 #include "rbox-storage.h"
+
+const char *storage_rbox_plugin_version = DOVECOT_ABI_VERSION;
 
 static int refcount = 0;
 
@@ -24,20 +21,15 @@ struct mail_storage rbox_storage = {
         rbox_mailbox_alloc, NULL, NULL,
     }};
 
-void storage_rbox_plugin_init(struct module *module) {
-  i_debug("storage_rbox_plugin_init refcount=%d", refcount);
+void storage_rbox_plugin_init(struct module *module ATTR_UNUSED) {
+  i_info("%s v%s storage starting up", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME, DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION);
   if (refcount++ > 0)
     return;
-  i_debug("storage_rbox_plugin_init registers rbox_storage ");
   mail_storage_class_register(&rbox_storage);
 }
 
 void storage_rbox_plugin_deinit(void) {
-  i_debug("storage_rbox_plugin_deinit refcount=%d", refcount);
   if (--refcount > 0)
     return;
-  i_debug("storage_rbox_plugin_deinit unregisters rbox_storage ");
   mail_storage_class_unregister(&rbox_storage);
 }
-
-const char *storage_rbox_plugin_version = DOVECOT_ABI_VERSION;

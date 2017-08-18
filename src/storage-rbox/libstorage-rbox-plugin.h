@@ -3,6 +3,10 @@
 #ifndef SRC_STORAGE_RBOX_LIBSTORAGE_RBOX_PLUGIN_H_
 #define SRC_STORAGE_RBOX_LIBSTORAGE_RBOX_PLUGIN_H_
 
+#ifdef HAVE_CONFIG_H
+#include "dovecot-rados-plugins-config.h"
+#endif
+
 void storage_rbox_plugin_init(struct module *module);
 void storage_rbox_plugin_deinit(void);
 

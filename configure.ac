@@ -1,12 +1,12 @@
-AC_INIT([dovecot-rbox-plugin], [1.0.0], [p.mauritius@tallence.com])
+AC_INIT([Dovecot RADOS plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
+AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_HEADERS([dovecot-rbox-plugin-config.h])
 
 AM_INIT_AUTOMAKE([no-define foreign tar-ustar subdir-objects])
 
 AM_MAINTAINER_MODE
+PKG_PROG_PKG_CONFIG
 
 dnl TEST_WITH(name, value, [plugin])
 AC_DEFUN([TEST_WITH], [
@@ -97,6 +97,28 @@ AS_HELP_STRING([--with-tests], [Build with RADOS librmb tests]),
   TEST_WITH(tests, $withval),
   want_tests=yes)
 AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
+
+
+AC_ISC_POSIX
+AC_C_INLINE
+
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_CPP
+AC_PROG_LIBTOOL
+
+AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
+AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
+
+DC_DOVECOT
+DC_DOVECOT_MODULEDIR
+LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE"
+CFLAGS="$DOVECOT_CFLAGS"
+LIBS="$LIBS $DOVECOT_LIBS"
+AC_SUBST(LIBDOVECOT_INCLUDE)
+
+AC_CONFIG_HEADERS([config-local.h])
+AX_PREFIX_CONFIG_H(,,config-local.h)
 
 AC_CONFIG_FILES([
 Makefile
