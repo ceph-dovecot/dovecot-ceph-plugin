@@ -4,6 +4,7 @@ AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([no-define foreign tar-ustar subdir-objects])
+LT_INIT([shared disable-static pic-only])
 
 AM_MAINTAINER_MODE
 PKG_PROG_PKG_CONFIG
@@ -72,53 +73,57 @@ AC_SUBST([GTEST_LDFLAGS])
 AC_SUBST([GTEST_LIBS])
 
 have_librados=no
-AC_CHECK_HEADER(rados/librados.h, [
+AC_CHECK_HEADER([rados/librados.h], [
   have_librados=yes
-  AC_DEFINE(HAVE_LIBRADOS,, [Define if you have the RADOS library])
+  AC_DEFINE([HAVE_LIBRADOS], [], [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
-], [
-    AC_ERROR([Can't build with RADOS support: librados.h not found])
-])
-
+], [AC_ERROR([Can't build with RADOS support: librados.h not found])])
+ 
+ 
 AC_ARG_WITH(dict,
-AS_HELP_STRING([--with-dict], [Build with RADOS dictionary plugin]),
+AS_HELP_STRING([--with-dict[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS dictionary plugin (yes)]),
   TEST_WITH(dict, $withval),
   want_dict=yes)
 AM_CONDITIONAL(BUILD_DICT_RADOS, test "$want_dict" = "yes")
 
 AC_ARG_WITH(storage,
-AS_HELP_STRING([--with-storage], [Build with RADOS storage plugin]),
+AS_HELP_STRING([--with-storage[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS storage plugin (yes)]),
   TEST_WITH(storage, $withval),
   want_storage=yes)
 AM_CONDITIONAL(BUILD_STORAGE_RBOX, test "$want_storage" = "yes")
 
 AC_ARG_WITH(tests,
+AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS librmb tests (yes)]),
 AS_HELP_STRING([--with-tests], [Build with RADOS librmb tests]),
   TEST_WITH(tests, $withval),
   want_tests=yes)
 AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
 
 
+DC_DOVECOT
+DC_DOVECOT_MODULEDIR
+
 AC_ISC_POSIX
 AC_C_INLINE
 
+CFLAGS+=" $DOVECOT_CFLAGS"
 AC_PROG_CC
+CXXFLAGS+=" -Wall -Wextra -fpermissive -std=c++11"
 AC_PROG_CXX
+
 AC_PROG_CPP
 AC_PROG_LIBTOOL
+
+LIBS="$LIBS $DOVECOT_LIBS"
+
+LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE"
+AC_SUBST(LIBDOVECOT_INCLUDE)
 
 AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
 AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
 
-DC_DOVECOT
-DC_DOVECOT_MODULEDIR
-LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE"
-CFLAGS="$DOVECOT_CFLAGS"
-LIBS="$LIBS $DOVECOT_LIBS"
-AC_SUBST(LIBDOVECOT_INCLUDE)
-
 AC_CONFIG_HEADERS([config-local.h])
-AX_PREFIX_CONFIG_H(,,config-local.h)
+AX_PREFIX_CONFIG_H([], [], [config-local.h])
 
 AC_CONFIG_FILES([
 Makefile
