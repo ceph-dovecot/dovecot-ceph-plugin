@@ -37,6 +37,7 @@ DC_DOVECOT_MODULEDIR
 LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE"
 CFLAGS="$DOVECOT_CFLAGS"
 LIBS="$DOVECOT_LIBS"
+AC_SUBST(LIBDOVECOT_INCLUDE)
 
 AC_MSG_RESULT([$gcc_debug])
 if test "$gcc_debug" = yes; then
@@ -63,7 +64,7 @@ else
   GTEST_LIBS=
 fi
 
-AC_SUBST(LIBDOVECOT_INCLUDE)
+
 AC_SUBST([GTEST_VERSION])
 AC_SUBST([GTEST_CPPFLAGS])
 AC_SUBST([GTEST_CXXFLAGS])
@@ -91,6 +92,12 @@ AS_HELP_STRING([--with-storage], [Build with RADOS storage plugin]),
   want_storage=yes)
 AM_CONDITIONAL(BUILD_STORAGE_RBOX, test "$want_storage" = "yes")
 
+AC_ARG_WITH(tests,
+AS_HELP_STRING([--with-tests], [Build with RADOS librmb tests]),
+  TEST_WITH(tests, $withval),
+  want_tests=yes)
+AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
@@ -100,7 +107,6 @@ src/storage-rbox/Makefile
 lib/Makefile
 lib/gtest/Makefile
 src/tests/Makefile
-
 ])
 
 AC_OUTPUT
