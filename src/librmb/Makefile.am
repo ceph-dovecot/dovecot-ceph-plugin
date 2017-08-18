@@ -1,4 +1,5 @@
 SUBDIRS = \
+    . \
     tools
      
 AM_CPPFLAGS = 
