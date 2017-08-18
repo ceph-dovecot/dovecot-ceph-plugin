@@ -13,11 +13,13 @@ extern "C" {
 #include "mailbox-list-private.h"
 #include "debug-helper.h"
 }
-
+#include "rados-mail-object.h"
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-save.h"
 #include "rbox-sync.h"
+
+using namespace librmb;
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 

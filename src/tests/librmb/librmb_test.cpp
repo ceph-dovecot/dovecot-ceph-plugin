@@ -25,6 +25,7 @@ TEST(librmb, split_write_operation) {
 
   int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
+  // wait for op to finish.
   obj.wait_for_write_operations_complete();
 
   // stat the object
@@ -35,7 +36,7 @@ TEST(librmb, split_write_operation) {
   // remove it
   int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
 
-  // wait for op to finish.
+  // tear down
   cluster.deinit();
 
   EXPECT_EQ(buffer_length, size);
@@ -66,6 +67,7 @@ TEST(librmb1, split_write_operation_1) {
 
   int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
+  // wait for op to finish.
   obj.wait_for_write_operations_complete();
 
   // stat the object
@@ -76,7 +78,7 @@ TEST(librmb1, split_write_operation_1) {
   // remove it
   int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
 
-  // wait for op to finish.
+  // tear down.
   cluster.deinit();
 
   EXPECT_EQ(buffer_length, size);

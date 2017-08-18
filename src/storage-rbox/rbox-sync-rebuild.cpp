@@ -1,3 +1,4 @@
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 extern "C" {
 #include "lib.h"
@@ -17,6 +18,10 @@ extern "C" {
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "../librmb/encoding.h"
+#include "rados-mail-object.h"
+
+
+using namespace librmb;
 
 uint32_t stoui32(const std::string &s) {
   std::istringstream reader(s);

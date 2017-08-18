@@ -1,4 +1,6 @@
-	
+SUBDIRS = \
+    tools
+     
 AM_CPPFLAGS = 
 
 AM_CXXFLAGS = 
@@ -23,4 +25,3 @@ headers = \
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)
-	

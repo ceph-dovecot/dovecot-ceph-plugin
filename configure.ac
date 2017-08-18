@@ -124,6 +124,7 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/librmb/Makefile
+src/librmb/tools/Makefile
 src/dict-rados/Makefile
 src/storage-rbox/Makefile
 lib/Makefile

@@ -240,7 +240,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 }
 
 int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
-                                  long unsigned int message_size) {
+                                  size_t &message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
   struct mail_save_context *_ctx = (struct mail_save_context *)ctx;
@@ -302,14 +302,14 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
   {
     std::string key(1, (char)RBOX_METADATA_VIRTUAL_SIZE);
     bufferlist bl;
-    std::string value = std::to_string(message_size);
+    std::string value = std::to_string((int)message_size);
     bl.append(value);
     write_op_xattr->setxattr(key.c_str(), bl);
   }
   {
     std::string key(1, (char)RBOX_METADATA_PHYSICAL_SIZE);
     bufferlist bl;
-    std::string value = std::to_string(message_size);
+    std::string value = std::to_string((int)message_size);
     bl.append(value);
     write_op_xattr->setxattr(key.c_str(), bl);
   }
