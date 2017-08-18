@@ -6,16 +6,8 @@ SUBDIRS = \
 	src 
 
 EXTRA_DIST = \
-	COPYINGq \
+	COPYING \
 	ChangeLog
-
-EXTRA_DIST = \
-	COPYING.LGPL \
-	COPYING.MIT \
-	ChangeLog \
-	update-version.sh \
-	run-test-valgrind.supp \
-	$(conf_DATA)
 
 nodist_pkginclude_HEADERS = config-local.h dovecot-rados-plugins-config.h
 
