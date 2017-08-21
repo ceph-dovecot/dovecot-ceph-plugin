@@ -1,6 +1,4 @@
-SUBDIRS = \
-    . \
-    tools
+SUBDIRS = . tools
      
 lib_LTLIBRARIES = \
 	librmb.la

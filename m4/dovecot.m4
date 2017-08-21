@@ -99,8 +99,17 @@ AC_DEFUN([DC_DOVECOT],[
 	fi,
 	use_install_dirs=yes)
 
-	AC_MSG_CHECKING([for "$dovecotdir/dovecot-config"])
+	AC_MSG_CHECKING([for "dovecot-config"])
 	if test -f "$dovecotdir/dovecot-config"; then
+		AC_MSG_RESULT([$dovecotdir/dovecot-config])
+    elif test -f "$prefix/lib64/dovecot/dovecot-config"; then
+	    dovecotdir="$prefix/lib64/dovecot"
+ 		AC_MSG_RESULT([$dovecotdir/dovecot-config])
+    elif test -f "/usr/lib/dovecot/dovecot-config"; then
+		dovecotdir="/usr/lib/dovecot"
+		AC_MSG_RESULT([$dovecotdir/dovecot-config])
+	elif test -f "/usr/lib64/dovecot/dovecot-config"; then
+		dovecotdir="/usr/lib64/dovecot"
 		AC_MSG_RESULT([$dovecotdir/dovecot-config])
 	else
 		AC_MSG_RESULT([not found])
