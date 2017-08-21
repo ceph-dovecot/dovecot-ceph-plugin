@@ -3,6 +3,10 @@
 #ifndef SRC_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_
 #define SRC_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_
 
+#ifdef HAVE_CONFIG_H
+#include "dovecot-rados-plugins-config.h"
+#endif
+
 struct module;
 
 void dict_rados_plugin_init(struct module *module);

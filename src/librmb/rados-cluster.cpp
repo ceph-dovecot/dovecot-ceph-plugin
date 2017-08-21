@@ -146,3 +146,21 @@ int RadosCluster::storage_create(const string &pool, RadosStorage **storage) {
   *storage = new RadosStorage(&io_ctx, std::stoi(max_write_size));
   return 0;
 }
+
+int RadosCluster::open_connection(RadosStorage **storage, std::string &poolname, std::string &ns) {
+  std::string error_msg;
+  if (init(&error_msg) < 0) {
+    return -1;
+  }
+
+  int ret = storage_create(poolname, storage);
+  if (ret < 0) {
+    deinit();
+    return -1;
+  }
+
+  if (!ns.empty()) {
+    (*storage)->get_io_ctx().set_namespace(ns);
+  }
+  return 0;
+}

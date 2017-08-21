@@ -77,3 +77,8 @@ libtool
 *.app
 /.settings/
 /dovecot/
+/build-aux/
+/run-test.sh
+/config-local.h.in~
+/config-local.h
+/dovecot-rados-plugins-config.h

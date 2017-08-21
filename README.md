@@ -24,7 +24,7 @@ The mail objects and CephFS should be placed in different RADOS pools. The mail 
 
 A mail is immutable regarding its RFC5322 content and some attributes know at the time of saving. The RFC5322 content is written as RADOS object data without any modifications. The immutable attributes Dovecot is using, are stored as RADOS xattr. Their values are stored in string representation. Right now, the following attributes are stored with the objects
 
-* rbox format version = "VERSION", currently "0.1"
+* rbox format version = "I", currently "0.1"
 * GUID = "G", UUID as hex string
 * Received Date = "R", long stored as string
 * Save Date= "S", long stored as string
@@ -34,7 +34,6 @@ A mail is immutable regarding its RFC5322 content and some attributes know at th
 * Physical Size = "Z", mails physical size
 * Virtual Size = "V", mails's virtual size
 * Mail UID = "U", uint32_t mail uid
-* Version = "I", rbox-storage version
 
 All writable attributes like flags or keywords are stored in Dovecot index files only. 
 
@@ -85,6 +84,12 @@ Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folde
 ## Testing
 
 We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Ceph cluster we used for the first tests runs locally and has been created using _vstart.sh_ (See [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md)). We test the protocols IMAP and POP3. Before you can start the tests you have to fit the environment.
+
+For librmb we use [googletest](https://github.com/google/googletest) C++ Framework. Googletest library is added as git submodule you can clone googletest with: git submodule update --init --recursive
+ 
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md). 
+
+    ../src/vstart.sh -X -n -l 
 
 ### Common
 Create 100 user:

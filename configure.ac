@@ -1,40 +1,164 @@
-AC_INIT([dovecot-rbox-plugin], [1.0], [p.mauritius@tallence.com])
+AC_PREREQ([2.59])
+
+AC_INIT([Dovecot RADOS plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
+AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_HEADERS([dovecot-rbox-plugin-config.h])
-
-AM_INIT_AUTOMAKE([no-define foreign tar-ustar])
+AM_INIT_AUTOMAKE([no-define foreign tar-ustar subdir-objects])
+LT_INIT([shared disable-static pic-only])
+AC_ENABLE_SHARED
+AC_DISABLE_STATIC
 
 AM_MAINTAINER_MODE
+PKG_PROG_PKG_CONFIG
+
+dnl TEST_WITH(name, value, [plugin])
+AC_DEFUN([TEST_WITH], [
+  want=want_`echo $1|sed s/-/_/g`
+  if test $2 = yes || test $2 = no || test $2 = auto; then
+    eval $want=$2
+  elif test $2 = plugin; then
+    if test "$3" = plugin; then
+      eval $want=plugin
+    else
+      AC_ERROR([--with-$1=plugin not supported])
+    fi
+  elif `echo $2|grep '^/' >/dev/null`; then
+    AC_ERROR([--with-$1=path not supported. You may want to use instead:
+CPPFLAGS=-I$2/include LDFLAGS=-L$2/lib ./configure --with-$1])
+  else
+    AC_ERROR([--with-$1: Unknown value: $2])
+  fi
+])
+
+# Look for RADOS
+have_librados=no
+AC_CHECK_HEADER([rados/librados.h], [
+  have_librados=yes
+  AC_DEFINE([HAVE_LIBRADOS], [], [Define if you have the RADOS library])
+  LIBS="$LIBS -lrados"
+], [AC_ERROR([Can't build with RADOS support: librados.h not found])])
+ 
+ 
+# Evaluate with options
+AC_ARG_WITH(dict,
+AS_HELP_STRING([--with-dict[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS dictionary plugin (yes)]),
+  TEST_WITH(dict, $withval),
+  want_dict=yes)
+AM_CONDITIONAL(BUILD_DICT_RADOS, test "$want_dict" = "yes")
+
+AC_ARG_WITH(storage,
+AS_HELP_STRING([--with-storage[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS storage plugin (yes)]),
+  TEST_WITH(storage, $withval),
+  want_storage=yes)
+AM_CONDITIONAL(BUILD_STORAGE_RBOX, test "$want_storage" = "yes")
+
+AC_ARG_WITH(tests,
+AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS librmb tests (yes)]),
+  TEST_WITH(tests, $withval),
+  want_tests=yes)
+AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
+
+# Couple Dovecot config
+DC_DOVECOT
+DC_DOVECOT_MODULEDIR
+
+CFLAGS+=" $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
+CXXFLAGS+=" -Wall -Wextra -fpermissive -std=c++11"
+
+LIBS+=" $DOVECOT_LIBS"
+LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE $LIBDOVECOT_STORAGE_INCLUDE"
+BINARY_CFLAGS="$DOVECOT_BINARY_CFLAGS"
+BINARY_LDFLAGS="$DOVECOT_BINARY_LDFLAGS"
+
+AC_SUBST(BINARY_CFLAGS)
+AC_SUBST(BINARY_LDFLAGS)
+AC_SUBST(LIBDOVECOT_INCLUDE)
+
+AC_ISC_POSIX
+AC_C_INLINE
 
 AC_PROG_CC
 AC_PROG_CXX
+
 AC_PROG_CPP
 AC_PROG_LIBTOOL
-	 
-DC_DOVECOT
-DC_DOVECOT_MODULEDIR
-LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE"
-CFLAGS="$DOVECOT_CFLAGS"
-LIBS="$DOVECOT_LIBS"
-AC_SUBST(LIBDOVECOT_INCLUDE)
 
-AC_CHECK_HEADER(rados/librados.h, [
-  have_librados=yes
-  AC_DEFINE(HAVE_LIBRADOS,, [Define if you have the RADOS library])
-  LIBS="$LIBS -lrados"
-], [
-    AC_ERROR([Can't build with RADOS support: librados.h not found])
-])
+AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
+AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
+
+AC_CONFIG_HEADERS([config-local.h])
+AX_PREFIX_CONFIG_H([], [], [config-local.h])
+
+# Active gtest
+AC_MSG_RESULT([$gcc_debug])
+if test "$gcc_debug" = yes; then
+    AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
+    AC_DEFINE([DEBUG],[],[Debug Mode])
+else
+    AC_DEFINE([NDEBUG],[],[Release Mode])
+fi
+
+# Configure pthreads.
+ACX_PTHREAD([have_pthread=yes])
+
+# Define gtest variables 
+GTEST_VERSION="1.8.0"
+if test "x$have_pthread" = "xyes"; then
+  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
+  GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11"
+  GTEST_LDFLAGS="-module -avoid-version"
+  GTEST_LIBS="$PTHREAD_LIBS"
+else
+  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
+  GTEST_CXXFLAGS=
+  GTEST_LDFLAGS=
+  GTEST_LIBS=
+fi
+
+AC_SUBST([GTEST_VERSION])
+AC_SUBST([GTEST_CPPFLAGS])
+AC_SUBST([GTEST_CXXFLAGS])
+AC_SUBST([GTEST_LDFLAGS])
+AC_SUBST([GTEST_LIBS])
+
+# finish
 
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/librmb/Makefile
+src/librmb/tools/Makefile
 src/dict-rados/Makefile
 src/storage-rbox/Makefile
+lib/Makefile
+lib/gtest/Makefile
+src/tests/Makefile
 ])
 
 AC_OUTPUT
  
+AC_MSG_RESULT([
+minimal-gtest-autotools $VERSION is now configured
+Configure Information:
+  C Compiler        : $CC
+    DEFS            :   $DEFS
+    CPPFLAGS        :   $CPPFLAGS
+    CFLAGS          :   $CFLAGS
+
+  C++ Compiler      : $CXX
+    DEFS            :   $DEFS
+    CPPFLAGS        :   $CPPFLAGS
+    CXXFLAGS        :   $CXXFLAGS
+
+  Linker            : $LD
+    LDFLAGS         :   $LDFLAGS
+    LIBS            :   $LIBS
+
+  Google Test 
+    GTEST_CPPFLAGS  : $GTEST_CPPFLAGS
+    GTEST_CXXFLAGS  : $GTEST_CXXFLAGS
+    GTEST_LDFLAGS   : $GTEST_LDFLAGS
+    GTEST_LIBS      : $GTEST_LIBS
+])

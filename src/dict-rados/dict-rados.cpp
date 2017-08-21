@@ -777,8 +777,7 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : private_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
-          private_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, nullptr,
-                                         &iter->results.back().rval);
+          private_read_op.omap_get_vals("", k, LONG_MAX, &iter->results.back().map, &iter->results.back().rval);
         }
       }
 
@@ -801,8 +800,7 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : shared_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
-          shared_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, nullptr,
-                                        &iter->results.back().rval);
+          shared_read_op.omap_get_vals("", k, LONG_MAX, &iter->results.back().map, &iter->results.back().rval);
         }
       }
 

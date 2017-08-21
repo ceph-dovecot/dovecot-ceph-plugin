@@ -230,32 +230,13 @@ int rbox_open_mailbox(struct mailbox *box) {
 int rbox_open_rados_connection(struct mailbox *box) {
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  string error_msg;
-  if (mbox->storage->cluster.init(&error_msg) < 0) {
-    FUNC_END_RET("ret == -1");
-    return -1;
+  std::string ns(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
+  std::string poolname = SETTINGS_DEF_RADOS_POOL;
+  const char *settings_poolname = mail_user_plugin_getenv(mbox->storage->storage.user, SETTINGS_RBOX_POOL_NAME);
+  if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
+    poolname = settings_poolname;
   }
-
-  if (mbox->storage->s == nullptr) {
-    const char *poolname = SETTINGS_DEF_RADOS_POOL;
-    const char *settings_poolname = mail_user_plugin_getenv(mbox->storage->storage.user, SETTINGS_RBOX_POOL_NAME);
-    if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
-      poolname = settings_poolname;
-    }
-
-    int ret = mbox->storage->cluster.storage_create(poolname, &mbox->storage->s);
-    if (ret < 0) {
-      mbox->storage->cluster.deinit();
-      FUNC_END_RET("ret == -1");
-      return -1;
-    }
-  }
-
-  if (box->list->ns->owner != nullptr) {
-    i_debug("Namespace owner : %s setting rados namespace", box->list->ns->owner->username);
-    mbox->storage->s->get_io_ctx().set_namespace(box->list->ns->owner->username);
-  }
-  return 0;
+  return mbox->storage->cluster.open_connection(&mbox->storage->s, poolname, ns);
 }
 
 void rbox_sync_update_header(struct index_rebuild_context *ctx) {
