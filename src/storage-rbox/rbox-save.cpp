@@ -64,7 +64,6 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   int save_flags;
 
@@ -109,7 +108,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 void rbox_move_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   int save_flags;
 
@@ -243,7 +241,6 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
                                   size_t &message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-  struct mail_save_context *_ctx = (struct mail_save_context *)ctx;
 
   {
     std::string key(1, (char)RBOX_METADATA_VERSION);
@@ -478,7 +475,6 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
 
     const struct mail_index_header *hdr;
     struct seq_range_iter iter;
-    struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
     i_assert(r_ctx->finished);
 
@@ -506,7 +502,6 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
     i_debug("RBOX_SAVE_UID: %d", hdr->next_uid);
 
-    uint32_t uid;
     seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
 
     rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids);
@@ -537,8 +532,6 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     FUNC_START();
 
     struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-    struct mail_storage *storage = &r_ctx->mbox->storage->storage;
-    struct rbox_storage *r_storage = (struct rbox_storage *)storage;
 
     if (!r_ctx->finished) {
       rbox_save_cancel(&r_ctx->ctx);

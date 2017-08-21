@@ -61,7 +61,6 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
-  guid_128_t oid;
 
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
@@ -152,8 +151,7 @@ static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_e
   return ret;
 }
 
-int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, bool force,
-                    enum rbox_sync_flags flags) {
+int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags) {
   FUNC_START();
   struct rbox_sync_context *ctx;
   int sync_flags;
@@ -245,7 +243,6 @@ static void remove_callback(rados_completion_t comp, void *arg) {
 void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
-  int ret;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
@@ -263,7 +260,7 @@ void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_ite
     return;
   }
 
-  ret = r_storage->s->get_io_ctx().aio_remove(oid, completion);
+  r_storage->s->get_io_ctx().aio_remove(oid, completion);
 
   completion->wait_for_complete_and_cb();
 
@@ -275,7 +272,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
   unsigned int count, moved_count;
-  int i, j;
+  unsigned int i, j;
 
   /* NOTE: Index is no longer locked. Multiple processes may be deleting
      the objects at the same time. */
@@ -349,7 +346,7 @@ int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
   FUNC_START();
   struct rbox_sync_context *sync_ctx;
 
-  if (rbox_sync_begin(mbox, &sync_ctx, FALSE, flags) < 0) {
+  if (rbox_sync_begin(mbox, &sync_ctx, flags) < 0) {
     FUNC_END_RET("ret == -1");
     return -1;
   }
