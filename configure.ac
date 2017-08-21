@@ -39,8 +39,8 @@ AC_CHECK_HEADER([rados/librados.h], [
   AC_DEFINE([HAVE_LIBRADOS], [], [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
 ], [AC_ERROR([Can't build with RADOS support: librados.h not found])])
- 
- 
+
+
 # Evaluate with options
 AC_ARG_WITH(dict,
 AS_HELP_STRING([--with-dict[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS dictionary plugin (yes)]),
@@ -92,7 +92,7 @@ AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([], [], [config-local.h])
 
 # Active gtest
-AC_MSG_RESULT([$gcc_debug])
+AC_MSG_NOTICE([$gcc_debug])
 if test "$gcc_debug" = yes; then
     AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
     AC_DEFINE([DEBUG],[],[Debug Mode])
@@ -103,7 +103,7 @@ fi
 # Configure pthreads.
 ACX_PTHREAD([have_pthread=yes])
 
-# Define gtest variables 
+# Define gtest variables
 GTEST_VERSION="1.8.0"
 if test "x$have_pthread" = "xyes"; then
   GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
@@ -138,8 +138,17 @@ src/tests/Makefile
 ])
 
 AC_OUTPUT
- 
-AC_MSG_RESULT([
+
+echo
+AC_MSG_NOTICE([Install prefix .... : $prefix])
+AC_MSG_NOTICE([Dovecot directory . : $dovecotdir])
+AC_MSG_NOTICE([With dictionary ... : $want_dict])
+AC_MSG_NOTICE([With storage ...... : $want_storage])
+AC_MSG_NOTICE([With tests ........ : $want_tests])
+
+if test "$want_tests" = yes; then
+AC_MSG_NOTICE([
+
 minimal-gtest-autotools $VERSION is now configured
 Configure Information:
   C Compiler        : $CC
@@ -156,9 +165,10 @@ Configure Information:
     LDFLAGS         :   $LDFLAGS
     LIBS            :   $LIBS
 
-  Google Test 
+  Google Test
     GTEST_CPPFLAGS  : $GTEST_CPPFLAGS
     GTEST_CXXFLAGS  : $GTEST_CXXFLAGS
     GTEST_LDFLAGS   : $GTEST_LDFLAGS
     GTEST_LIBS      : $GTEST_LIBS
 ])
+fi
