@@ -3,16 +3,20 @@
 #include <limits.h>
 
 #include <iostream>
+#include <sstream>
+
+#include <string>
+
 #include <iterator>
 #include <map>
 #include <set>
-#include <sstream>
-#include <string>
 #include <vector>
+#include <list>
+#include <algorithm>
+
 #include <utility>
 #include <cstdint>
-#include <list>
-#include <mutex>
+#include <mutex>  // NOLINT
 
 #include <rados/librados.hpp>
 
@@ -46,6 +50,7 @@ using namespace librados;  // NOLINT
 using std::string;
 using std::stringstream;
 using std::vector;
+using std::list;
 using std::map;
 using std::pair;
 using std::set;
@@ -58,7 +63,6 @@ struct rados_dict {
   struct dict dict;
   RadosCluster cluster;
   RadosDictionary *d;
-  bool transaction_open;
 };
 
 static const vector<string> explode(const string &str, const char &sep) {
@@ -138,6 +142,7 @@ void rados_dict_deinit(struct dict *_dict) {
   struct rados_dict *dict = (struct rados_dict *)_dict;
   RadosDictionary *d = ((struct rados_dict *)_dict)->d;
 
+  // wait for open operations
   rados_dict_wait(_dict);
 
   dict->cluster.deinit();
@@ -267,8 +272,6 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
   map<string, bufferlist> result_map;
   *value_r = nullptr;
 
-  i_assert(!dict->transaction_open);
-
   int err = d->get_io_ctx().omap_get_vals_by_keys(d->get_full_oid(key), keys, &result_map);
   i_debug("rados_dict_lookup(%s), oid=%s, err=%d", key, d->get_full_oid(key).c_str(), err);
 
@@ -385,10 +388,6 @@ static std::mutex transaction_lock;
 
 struct dict_transaction_context *rados_dict_transaction_init(struct dict *_dict) {
   FUNC_START();
-  struct rados_dict *dict = (struct rados_dict *)_dict;
-
-  i_assert(!dict->transaction_open);
-  dict->transaction_open = TRUE;
 
   struct rados_dict_transaction_context *ctx = new rados_dict_transaction_context(_dict);
 
@@ -495,9 +494,6 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
 
   i_debug("rados_dict_transaction_commit(): async=%d", async);
 
-  i_assert(dict->transaction_open);
-  dict->transaction_open = FALSE;
-
   bool failed = false;
   int ret = DICT_COMMIT_RET_OK;
 
@@ -576,7 +572,6 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
     if (ctx->callback != nullptr) {
       ctx->callback(ret, ctx->context);
     }
-
     delete ctx;
   }
 
@@ -589,9 +584,6 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
-
-  i_assert(dict->transaction_open);
-  dict->transaction_open = FALSE;
 
   if (ctx->locked_private) {
     d->get_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
