@@ -22,7 +22,6 @@ RadosCluster::RadosCluster() {}
 RadosCluster::~RadosCluster() {}
 
 int RadosCluster::init(string *error_r) {
-  const char *const *args;
 
   if (cluster_ref_count == 0) {
     int ret = 0;
@@ -118,6 +117,9 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
 int RadosCluster::storage_create(const string &pool, RadosStorage **storage) {
   if (cluster_ref_count == 0) {
     return -ENOENT;
+  } else if (*storage != NULL) {
+    // Storage already created
+    return 0;
   }
 
   // pool exists? else create

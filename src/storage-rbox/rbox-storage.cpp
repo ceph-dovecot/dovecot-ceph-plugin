@@ -77,12 +77,10 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 
 int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
   FUNC_START();
-  struct rbox_storage *storage = (struct rbox_storage *)_storage;
   // RADOS initialization postponed to mailbox_open
   FUNC_END();
   return 0;
 }
-
 void rbox_storage_destroy(struct mail_storage *_storage) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;

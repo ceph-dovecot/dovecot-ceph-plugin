@@ -395,6 +395,7 @@ struct dict_transaction_context *rados_dict_transaction_init(struct dict *_dict)
   return &ctx->ctx;
 }
 
+#ifdef HAVE_DICT_SET_TIMESTAMP
 void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struct timespec *ts) {
   FUNC_START();
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
@@ -410,6 +411,7 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
   }
   FUNC_END();
 }
+#endif
 
 static void rados_dict_transaction_private_complete_callback(completion_t comp, void *arg) {
   FUNC_START();

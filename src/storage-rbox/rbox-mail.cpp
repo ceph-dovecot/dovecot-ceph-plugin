@@ -226,12 +226,12 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
     return 0;
   }
-  
+
   if (rbox_open_rados_connection(_mail->box) < 0) {
     FUNC_END_RET("ret == -1;  connection to rados failed");
     return -1;
   }
-  
+
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time);
   if (ret_val < 0) {
     if (ret_val == ((-1) * ENOENT)) {
@@ -439,7 +439,6 @@ void rbox_mail_close(struct mail *_mail) {
 
 void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
-  struct index_mail *mail = (struct index_mail *)_mail;
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
 

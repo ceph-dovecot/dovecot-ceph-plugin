@@ -74,7 +74,7 @@ class RadosMailObject {
 
   uint8_t* get_guid_ref() { return guid; }
 
-  const uint64_t get_object_size() { return this->object_size; }
+  const uint64_t& get_object_size() { return this->object_size; }
 
   void set_object_size(uint64_t& size) { this->object_size = size; }
 
@@ -87,6 +87,18 @@ class RadosMailObject {
   char* get_mail_buffer() { return this->mail_buffer; }
 
   bool wait_for_write_operations_complete();
+
+  std::map<std::string, ceph::bufferlist>* get_xattr() { return &this->attrset; }
+
+  std::string get_xvalue(rbox_metadata_key key) {
+    std::string mail_uid(1, (char)key);
+    return attrset[mail_uid].c_str();
+  }
+  std::string get_xvalue(std::string key) { return attrset[key].c_str(); }
+
+  std::string to_string(std::string& padding);
+  void set_rados_save_date(time_t& save_date) { this->save_date_rados = save_date; }
+  time_t* get_rados_save_date() { return &this->save_date_rados; }
 
  private:
   std::string oid;
@@ -102,6 +114,9 @@ class RadosMailObject {
   bool active_op;
   // used as pointer to a buffer_t (to avoid using dovecot datatypes in library)
   char* mail_buffer;
+  time_t save_date_rados;
+
+  std::map<std::string, ceph::bufferlist> attrset;
 
  public:
   // X_ATTRIBUTES

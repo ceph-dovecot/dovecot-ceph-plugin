@@ -3,7 +3,9 @@
 #include "rados-mail-object.h"
 
 #include <cstring>
-
+#include <sstream>
+#include <vector>
+#include <stdlib.h>
 using namespace librados;  // NOLINT
 using namespace librmb;    // NOLINT
 
@@ -21,6 +23,7 @@ RadosMailObject::RadosMailObject() {
   this->object_size = -1;
   this->active_op = false;
   this->mail_buffer = NULL;
+  this->save_date_rados = 0;
 }
 
 bool RadosMailObject::wait_for_write_operations_complete() {
@@ -37,4 +40,37 @@ bool RadosMailObject::wait_for_write_operations_complete() {
     delete map_it->second;
   }
   return ctx_failed;
+}
+
+std::string RadosMailObject::to_string(std::string &padding) {
+  std::string uid = get_xvalue(RBOX_METADATA_MAIL_UID);
+  std::string recv_time_str = get_xvalue(RBOX_METADATA_RECEIVED_TIME);
+  std::string p_size = get_xvalue(RBOX_METADATA_PHYSICAL_SIZE);
+  std::string v_size = get_xvalue(RBOX_METADATA_VIRTUAL_SIZE);
+
+  std::string rbox_version = get_xvalue(RBOX_METADATA_VERSION);
+  std::string mailbox_guid = get_xvalue(RBOX_METADATA_MAILBOX_GUID);
+  std::string mail_guid = get_xvalue(RBOX_METADATA_GUID);
+
+  time_t ts = static_cast<time_t>(std::stol(recv_time_str));
+
+  long object_i = std::stol(p_size);
+  long object_v = std::stol(v_size);
+
+  std::ostringstream ss;
+
+  ss << std::endl;
+  ss << padding << "MAIL:   " << (char)RBOX_METADATA_MAIL_UID << "(uid)=" << uid << std::endl;
+  ss << padding << "        "
+     << "oid = " << oid << std::endl;
+  ss << padding << "        " << (char)RBOX_METADATA_RECEIVED_TIME << "(receive_time)=" << std::ctime(&ts);
+
+  ss << padding << "        " << (char)RBOX_METADATA_OLDV1_SAVE_TIME << "(save_time)=" << std::ctime(&save_date_rados);
+  ss << padding << "        " << (char)RBOX_METADATA_PHYSICAL_SIZE << "(phy_size)=" << object_i << " "
+     << (char)RBOX_METADATA_VIRTUAL_SIZE << "(v_size) = " << object_v << " stat_size=" << object_size << std::endl;
+  ss << padding << "        " << (char)RBOX_METADATA_MAILBOX_GUID << "(mailbox_guid)=" << mailbox_guid << std::endl;
+  ss << padding << "        " << (char)RBOX_METADATA_GUID << "(mail_guid)=" << mail_guid << std::endl;
+  ss << padding << "        " << (char)RBOX_METADATA_VERSION << "(rbox_version): " << rbox_version << std::endl;
+
+  return ss.str();
 }
