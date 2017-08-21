@@ -11,7 +11,6 @@
 #include "str.h"
 #include "unlink-directory.h"
 #include "randgen.h"
-#include "dcrypt.h"
 #include "hex-binary.h"
 #include "dict.h"
 #include "dict-private.h"
