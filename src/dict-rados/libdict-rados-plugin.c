@@ -22,9 +22,15 @@ struct dict dict_driver_rados = {.name = "rados",
                                   .set = rados_dict_set,
                                   .unset = rados_dict_unset,
                                   .atomic_inc = rados_dict_atomic_inc,
-                                  .lookup_async = rados_dict_lookup_async,
+#ifdef HAVE_DICT_SWITCH_IOLOOP
                                   .switch_ioloop = NULL,
-                                  .set_timestamp = rados_dict_set_timestamp}};
+#endif
+#ifdef HAVE_DICT_SET_TIMESTAMP
+                                  .set_timestamp = rados_dict_set_timestamp,
+#endif
+                                  .lookup_async = rados_dict_lookup_async
+
+                                 }};
 
 static int plugin_ref_count = 0;
 

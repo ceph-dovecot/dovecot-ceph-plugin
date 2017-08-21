@@ -64,13 +64,14 @@ AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
 DC_DOVECOT
 DC_DOVECOT_MODULEDIR
 
-CFLAGS+=" $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
-CXXFLAGS+=" -Wall -Wextra -fpermissive -std=c++11"
-
 LIBS+=" $DOVECOT_LIBS"
 LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE $LIBDOVECOT_STORAGE_INCLUDE"
+
 BINARY_CFLAGS="$DOVECOT_BINARY_CFLAGS"
 BINARY_LDFLAGS="$DOVECOT_BINARY_LDFLAGS"
+
+CFLAGS+=" $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
+CXXFLAGS+=" -Wall -Wextra -fpermissive -std=c++11"
 
 AC_SUBST(BINARY_CFLAGS)
 AC_SUBST(BINARY_LDFLAGS)
@@ -87,6 +88,14 @@ AC_PROG_LIBTOOL
 
 AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
 AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
+
+AC_MSG_CHECKING([whether Dovecot supports dict_vfuncs.switch_ioloop])
+grep switch_ioloop $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])               
+
+AC_MSG_CHECKING([whether Dovecot supports dict_vfuncs.set_timestamp])
+grep set_timestamp $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SET_TIMESTAMP],,[dict_vfuncs.set_timestamp supported])],[AC_MSG_RESULT(no)])               
 
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([], [], [config-local.h])
