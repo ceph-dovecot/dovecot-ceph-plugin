@@ -65,6 +65,16 @@ struct rados_dict {
   RadosDictionary *d;
 };
 
+enum rados_commit_ret {
+  RADOS_COMMIT_RET_OK = 1,
+  RADOS_COMMIT_RET_NOTFOUND = 0,
+  RADOS_COMMIT_RET_FAILED = -1,
+};
+
+#ifndef i_zero
+#define i_zero(p) memset(p, 0, sizeof(*(p)))
+#endif
+
 static const vector<string> explode(const string &str, const char &sep) {
   vector<string> v;
   stringstream ss(str);  // Turn the string into a stream.
@@ -81,7 +91,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
                     const char **error_r) {
   FUNC_START();
   struct rados_dict *dict;
-  const char *const *args;
   string oid = "";
   string pool = "mail_dictionaries";
 
@@ -140,7 +149,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 void rados_dict_deinit(struct dict *_dict) {
   FUNC_START();
   struct rados_dict *dict = (struct rados_dict *)_dict;
-  RadosDictionary *d = ((struct rados_dict *)_dict)->d;
 
   // wait for open operations
   rados_dict_wait(_dict);
@@ -189,13 +197,13 @@ class rados_dict_lookup_context {
   ~rados_dict_lookup_context() {}
 };
 
-static void rados_lookup_complete_callback(rados_completion_t comp, void *arg) {
+static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, void *arg) {
   FUNC_START();
   rados_dict_lookup_context *lc = reinterpret_cast<rados_dict_lookup_context *>(arg);
 
   struct dict_lookup_result result;
   i_zero(&result);
-  result.ret = DICT_COMMIT_RET_NOTFOUND;
+  result.ret = RADOS_COMMIT_RET_NOTFOUND;
 
   const char *values[2];
   int ret = lc->completion->get_return_value();
@@ -210,15 +218,15 @@ static void rados_lookup_complete_callback(rados_completion_t comp, void *arg) {
         result.values = values;
         values[0] = lc->value.c_str();
         values[1] = nullptr;
-        result.ret = DICT_COMMIT_RET_OK;
+        result.ret = RADOS_COMMIT_RET_OK;
       } else {
-        result.ret = DICT_COMMIT_RET_NOTFOUND;
+        result.ret = RADOS_COMMIT_RET_NOTFOUND;
       }
     } else {
       if (ret == -ENOENT) {
-        result.ret = DICT_COMMIT_RET_NOTFOUND;
+        result.ret = RADOS_COMMIT_RET_NOTFOUND;
       } else {
-        result.ret = DICT_COMMIT_RET_FAILED;
+        result.ret = RADOS_COMMIT_RET_FAILED;
       }
     }
 
@@ -251,7 +259,7 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
     if (lc->callback != nullptr) {
       struct dict_lookup_result result;
       i_zero(&result);
-      result.ret = DICT_COMMIT_RET_FAILED;
+      result.ret = RADOS_COMMIT_RET_FAILED;
       lc->callback(&result, context);
     }
     lc->completion->release();
@@ -280,18 +288,18 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
     if (value != result_map.end()) {
       *value_r = p_strdup(pool, value->second.to_str().c_str());
       i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
-      FUNC_END_RET_INT(DICT_COMMIT_RET_OK);
-      return DICT_COMMIT_RET_OK;
+      FUNC_END_RET_INT(RADOS_COMMIT_RET_OK);
+      return RADOS_COMMIT_RET_OK;
     }
   } else if (err < 0 && err != -ENOENT) {
     i_error("rados_dict_lookup(%s), err=%d (%s)", key, err, strerror(-err));
-    FUNC_END_RET_INT(DICT_COMMIT_RET_FAILED);
-    return DICT_COMMIT_RET_FAILED;
+    FUNC_END_RET_INT(RADOS_COMMIT_RET_FAILED);
+    return RADOS_COMMIT_RET_FAILED;
   }
 
   i_debug("rados_dict_lookup(%s), NOT FOUND, err=%d (%s)", key, err, strerror(-err));
-  FUNC_END_RET_INT(DICT_COMMIT_RET_NOTFOUND);
-  return DICT_COMMIT_RET_NOTFOUND;
+  FUNC_END_RET_INT(RADOS_COMMIT_RET_NOTFOUND);
+  return RADOS_COMMIT_RET_NOTFOUND;
 }
 
 static void rados_dict_transaction_private_complete_callback(completion_t comp, void *arg);
@@ -338,8 +346,10 @@ class rados_dict_transaction_context {
     ctx.dict = _dict;
     ctx.changed = 0;
 
+#ifdef HAVE_DICT_SET_TIMESTAMP
     ctx.timestamp.tv_sec = 0;
     ctx.timestamp.tv_nsec = 0;
+#endif
 
     completion_private = nullptr;
     completion_shared = nullptr;
@@ -380,7 +390,7 @@ class rados_dict_transaction_context {
     i_unreached();
   }
   int get_result(int result) {
-    return result < 0 && result != -ENORESULT ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK;
+    return result < 0 && result != -ENORESULT ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK;
   }
 };
 
@@ -413,7 +423,7 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
 }
 #endif
 
-static void rados_dict_transaction_private_complete_callback(completion_t comp, void *arg) {
+static void rados_dict_transaction_private_complete_callback(completion_t comp ATTR_UNUSED, void *arg) {
   FUNC_START();
   rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(arg);
   RadosDictionary *d = ((struct rados_dict *)ctx->ctx.dict)->d;
@@ -440,10 +450,10 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp, 
     if (ctx->callback != nullptr) {
       i_debug("rados_dict_transaction_private_complete_callback() call callback func...");
       ctx->callback(ctx->atomic_inc_not_found
-                        ? DICT_COMMIT_RET_NOTFOUND
+                        ? RADOS_COMMIT_RET_NOTFOUND
                         : (ctx->get_result(ctx->result_private) < 0 || ctx->get_result(ctx->result_shared) < 0
-                               ? DICT_COMMIT_RET_FAILED
-                               : DICT_COMMIT_RET_OK),
+                               ? RADOS_COMMIT_RET_FAILED
+                               : RADOS_COMMIT_RET_OK),
                     ctx->context);
     }
     delete ctx;
@@ -451,7 +461,7 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp, 
   FUNC_END();
 }
 
-static void rados_dict_transaction_shared_complete_callback(completion_t comp, void *arg) {
+static void rados_dict_transaction_shared_complete_callback(completion_t comp ATTR_UNUSED, void *arg) {
   FUNC_START();
   rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(arg);
   RadosDictionary *d = ((struct rados_dict *)ctx->ctx.dict)->d;
@@ -476,10 +486,10 @@ static void rados_dict_transaction_shared_complete_callback(completion_t comp, v
     if (ctx->callback != nullptr) {
       i_debug("rados_dict_transaction_shared_complete_callback() call callback func...");
       ctx->callback(ctx->atomic_inc_not_found
-                        ? DICT_COMMIT_RET_NOTFOUND
+                        ? RADOS_COMMIT_RET_NOTFOUND
                         : (ctx->get_result(ctx->result_private) < 0 || ctx->get_result(ctx->result_shared) < 0
-                               ? DICT_COMMIT_RET_FAILED
-                               : DICT_COMMIT_RET_OK),
+                               ? RADOS_COMMIT_RET_FAILED
+                               : RADOS_COMMIT_RET_OK),
                     ctx->context);
     }
     delete ctx;
@@ -497,7 +507,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   i_debug("rados_dict_transaction_commit(): async=%d", async);
 
   bool failed = false;
-  int ret = DICT_COMMIT_RET_OK;
+  int ret = RADOS_COMMIT_RET_OK;
 
   if (_ctx->changed) {
     ctx->context = context;
@@ -550,10 +560,10 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
           ctx->completion_shared->release();
         }
         if (callback != NULL) {
-          callback(failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK, context);
+          callback(failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK, context);
         }
-        ret = ctx->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND
-                                        : (failed ? DICT_COMMIT_RET_FAILED : DICT_COMMIT_RET_OK);
+        ret = ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND
+                                        : (failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK);
         if (ctx->locked_private) {
           int err = d->get_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
           i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_private_oid().c_str(), err,
@@ -569,7 +579,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
     }
   } else {
     // nothing has been changed
-    ret = ctx->atomic_inc_not_found ? DICT_COMMIT_RET_NOTFOUND : DICT_COMMIT_RET_OK;
+    ret = ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND : RADOS_COMMIT_RET_OK;
 
     if (ctx->callback != nullptr) {
       ctx->callback(ret, ctx->context);
@@ -601,7 +611,6 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
 void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, const char *value) {
   FUNC_START();
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
   const string key(_key);
 
   i_debug("rados_dict_set(%s,%s)", _key, value);
@@ -621,7 +630,6 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
 void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   FUNC_START();
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
   const string key(_key);
 
   i_debug("rados_dict_unset(%s)", _key);
@@ -775,7 +783,6 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         iter->results.emplace_back();
         private_read_op.omap_get_vals_by_keys(private_keys, &iter->results.back().map, &iter->results.back().rval);
       } else {
-        int i = 0;
         for (auto k : private_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
@@ -798,7 +805,6 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         iter->results.emplace_back();
         shared_read_op.omap_get_vals_by_keys(shared_keys, &iter->results.back().map, &iter->results.back().rval);
       } else {
-        int i = 0;
         for (auto k : shared_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
@@ -847,7 +853,6 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
     }
 
     if (!iter->failed) {
-      auto ri = iter->results_iter = iter->results.begin();
       iter->results_iter->map_iter = iter->results_iter->map.begin();
       iter->dump();
     } else {
