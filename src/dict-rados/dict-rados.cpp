@@ -208,9 +208,11 @@ static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, 
         lc->value = it->second.to_str();
         i_debug("rados_dict_lookup_complete_callback('%s')='%s'", it->first.c_str(), lc->value.c_str());
         result.value = lc->value.c_str();
+#if DOVECOT_PREREQ(2, 3)
         result.values = values;
         values[0] = lc->value.c_str();
         values[1] = nullptr;
+#endif
         result.ret = RADOS_COMMIT_RET_OK;
       } else {
         result.ret = RADOS_COMMIT_RET_NOTFOUND;
