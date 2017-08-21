@@ -69,7 +69,7 @@ std::string RadosMailObject::to_string(std::string &padding) {
   ss << padding << "        " << (char)RBOX_METADATA_PHYSICAL_SIZE << "(phy_size)=" << object_i << " "
      << (char)RBOX_METADATA_VIRTUAL_SIZE << "(v_size) = " << object_v << " stat_size=" << object_size << std::endl;
   ss << padding << "        " << (char)RBOX_METADATA_MAILBOX_GUID << "(mailbox_guid)=" << mailbox_guid << std::endl;
-  ss << padding << "        " << (char)RBOX_METADATA_MAIL_UID << "(mail_guid)=" << mail_guid << std::endl;
+  ss << padding << "        " << (char)RBOX_METADATA_GUID << "(mail_guid)=" << mail_guid << std::endl;
   ss << padding << "        " << (char)RBOX_METADATA_VERSION << "(rbox_version): " << rbox_version << std::endl;
 
   return ss.str();

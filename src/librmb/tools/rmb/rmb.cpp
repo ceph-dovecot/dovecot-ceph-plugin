@@ -1,5 +1,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include "rmb.h"
+
 #include <iostream>
 #include "rados-cluster.h"
 #include "rados-storage.h"
@@ -14,7 +16,6 @@
 #include "limits.h"
 #include <algorithm>  // std::sort
 
-#include "rbox_list_objects.h"
 
 using namespace std;
 using namespace librmb;
@@ -371,7 +372,7 @@ bool ceph_argparse_double_dash(std::vector<const char *> &args, std::vector<cons
   return false;
 }
 void usage(ostream &out) {
-  out << "usage: test_tool [options] [commands]\n"
+  out << "usage: rmb [options] [commands]\n"
          "   -p pool\n"
          "        pool where mail data is saved, if not given mail_storage is used \n"
          "   -N namespace e.g. dovecot user name\n"
@@ -379,10 +380,12 @@ void usage(ostream &out) {
          "        specify the namespace/user to use for the mails\n"
          "\n"
          "MAIL COMMANDS\n"
-         "    ls     list all mails and mailbox statistic \n"
-         "\n"
-         "MAILBOX COMMANDS\n"
+         "    ls     -   list all mails and mailbox statistic \n"
+         "           all list all mails and mailbox statistic \n"
+         "           <XATTR>=<VALUE> e.g. U=7 \n"
          "\n";
+  //"MAILBOX COMMANDS\n"
+  //"\n";
 }
 
 static void usage_exit() {
@@ -390,16 +393,25 @@ static void usage_exit() {
   exit(1);
 }
 
-void print_mailbox_stat(vector<RadosMailObject *> mail_objects) {
+void print_mailbox_stat(vector<RadosMailObject *> mail_objects, std::map<std::string, std::string> &filter) {
   std::map<std::string, RadosMailBox *> mailbox;
 
   for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-    std::string mailbox_guid = (*it)->get_xvalue(RBOX_METADATA_MAILBOX_GUID);
+    std::string mailbox_key = std::string(1, (char)RBOX_METADATA_MAILBOX_GUID);
+
+    std::string mailbox_guid = (*it)->get_xvalue(mailbox_key);
+
+    if (filter.find(mailbox_key) != filter.end()) {
+      if (filter[mailbox_key].compare(mailbox_guid.substr(0, mailbox_guid.length() - 1)) != 0) {
+        continue;
+      }
+    }
     if (mailbox.count(mailbox_guid) > 0) {
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
     } else {
       mailbox[mailbox_guid] = new RadosMailBox(mailbox_guid, 1);
+      mailbox[mailbox_guid]->set_xattr_filter(filter);
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
     }
@@ -428,13 +440,13 @@ int main(int argc, const char **argv) {
       break;
     } else if (ceph_argparse_witharg(args, i, &val, "-p", "--pool", (char *)NULL)) {
       opts["pool"] = val;
-      std::cout << "pool: " << val << std::endl;
+      // std::cout << "pool: " << val << std::endl;
     } else if (ceph_argparse_witharg(args, i, &val, "-N", "--namespace", (char *)NULL)) {
       opts["namespace"] = val;
-      std::cout << "namespace: " << val << std::endl;
+      // std::cout << "namespace: " << val << std::endl;
     } else if (ceph_argparse_witharg(args, i, &val, "ls", "--ls", (char *)NULL)) {
       opts["ls"] = val;
-      std::cout << "ls: " << val << std::endl;
+      // std::cout << "ls: " << val << std::endl;
     } else {
       ++i;
     }
@@ -474,7 +486,25 @@ int main(int argc, const char **argv) {
     mail_objects.push_back(mail);
   }
 
-  print_mailbox_stat(mail_objects);
+  if (opts.find("ls") != opts.end()) {
+    std::map<std::string, std::string> filter;
+    if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0) {
+      print_mailbox_stat(mail_objects, filter);
+    } else if (opts["ls"].find('=') != std::string::npos) {
+      int pos = opts["ls"].find('=');
+
+      /*   std::cout << "found : " << opts["ls"].substr(0, pos) << " " << opts["ls"].substr(pos + 1,
+         opts["ls"].length())
+                   << std::endl;*/
+      filter[opts["ls"].substr(0, pos)] = opts["ls"].substr(pos + 1, opts["ls"].length());
+      print_mailbox_stat(mail_objects,filter);
+
+    } else {
+      usage_exit();
+    }
+  } else {
+    usage_exit();
+  }
   /* for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
      std::cout << ' ' << (*it)->to_string();
    }
