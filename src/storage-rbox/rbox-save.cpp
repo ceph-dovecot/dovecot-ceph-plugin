@@ -489,7 +489,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     }
 
     int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
-    if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, TRUE, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
+    if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
       r_ctx->failed = TRUE;
       rbox_transaction_save_rollback(_ctx);
       debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
