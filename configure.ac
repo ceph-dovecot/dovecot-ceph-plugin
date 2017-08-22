@@ -103,6 +103,18 @@ AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SET_TIMESTAMP],,
 AC_MSG_CHECKING([whether Dovecot supports index-pop3-uidl.h])
 AS_IF([test -f $dovecot_pkgincludedir/index-pop3-uidl.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_POP3_UIDL_H],,[index-pop3-uidl.h found])],[AC_MSG_RESULT(no)])
 
+AC_MSG_CHECKING([whether Dovecot supports mail_vfuncs.index_mail_set_cache_corrupted_reason])
+grep index_mail_set_cache_corrupted_reason $dovecot_pkgincludedir/index-mail.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON],,[mail_vfuncs.index_mail_set_cache_corrupted_reason supported])],[AC_MSG_RESULT(no)])
+
+AC_MSG_CHECKING([whether Dovecot supports mail_save_context.copy_src_mail])
+grep copy_src_mail $dovecot_pkgincludedir/mail-storage-private.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL],,[mail_save_context.copy_src_mail supported])],[AC_MSG_RESULT(no)])
+
+AC_MSG_CHECKING([whether Dovecot supports MAIL_INDEX_HDR_FLAG_FSCKD])
+grep MAIL_INDEX_HDR_FLAG_FSCKD $dovecot_pkgincludedir/mail-index.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_INDEX_HDR_FLAG_FSCKD],,[MAIL_INDEX_HDR_FLAG_FSCKD supported])],[AC_MSG_RESULT(no)])
+
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([], [], [config-local.h])
 

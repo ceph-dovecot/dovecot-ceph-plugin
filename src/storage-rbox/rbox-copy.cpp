@@ -165,7 +165,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       guid_128_from_string(src_oid.c_str(), item->oid);
       array_append(&rmailbox->moved_items, &item, 1);
 
-      rbox_move_index(ctx);
+      rbox_move_index(ctx, mail);
       index_copy_cache_fields(ctx, mail, r_ctx->seq);
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
 
@@ -195,8 +195,9 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
 
   FUNC_START();
-
+#ifdef HAVE_COPYING_OR_MOVING
   i_assert(ctx->copying_or_moving);
+#endif
   r_ctx->finished = TRUE;
 
   if (ctx->data.keywords != NULL) {

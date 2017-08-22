@@ -76,7 +76,7 @@
 <flagvalue id="cflags-gprof" value="false"/>
 <flagvalue id="cflags-gcov" value="false"/>
 </flag>
-<option id="user" value="CFLAGS=&apos;-g -O0&apos; CXXFLAGS=&apos;-g -O0&apos;"/>
+<option id="user" value="CFLAGS=&apos;-g -O0 -Wall -Wextra&apos; CXXFLAGS=&apos;-g -O0 -Wall -Wextra&apos; "/>
 <option id="autogen" value="autogen.sh"/>
 <option id="autogenOpts" value=""/>
 </configuration>

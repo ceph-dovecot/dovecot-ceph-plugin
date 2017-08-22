@@ -21,7 +21,11 @@ extern "C" {
 #include "index-mail.h"
 #include "mail-index-modseq.h"
 #include "mailbox-list-private.h"
+
+#ifdef HAVE_INDEX_POP3_UIDL_H
 #include "index-pop3-uidl.h"
+#endif
+
 #include "rbox-sync.h"
 #include "debug-helper.h"
 #include "mailbox-uidvalidity.h"
@@ -300,11 +304,11 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   }
 
   hdr = mail_index_get_header(box->view);
-  if (update != NULL && update->uid_validity != 0)
+  if (update != NULL && update->uid_validity != 0) {
     uid_validity = update->uid_validity;
-  else if (hdr->uid_validity != 0)
+  } else if (hdr->uid_validity != 0) {
     uid_validity = hdr->uid_validity;
-  else {
+  } else {
     /* set uidvalidity */
     uid_validity = rbox_get_uidvalidity_next(box->list);
   }
@@ -329,11 +333,13 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
     mail_index_update_highest_modseq(trans, update->min_highest_modseq);
   }
 
+#ifdef HAVE_INDEX_POP3_UIDL_H
   if (box->inbox_user && box->creating) {
     /* initialize pop3-uidl header when creating mailbox
        (not on mailbox_update()) */
     index_pop3_uidl_set_max_uid(box, trans, 0);
   }
+#endif
 
   rbox_update_header(mbox, trans, update);
   if (new_trans != NULL) {

@@ -23,7 +23,6 @@ extern "C" {
 #include "index-mail.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
-#include "time.h"
 }
 
 #include "rados-mail-object.h"
@@ -105,7 +104,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 }
 
-void rbox_move_index(struct mail_save_context *_ctx) {
+void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
@@ -126,7 +125,11 @@ void rbox_move_index(struct mail_save_context *_ctx) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
 
-  struct rbox_mail *r_src_mail = (struct rbox_mail *)_ctx->copy_src_mail;
+#ifdef HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL
+  struct rbox_mail *r_src_mail = (struct rbox_mail *)ctx->copy_src_mail;
+#else
+  struct rbox_mail *r_src_mail = (struct rbox_mail *)src_mail;
+#endif
   guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
 
   r_ctx->current_object = new RadosMailObject();
@@ -536,7 +539,6 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-
 
   if (!r_ctx->finished) {
     rbox_save_cancel(&r_ctx->ctx);

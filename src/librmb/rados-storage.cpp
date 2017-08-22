@@ -30,7 +30,7 @@ int RadosStorage::split_buffer_and_exec_op(const char *buffer, size_t buffer_len
 
     librados::ObjectWriteOperation *op = i == 0 ? write_op_xattr : new librados::ObjectWriteOperation();
 
-    int length = max_write;
+    uint64_t length = max_write;
     if (buffer_length < ((i + 1) * length)) {
       length = rest;
     }
@@ -52,4 +52,3 @@ int RadosStorage::split_buffer_and_exec_op(const char *buffer, size_t buffer_len
 
   return ret_val;
 }
-

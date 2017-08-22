@@ -25,7 +25,9 @@ extern "C" {
 
 #include "ostream.h"
 #include "debug-helper.h"
+#ifdef HAVE_INDEX_POP3_UIDL_H
 #include "index-pop3-uidl.h"
+#endif
 }
 
 #include "rados-mail-object.h"
@@ -402,22 +404,30 @@ int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const
     case MAIL_FETCH_GUID:
       return rbox_get_cached_metadata(mail, RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
     case MAIL_FETCH_UIDL_BACKEND:
+#ifdef HAVE_INDEX_POP3_UIDL_H
       if (!index_pop3_uidl_can_exist(_mail)) {
         *value_r = "";
         return 0;
       }
+#endif
+
       ret = rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
+
+#ifdef HAVE_INDEX_POP3_UIDL_H
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
+#endif
       return ret;
     case MAIL_FETCH_POP3_ORDER:
+#ifdef HAVE_INDEX_POP3_UIDL_H
       if (!index_pop3_uidl_can_exist(_mail)) {
         /* we're assuming that if there's a POP3 order, there's
            also a UIDL */
         *value_r = "";
         return 0;
       }
+#endif
       return rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER, value_r);
     default:
       break;
@@ -451,39 +461,18 @@ void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
 }
 
 // rbox_mail_free,
-struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
-                                       index_mail_free,
-                                       rbox_index_mail_set_seq,
-                                       index_mail_set_uid,
-                                       index_mail_set_uid_cache_updates,
-                                       index_mail_prefetch,
-                                       index_mail_precache,
-                                       index_mail_add_temp_wanted_fields,
+struct mail_vfuncs rbox_mail_vfuncs = {
+    rbox_mail_close, index_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
+    index_mail_prefetch, index_mail_precache, index_mail_add_temp_wanted_fields,
 
-                                       index_mail_get_flags,
-                                       index_mail_get_keywords,
-                                       index_mail_get_keyword_indexes,
-                                       index_mail_get_modseq,
-                                       index_mail_get_pvt_modseq,
-                                       index_mail_get_parts,
-                                       index_mail_get_date,
-                                       rbox_mail_get_received_date,
-                                       rbox_mail_get_save_date,
-                                       rbox_mail_get_physical_size, /* physical = virtual in our case */
-                                       rbox_mail_get_physical_size,
-                                       index_mail_get_first_header,
-                                       index_mail_get_headers,
-                                       index_mail_get_header_stream,
-                                       rbox_mail_get_stream,
-                                       index_mail_get_binary_stream,
-                                       rbox_mail_get_special,
-                                       index_mail_get_real_mail,
-                                       index_mail_update_flags,
-                                       index_mail_update_keywords,
-                                       index_mail_update_modseq,
-                                       index_mail_update_pvt_modseq,
-                                       NULL,
-                                       index_mail_expunge,
-                                       index_mail_set_cache_corrupted,
-                                       index_mail_opened,
-                                       index_mail_set_cache_corrupted_reason};
+    index_mail_get_flags, index_mail_get_keywords, index_mail_get_keyword_indexes, index_mail_get_modseq,
+    index_mail_get_pvt_modseq, index_mail_get_parts, index_mail_get_date, rbox_mail_get_received_date,
+    rbox_mail_get_save_date, rbox_mail_get_physical_size, /* physical = virtual in our case */
+    rbox_mail_get_physical_size, index_mail_get_first_header, index_mail_get_headers, index_mail_get_header_stream,
+    rbox_mail_get_stream, index_mail_get_binary_stream, rbox_mail_get_special, index_mail_get_real_mail,
+    index_mail_update_flags, index_mail_update_keywords, index_mail_update_modseq, index_mail_update_pvt_modseq, NULL,
+    index_mail_expunge, index_mail_set_cache_corrupted, index_mail_opened,
+#ifdef HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
+    index_mail_set_cache_corrupted_reason
+#endif
+};

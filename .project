@@ -3,7 +3,7 @@
 	<name>dovecot-ceph-plugin</name>
 	<comment></comment>
 	<projects>
-		<project>core</project>
+		<project>dovecot</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
@@ -30,5 +30,6 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.autotools.core.autotoolsNatureV2</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+		<nature>org.eclipse.ptp.rdt.sync.core.remoteSyncNature</nature>
 	</natures>
 </projectDescription>

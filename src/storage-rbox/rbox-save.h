@@ -52,7 +52,7 @@ class rbox_save_context {
 };
 
 void rbox_add_to_index(struct mail_save_context *_ctx);
-void rbox_move_index(struct mail_save_context *_ctx);
+void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail);
 int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, uint64_t max_size, librados::IoCtx &io_ctx,
                              librmb::RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr);
 

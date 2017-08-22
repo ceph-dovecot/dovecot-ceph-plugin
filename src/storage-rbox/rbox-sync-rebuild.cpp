@@ -20,7 +20,6 @@ extern "C" {
 #include "../librmb/encoding.h"
 #include "rados-mail-object.h"
 
-
 using namespace librmb;
 
 uint32_t stoui32(const std::string &s) {
@@ -128,6 +127,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, std::string &mail
 
   return ret;
 }
+
 void rbox_sync_set_uidvalidity(struct index_rebuild_context *ctx) {
   uint32_t uid_validity;
 
@@ -186,10 +186,12 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
 
   index_index_rebuild_deinit(&ctx, rbox_get_uidvalidity_next);
 
-  if (ret < 0)
+  if (ret < 0) {
     mail_index_transaction_rollback(&trans);
-  else {
+  } else {
+#ifdef HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
     mail_index_unset_fscked(trans);
+#endif
     ret = mail_index_transaction_commit(&trans);
   }
   mail_index_view_close(&view);
