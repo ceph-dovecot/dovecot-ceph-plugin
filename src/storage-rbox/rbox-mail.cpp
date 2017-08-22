@@ -386,6 +386,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
      change unexpectedly */
   str_truncate(str, 0);
   str_append(str, value);
+  i_free(value);
   *value_r = str_c(str);
   return 0;
 }
