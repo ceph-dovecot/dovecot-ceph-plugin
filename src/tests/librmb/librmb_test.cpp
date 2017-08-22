@@ -12,7 +12,7 @@ TEST(librmb, split_write_operation) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage;
+  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
   librmb::RadosCluster cluster;
@@ -54,7 +54,7 @@ TEST(librmb1, split_write_operation_1) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage;
+  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
   librmb::RadosCluster cluster;
