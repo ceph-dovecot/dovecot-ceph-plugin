@@ -147,13 +147,13 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
 
   if (rbox_mail_metadata_get(rmail, RBOX_METADATA_RECEIVED_TIME, &value) < 0)
     return -1;
-  //  i_debug("read received_time : %s", value);
   time = 0;
   i_debug("received_date received, %s", value);
   if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
     return -1;
 
   long ts = std::stol(value);
+  i_free(value);
   i_debug("received_date is %lu", ts);
   data->received_date = static_cast<time_t>(ts);
   *date_r = data->received_date;
