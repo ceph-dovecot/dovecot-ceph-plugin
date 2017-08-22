@@ -456,7 +456,7 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
-  RadosStorage *storage;
+  RadosStorage *storage = NULL;
   RadosCluster cluster;
   std::string pool_name(opts["pool"]);
   std::string ns(opts["namespace"]);
