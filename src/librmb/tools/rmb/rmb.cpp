@@ -387,7 +387,7 @@ void usage(ostream &out) {
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "MAILBOX COMMANDS\n"
-         "    ls     mb list all mailboxes"
+         "    ls     mb  list all mailboxes"
          "\n";
   //"MAILBOX COMMANDS\n"
   //"\n";
