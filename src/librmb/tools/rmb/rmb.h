@@ -13,7 +13,7 @@
 #include "rados-mail-object.h"
 #include <vector>
 #include <map>
-
+#include "ls_cmd_parser.h"
 namespace librmb {
 
 class RadosMailBox {
@@ -22,26 +22,35 @@ class RadosMailBox {
     this->mail_count = mail_count;
     this->mailbox_guid = mailbox_guid;
     this->mailbox_size = 0;
-    total_mails = 0;
+    this->total_mails = 0;
+    this->parser = NULL;
   }
   virtual ~RadosMailBox() {}
 
   void add_mail(RadosMailObject *mail) {
     total_mails++;
-    if (xattr_filter.size() == 0) {
+    if (parser == NULL) {
       mails.push_back(mail);
       return;
     }
-    for (std::map<std::string, std::string>::iterator it = xattr_filter.begin(); it != xattr_filter.end(); ++it) {
+    if (parser->get_predicates().size() == 0) {
+      mails.push_back(mail);
+      return;
+    }
+    for (std::map<std::string, Predicate *>::iterator it = parser->get_predicates().begin();
+         it != parser->get_predicates().end(); ++it) {
+      // std::cout << " looking for: " << it->first << std::endl;
       if (mail->get_xattr()->find(it->first) != mail->get_xattr()->end()) {
       /*  std::cout << "comparing: " << it->second
                   << " with : " << mail->get_xvalue(it->first).substr(0, mail->get_xvalue(it->first).length() - 1)
                   << " org: " << mail->get_xvalue(it->first) << std::endl;*/
-        if (it->second.compare(mail->get_xvalue(it->first).substr(0, mail->get_xvalue(it->first).length() - 1)) == 0) {
-          mails.push_back(mail);
-        }
+      //   std::cout << " found : " << it->first << std::endl;
 
-        return;
+      std::string key = it->first;
+      if (it->second->eval(mail->get_xvalue(key))) {
+        mails.push_back(mail);
+      }
+      return;
       }
     }
   }
@@ -62,11 +71,11 @@ class RadosMailBox {
   inline void add_to_mailbox_size(const uint64_t &mail_size) { this->mailbox_size += mail_size; }
   void set_mails(std::vector<RadosMailObject *> mails) { this->mails = mails; }
 
-  std::map<std::string, std::string> &get_xattr_filter() { return this->xattr_filter; }
-  void set_xattr_filter(std::map<std::string, std::string> &filter) { this->xattr_filter = filter; }
+  CmdLineParser *get_xattr_filter() { return this->parser; }
+  void set_xattr_filter(CmdLineParser *parser) { this->parser = parser; }
 
  private:
-  std::map<std::string, std::string> xattr_filter;
+  CmdLineParser *parser;
 
   std::string mailbox_guid;
   int mail_count;

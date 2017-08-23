@@ -410,9 +410,17 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
 static void rbox_mailbox_close(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
+  struct expunged_item *const *moved_items, *moved_item;
+  unsigned int moved_count;
+  unsigned int i;
 
   if (array_is_created(&rbox->moved_items)) {
     if (array_count(&rbox->moved_items) > 0) {
+      moved_items = array_get(&rbox->moved_items, &moved_count);
+      for (i = 0; i < moved_count; i++) {
+        moved_item = moved_items[i];
+        i_free(moved_item);
+      }
       array_delete(&rbox->moved_items, array_count(&rbox->moved_items) - 1, 1);
     }
     array_free(&rbox->moved_items);
