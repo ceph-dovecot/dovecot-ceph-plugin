@@ -25,6 +25,8 @@ class RadosStorage {
   int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 
+  int read_mail(const std::string &oid, unsigned long &size_r, char *mail_buffer);
+
  private:
   librados::IoCtx io_ctx;
   int max_write_size;

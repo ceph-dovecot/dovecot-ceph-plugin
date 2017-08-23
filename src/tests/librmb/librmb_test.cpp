@@ -115,3 +115,46 @@ TEST(librmb1, convert_types) {
   attr.key = "";
   attr.bl.clear();
 }
+
+TEST(librmb1, read_mail) {
+  const char *buffer = "abcdefghijklmn";
+  size_t buffer_length = 14;
+  uint64_t max_size = buffer_length;
+  librmb::RadosMailObject obj;
+  obj.set_oid("test_oid");
+  librados::IoCtx io_ctx;
+  librmb::RadosStorage *storage = NULL;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosCluster cluster;
+
+  std::string pool_name("test");
+  std::string ns("t");
+
+  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  EXPECT_EQ(0, open_connection);
+
+  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+
+  // wait for op to finish.
+  obj.wait_for_write_operations_complete();
+
+  // stat the object
+  uint64_t size;
+  time_t save_date;
+  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+
+  char *buff = new char[size];
+  int ret = storage->read_mail(obj.get_oid(), size, &buff[0]);
+
+  // remove it
+  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+
+  // tear down
+  cluster.deinit();
+  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(buff[0], 'a');
+  EXPECT_EQ(buff[1], 'b');
+  EXPECT_EQ(buff[2], 'c');
+  EXPECT_EQ(buff[3], 'd');
+}

@@ -23,10 +23,10 @@ shlibs = \
 TESTS += librmb_test
 check_PROGRAMS += librmb_test
 librmb_test_SOURCES = librmb/librmb_test.cpp
-librmb_test_LDADD = $(shlibs)
+librmb_test_LDADD = $(shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o 
     
 TESTS += rmb_test
 check_PROGRAMS += rmb_test
 rmb_test_SOURCES = rmb/rmb_test.cpp
-rmb_test_LDADD = $(shlibs)  $(top_srcdir)/src/librmb/tools/rmb/rmb-ls_cmd_parser.o 
+rmb_test_LDADD = $(shlibs)  $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o 
     

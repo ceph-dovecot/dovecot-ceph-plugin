@@ -290,34 +290,17 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     memset(rmail->mail_buffer, '\0', sizeof(char) * size_r);
     _mail->transaction->stats.open_lookup_count++;
 
-    int offset = 0;
-    librados::bufferlist mail_data_bl;
-
-    std::string str_buf;
-    do {
-      mail_data_bl.clear();
-      ret = ((r_storage->s)->get_io_ctx()).read(rmail->mail_object->get_oid(), mail_data_bl, size_r, offset);
-      if (ret < 0) {
-        if (ret == ((-1) * ENOENT)) {
-          rbox_mail_set_expunged(rmail);
-          return -1;
-        } else {
-          i_debug("error code: %d", ret);
-          FUNC_END_RET("ret == -1");
-          return -1;
-        }
+    int ret = ((r_storage->s)->read_mail(rmail->mail_object->get_oid(), size_r, &rmail->mail_buffer[0]));
+    if (ret < 0) {
+      if (ret == -ENOENT) {
+        rbox_mail_set_expunged(rmail);
+        return -1;
+      } else {
+        i_debug("error code: %d", ret);
+        FUNC_END_RET("ret == -1");
+        return -1;
       }
-
-      if (ret == 0) {
-        break;
-      }
-
-      mail_data_bl.copy(0, (unsigned)ret, &rmail->mail_buffer[0]);
-      i_debug("rbox_mail_get_stream(oid=%s, size_r = %lu, read_from_rados = %d):",
-              rmail->mail_object->get_oid().c_str(), size_r, ret);
-
-      offset += ret;
-    } while (ret > 0);
+    }
 
     input = i_stream_create_from_data(rmail->mail_buffer, size_r);
     i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME.c_str());
