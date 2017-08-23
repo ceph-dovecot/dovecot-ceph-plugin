@@ -15,9 +15,9 @@ using namespace librmb;
 Predicate *CmdLineParser::create_predicate(std::string &ls_value) {
   Predicate *p = new Predicate();
 
-  int pos = ls_value.find("=");
-  pos = (pos == ls_value.npos) ? ls_value.find(">") : pos;
-  pos = (pos == ls_value.npos) ? ls_value.find("<") : pos;
+  size_t pos = ls_value.find("=");
+  pos = (pos == std::string::npos) ? ls_value.find(">") : pos;
+  pos = (pos == std::string::npos) ? ls_value.find("<") : pos;
 
   p->key = ls_value.substr(0, pos);
   p->op = ls_value[pos];
@@ -32,8 +32,8 @@ Predicate *CmdLineParser::create_predicate(std::string &ls_value) {
 bool CmdLineParser::parse_ls_string() {
   std::string pred_sep = ";";
 
-  int pos = ls_value.find(pred_sep);
-  if (pos == ls_value.npos) {
+  size_t pos = ls_value.find(pred_sep);
+  if (pos == std::string::npos) {
     // single condition.
     Predicate *p = create_predicate(ls_value);
     if (p->valid) {
@@ -44,7 +44,7 @@ bool CmdLineParser::parse_ls_string() {
   } else {
     int offset = 0;
     std::string tmp = ls_value;
-    while (pos != ls_value.npos) {
+    while (pos != std::string::npos) {
       tmp = tmp.substr(0, pos);
 
       Predicate *p = create_predicate(tmp);

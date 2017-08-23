@@ -27,7 +27,7 @@ TEST(rmb, test_cmd_parser) {
   EXPECT_TRUE(parser.contains_key(key2));
   EXPECT_TRUE(parser.contains_key(key3));
 
-  librmb::rbox_metadata_key k = 'M';
+  librmb::rbox_metadata_key k = static_cast<librmb::rbox_metadata_key>('M');
 
   librmb::Predicate *p = parser.get_predicate(key);
   std::string value = "abc";
@@ -55,7 +55,7 @@ TEST(rmb1, date_arg) {
 
   std::string date = "2013-12-04 15:03";
   time_t t;
-  p->convert_str_to_time_t(date, t);
+  p->convert_str_to_time_t(date, &t);
   std::cout << "time t " << t << std::endl;
   EXPECT_TRUE(t > -1);
   time_t t2 = 1503393219;

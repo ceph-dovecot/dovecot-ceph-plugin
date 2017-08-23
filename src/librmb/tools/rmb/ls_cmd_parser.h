@@ -24,7 +24,8 @@ class Predicate {
   bool valid;
 
   bool eval(const std::string &value) {
-    rbox_metadata_key rbox_key = *key.c_str();
+    rbox_metadata_key rbox_key = static_cast<librmb::rbox_metadata_key>(*key.c_str());
+
     if (rbox_key == RBOX_METADATA_RECEIVED_TIME || rbox_key == RBOX_METADATA_OLDV1_SAVE_TIME) {
       // ref value
       time_t query_date = 0;
@@ -34,7 +35,7 @@ class Predicate {
       time_t obj_date = static_cast<time_t>(val2);
 
       double diff = difftime(obj_date, query_date);
-      //   std::cout << " comparing : " << query_date << " " << obj_date << std::endl;
+      // std::cout << " comparing : " << query_date << " " << obj_date << std::endl;
       if (this->op.compare("=") == 0) {
         return diff == 0;
       } else if (this->op.compare(">") == 0) {
@@ -71,7 +72,7 @@ class Predicate {
     if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
       tm.tm_isdst = -1;
       time_t t = mktime(&tm);  // t is now your desired time_t
-      //*val = t;
+      *val = t;
       return true;
     }
 
@@ -87,8 +88,8 @@ class Predicate {
 class CmdLineParser {
  public:
   CmdLineParser(std::string &ls_value) {
-    int pos = ls_value.find("\"");
-    if (pos != ls_value.npos) {
+    size_t pos = ls_value.find("\"");
+    if (pos != std::string::npos) {
       this->ls_value = ls_value.substr(1, ls_value.length() - 1);
     }
     this->ls_value = ls_value;
