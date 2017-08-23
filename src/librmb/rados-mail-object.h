@@ -94,7 +94,7 @@ class RadosMailObject {
     std::string mail_uid(1, (char)key);
     return attrset[mail_uid].c_str();
   }
-  std::string get_xvalue(std::string key) { return attrset[key].c_str(); }
+  const std::string get_xvalue(std::string key) { return attrset[key].to_str(); }
 
   std::string to_string(std::string& padding);
   void set_rados_save_date(time_t& save_date) { this->save_date_rados = save_date; }

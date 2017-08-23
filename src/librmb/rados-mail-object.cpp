@@ -65,7 +65,8 @@ std::string RadosMailObject::to_string(std::string &padding) {
      << "oid = " << oid << std::endl;
   ss << padding << "        " << (char)RBOX_METADATA_RECEIVED_TIME << "(receive_time)=" << std::ctime(&ts);
 
-  ss << padding << "        " << (char)RBOX_METADATA_OLDV1_SAVE_TIME << "(save_time)=" << std::ctime(&save_date_rados);
+  ss << padding << "        "
+     << "save_time=" << std::ctime(&save_date_rados);
   ss << padding << "        " << (char)RBOX_METADATA_PHYSICAL_SIZE << "(phy_size)=" << object_i << " "
      << (char)RBOX_METADATA_VIRTUAL_SIZE << "(v_size) = " << object_v << " stat_size=" << object_size << std::endl;
   ss << padding << "        " << (char)RBOX_METADATA_MAILBOX_GUID << "(mailbox_guid)=" << mailbox_guid << std::endl;
