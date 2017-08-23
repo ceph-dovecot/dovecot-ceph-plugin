@@ -79,12 +79,14 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   FUNC_END();
 }
 
-int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
+int rbox_storage_create(struct mail_storage *ATTR_UNUSED, struct mail_namespace *ATTR_UNUSED,
+                        const char **ATTR_UNUSED) {
   FUNC_START();
   // RADOS initialization postponed to mailbox_open
   FUNC_END();
   return 0;
 }
+
 void rbox_storage_destroy(struct mail_storage *_storage) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
@@ -121,7 +123,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   mbox->box.list = list;
   mbox->box.v = rbox_mailbox_vfuncs;
   mbox->box.mail_vfuncs = &rbox_mail_vfuncs;
-  i_array_init(&mbox->moved_items, 32);
 
   i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
           storage->set->mail_location);
@@ -226,6 +227,11 @@ int rbox_open_mailbox(struct mailbox *box) {
   mail_index_set_fsync_mode(
       box->index, box->storage->set->parsed_fsync_mode,
       static_cast<mail_index_fsync_mask>(MAIL_INDEX_FSYNC_MASK_APPENDS | MAIL_INDEX_FSYNC_MASK_EXPUNGES));
+
+  if (!array_is_created(&mbox->moved_items)) {
+    i_array_init(&mbox->moved_items, 32);
+  }
+
   return 0;
 }
 
