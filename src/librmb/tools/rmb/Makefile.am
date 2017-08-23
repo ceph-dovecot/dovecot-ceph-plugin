@@ -5,7 +5,8 @@ shlibs = \
 	$(top_srcdir)/src/librmb/librmb.la
 	
 bin_PROGRAMS = rmb
-
-rmb_SOURCES = rmb.cpp
+rmb_SOURCES = ls_cmd_parser.cpp \
+			  rmb.cpp 
+			  
 rmb_LDADD = $(shlibs)
  

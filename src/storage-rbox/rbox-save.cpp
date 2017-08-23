@@ -244,89 +244,70 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
                                   size_t &message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-
+  
   {
-    std::string key(1, (char)RBOX_METADATA_VERSION);
-    bufferlist version_bl;
-    version_bl.append(RadosMailObject::X_ATTR_VERSION_VALUE);
-    write_op_xattr->setxattr(key.c_str(), version_bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
-    bufferlist bl;
-    bl.append(guid_128_to_string(ctx->mbox->mailbox_guid));
-    write_op_xattr->setxattr(key.c_str(), bl);
-  }
-
-  {
-    std::string key(1, (char)RBOX_METADATA_GUID);
-    bufferlist bl;
-    bl.append(guid_128_to_string(ctx->mail_guid));
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(ctx->mbox->mailbox_guid), &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    std::string key(1, (char)RBOX_METADATA_RECEIVED_TIME);
-    bufferlist bl;
-    long ts = static_cast<long int>(mdata->received_date);
-    bl.append(std::to_string(ts));
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_GUID, guid_128_to_string(ctx->mail_guid), &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
-
+  {
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_RECEIVED_TIME, &mdata->received_date, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
+  }
   {
     if (mdata->pop3_uidl != NULL) {
-      std::string key(1, (char)RBOX_METADATA_POP3_UIDL);
-
-      i_assert(strchr(mdata->pop3_uidl, '\n') == NULL);
-      bufferlist bl;
-      bl.append(mdata->pop3_uidl);
-      write_op_xattr->setxattr(key.c_str(), bl);
+      librmb::RadosXAttr xattr;
+      librmb::RadosXAttr::convert(RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl, &xattr);
+      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
     if (mdata->pop3_order != 0) {
-      std::string key(1, (char)RBOX_METADATA_POP3_ORDER);
-
-      bufferlist bl;
-      bl.append(std::to_string(mdata->pop3_order));
-      write_op_xattr->setxattr(key.c_str(), bl);
+      librmb::RadosXAttr xattr;
+      librmb::RadosXAttr::convert(RBOX_METADATA_POP3_ORDER, mdata->pop3_order, &xattr);
+      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
-    if (mdata->from_envelope != 0) {
-      std::string key(1, (char)RBOX_METADATA_FROM_ENVELOPE);
-      bufferlist bl;
-      bl.append(mdata->from_envelope);
-      write_op_xattr->setxattr(key.c_str(), bl);
+    if (mdata->from_envelope != NULL) {
+      librmb::RadosXAttr xattr;
+      librmb::RadosXAttr::convert(RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope, &xattr);
+      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
-    std::string key(1, (char)RBOX_METADATA_VIRTUAL_SIZE);
-    bufferlist bl;
-    std::string value = std::to_string((int)message_size);
-    bl.append(value);
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_VIRTUAL_SIZE, message_size, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    std::string key(1, (char)RBOX_METADATA_PHYSICAL_SIZE);
-    bufferlist bl;
-    std::string value = std::to_string((int)message_size);
-    bl.append(value);
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_PHYSICAL_SIZE, message_size, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
     std::string flags = std::to_string(mdata->flags);
-    std::string key(1, (char)RBOX_METADATA_OLDV1_FLAGS);
-    bufferlist bl;
-    bl.append(flags);
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_OLDV1_FLAGS, flags, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
 
   {
     std::string pvt_flags = std::to_string(mdata->pvt_flags);
-    std::string key(1, (char)RBOX_METADATA_PVT_FLAGS);
-    bufferlist bl;
-    bl.append(pvt_flags);
-    write_op_xattr->setxattr(key.c_str(), bl);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_PVT_FLAGS, pvt_flags, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
 
   i_debug("save_date %s", std::ctime(&mdata->save_date));

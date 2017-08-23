@@ -17,11 +17,16 @@ TESTS =
 check_PROGRAMS = 
 
 shlibs = \
-	$(top_srcdir)/src/librmb/librmb.la
+	$(top_srcdir)/src/librmb/librmb.la 
 
 
 TESTS += librmb_test
 check_PROGRAMS += librmb_test
 librmb_test_SOURCES = librmb/librmb_test.cpp
 librmb_test_LDADD = $(shlibs)
+    
+TESTS += rmb_test
+check_PROGRAMS += rmb_test
+rmb_test_SOURCES = rmb/rmb_test.cpp
+rmb_test_LDADD = $(shlibs)  $(top_srcdir)/src/librmb/tools/rmb/rmb-ls_cmd_parser.o 
     

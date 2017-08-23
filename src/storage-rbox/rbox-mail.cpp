@@ -102,10 +102,9 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
   return &mail->imail.mail.mail;
 }
 
-static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, const char **value_r) {
+static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, char **value_r) {
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
-  std::map<std::string, ceph::bufferlist> attrset;
 
   if (rbox_open_rados_connection(mail->box) < 0) {
     i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
@@ -113,7 +112,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
 
   if (rmail->mail_object != NULL) {
-    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
+    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), *rmail->mail_object->get_xattr());
     if (ret < 0) {
       if (ret == ((-1) * ENOENT)) {
         rbox_mail_set_expunged(rmail);
@@ -123,9 +122,10 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
         return -1;
       }
     }
-    std::string skey(1, (char)key);
-    if (attrset.find(skey) != attrset.end()) {
-      *value_r = i_strdup(attrset[skey].to_str().c_str());
+
+    std::string value = rmail->mail_object->get_xvalue(key);
+    if (!value.empty()) {
+      *value_r = i_strdup(value.c_str());
       return 0;
     }
   }
@@ -137,7 +137,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   struct index_mail *mail = (struct index_mail *)_mail;
   struct index_mail_data *data = &mail->data;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  const char *value;
+  char *value;
   uintmax_t time;
 
   if (index_mail_get_received_date(_mail, date_r) == 0) {
@@ -154,10 +154,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
     return -1;
 
-  long ts = std::stol(value);
-  i_free(value);
-  i_debug("received_date is %lu", ts);
-  data->received_date = static_cast<time_t>(ts);
+  librmb::RadosXAttr::convert(value, data->received_date);
+
   *date_r = data->received_date;
 
   i_debug("received date = %s", ctime(date_r));
@@ -345,8 +343,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
                                     enum index_cache_field cache_field, const char **value_r) {
   struct index_mail *imail = &mail->imail;
-  struct index_mailbox_context *ibox = INDEX_STORAGE_CONTEXT(imail->mail.mail.box);
-  const char *value;
+  struct index_mailbox_context *ibox = (index_mailbox_context *)INDEX_STORAGE_CONTEXT(imail->mail.mail.box);
+  char *value;
   string_t *str;
   uint32_t order;
 
@@ -357,9 +355,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
       i_assert(str_len(str) == sizeof(order));
       memcpy(&order, str_data(str), sizeof(order));
       str_truncate(str, 0);
-      if (order != 0)
+      if (order != 0) {
         str_printfa(str, "%u", order);
-      else {
+      } else {
         /* order=0 means it doesn't exist. we don't
            want to return "0" though, because then the
            mails get ordered to beginning, while
@@ -374,8 +372,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   if (rbox_mail_metadata_get(mail, key, &value) < 0)
     return -1;
 
-  if (value == NULL)
-    value = "";
+  if (value == NULL) {
+    value = i_strdup("");
+  }
   if (cache_field != MAIL_CACHE_POP3_ORDER) {
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, value, strlen(value) + 1);
   } else {
