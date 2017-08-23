@@ -1,4 +1,8 @@
 eclipse.preferences.version=1
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1675061625/append=true
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1675061625/appendContributed=false
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.488391845/append=true
+environment/project/org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.488391845/appendContributed=false
 org.eclipse.cdt.core.code_formatter=org.wangzw.plugin.cppstyle.CppCodeFormatter
 org.eclipse.cdt.core.formatter.alignment_for_arguments_in_method_invocation=18
 org.eclipse.cdt.core.formatter.alignment_for_assignment=16

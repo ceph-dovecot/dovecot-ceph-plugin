@@ -58,10 +58,7 @@ enum rbox_metadata_key {
 class RadosMailObject {
  public:
   RadosMailObject();
-  virtual ~RadosMailObject() {
-
-  }
-
+  virtual ~RadosMailObject() {}
   void set_oid(const char* oid) { this->oid = oid; }
   void set_oid(const std::string& oid) { this->oid = oid; }
   void set_state(const std::string& state) { this->state = state; }
@@ -92,7 +89,7 @@ class RadosMailObject {
 
   std::string get_xvalue(rbox_metadata_key key) {
     std::string mail_uid(1, (char)key);
-    return attrset[mail_uid].c_str();
+    return attrset[mail_uid].to_str();
   }
   const std::string get_xvalue(std::string key) { return attrset[key].to_str(); }
 
