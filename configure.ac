@@ -5,15 +5,16 @@ AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
 
+AX_IS_RELEASE(always)
+AX_CHECK_ENABLE_DEBUG()
+
 AM_INIT_AUTOMAKE([no-define foreign tar-ustar subdir-objects])
 LT_INIT([shared disable-static pic-only])
-AC_ENABLE_SHARED
-AC_DISABLE_STATIC
 
 AM_MAINTAINER_MODE
 PKG_PROG_PKG_CONFIG
 
-dnl TEST_WITH(name, value, [plugin])
+# TEST_WITH(name, value, [plugin])
 AC_DEFUN([TEST_WITH], [
   want=want_`echo $1|sed s/-/_/g`
   if test $2 = yes || test $2 = no || test $2 = auto; then
@@ -60,16 +61,21 @@ AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] R
   want_tests=yes)
 AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
 
+
 AC_PROG_CC
-
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX([11])
-
 AC_PROG_CPP
 AC_PROG_LIBTOOL
 
+AC_ENABLE_SHARED
+AC_DISABLE_STATIC
+
+AX_CXX_COMPILE_STDCXX([11])
+AX_COMPILER_FLAGS()
+
 AC_ISC_POSIX
 AC_C_INLINE
+
 
 # Couple Dovecot config
 DC_DOVECOT
@@ -81,39 +87,44 @@ LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE $LIBDOVECOT_STORAGE_INCLUDE"
 BINARY_CFLAGS="$DOVECOT_BINARY_CFLAGS"
 BINARY_LDFLAGS="$DOVECOT_BINARY_LDFLAGS"
 
-CFLAGS+=" $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
-CXXFLAGS+=" -Wall -Wextra -fpermissive -std=c++11 $lt_cv_prog_compiler_pic_CXX"
+CFLAGS+=" $WARN_CFLAGS $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
+CXXFLAGS+=" $WARN_CXXFLAGS -fpermissive -std=c++11 $lt_cv_prog_compiler_pic_CXX"
 
 AC_SUBST(BINARY_CFLAGS)
 AC_SUBST(BINARY_LDFLAGS)
 AC_SUBST(LIBDOVECOT_INCLUDE)
 
-
 AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
 AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
 
-AC_MSG_CHECKING([whether Dovecot supports dict_vfuncs.switch_ioloop])
+
+AC_MSG_CHECKING([for dict_vfuncs.switch_ioloop])
 grep switch_ioloop $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
 AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])
 
-AC_MSG_CHECKING([whether Dovecot supports dict_vfuncs.set_timestamp])
+AC_MSG_CHECKING([for dict_vfuncs.set_timestamp])
 grep set_timestamp $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
 AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SET_TIMESTAMP],,[dict_vfuncs.set_timestamp supported])],[AC_MSG_RESULT(no)])
 
-AC_MSG_CHECKING([whether Dovecot supports index-pop3-uidl.h])
+AC_MSG_CHECKING([for index-pop3-uidl.h])
 AS_IF([test -f $dovecot_pkgincludedir/index-pop3-uidl.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_POP3_UIDL_H],,[index-pop3-uidl.h found])],[AC_MSG_RESULT(no)])
 
-AC_MSG_CHECKING([whether Dovecot supports mail_vfuncs.index_mail_set_cache_corrupted_reason])
+AC_MSG_CHECKING([for mail_vfuncs.index_mail_set_cache_corrupted_reason])
 grep index_mail_set_cache_corrupted_reason $dovecot_pkgincludedir/index-mail.h > /dev/null 2>&1
 AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON],,[mail_vfuncs.index_mail_set_cache_corrupted_reason supported])],[AC_MSG_RESULT(no)])
 
-AC_MSG_CHECKING([whether Dovecot supports mail_save_context.copy_src_mail])
+AC_MSG_CHECKING([for dict_lookup_result.values])
+grep values_reason $dovecot_pkgincludedir/dict.h > /dev/null 2>&1
+AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_LOOKUP_RESULT_VALUES],,[dict_lookup_result.values supported])],[AC_MSG_RESULT(no)])
+
+AC_MSG_CHECKING([for mail_save_context.copy_src_mail])
 grep copy_src_mail $dovecot_pkgincludedir/mail-storage-private.h > /dev/null 2>&1
 AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL],,[mail_save_context.copy_src_mail supported])],[AC_MSG_RESULT(no)])
 
-AC_MSG_CHECKING([whether Dovecot supports MAIL_INDEX_HDR_FLAG_FSCKD])
+AC_MSG_CHECKING([for MAIL_INDEX_HDR_FLAG_FSCKD])
 grep MAIL_INDEX_HDR_FLAG_FSCKD $dovecot_pkgincludedir/mail-index.h > /dev/null 2>&1
 AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_INDEX_HDR_FLAG_FSCKD],,[MAIL_INDEX_HDR_FLAG_FSCKD supported])],[AC_MSG_RESULT(no)])
+
 
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([], [], [config-local.h])
