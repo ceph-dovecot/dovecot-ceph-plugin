@@ -20,6 +20,13 @@
 #include <rados/librados.h>
 
 #ifndef test_assert_strcmp
+static void test_assert_failed_strcmp(const char *code, const char *file, unsigned int line, const char *src,
+                                      const char *dst) {
+  test_assert_failed(code, file, line);
+  printf("        \"%s\" != \"%s\"\n", src, dst);
+  fflush(stdout);
+}
+
 #define test_assert_strcmp(s1, s2)                                                      \
   STMT_START {                                                                          \
     if ((strcmp(s1, s2) != 0))                                                          \
@@ -27,12 +34,6 @@
   }                                                                                     \
   STMT_END
 
-void test_assert_failed_strcmp(const char *code, const char *file, unsigned int line, const char *src,
-                               const char *dst) {
-  test_assert_failed(code, file, line);
-  printf("        \"%s\" != \"%s\"\n", src, dst);
-  fflush(stdout);
-}
 #endif
 
 static const char *OMAP_KEY_PRIVATE = "priv/key";
