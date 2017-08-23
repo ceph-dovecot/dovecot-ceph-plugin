@@ -123,7 +123,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
         return -1;
       }
     }
-    std::string skey(1, (char)key);
+    std::string skey(1, static_cast<char>(key));
     if (attrset.find(skey) != attrset.end()) {
       *value_r = i_strdup(attrset[skey].to_str().c_str());
       return 0;

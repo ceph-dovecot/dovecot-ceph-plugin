@@ -1,7 +1,7 @@
-
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include <ctime>
+#include <string>
 
 extern "C" {
 
@@ -18,8 +18,9 @@ extern "C" {
 #include "rbox-mail.h"
 #include "rbox-save.h"
 #include "rbox-sync.h"
+#include "rbox-copy.h"
 
-using namespace librmb;
+using namespace librmb;  // NOLINT
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
@@ -51,7 +52,7 @@ static void rbox_mail_copy_set_failed(struct mail_save_context *ctx, struct mail
   mail_storage_set_error(ctx->transaction->box->storage, error, t_strdup_printf("%s (%s)", errstr, func));
 }
 
-int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct mail *mail) {
+static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, struct mail *mail) {
   FUNC_START();
   const char *from_envelope, *guid;
   time_t received_date;
@@ -140,10 +141,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       // we need to update the mailbox x attr.
       {
-        std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
+        std::string key(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
         librados::bufferlist bl;
-        struct rbox_mailbox *r_ctx = (struct rbox_mailbox *)ctx->dest_mail->box;
-        bl.append(guid_128_to_string(r_ctx->mailbox_guid));
+        struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)ctx->dest_mail->box;
+        bl.append(guid_128_to_string(dest_mailbox->mailbox_guid));
         write_op.setxattr(key.c_str(), bl);
       }
 
@@ -171,14 +172,14 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       // we need to update the mailbox x attr.
       {
-        std::string key(1, (char)RBOX_METADATA_MAILBOX_GUID);
+        std::string key(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
         librados::bufferlist bl;
-        struct rbox_mailbox *r_ctx = (struct rbox_mailbox *)ctx->dest_mail->box;
-        bl.append(guid_128_to_string(r_ctx->mailbox_guid));
+        struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)ctx->dest_mail->box;
+        bl.append(guid_128_to_string(dest_mailbox->mailbox_guid));
         write_op.setxattr(key.c_str(), bl);
 
-        int ret_val = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
-        i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), ret_val);
+        int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
+        i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
       }
     }
 
