@@ -55,6 +55,47 @@ enum rbox_metadata_key {
   RBOX_METADATA_OLDV1_SPACE = ' '
 };
 
+class RadosXAttr {
+ public:
+  ceph::bufferlist bl;
+  std::string key;
+
+ public:
+  static void convert(enum rbox_metadata_key key, const std::string& val, RadosXAttr* attr) {
+    attr->key = enum_to_string(key);
+    attr->bl.append(val);
+  }
+
+  static void convert(enum rbox_metadata_key key, time_t* time, RadosXAttr* attr) {
+    attr->key = enum_to_string(key);
+    long ts = static_cast<long int>(*time);
+    attr->bl.append(std::to_string(ts));
+  }
+  static void convert(enum rbox_metadata_key key, char* value, RadosXAttr* attr) {
+    attr->key = enum_to_string(key);
+    attr->bl.append(value);
+  }
+  static void convert(enum rbox_metadata_key key, uint& value, RadosXAttr* attr) {
+    attr->key = enum_to_string(key);
+    attr->bl.append(std::to_string(value));
+  }
+  static void convert(enum rbox_metadata_key key, size_t& value, RadosXAttr* attr) {
+    attr->key = enum_to_string(key);
+    attr->bl.append(std::to_string((int)value));
+  }
+
+  static void convert(const char* value, time_t& time) {
+    long ts = std::stol(value);
+    time = static_cast<time_t>(ts);
+  }
+
+ private:
+  static std::string enum_to_string(enum rbox_metadata_key key) {
+    std::string k(1, (char)key);
+    return k;
+  }
+};
+
 class RadosMailObject {
  public:
   RadosMailObject();
@@ -88,10 +129,16 @@ class RadosMailObject {
   std::map<std::string, ceph::bufferlist>* get_xattr() { return &this->attrset; }
 
   std::string get_xvalue(rbox_metadata_key key) {
-    std::string mail_uid(1, (char)key);
-    return attrset[mail_uid].to_str();
+    std::string str_key(1, (char)key);
+    return get_xvalue(str_key);
   }
-  const std::string get_xvalue(std::string key) { return attrset[key].to_str(); }
+  const std::string get_xvalue(std::string key) {
+    std::string value;
+    if (attrset.find(key) != attrset.end()) {
+      value = attrset[key].to_str();
+    }
+    return value;
+  }
 
   std::string to_string(std::string& padding);
   void set_rados_save_date(time_t& save_date) { this->save_date_rados = save_date; }

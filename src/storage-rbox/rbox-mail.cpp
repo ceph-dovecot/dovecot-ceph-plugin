@@ -105,7 +105,6 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, const char **value_r) {
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
-  std::map<std::string, ceph::bufferlist> attrset;
 
   if (rbox_open_rados_connection(mail->box) < 0) {
     i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
@@ -113,7 +112,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
 
   if (rmail->mail_object != NULL) {
-    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
+    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), *rmail->mail_object->get_xattr());
     if (ret < 0) {
       if (ret == ((-1) * ENOENT)) {
         rbox_mail_set_expunged(rmail);
@@ -123,9 +122,10 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
         return -1;
       }
     }
-    std::string skey(1, (char)key);
-    if (attrset.find(skey) != attrset.end()) {
-      *value_r = i_strdup(attrset[skey].to_str().c_str());
+
+    std::string value = rmail->mail_object->get_xvalue(key);
+    if (!value.empty()) {
+      *value_r = i_strdup(value.c_str());
       return 0;
     }
   }
@@ -154,10 +154,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
     return -1;
 
-  long ts = std::stol(value);
-  i_free(value);
-  i_debug("received_date is %lu", ts);
-  data->received_date = static_cast<time_t>(ts);
+  librmb::RadosXAttr::convert(value, data->received_date);
+
   *date_r = data->received_date;
 
   i_debug("received date = %s", ctime(date_r));
