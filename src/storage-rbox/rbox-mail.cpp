@@ -105,7 +105,6 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, char **value_r) {
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
-  std::map<std::string, ceph::bufferlist> attrset;
 
   if (rbox_open_rados_connection(mail->box) < 0) {
     i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
@@ -113,7 +112,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
 
   if (rmail->mail_object != NULL) {
-    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), attrset);
+    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), *rmail->mail_object->get_xattr());
     if (ret < 0) {
       if (ret == ((-1) * ENOENT)) {
         rbox_mail_set_expunged(rmail);
