@@ -17,7 +17,7 @@
 #include <algorithm>  // std::sort
 
 #include "ls_cmd_parser.h"
-
+#include "mailbox_tools.h"
 using namespace std;
 using namespace librmb;
 
@@ -399,8 +399,13 @@ static void usage(ostream &out) {
          "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\" \n"
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
+         "    get     - downloads all mails to cmd line \n"
+         "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\" \n"
+         "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
+         "                      <OP> =,>,< for strings only = is supported.\n"
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes"
+         "    -O path to store the boxes if not given, ~/rmb is used \n"
          "\n";
   //"MAILBOX COMMANDS\n"
   //"\n";
@@ -411,14 +416,17 @@ static void usage_exit() {
   exit(1);
 }
 
-static void print_mailbox_stat(vector<RadosMailObject *> mail_objects, CmdLineParser &parser) {
+static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLineParser &parser, bool download,
+                               RadosStorage *storage) {
   std::map<std::string, RadosMailBox *> mailbox;
 
   for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     std::string mailbox_key = std::string(1, (char)RBOX_METADATA_MAILBOX_GUID);
 
     std::string mailbox_guid = (*it)->get_xvalue(mailbox_key);
+    // std::cout << " mailbox _guid : " << mailbox_guid << std::endl;
     if (parser.contains_key(mailbox_key)) {
+      //   std::cout << " containing key " << std::endl;
       Predicate *p = parser.get_predicate(mailbox_key);
       if (!p->eval(mailbox_guid)) {
         continue;
@@ -437,10 +445,35 @@ static void print_mailbox_stat(vector<RadosMailObject *> mail_objects, CmdLinePa
   std::cout << "mailbox_count: " << mailbox.size() << std::endl;
 
   {
-    for (std::map<std::string, RadosMailBox *>::iterator it = mailbox.begin(); it != mailbox.end(); ++it)
+    for (std::map<std::string, RadosMailBox *>::iterator it = mailbox.begin(); it != mailbox.end(); ++it) {
+      if (it->second->get_mail_count() == 0) {
+        continue;
+      }
       std::cout << it->second->to_string() << std::endl;
+
+      if (download) {
+        MailboxTools tools(it->second, parser.get_output_dir());
+        tools.init_mailbox_dir();
+
+        for (std::vector<librmb::RadosMailObject *>::iterator it_mail = it->second->get_mails().begin();
+             it_mail != it->second->get_mails().end(); ++it_mail) {
+          const std::string oid = (*it_mail)->get_oid();
+          unsigned long size_r = std::stol((*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE));
+          char *mail_buffer = new char[size_r];
+          (*it_mail)->set_mail_buffer(mail_buffer);
+          (*it_mail)->set_object_size(size_r);
+          if (storage->read_mail(oid, size_r, mail_buffer) == 0) {
+            // std::cout << mail_buffer << std::endl;
+            tools.save_mail((*it_mail));
+          }
+
+          delete mail_buffer;
+        }
+      }
+    }
   }
 }
+
 
 int main(int argc, const char **argv) {
   vector<RadosMailObject *> mail_objects;
@@ -463,11 +496,15 @@ int main(int argc, const char **argv) {
       // std::cout << "namespace: " << val << std::endl;
     } else if (ceph_argparse_witharg(args, i, &val, "ls", "--ls", (char *)NULL)) {
       opts["ls"] = val;
+    }
+    else if (ceph_argparse_witharg(args, i, &val, "get", "--get", (char *)NULL)) {
+      opts["get"] = val;
+    } else if (ceph_argparse_witharg(args, i, &val, "-O", "--out", (char *)NULL)) {
+      opts["out"] = val;
     } else {
       ++i;
     }
   }
-
   if (opts.size() < 3) {
     usage_exit();
   }
@@ -500,12 +537,30 @@ int main(int argc, const char **argv) {
 
     mail_objects.push_back(mail);
   }
-  CmdLineParser parser(opts["ls"]);
+
   if (opts.find("ls") != opts.end()) {
+    CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0) {
-      print_mailbox_stat(mail_objects, parser);
+      query_mail_storage(mail_objects, parser, false, nullptr);
     } else if (parser.parse_ls_string()) {
-      print_mailbox_stat(mail_objects, parser);
+      query_mail_storage(mail_objects, parser, false, nullptr);
+    } else {
+      // tear down.
+      cluster.deinit();
+      usage_exit();
+    }
+  } else if (opts.find("get") != opts.end()) {
+    CmdLineParser parser(opts["get"]);
+
+    if (opts.find("out") != opts.end()) {
+      parser.set_output_dir(opts["out"]);
+    } else {
+      parser.set_output_dir("rmb");
+    }
+    if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
+      query_mail_storage(mail_objects, parser, true, storage);
+    } else if (parser.parse_ls_string()) {
+      query_mail_storage(mail_objects, parser, true, storage);
     } else {
       // tear down.
       cluster.deinit();

@@ -1,9 +1,4 @@
-/*
- * cmd_line_parser.h
- *
- *  Created on: Aug 22, 2017
- *      Author: jan
- */
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #ifndef SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_
 #define SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_
@@ -23,7 +18,7 @@ class Predicate {
   std::string value;  // value to check against e.g. key > value
   bool valid;
 
-  bool eval(const std::string &_value) {
+  bool eval(const std::string &_p_value) {
     rbox_metadata_key rbox_key = static_cast<librmb::rbox_metadata_key>(*key.c_str());
 
     if (rbox_key == RBOX_METADATA_RECEIVED_TIME || rbox_key == RBOX_METADATA_OLDV1_SAVE_TIME) {
@@ -31,7 +26,7 @@ class Predicate {
       time_t query_date = 0;
       convert_str_to_time_t(this->value, &query_date);
 
-      long val2 = std::stol(_value);
+      long val2 = std::stol(_p_value);
       time_t obj_date = static_cast<time_t>(val2);
 
       double diff = difftime(obj_date, query_date);
@@ -47,7 +42,7 @@ class Predicate {
       return true;
     } else if (rbox_key == RBOX_METADATA_VIRTUAL_SIZE || rbox_key == RBOX_METADATA_PHYSICAL_SIZE ||
                rbox_key == RBOX_METADATA_MAIL_UID) {
-      uint64_t val = std::stol(_value);
+      uint64_t val = std::stol(_p_value);
       uint64_t val2 = std::stol(this->value);
 
       if (this->op.compare("=") == 0) {
@@ -61,7 +56,8 @@ class Predicate {
 
     } else {
       // string
-      return this->value.compare(value) == 0;
+      // std::cout << " comparing : " << this->value << " with " << _p_value << std::endl;
+      return this->value.compare(_p_value) == 0;
     }
     return false;
   }
@@ -101,10 +97,14 @@ class CmdLineParser {
   Predicate *get_predicate(std::string &key) { return predicates[key]; }
   Predicate *create_predicate(std::string &ls_value);
 
+  void set_output_dir(std::string out) { this->out_dir = out; }
+  std::string &get_output_dir() { return this->out_dir; }
+
  private:
   std::map<std::string, Predicate *> predicates;
   std::string ls_value;
   std::string keys;
+  std::string out_dir;
 };
 };     // end namespace rmb
 #endif /* SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_ */

@@ -1,9 +1,4 @@
-/*
- * rbox_list_objects.h
- *
- *  Created on: Aug 21, 2017
- *      Author: jan
- */
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #ifndef SRC_LIBRMB_TOOLS_RBOX_LIST_OBJECTS_H_
 #define SRC_LIBRMB_TOOLS_RBOX_LIST_OBJECTS_H_
@@ -73,6 +68,12 @@ class RadosMailBox {
 
   CmdLineParser *get_xattr_filter() { return this->parser; }
   void set_xattr_filter(CmdLineParser *_parser) { this->parser = _parser; }
+  std::vector<RadosMailObject *> &get_mails() { return this->mails; }
+
+  std::string &get_mailbox_guid() { return this->mailbox_guid; }
+  void set_mailbox_guid(std::string &mbox_guid) { this->mailbox_guid = mbox_guid; }
+
+  int &get_mail_count() { return this->mail_count; }
 
  private:
   CmdLineParser *parser;
