@@ -11,6 +11,7 @@
 #include "rados-mail-object.h"
 #include <rados/librados.hpp>
 #include "../../librmb/tools/rmb/ls_cmd_parser.h"
+#include "../../librmb/tools/rmb/mailbox_tools.h"
 
 TEST(rmb, test_cmd_parser) {
   std::string key = "M";
@@ -28,7 +29,7 @@ TEST(rmb, test_cmd_parser) {
   EXPECT_TRUE(parser.contains_key(key3));
 
   librmb::rbox_metadata_key k = static_cast<librmb::rbox_metadata_key>('M');
-
+  EXPECT_EQ(k, librmb::RBOX_METADATA_MAILBOX_GUID);
   librmb::Predicate *p = parser.get_predicate(key);
   std::string value = "abc";
   EXPECT_TRUE(p->eval(value));
@@ -70,4 +71,29 @@ TEST(rmb1, date_arg) {
   std::cout << val << std::endl;
 
   delete p;
+}
+
+TEST(rmb1, save_mail) {
+  std::string mbox_guid = "abc";
+  librmb::RadosMailBox mbox(mbox_guid, 1);
+
+  std::string base_path = "test";
+  MailboxTools tools(&mbox, base_path);
+
+  tools.init_mailbox_dir();
+  librmb::RadosMailObject mail;
+  librados::bufferlist bl;
+  bl.append("1");
+  (*mail.get_xattr())["U"] = bl;
+  std::string mail_guid = "defg";
+  std::string mail_content = "hallo welt\nbababababa\n";
+  mail.set_oid(mail_guid);
+  mail.set_mail_buffer(&mail_content[0u]);
+  uint64_t size = mail_content.length();
+  mail.set_object_size(size);
+  tools.save_mail(&mail);
+
+  int ret = tools.delete_mail(&mail);
+  tools.delete_mailbox_dir();
+  EXPECT_EQ(0, ret);
 }

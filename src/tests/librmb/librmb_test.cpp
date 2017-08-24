@@ -152,6 +152,9 @@ TEST(librmb1, read_mail) {
 
   // tear down
   cluster.deinit();
+  EXPECT_EQ(ret_storage, 0);
+  EXPECT_EQ(ret_stat, 0);
+  EXPECT_EQ(ret_remove, 0);
   EXPECT_EQ(ret, 0);
   EXPECT_EQ(buff[0], 'a');
   EXPECT_EQ(buff[1], 'b');
