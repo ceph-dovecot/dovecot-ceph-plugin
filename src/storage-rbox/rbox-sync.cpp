@@ -21,6 +21,7 @@ extern "C" {
 #define RBOX_REBUILD_COUNT 3
 using namespace librados;
 
+/*
 static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
   FUNC_START();
   uint32_t uid_validity = ioloop_time;
@@ -31,6 +32,7 @@ static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_set_uidvalidity", NULL);
   FUNC_END();
 }
+*/
 
 // TODO(jrse) nearly a copy of
 //            static int rbox_get_index_record(struct mail *_mail)
@@ -121,6 +123,8 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
         /* FIXME: should be bother calling sync_notify()? */
+        break;
+      default:
         break;
     }
   }
@@ -242,7 +246,7 @@ static void remove_callback(rados_completion_t comp ATTR_UNUSED, void *arg) {
   i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(data->item->oid), getpid());
 }
 
-void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
+static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;

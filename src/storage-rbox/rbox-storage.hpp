@@ -51,6 +51,7 @@ extern int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header
 extern int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                        struct mail_index_transaction *trans);
 
+/*
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);
 int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);
 int rbox_save_continue(struct mail_save_context *ctx);
@@ -61,5 +62,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *ctx);
 void rbox_transaction_save_commit_post(struct mail_save_context *ctx,
                                        struct mail_index_transaction_commit_result *result);
 void rbox_transaction_save_rollback(struct mail_save_context *ctx);
+*/
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_HPP_

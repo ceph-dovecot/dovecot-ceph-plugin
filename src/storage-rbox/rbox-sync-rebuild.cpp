@@ -22,14 +22,14 @@ extern "C" {
 
 using namespace librmb;
 
-uint32_t stoui32(const std::string &s) {
+static uint32_t stoui32(const std::string &s) {
   std::istringstream reader(s);
   uint32_t val = 0;
   reader >> val;
   return val;
 }
 
-char *get_xattr_value(std::map<std::string, ceph::bufferlist> &attrset, enum rbox_metadata_key key) {
+static char *get_xattr_value(std::map<std::string, ceph::bufferlist> &attrset, enum rbox_metadata_key key) {
   std::string skey(1, (char)key);
   char *value;
   if (attrset.find(skey) != attrset.end()) {
@@ -38,6 +38,7 @@ char *get_xattr_value(std::map<std::string, ceph::bufferlist> &attrset, enum rbo
   }
   return nullptr;
 }
+
 int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
                          std::map<std::string, ceph::bufferlist> &attrset) {
   uint32_t seq;
