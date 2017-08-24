@@ -193,7 +193,7 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, 
   return ret;
 }
 
-int rbox_open_mailbox(struct mailbox *box) {
+static int rbox_open_mailbox(struct mailbox *box) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   const char *box_path = mailbox_get_path(box);
   struct stat st;

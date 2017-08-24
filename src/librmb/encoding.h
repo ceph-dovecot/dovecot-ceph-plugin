@@ -56,7 +56,7 @@ static __inline__ uint64_t swab64(uint64_t val) {
       return *this;                                       \
     }                                                     \
     operator __u##bits() const { return mswab##bits(v); } \
-  } __attribute__((packed));                              \
+  };                                                      \
   static inline bool operator==(ceph_le##bits a, ceph_le##bits b) { return a.v == b.v; }
 MAKE_LE_CLASS(64)
 MAKE_LE_CLASS(32)

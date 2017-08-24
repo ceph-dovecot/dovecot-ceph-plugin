@@ -240,11 +240,11 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
-                                  size_t &message_size) {
+static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
+                                         size_t &message_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-  
+
   {
     librmb::RadosXAttr xattr;
     librmb::RadosXAttr::convert(RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE, &xattr);
@@ -317,14 +317,14 @@ int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::Objec
   return 0;
 }
 
-void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
+static void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
   if ((_storage->get_io_ctx()).remove(_oid) < 0) {
     i_debug("Librados obj: %s, could not be removed", _oid.c_str());
   }
   i_debug("removed oid=%s", _oid.c_str());
 }
 
-bool wait_for_rados_operations(std::vector<librmb::RadosMailObject *> &object_list) {
+static bool wait_for_rados_operations(std::vector<librmb::RadosMailObject *> &object_list) {
   bool ctx_failed = false;
   // wait for all writes to finish!
   // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
@@ -343,7 +343,7 @@ bool wait_for_rados_operations(std::vector<librmb::RadosMailObject *> &object_li
   return ctx_failed;
 }
 
-void clean_up_failed(struct rbox_save_context *r_ctx) {
+static void clean_up_failed(struct rbox_save_context *r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   wait_for_rados_operations(r_ctx->objects);
@@ -358,7 +358,7 @@ void clean_up_failed(struct rbox_save_context *r_ctx) {
   r_ctx->mail_count--;
 }
 
-void clean_up_write_finish(struct mail_save_context *_ctx) {
+static void clean_up_write_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   if (r_ctx->copying != TRUE) {

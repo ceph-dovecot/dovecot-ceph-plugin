@@ -12,7 +12,7 @@
 
 class rbox_save_context {
  public:
-  explicit rbox_save_context(librmb::RadosStorage &rados_storage)
+  explicit rbox_save_context(librmb::RadosStorage &_rados_storage)
       : ctx({}),
         mbox(NULL),
         trans(NULL),
@@ -20,7 +20,7 @@ class rbox_save_context {
         sync_ctx(NULL),
         seq(0),
         input(NULL),
-        rados_storage(rados_storage),
+        rados_storage(_rados_storage),
         current_object(NULL),
         failed(1),
         finished(1),

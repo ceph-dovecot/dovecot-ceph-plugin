@@ -395,7 +395,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   return 0;
 }
 
-int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const char **value_r) {
+static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const char **value_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
   int ret;
 
@@ -431,6 +431,28 @@ int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const
       }
 #endif
       return rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER, value_r);
+
+    case MAIL_FETCH_FLAGS:
+    case MAIL_FETCH_MESSAGE_PARTS:
+    case MAIL_FETCH_STREAM_HEADER:
+    case MAIL_FETCH_STREAM_BODY:
+    case MAIL_FETCH_DATE:
+    case MAIL_FETCH_RECEIVED_DATE:
+    case MAIL_FETCH_SAVE_DATE:
+    case MAIL_FETCH_PHYSICAL_SIZE:
+    case MAIL_FETCH_VIRTUAL_SIZE:
+    case MAIL_FETCH_NUL_STATE:
+    case MAIL_FETCH_STREAM_BINARY:
+    case MAIL_FETCH_IMAP_BODY:
+    case MAIL_FETCH_IMAP_BODYSTRUCTURE:
+    case MAIL_FETCH_IMAP_ENVELOPE:
+    case MAIL_FETCH_FROM_ENVELOPE:
+    case MAIL_FETCH_HEADER_MD5:
+    case MAIL_FETCH_STORAGE_ID:
+    case MAIL_FETCH_MAILBOX_NAME:
+    case MAIL_FETCH_SEARCH_RELEVANCY:
+    case MAIL_FETCH_REFCOUNT:
+    case MAIL_FETCH_BODY_SNIPPET:
     default:
       break;
   }
@@ -438,7 +460,7 @@ int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const
   return index_mail_get_special(_mail, field, value_r);
 }
 
-void rbox_mail_close(struct mail *_mail) {
+static void rbox_mail_close(struct mail *_mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   if (rmail_->mail_buffer != NULL) {
     i_free(rmail_->mail_buffer);
@@ -450,7 +472,7 @@ void rbox_mail_close(struct mail *_mail) {
   index_mail_close(_mail);
 }
 
-void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
+static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
