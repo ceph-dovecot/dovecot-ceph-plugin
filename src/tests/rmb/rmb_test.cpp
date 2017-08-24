@@ -80,7 +80,9 @@ TEST(rmb1, save_mail) {
   std::string base_path = "test";
   MailboxTools tools(&mbox, base_path);
 
-  tools.init_mailbox_dir();
+  int init = tools.init_mailbox_dir();
+  EXPECT_EQ(0, init);
+
   librmb::RadosMailObject mail;
   librados::bufferlist bl;
   bl.append("1");
@@ -91,9 +93,27 @@ TEST(rmb1, save_mail) {
   mail.set_mail_buffer(&mail_content[0u]);
   uint64_t size = mail_content.length();
   mail.set_object_size(size);
-  tools.save_mail(&mail);
+  int save = tools.save_mail(&mail);
+  EXPECT_EQ(0, save);
 
   int ret = tools.delete_mail(&mail);
-  tools.delete_mailbox_dir();
+  int ret_rm_dir = tools.delete_mailbox_dir();
   EXPECT_EQ(0, ret);
+  EXPECT_EQ(0, ret_rm_dir);
+}
+
+TEST(rmb1, path_tests) {
+  std::string mbox_guid = "abc";
+  librmb::RadosMailBox mbox(mbox_guid, 1);
+
+  std::string base_path = "test";
+  MailboxTools tools(&mbox, base_path);
+  EXPECT_EQ("test/abc", tools.get_mailbox_path());
+  std::string test_path = "test/";
+  MailboxTools tools2(&mbox, test_path);
+  EXPECT_EQ("test/abc", tools2.get_mailbox_path());
+
+  std::string test_path2 = "";
+  MailboxTools tools3(&mbox, test_path2);
+  EXPECT_EQ("abc", tools3.get_mailbox_path());
 }

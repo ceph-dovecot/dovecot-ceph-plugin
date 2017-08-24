@@ -9,19 +9,17 @@
 
 class MailboxTools {
  public:
-  MailboxTools(librmb::RadosMailBox* mailbox, std::string base) {
-    this->mbox = mailbox;
-    this->base_path = base;
-    mailbox_path = this->base_path + "/" + this->mbox->get_mailbox_guid();
-  }
+  MailboxTools(librmb::RadosMailBox* mailbox, std::string base);
   ~MailboxTools() {}
 
-  void init_mailbox_dir();
-  void save_mail(librmb::RadosMailObject* mail_obj);
-  void delete_mailbox_dir();
+  int init_mailbox_dir();
+  int save_mail(librmb::RadosMailObject* mail_obj);
+  int delete_mailbox_dir();
   int delete_mail(librmb::RadosMailObject* mail_obj);
 
-  void build_filename(librmb::RadosMailObject* mail_obj, std::string& filename);
+  int build_filename(librmb::RadosMailObject* mail_obj, std::string& filename);
+
+  std::string& get_mailbox_path() { return this->mailbox_path; }
 
  private:
   librmb::RadosMailBox* mbox;

@@ -453,7 +453,10 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
 
       if (download) {
         MailboxTools tools(it->second, parser.get_output_dir());
-        tools.init_mailbox_dir();
+        if (tools.init_mailbox_dir() < 0) {
+          std::cout << " error initializing output dir : " << parser.get_output_dir() << std::endl;
+          break;
+        }
 
         for (std::vector<librmb::RadosMailObject *>::iterator it_mail = it->second->get_mails().begin();
              it_mail != it->second->get_mails().end(); ++it_mail) {
@@ -464,7 +467,9 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
           (*it_mail)->set_object_size(size_r);
           if (storage->read_mail(oid, size_r, mail_buffer) == 0) {
             // std::cout << mail_buffer << std::endl;
-            tools.save_mail((*it_mail));
+            if (tools.save_mail((*it_mail)) < 0) {
+              std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
+            }
           }
 
           delete mail_buffer;
