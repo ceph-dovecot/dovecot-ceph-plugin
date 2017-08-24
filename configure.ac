@@ -61,7 +61,6 @@ AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] R
   want_tests=yes)
 AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
 
-
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_CPP
@@ -71,6 +70,8 @@ AC_ENABLE_SHARED
 AC_DISABLE_STATIC
 
 AX_CXX_COMPILE_STDCXX([11])
+
+AX_COMPILER_FLAGS_CXXFLAGS(,,,[-Wno-undef])
 AX_COMPILER_FLAGS()
 
 AC_ISC_POSIX
