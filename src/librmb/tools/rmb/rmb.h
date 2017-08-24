@@ -18,9 +18,9 @@ namespace librmb {
 
 class RadosMailBox {
  public:
-  RadosMailBox(std::string mailbox_guid, int mail_count) {
-    this->mail_count = mail_count;
-    this->mailbox_guid = mailbox_guid;
+  RadosMailBox(std::string _mailbox_guid, int _mail_count) {
+    this->mail_count = _mail_count;
+    this->mailbox_guid = _mailbox_guid;
     this->mailbox_size = 0;
     this->total_mails = 0;
     this->parser = NULL;
@@ -41,16 +41,16 @@ class RadosMailBox {
          it != parser->get_predicates().end(); ++it) {
       // std::cout << " looking for: " << it->first << std::endl;
       if (mail->get_xattr()->find(it->first) != mail->get_xattr()->end()) {
-      /*  std::cout << "comparing: " << it->second
-                  << " with : " << mail->get_xvalue(it->first).substr(0, mail->get_xvalue(it->first).length() - 1)
-                  << " org: " << mail->get_xvalue(it->first) << std::endl;*/
-      //   std::cout << " found : " << it->first << std::endl;
+        /*  std::cout << "comparing: " << it->second
+                    << " with : " << mail->get_xvalue(it->first).substr(0, mail->get_xvalue(it->first).length() - 1)
+                    << " org: " << mail->get_xvalue(it->first) << std::endl;*/
+        //   std::cout << " found : " << it->first << std::endl;
 
-      std::string key = it->first;
-      if (it->second->eval(mail->get_xvalue(key))) {
-        mails.push_back(mail);
-      }
-      return;
+        std::string key = it->first;
+        if (it->second->eval(mail->get_xvalue(key))) {
+          mails.push_back(mail);
+        }
+        return;
       }
     }
   }
@@ -69,10 +69,10 @@ class RadosMailBox {
     return ss.str();
   }
   inline void add_to_mailbox_size(const uint64_t &mail_size) { this->mailbox_size += mail_size; }
-  void set_mails(std::vector<RadosMailObject *> mails) { this->mails = mails; }
+  void set_mails(std::vector<RadosMailObject *> _mails) { this->mails = _mails; }
 
   CmdLineParser *get_xattr_filter() { return this->parser; }
-  void set_xattr_filter(CmdLineParser *parser) { this->parser = parser; }
+  void set_xattr_filter(CmdLineParser *_parser) { this->parser = _parser; }
 
  private:
   CmdLineParser *parser;

@@ -35,8 +35,8 @@ class RadosDictionary {
 
  private:
   librados::IoCtx io_ctx;
-  std::string oid;
   std::string username;
+  std::string oid;
 
   std::list<librados::AioCompletion*> completions;
   std::mutex completions_mutex;

@@ -21,11 +21,12 @@
 using namespace std;
 using namespace librmb;
 
-void argv_to_vec(int argc, const char **argv, std::vector<const char *> &args) {
+static void argv_to_vec(int argc, const char **argv, std::vector<const char *> &args) {
   args.insert(args.end(), argv + 1, argv + argc);
 }
-bool split_dashdash(const std::vector<const char *> &args, std::vector<const char *> &options,
-                    std::vector<const char *> &arguments) {
+
+static bool split_dashdash(const std::vector<const char *> &args, std::vector<const char *> &options,
+                           std::vector<const char *> &arguments) {
   bool dashdash = false;
   for (std::vector<const char *>::const_iterator i = args.begin(); i != args.end(); ++i) {
     if (dashdash) {
@@ -39,7 +40,8 @@ bool split_dashdash(const std::vector<const char *> &args, std::vector<const cha
   }
   return dashdash;
 }
-bool get_next_token(const string &s, size_t &pos, const char *delims, string &token) {
+
+static bool get_next_token(const string &s, size_t &pos, const char *delims, string &token) {
   int start = s.find_first_not_of(delims, pos);
   int end;
 
@@ -58,7 +60,8 @@ bool get_next_token(const string &s, size_t &pos, const char *delims, string &to
   token = s.substr(start, end - start);
   return true;
 }
-void get_str_vec(const string &str, const char *delims, vector<string> &str_vec) {
+
+static void get_str_vec(const string &str, const char *delims, vector<string> &str_vec) {
   size_t pos = 0;
   string token;
   str_vec.clear();
@@ -71,14 +74,17 @@ void get_str_vec(const string &str, const char *delims, vector<string> &str_vec)
     }
   }
 }
-std::vector<std::string> get_str_vec(const std::string &str) {
+
+/*
+static std::vector<std::string> get_str_vec(const std::string &str) {
   std::vector<std::string> str_vec;
   const char *delims = ";,= \t";
   get_str_vec(str, delims, str_vec);
   return str_vec;
 }
+*/
 
-void env_to_vec(std::vector<const char *> &args, const char *name) {
+static void env_to_vec(std::vector<const char *> &args, const char *name) {
   if (!name)
     name = "CEPH_ARGS";
   char *p = getenv(name);
@@ -110,6 +116,7 @@ void env_to_vec(std::vector<const char *> &args, const char *name) {
   args.insert(args.end(), arguments.begin(), arguments.end());
   args.insert(args.end(), env_arguments.begin(), env_arguments.end());
 }
+
 static void dashes_to_underscores(const char *input, char *output) {
   char c = 0;
   char *o = output;
@@ -134,8 +141,8 @@ static void dashes_to_underscores(const char *input, char *output) {
   *o++ = '\0';
 }
 
-int va_ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i, std::string *ret,
-                             std::ostream &oss, va_list ap) {
+static int va_ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
+                                    std::string *ret, std::ostream &oss, va_list ap) {
   const char *first = *i;
   char tmp[strlen(first) + 1];
   dashes_to_underscores(first, tmp);
@@ -169,7 +176,8 @@ int va_ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const 
     }
   }
 }
-void ceph_arg_value_type(const char *nextargstr, bool *bool_option, bool *bool_numeric) {
+
+static void ceph_arg_value_type(const char *nextargstr, bool *bool_option, bool *bool_numeric) {
   bool is_numeric = true;
   bool is_float = false;
   bool is_option;
@@ -212,7 +220,7 @@ void ceph_arg_value_type(const char *nextargstr, bool *bool_option, bool *bool_n
   return;
 }
 
-long long strict_strtoll(const char *str, int base, std::string *err) {
+static long long strict_strtoll(const char *str, int base, std::string *err) {
   char *endptr;
   std::string errStr;
   errno = 0; /* To distinguish success/failure after call (see man page) */
@@ -245,7 +253,7 @@ long long strict_strtoll(const char *str, int base, std::string *err) {
   return ret;
 }
 
-int strict_strtol(const char *str, int base, std::string *err) {
+static int strict_strtol(const char *str, int base, std::string *err) {
   std::string errStr;
   long long ret = strict_strtoll(str, base, err);
   if (!err->empty())
@@ -260,7 +268,8 @@ int strict_strtol(const char *str, int base, std::string *err) {
   }
   return static_cast<int>(ret);
 }
-float strict_strtof(const char *str, std::string *err) {
+
+static float strict_strtof(const char *str, std::string *err) {
   char *endptr;
   errno = 0; /* To distinguish success/failure after call (see man page) */
   float ret = strtof(str, &endptr);
@@ -289,12 +298,13 @@ float strict_strtof(const char *str, std::string *err) {
 struct strict_str_convert {
   const char *str;
   std::string *err;
-  strict_str_convert(const char *str, std::string *err) : str(str), err(err) {}
+  strict_str_convert(const char *_str, std::string *_err) : str(_str), err(_err) {}
 
   inline operator float() const { return strict_strtof(str, err); }
   inline operator int() const { return strict_strtol(str, 10, err); }
   inline operator long long() const { return strict_strtoll(str, 10, err); }
 };
+
 template <class T>
 bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i, T *ret,
                            std::ostream &oss, ...) {
@@ -341,8 +351,9 @@ template bool ceph_argparse_witharg<long long>(std::vector<const char *> &args, 
 template bool ceph_argparse_witharg<float>(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
                                            float *ret, std::ostream &oss, ...);
 
-bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i, std::string *ret,
-                           std::ostream &oss, ...) {
+/*
+static bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
+                                  std::string *ret, std::ostream &oss, ...) {
   int r;
   va_list ap;
   va_start(ap, oss);
@@ -350,9 +361,10 @@ bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const ch
   va_end(ap);
   return r != 0;
 }
+*/
 
-bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i, std::string *ret,
-                           ...) {
+static bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
+                                  std::string *ret, ...) {
   int r;
   va_list ap;
   va_start(ap, ret);
@@ -365,14 +377,15 @@ bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const ch
 
 /** Once we see a standalone double dash, '--', we should remove it and stop
  * looking for any other options and flags. */
-bool ceph_argparse_double_dash(std::vector<const char *> &args, std::vector<const char *>::iterator &i) {
+static bool ceph_argparse_double_dash(std::vector<const char *> &args, std::vector<const char *>::iterator &i) {
   if (strcmp(*i, "--") == 0) {
     i = args.erase(i);
     return true;
   }
   return false;
 }
-void usage(ostream &out) {
+
+static void usage(ostream &out) {
   out << "usage: rmb [options] [commands]\n"
          "   -p pool\n"
          "        pool where mail data is saved, if not given mail_storage is used \n"
@@ -398,7 +411,7 @@ static void usage_exit() {
   exit(1);
 }
 
-void print_mailbox_stat(vector<RadosMailObject *> mail_objects, CmdLineParser &parser) {
+static void print_mailbox_stat(vector<RadosMailObject *> mail_objects, CmdLineParser &parser) {
   std::map<std::string, RadosMailBox *> mailbox;
 
   for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
@@ -428,7 +441,6 @@ void print_mailbox_stat(vector<RadosMailObject *> mail_objects, CmdLineParser &p
       std::cout << it->second->to_string() << std::endl;
   }
 }
-
 
 int main(int argc, const char **argv) {
   vector<RadosMailObject *> mail_objects;
@@ -473,7 +485,6 @@ int main(int argc, const char **argv) {
   }
   librados::NObjectIterator iter(storage->get_io_ctx().nobjects_begin());
   while (iter != storage->get_io_ctx().nobjects_end()) {
-
     RadosMailObject *mail = new RadosMailObject();
     mail->set_oid(iter->get_oid());
 

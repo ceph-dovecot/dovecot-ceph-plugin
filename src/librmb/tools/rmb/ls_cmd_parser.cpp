@@ -9,19 +9,18 @@
 #include <iostream>
 #include <string>
 
-
 using namespace librmb;
 
-Predicate *CmdLineParser::create_predicate(std::string &ls_value) {
+Predicate *CmdLineParser::create_predicate(std::string &_ls_value) {
   Predicate *p = new Predicate();
 
-  size_t pos = ls_value.find("=");
-  pos = (pos == std::string::npos) ? ls_value.find(">") : pos;
-  pos = (pos == std::string::npos) ? ls_value.find("<") : pos;
+  size_t pos = _ls_value.find("=");
+  pos = (pos == std::string::npos) ? _ls_value.find(">") : pos;
+  pos = (pos == std::string::npos) ? _ls_value.find("<") : pos;
 
-  p->key = ls_value.substr(0, pos);
-  p->op = ls_value[pos];
-  p->value = ls_value.substr(pos + 1, ls_value.length());
+  p->key = _ls_value.substr(0, pos);
+  p->op = _ls_value[pos];
+  p->value = _ls_value.substr(pos + 1, _ls_value.length());
   p->valid = true;
 
   this->keys += p->key + " ";

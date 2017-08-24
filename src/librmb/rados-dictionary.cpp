@@ -15,8 +15,8 @@
 
 #include "rados-dictionary.h"
 
-using namespace librados;          // NOLINT
-using namespace librmb;            // NOLINT
+using namespace librados;  // NOLINT
+using namespace librmb;    // NOLINT
 
 using std::string;
 using std::stringstream;
@@ -28,8 +28,8 @@ using std::set;
 #define DICT_PATH_PRIVATE "priv/"
 #define DICT_PATH_SHARED "shared/"
 
-RadosDictionary::RadosDictionary(librados::IoCtx *ctx, const string &username, const string &oid)
-    : io_ctx(*ctx), username(username), oid(oid) {}
+RadosDictionary::RadosDictionary(librados::IoCtx *_ctx, const string &_username, const string &_oid)
+    : io_ctx(*_ctx), username(_username), oid(_oid) {}
 
 RadosDictionary::~RadosDictionary() { get_io_ctx().close(); }
 

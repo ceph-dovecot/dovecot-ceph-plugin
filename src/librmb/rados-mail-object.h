@@ -100,10 +100,10 @@ class RadosMailObject {
  public:
   RadosMailObject();
   virtual ~RadosMailObject() {}
-  void set_oid(const char* oid) { this->oid = oid; }
-  void set_oid(const std::string& oid) { this->oid = oid; }
-  void set_state(const std::string& state) { this->state = state; }
-  void set_version(const std::string& version) { this->version = version; }
+  void set_oid(const char* _oid) { this->oid = _oid; }
+  void set_oid(const std::string& _oid) { this->oid = _oid; }
+  void set_state(const std::string& _state) { this->state = _state; }
+  void set_version(const std::string& _version) { this->version = _version; }
 
   void set_guid(const uint8_t* guid);
 
@@ -114,14 +114,14 @@ class RadosMailObject {
 
   const uint64_t& get_object_size() { return this->object_size; }
 
-  void set_object_size(uint64_t& size) { this->object_size = size; }
+  void set_object_size(uint64_t& _size) { this->object_size = _size; }
 
   bool has_active_op() { return active_op; }
-  void set_active_op(bool active) { this->active_op = active; }
+  void set_active_op(bool _active) { this->active_op = _active; }
   std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* get_completion_op_map() {
     return &completion_op;
   }
-  void set_mail_buffer(char* mail_buffer) { this->mail_buffer = mail_buffer; }
+  void set_mail_buffer(char* _mail_buffer) { this->mail_buffer = _mail_buffer; }
   char* get_mail_buffer() { return this->mail_buffer; }
 
   bool wait_for_write_operations_complete();
@@ -141,7 +141,7 @@ class RadosMailObject {
   }
 
   std::string to_string(std::string& padding);
-  void set_rados_save_date(time_t& save_date) { this->save_date_rados = save_date; }
+  void set_rados_save_date(time_t& _save_date) { this->save_date_rados = _save_date; }
   time_t* get_rados_save_date() { return &this->save_date_rados; }
 
  private:
@@ -165,7 +165,6 @@ class RadosMailObject {
  public:
   // X_ATTRIBUTES
   static const std::string X_ATTR_VERSION_VALUE;
-
 
   // OTHER
   static const std::string DATA_BUFFER_NAME;

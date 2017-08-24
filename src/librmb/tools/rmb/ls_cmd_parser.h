@@ -23,7 +23,7 @@ class Predicate {
   std::string value;  // value to check against e.g. key > value
   bool valid;
 
-  bool eval(const std::string &value) {
+  bool eval(const std::string &_value) {
     rbox_metadata_key rbox_key = static_cast<librmb::rbox_metadata_key>(*key.c_str());
 
     if (rbox_key == RBOX_METADATA_RECEIVED_TIME || rbox_key == RBOX_METADATA_OLDV1_SAVE_TIME) {
@@ -31,7 +31,7 @@ class Predicate {
       time_t query_date = 0;
       convert_str_to_time_t(this->value, &query_date);
 
-      long val2 = std::stol(value);
+      long val2 = std::stol(_value);
       time_t obj_date = static_cast<time_t>(val2);
 
       double diff = difftime(obj_date, query_date);
@@ -47,7 +47,7 @@ class Predicate {
       return true;
     } else if (rbox_key == RBOX_METADATA_VIRTUAL_SIZE || rbox_key == RBOX_METADATA_PHYSICAL_SIZE ||
                rbox_key == RBOX_METADATA_MAIL_UID) {
-      uint64_t val = std::stol(value);
+      uint64_t val = std::stol(_value);
       uint64_t val2 = std::stol(this->value);
 
       if (this->op.compare("=") == 0) {
@@ -87,12 +87,12 @@ class Predicate {
 
 class CmdLineParser {
  public:
-  CmdLineParser(std::string &ls_value) {
+  CmdLineParser(std::string &_ls_value) {
     size_t pos = ls_value.find("\"");
     if (pos != std::string::npos) {
-      this->ls_value = ls_value.substr(1, ls_value.length() - 1);
+      this->ls_value = _ls_value.substr(1, _ls_value.length() - 1);
     }
-    this->ls_value = ls_value;
+    this->ls_value = _ls_value;
   };
   bool parse_ls_string();
   std::map<std::string, Predicate *> &get_predicates() { return this->predicates; }
