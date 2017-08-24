@@ -111,24 +111,17 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     return -1;
   }
 
-  if (rmail->mail_object != NULL) {
-    int ret = ((r_storage->s)->get_io_ctx()).getxattrs(rmail->mail_object->get_oid(), *rmail->mail_object->get_xattr());
-    if (ret < 0) {
-      if (ret == ((-1) * ENOENT)) {
-        rbox_mail_set_expunged(rmail);
-        return -1;
-      } else {
-        i_debug("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
-        return -1;
-      }
-    }
-
-    std::string value = rmail->mail_object->get_xvalue(key);
-    if (!value.empty()) {
-      *value_r = i_strdup(value.c_str());
-      return 0;
-    }
+  if (r_storage->s->load_xattr(rmail->mail_object) < 0) {
+    i_debug("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
+    return -1;
   }
+
+  std::string value = rmail->mail_object->get_xvalue(key);
+  if (!value.empty()) {
+    *value_r = i_strdup(value.c_str());
+    return 0;
+  }
+
   return -1;
 }
 
