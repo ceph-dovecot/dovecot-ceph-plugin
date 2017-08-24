@@ -117,3 +117,9 @@ TEST(rmb1, path_tests) {
   MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+
+  return RUN_ALL_TESTS();
+}

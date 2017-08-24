@@ -161,3 +161,9 @@ TEST(librmb1, read_mail) {
   EXPECT_EQ(buff[2], 'c');
   EXPECT_EQ(buff[3], 'd');
 }
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+
+  return RUN_ALL_TESTS();
+}

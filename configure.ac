@@ -171,8 +171,6 @@ src/dict-rados/Makefile
 src/storage-rbox/Makefile
 src/librmb/tools/Makefile
 src/librmb/tools/rmb/Makefile
-lib/Makefile
-lib/gtest/Makefile
 src/tests/Makefile
 ])
 
