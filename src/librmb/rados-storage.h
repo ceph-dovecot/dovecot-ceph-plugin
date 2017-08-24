@@ -26,6 +26,7 @@ class RadosStorage {
                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 
   int read_mail(const std::string &oid, unsigned long &size_r, char *mail_buffer);
+  int load_xattr(RadosMailObject *mail);
 
  private:
   librados::IoCtx io_ctx;

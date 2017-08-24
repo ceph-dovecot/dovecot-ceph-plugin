@@ -1,3 +1,4 @@
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include "gtest/gtest.h"
 #include "rados-storage.h"
@@ -160,6 +161,61 @@ TEST(librmb1, read_mail) {
   EXPECT_EQ(buff[1], 'b');
   EXPECT_EQ(buff[2], 'c');
   EXPECT_EQ(buff[3], 'd');
+}
+
+TEST(librmb, load_xattr) {
+  const char *buffer = "abcdefghijklmn";
+  size_t buffer_length = 14;
+  uint64_t max_size = 3;
+  librmb::RadosMailObject obj;
+  obj.set_oid("test_oid");
+  librados::IoCtx io_ctx;
+  librmb::RadosStorage *storage = NULL;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosCluster cluster;
+
+  std::string pool_name("test");
+  std::string ns("t");
+
+  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  EXPECT_EQ(0, open_connection);
+
+  ceph::bufferlist bl;
+  bl.append("xyz");
+  op->setxattr("A", bl);
+  op->setxattr("B", bl);
+
+  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+
+  // wait for op to finish.
+  obj.wait_for_write_operations_complete();
+
+  storage->load_xattr(&obj);
+
+  // stat the object
+  uint64_t size;
+  time_t save_date;
+  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+
+  // remove it
+  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+
+  // tear down
+  cluster.deinit();
+
+  EXPECT_EQ(buffer_length, size);
+  EXPECT_EQ(0, ret_storage);
+  EXPECT_EQ(0, ret_stat);
+  EXPECT_EQ(0, ret_remove);
+  EXPECT_EQ(5, obj.get_completion_op_map()->size());
+  EXPECT_EQ(2, obj.get_xattr()->size());
+
+  int i = storage->load_xattr(nullptr);
+  EXPECT_EQ(-1, i);
+
+  i = storage->load_xattr(&obj);
+  EXPECT_EQ(0, i);
 }
 
 int main(int argc, char **argv) {
