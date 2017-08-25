@@ -29,7 +29,8 @@ extern "C" {
 
 #include "rbox-mail.h"
 
-using namespace librmb;  // NOLINT
+using librmb::RadosMailObject;
+using librmb::rbox_metadata_key;
 
 static void rbox_mail_set_expunged(struct rbox_mail *mail) {
   struct mail *_mail = &mail->imail.mail.mail;
@@ -50,9 +51,8 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  i_debug("last_seq %lu, mail_seq %lu, ext_id =  %lu, uid=%lu, old_oid=%s", (unsigned long)rmail->last_seq,
-          (unsigned long)_mail->seq, (unsigned long)rbox->ext_id, (unsigned long)_mail->uid,
-          rmail->mail_object->get_oid().c_str());
+  i_debug("last_seq=%" PRIu32 ", mail_seq=%" PRIu32 ", ext_id=%" PRIu32 ", uid=%" PRIu32 ", old_oid=%s",
+          rmail->last_seq, _mail->seq, rbox->ext_id, _mail->uid, rmail->mail_object->get_oid().c_str());
 
   if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
@@ -133,18 +133,17 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     return 0;
   }
 
-  if (rbox_mail_metadata_get(rmail, RBOX_METADATA_RECEIVED_TIME, &value) < 0)
+  if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value) < 0)
     return -1;
   time = 0;
   i_debug("received_date received, %s", value);
   if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
     return -1;
 
-  long ts = std::stol(value);
-  i_free(value);
-  i_debug("received_date is %lu", ts);
-  data->received_date = static_cast<time_t>(ts);
+  data->received_date = static_cast<time_t>(std::stol(value));
+  i_debug("received_date is %lu", data->received_date);
   *date_r = data->received_date;
+  i_free(value);
 
   i_debug("received date = %s", ctime(date_r));
   debug_print_mail(_mail, "rbox-mail::rbox_mail_get_received_date", NULL);
@@ -198,13 +197,13 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &mail->imail.data;
-  const char *value;
+  char *value;
   uintmax_t size;
 
   if (index_mail_get_cached_virtual_size(&mail->imail, size_r))
     return 0;
 
-  if (rbox_mail_metadata_get(mail, RBOX_METADATA_VIRTUAL_SIZE, &value) < 0)
+  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0)
     return -1;
   if (value == NULL)
     return index_mail_get_virtual_size(_mail, size_r);
@@ -335,7 +334,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
                                     enum index_cache_field cache_field, const char **value_r) {
   struct index_mail *imail = &mail->imail;
-  struct index_mailbox_context *ibox = (index_mailbox_context *)INDEX_STORAGE_CONTEXT(imail->mail.mail.box);
+  struct index_mailbox_context *ibox =
+      reinterpret_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
   char *value;
   string_t *str;
   uint32_t order;
@@ -393,7 +393,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
      used. */
   switch (field) {
     case MAIL_FETCH_GUID:
-      return rbox_get_cached_metadata(mail, RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+      return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
     case MAIL_FETCH_UIDL_BACKEND:
 #ifdef HAVE_INDEX_POP3_UIDL_H
       if (!index_pop3_uidl_can_exist(_mail)) {
@@ -402,7 +402,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
       }
 #endif
 
-      ret = rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
+      ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
 
 #ifdef HAVE_INDEX_POP3_UIDL_H
       if (ret == 0) {
@@ -419,7 +419,8 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         return 0;
       }
 #endif
-      return rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER, value_r);
+      return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER,
+                                      value_r);
 
     case MAIL_FETCH_FLAGS:
     case MAIL_FETCH_MESSAGE_PARTS:
