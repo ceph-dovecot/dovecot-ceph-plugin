@@ -1,9 +1,4 @@
-/*
- * rmb_test.cpp
- *
- *  Created on: Aug 22, 2017
- *      Author: jan
- */
+/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 #include "gtest/gtest.h"
 #include "rados-storage.h"

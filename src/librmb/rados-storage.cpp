@@ -73,4 +73,16 @@ int RadosStorage::read_mail(const std::string &oid, unsigned long &size_r, char 
   } while (ret > 0);
   return ret;
 }
-/* extract to librmb */
+
+int RadosStorage::load_xattr(RadosMailObject *mail) {
+  int ret = -1;
+  if (mail != nullptr) {
+    if (mail->get_xattr()->size() == 0) {
+      ret = io_ctx.getxattrs(mail->get_oid(), *mail->get_xattr());
+    } else {
+      ret = 0;
+    }
+  }
+  return ret;
+}
+

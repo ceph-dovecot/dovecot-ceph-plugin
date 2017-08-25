@@ -35,9 +35,9 @@ A mail is immutable regarding its RFC5322 content and some attributes know at th
 * Virtual Size = "V", mails's virtual size
 * Mail UID = "U", uint32_t mail uid
 
-All writable attributes like flags or keywords are stored in Dovecot index files only. 
+All writable attributes like flags or keywords are stored in Dovecot index files only.
 
-The mail objects are addressed using a UUID in hex as OID for each mail. This OID is stored in the Dovecot index data as an extension record. The extension record is compatible to the obox format and can be inspected using `doveadm dump <path-to-mailbox>`: 
+The mail objects are addressed using a UUID in hex as OID for each mail. This OID is stored in the Dovecot index data as an extension record. The extension record is compatible to the obox format and can be inspected using `doveadm dump <path-to-mailbox>`:
 ````
 RECORD: seq=1, uid=568, flags=0x19 (Seen Answered Draft)
  - ext 0 keywords  :            (1000)
@@ -56,12 +56,12 @@ If the index data for a mailbox gets lost, there is currently no way to reconstr
 
 ### Configuration
 
-To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`. 
-Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details. 
+To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`.
+Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details.
 All Dovecot placeholders for _mail_location_ can be applied.
 
-The RADOS pool to use for the mail objects defaults to _mail_storage_. 
-If the pool is missing, it will be created. 
+The RADOS pool to use for the mail objects defaults to _mail_storage_.
+If the pool is missing, it will be created.
 The default pool name can be overridden with the plugin configuration entry _rbox_pool_name_.
 
 Add for example to dovecot.conf:
@@ -78,7 +78,7 @@ See also [Common Configuration](#common-configuration) for more information.
 #### shared/public folder
 
 To configure shared folder access the acl plugin needs to be activated in the dovecot configuration as usual.
-In the namespace configuration you need to use 'rbox' format as mailbox format. The configuration follows the mdbox configuration so rbox:%%h as location is sufficient.  
+In the namespace configuration you need to use 'rbox' format as mailbox format. The configuration follows the mdbox configuration so rbox:%%h as location is sufficient.
 Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folder no namepsace is set.
 
 ## Testing
@@ -86,10 +86,10 @@ Dovecot-ceph plugin uses the username as Ceph namespace. In case of public folde
 We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Ceph cluster we used for the first tests runs locally and has been created using _vstart.sh_ (See [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md)). We test the protocols IMAP and POP3. Before you can start the tests you have to fit the environment.
 
 For librmb we use [googletest](https://github.com/google/googletest) C++ Framework. Googletest library is added as git submodule you can clone googletest with: git submodule update --init --recursive
- 
-The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md). 
 
-    ../src/vstart.sh -X -n -l 
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
+
+    ../src/vstart.sh -X -n -l
 
 ### Common
 Create 100 user:
@@ -110,7 +110,7 @@ Script to create the users:
 ````
 #!/bin/bash
 for i in {1..100}
-    do 
+    do
          echo "t$i:{PLAIN}t::::::" >> passwd
     done
 ````
@@ -171,16 +171,16 @@ Dovecot uses two namespaces for dictionary K/V.
 
 ### Configuration
 
-To load the plugin, add _dict_rados_ to the list of mail plugins. 
-The name of the dict driver is `rados`. 
-Add the plugin for example to `10-mail.conf` as _mail\_attribute\_dict_. 
-See [Dovecot Dictionaries](http://wiki.dovecot.org/Dictionary) for details.  
+To load the plugin, add _dict_rados_ to the list of mail plugins.
+The name of the dict driver is `rados`.
+Add the plugin for example to `10-mail.conf` as _mail\_attribute\_dict_.
+See [Dovecot Dictionaries](http://wiki.dovecot.org/Dictionary) for details.
 
     mail_attribute_dict = rados:oid=metadata:pool=mail_dictionary
     mail_plugins = $mail_plugins dict_rados
 
 The configuration parameters are:
-* **oid**: The RADOS object id to use. 
+* **oid**: The RADOS object id to use.
 * **pool**: The RADOS pool to use for the dictionary objects. The pool name ist optional and defaults to _mail_dictionary_. If the pool is missing, it will be created.
 
 All key/values are be stored in OMAP key/values of the object <oid>.
@@ -189,24 +189,24 @@ See also [Common Configuration](#common-configuration) for more information.
 
 ### Testing
 
-The source directory src/dict-rados contains a test application named test-*. They use the configuration in the same directory. 
+The source directory src/dict-rados contains a test application named test-*. They use the configuration in the same directory.
 
-The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md). 
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
 
-    ../src/vstart.sh -X -n -l 
+    ../src/vstart.sh -X -n -l
 
 Any other way to get a Ceph cluster is valid, too.
 
 ## Common Configuration
 
 ### Dovecot
-To load the plugins, add _dict_rados_ or _storage_rbox_ to the list of mail plugins to load. 
-There are several ways to do this. 
-Add the plugin for example to `10-mail.conf` to _mail\_plugins_. 
-See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%28mail_plugins%29) for details.  
+To load the plugins, add _dict_rados_ or _storage_rbox_ to the list of mail plugins to load.
+There are several ways to do this.
+Add the plugin for example to `10-mail.conf` to _mail\_plugins_.
+See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%28mail_plugins%29) for details.
 
-    mail_plugins = $mail_plugins storage_rbox dict_rados 
-    
+    mail_plugins = $mail_plugins storage_rbox dict_rados
+
 ### Ceph
 The plugin uses the default way for Ceph configuration described in [Step 2: Configuring a Cluster Handle](http://docs.ceph.com/docs/master/rados/api/librados-intro/#step-2-configuring-a-cluster-handle):
 
@@ -216,11 +216,21 @@ The plugin uses the default way for Ceph configuration described in [Step 2: Con
    * `/etc/ceph/ceph.conf`
    * `~/.ceph/config`
    * `ceph.conf` (in the current working directory)
-   
-   
+
+
 ## Compile and install the Plugins
 
 To compile the plugin you need a configured or installed dovecot.
+
+### Checking out the source
+
+You can clone from github with
+
+	git clone git@github.com:tallence/dovecot-ceph-plugin.git
+
+Ceph contains git submodules that need to be checked out with
+
+	git submodule update --init --recursive
 
 ### Standard installation in /usr/local
 
@@ -232,13 +242,13 @@ To compile the plugin you need a configured or installed dovecot.
 ### User installation in ~/dovecot
 
     ./autogen.sh
-    ./configure --prefix=/home/user/dovecot   
+    ./configure --prefix=/home/user/dovecot
     make install
 
 ### Configured source tree in ~/workspace/core
 
-    ./autogen.sh   
-    ./configure --with-dovecot=/home/user/workspace/core 
+    ./autogen.sh
+    ./configure --with-dovecot=/home/user/workspace/core
     make install
 
 ## Thanks
