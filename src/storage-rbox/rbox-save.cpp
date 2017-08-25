@@ -269,7 +269,7 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
   }
   {
     RadosXAttr xattr;
-    RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &mdata->received_date, &xattr);
+    RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, mdata->received_date, &xattr);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {

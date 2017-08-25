@@ -22,7 +22,6 @@ RadosCluster::RadosCluster() {}
 RadosCluster::~RadosCluster() {}
 
 int RadosCluster::init(string *error_r) {
-
   if (cluster_ref_count == 0) {
     int ret = 0;
     ret = cluster.init(nullptr);
@@ -149,7 +148,7 @@ int RadosCluster::storage_create(const string &pool, RadosStorage **storage) {
   return 0;
 }
 
-int RadosCluster::open_connection(RadosStorage **storage, std::string &poolname, std::string &ns) {
+int RadosCluster::open_connection(RadosStorage **storage, const std::string &poolname, const std::string &ns) {
   std::string error_msg;
   if (init(&error_msg) < 0) {
     return -1;

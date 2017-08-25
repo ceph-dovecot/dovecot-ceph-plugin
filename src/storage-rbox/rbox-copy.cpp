@@ -85,7 +85,7 @@ static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, s
   return 0;
 }
 
-void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWriteOperation &write_op) {
+static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWriteOperation &write_op) {
   {
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(ctx->dest_mail->box);
     librmb::RadosXAttr xattr;
@@ -133,7 +133,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     librados::ObjectWriteOperation write_op;
 
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-
 
     if (ctx->moving != TRUE) {
       rbox_add_to_index(ctx);

@@ -6,7 +6,7 @@
 #include <list>
 #include <string>
 #include <cstdint>
-#include <mutex>
+#include <mutex>  // NOLINT
 
 #include <rados/librados.hpp>
 

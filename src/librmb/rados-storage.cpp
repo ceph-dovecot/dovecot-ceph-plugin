@@ -53,7 +53,7 @@ int RadosStorage::split_buffer_and_exec_op(const char *buffer, size_t buffer_len
   return ret_val;
 }
 
-int RadosStorage::read_mail(const std::string &oid, unsigned long &size_r, char *mail_buffer) {
+int RadosStorage::read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer) {
   int offset = 0;
   librados::bufferlist mail_data_bl;
 
@@ -61,7 +61,7 @@ int RadosStorage::read_mail(const std::string &oid, unsigned long &size_r, char 
   int ret = 0;
   do {
     mail_data_bl.clear();
-    ret = io_ctx.read(oid, mail_data_bl, size_r, offset);
+    ret = io_ctx.read(oid, mail_data_bl, *size_r, offset);
     if (ret < 0) {
       return ret;
     }
@@ -85,4 +85,3 @@ int RadosStorage::load_xattr(RadosMailObject *mail) {
   }
   return ret;
 }
-

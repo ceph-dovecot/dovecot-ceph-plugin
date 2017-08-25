@@ -1,10 +1,11 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <ctime>
+#include <rados/librados.hpp>
+
 #include "gtest/gtest.h"
 #include "rados-storage.h"
 #include "rados-cluster.h"
-#include <rados/librados.hpp>
-#include <ctime>
 
 TEST(librmb, split_write_operation) {
   const char *buffer = "abcdefghijklmn";
@@ -98,12 +99,12 @@ TEST(librmb1, convert_types) {
 
   attr.key = "";
   attr.bl.clear();
-  librmb::RadosXAttr::convert(librmb::RBOX_METADATA_RECEIVED_TIME, &t, &attr);
+  librmb::RadosXAttr::convert(librmb::RBOX_METADATA_RECEIVED_TIME, t, &attr);
   EXPECT_EQ(attr.key, "R");
   EXPECT_EQ(attr.bl.to_str(), "1503488583");
 
   time_t recv_date;
-  librmb::RadosXAttr::convert(attr.bl.to_str().c_str(), recv_date);
+  librmb::RadosXAttr::convert(attr.bl.to_str().c_str(), &recv_date);
   EXPECT_EQ(t, recv_date);
 
   attr.key = "";
@@ -146,7 +147,7 @@ TEST(librmb1, read_mail) {
   int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
 
   char *buff = new char[size];
-  int ret = storage->read_mail(obj.get_oid(), size, &buff[0]);
+  int ret = storage->read_mail(obj.get_oid(), &size, &buff[0]);
 
   // remove it
   int ret_remove = storage->get_io_ctx().remove(obj.get_oid());

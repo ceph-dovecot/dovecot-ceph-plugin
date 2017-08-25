@@ -25,7 +25,7 @@ class RadosCluster {
                         RadosDictionary **dictionary);
   int storage_create(const std::string &pool, RadosStorage **storage);
 
-  int open_connection(RadosStorage **storage, std::string &poolname, std::string &ns);
+  int open_connection(RadosStorage **storage, const std::string &poolname, const std::string &ns);
 
  private:
   static librados::Rados cluster;

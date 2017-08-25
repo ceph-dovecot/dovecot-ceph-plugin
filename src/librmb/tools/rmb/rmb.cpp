@@ -463,11 +463,11 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
         for (std::vector<librmb::RadosMailObject *>::iterator it_mail = it->second->get_mails().begin();
              it_mail != it->second->get_mails().end(); ++it_mail) {
           const std::string oid = (*it_mail)->get_oid();
-          unsigned long size_r = std::stol((*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE));
+          uint64_t size_r = std::stol((*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE));
           char *mail_buffer = new char[size_r];
           (*it_mail)->set_mail_buffer(mail_buffer);
           (*it_mail)->set_object_size(size_r);
-          if (storage->read_mail(oid, size_r, mail_buffer) == 0) {
+          if (storage->read_mail(oid, &size_r, mail_buffer) == 0) {
             // std::cout << mail_buffer << std::endl;
             if (tools.save_mail((*it_mail)) < 0) {
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
@@ -480,7 +480,6 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
     }
   }
 }
-
 
 int main(int argc, const char **argv) {
   vector<RadosMailObject *> mail_objects;
@@ -503,8 +502,7 @@ int main(int argc, const char **argv) {
       // std::cout << "namespace: " << val << std::endl;
     } else if (ceph_argparse_witharg(args, i, &val, "ls", "--ls", (char *)NULL)) {
       opts["ls"] = val;
-    }
-    else if (ceph_argparse_witharg(args, i, &val, "get", "--get", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(args, i, &val, "get", "--get", (char *)NULL)) {
       opts["get"] = val;
     } else if (ceph_argparse_witharg(args, i, &val, "-O", "--out", (char *)NULL)) {
       opts["out"] = val;

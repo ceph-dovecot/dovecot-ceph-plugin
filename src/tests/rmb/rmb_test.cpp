@@ -53,7 +53,7 @@ TEST(rmb1, date_arg) {
   time_t t;
   p->convert_str_to_time_t(date, &t);
   std::cout << "time t " << t << std::endl;
-  EXPECT_TRUE(t > -1);
+  EXPECT_GT(t, -1);
   time_t t2 = 1503393219;
   std::string val;
   p->convert_time_t_to_str(t, val);
@@ -70,7 +70,7 @@ TEST(rmb1, date_arg) {
 
 TEST(rmb1, save_mail) {
   std::string mbox_guid = "abc";
-  librmb::RadosMailBox mbox(mbox_guid, 1);
+  librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
 
   std::string base_path = "test";
   MailboxTools tools(&mbox, base_path);
@@ -99,7 +99,7 @@ TEST(rmb1, save_mail) {
 
 TEST(rmb1, path_tests) {
   std::string mbox_guid = "abc";
-  librmb::RadosMailBox mbox(mbox_guid, 1);
+  librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
 
   std::string base_path = "test";
   MailboxTools tools(&mbox, base_path);

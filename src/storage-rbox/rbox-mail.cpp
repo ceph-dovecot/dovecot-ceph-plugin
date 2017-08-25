@@ -278,7 +278,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
-    uoff_t size_r = 0;
+    uint64_t size_r = 0;
 
     if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {
       FUNC_END_RET("ret == -1; get mail size");
@@ -298,7 +298,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     memset(rmail->mail_buffer, '\0', sizeof(char) * size_r);
     _mail->transaction->stats.open_lookup_count++;
 
-    ret = ((r_storage->s)->read_mail(rmail->mail_object->get_oid(), size_r, &rmail->mail_buffer[0]));
+    ret = ((r_storage->s)->read_mail(rmail->mail_object->get_oid(), &size_r, &rmail->mail_buffer[0]));
     if (ret < 0) {
       if (ret == -ENOENT) {
         rbox_mail_set_expunged(rmail);
@@ -311,7 +311,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     }
 
     input = i_stream_create_from_data(rmail->mail_buffer, size_r);
-    i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME.c_str());
+    i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME);
     index_mail_set_read_buffer_size(_mail, input);
 
     if (mail->mail.v.istream_opened != NULL) {

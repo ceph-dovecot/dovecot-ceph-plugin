@@ -148,7 +148,7 @@ ACX_PTHREAD([have_pthread=yes])
 GTEST_VERSION="1.8.0"
 if test "x$have_pthread" = "xyes"; then
   GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
-  GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11"
+  GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
   GTEST_LDFLAGS="-module -avoid-version"
   GTEST_LIBS="$PTHREAD_LIBS"
 else

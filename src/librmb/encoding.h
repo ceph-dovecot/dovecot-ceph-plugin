@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef ENCODING_H_
-#define ENCODING_H_
+#ifndef SRC_LIBRMB_ENCODING_H_
+#define SRC_LIBRMB_ENCODING_H_
 
 #include <rados/librados.h>
 #include <rados/librados.hpp>
@@ -209,4 +209,4 @@ inline void encode(const char *s, ceph::bufferlist &bl) {
 
 #define PLAIN_FILTER_NAME "plain"
 
-#endif /* ENCODING_H_ */
+#endif  // SRC_LIBRMB_ENCODING_H_

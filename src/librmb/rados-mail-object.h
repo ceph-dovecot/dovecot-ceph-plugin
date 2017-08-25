@@ -6,8 +6,10 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <rados/librados.hpp>
 #include <map>
+
+#include <rados/librados.hpp>
+
 #define GUID_128_SIZE 16
 
 namespace librmb {
@@ -66,32 +68,34 @@ class RadosXAttr {
     attr->bl.append(val);
   }
 
-  static void convert(enum rbox_metadata_key key, time_t* time, RadosXAttr* attr) {
+  static void convert(enum rbox_metadata_key key, const time_t& time, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
-    long ts = static_cast<long int>(*time);
-    attr->bl.append(std::to_string(ts));
+    attr->bl.append(std::to_string(time));
   }
+
   static void convert(enum rbox_metadata_key key, char* value, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
     attr->bl.append(value);
   }
-  static void convert(enum rbox_metadata_key key, uint& value, RadosXAttr* attr) {
+
+  static void convert(enum rbox_metadata_key key, const uint& value, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
     attr->bl.append(std::to_string(value));
   }
-  static void convert(enum rbox_metadata_key key, size_t& value, RadosXAttr* attr) {
+
+  static void convert(enum rbox_metadata_key key, const size_t& value, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
-    attr->bl.append(std::to_string((int)value));
+    attr->bl.append(std::to_string(static_cast<int>(value)));
   }
 
-  static void convert(const char* value, time_t& time) {
-    long ts = std::stol(value);
-    time = static_cast<time_t>(ts);
+  static void convert(const char* value, time_t* t) {
+    std::istringstream stream(value);
+    stream >> *t;
   }
 
  private:
   static std::string enum_to_string(enum rbox_metadata_key key) {
-    std::string k(1, (char)key);
+    std::string k(1, static_cast<char>(key));
     return k;
   }
 };
@@ -114,7 +118,7 @@ class RadosMailObject {
 
   const uint64_t& get_object_size() { return this->object_size; }
 
-  void set_object_size(uint64_t& _size) { this->object_size = _size; }
+  void set_object_size(const uint64_t& _size) { object_size = _size; }
 
   bool has_active_op() { return active_op; }
   void set_active_op(bool _active) { this->active_op = _active; }
@@ -129,7 +133,7 @@ class RadosMailObject {
   std::map<std::string, ceph::bufferlist>* get_xattr() { return &this->attrset; }
 
   std::string get_xvalue(rbox_metadata_key key) {
-    std::string str_key(1, (char)key);
+    std::string str_key(1, static_cast<char>(key));
     return get_xvalue(str_key);
   }
   const std::string get_xvalue(std::string key) {
@@ -140,8 +144,8 @@ class RadosMailObject {
     return value;
   }
 
-  std::string to_string(std::string& padding);
-  void set_rados_save_date(time_t& _save_date) { this->save_date_rados = _save_date; }
+  std::string to_string(const std::string& padding);
+  void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
   time_t* get_rados_save_date() { return &this->save_date_rados; }
 
  private:
@@ -164,10 +168,10 @@ class RadosMailObject {
 
  public:
   // X_ATTRIBUTES
-  static const std::string X_ATTR_VERSION_VALUE;
+  static const char X_ATTR_VERSION_VALUE[];
 
   // OTHER
-  static const std::string DATA_BUFFER_NAME;
+  static const char DATA_BUFFER_NAME[];
 };
 
 }  // namespace librmb

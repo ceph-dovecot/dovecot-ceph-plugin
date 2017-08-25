@@ -4,6 +4,7 @@
 #define SRC_STORAGE_RBOX_RBOX_SAVE_H_
 
 #include <string>
+#include <vector>
 
 #include "mail-storage-private.h"
 
@@ -12,7 +13,7 @@
 
 class rbox_save_context {
  public:
-  explicit rbox_save_context(librmb::RadosStorage &_rados_storage)
+  explicit rbox_save_context(const librmb::RadosStorage &_rados_storage)
       : ctx({}),
         mbox(NULL),
         trans(NULL),
@@ -42,7 +43,7 @@ class rbox_save_context {
   uint32_t seq;
   struct istream *input;
 
-  librmb::RadosStorage &rados_storage;
+  const librmb::RadosStorage &rados_storage;
   std::vector<librmb::RadosMailObject *> objects;
   librmb::RadosMailObject *current_object;
 
@@ -53,7 +54,5 @@ class rbox_save_context {
 
 void rbox_add_to_index(struct mail_save_context *_ctx);
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail);
-int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, uint64_t max_size, librados::IoCtx &io_ctx,
-                             librmb::RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr);
 
-#endif /* SRC_STORAGE_RBOX_RBOX_SAVE_H_ */
+#endif  // SRC_STORAGE_RBOX_RBOX_SAVE_H_
