@@ -1,7 +1,6 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#include "lib.h"
-#include "dict-private.h"
+#include "dovecot-dict.h"
 
 #include "libdict-rados-plugin.h"
 #include "dict-rados.h"

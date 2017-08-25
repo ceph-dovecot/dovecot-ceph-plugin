@@ -14,22 +14,10 @@ const char *DEF_USERNAME = "unknown";
 
 extern "C" {
 
-#include "lib.h"
-#include <typeof-def.h>
-
-#include "mail-copy.h"
-#include "index-mail.h"
-#include "mail-index-modseq.h"
-#include "mailbox-list-private.h"
-
-#ifdef HAVE_INDEX_POP3_UIDL_H
-#include "index-pop3-uidl.h"
-#endif
+#include "dovecot-all.h"
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
-#include "mailbox-uidvalidity.h"
-#include "index-rebuild.h"
 }
 
 #include "rbox-storage.hpp"

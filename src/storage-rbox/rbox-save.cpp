@@ -3,25 +3,23 @@
 
 #include <stdio.h>
 #include <utime.h>
+#include <time.h>
 
 #include <string>
 #include <map>
 #include <vector>
-#include <time.h>
 #include <rados/librados.hpp>
 
 extern "C" {
-#include "lib.h"
-#include "typeof-def.h"
+#include "dovecot-all.h"
 
-#include "array.h"
-#include "hostpid.h"
 #include "istream.h"
 #include "istream-crlf.h"
 #include "ostream.h"
 #include "str.h"
-#include "index-mail.h"
+
 #include "rbox-sync.h"
+
 #include "debug-helper.h"
 }
 
@@ -160,10 +158,14 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   r_ctx->failed = FALSE;
 
-  if (rbox_open_rados_connection(_ctx->dest_mail->box) < 0) {
+  if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
     FUNC_END_RET("ret == -1 connection to rados failed");
     return -1;
   }
+
+  //  if (_ctx->dest_mail == NULL) {
+  //    _ctx->dest_mail = mail_alloc(_ctx->transaction, 0, NULL);
+  //  }
 
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);

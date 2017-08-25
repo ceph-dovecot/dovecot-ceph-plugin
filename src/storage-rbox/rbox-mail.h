@@ -4,12 +4,7 @@
 #define SRC_STORAGE_RBOX_RBOX_MAIL_H_
 
 #include "index-mail.h"
-
 #include "rados-mail-object.h"
-
-#ifndef i_zero
-#define i_zero(p) memset(p, 0, sizeof(*(p)))
-#endif
 
 struct rbox_mail {
   struct index_mail imail;
@@ -25,5 +20,6 @@ struct rbox_mail {
 extern int rbox_get_index_record(struct mail *_mail);
 extern struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
                                     struct mailbox_header_lookup_ctx *wanted_headers);
+extern int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_MAIL_H_

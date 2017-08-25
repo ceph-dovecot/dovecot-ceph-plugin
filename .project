@@ -3,7 +3,6 @@
 	<name>dovecot-ceph-plugin</name>
 	<comment></comment>
 	<projects>
-		<project>dovecot</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

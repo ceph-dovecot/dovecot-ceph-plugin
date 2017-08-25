@@ -3,7 +3,6 @@
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 
-#include "mail-storage-private.h"
 #include "rados-cluster.h"
 #include "rados-storage.h"
 
