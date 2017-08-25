@@ -175,11 +175,11 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
 
   if (r_ctx->current_object->get_mail_buffer() != NULL) {
-    buffer_t *buffer = (buffer_t *)r_ctx->current_object->get_mail_buffer();
+    buffer_t *buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
     // make 100% sure, buffer is empty!
     buffer_free(&buffer);
   }
-  r_ctx->current_object->set_mail_buffer((char *)buffer_create_dynamic(default_pool, 1014));
+  r_ctx->current_object->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, 1014)));
   // r_ctx->mail_buffer = ;
   if (r_ctx->current_object->get_mail_buffer() == NULL) {
     FUNC_END_RET("ret == -1");
@@ -190,7 +190,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
 
   //  _ctx->data.output = o_stream_create_buffer(r_ctx->mail_buffer);
-  _ctx->data.output = o_stream_create_buffer((buffer_t *)r_ctx->current_object->get_mail_buffer());
+  _ctx->data.output = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
 
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
 
@@ -401,15 +401,16 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
         librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
 
-        buffer_t *mail_buffer = (buffer_t *)r_ctx->current_object->get_mail_buffer();
+        buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
         size_t write_buffer_size = buffer_get_used_size(mail_buffer);
 
         rbox_save_mail_write_metadata(r_ctx, write_op_xattr, write_buffer_size);
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 
-        ret = r_storage->s->split_buffer_and_exec_op((char *)mail_buffer->data, write_buffer_size,
-                                                     r_ctx->current_object, write_op_xattr, max_write_size);
+        ret =
+            r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data), write_buffer_size,
+                                                   r_ctx->current_object, write_op_xattr, max_write_size);
         r_ctx->current_object->set_active_op(true);
         i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
       }
@@ -450,7 +451,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     i_assert(ret);
     {
       std::string value = std::to_string(uid);
-      std::string key(1, (char)RBOX_METADATA_MAIL_UID);
+      std::string key(1, static_cast<char>(RBOX_METADATA_MAIL_UID));
       bufferlist bl;
       bl.append(value);
       int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), key.c_str(), bl);
@@ -543,7 +544,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
 
   for (std::vector<librmb::RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    buffer_t *mail_buffer = (buffer_t *)(*it)->get_mail_buffer();
+    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
     buffer_free(&mail_buffer);
     delete *it;
   }
