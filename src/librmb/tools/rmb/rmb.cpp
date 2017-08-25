@@ -422,8 +422,10 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
 
   for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     std::string mailbox_key = std::string(1, (char)RBOX_METADATA_MAILBOX_GUID);
-
     std::string mailbox_guid = (*it)->get_xvalue(mailbox_key);
+    std::string mailbox_orig_name_key = std::string(1, (char)RBOX_METADATA_ORIG_MAILBOX);
+    std::string mailbox_orig_name = (*it)->get_xvalue(mailbox_orig_name_key);
+
     // std::cout << " mailbox _guid : " << mailbox_guid << std::endl;
     if (parser.contains_key(mailbox_key)) {
       //   std::cout << " containing key " << std::endl;
@@ -436,7 +438,7 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
     } else {
-      mailbox[mailbox_guid] = new RadosMailBox(mailbox_guid, 1);
+      mailbox[mailbox_guid] = new RadosMailBox(mailbox_guid, 1, mailbox_orig_name);
       mailbox[mailbox_guid]->set_xattr_filter(&parser);
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());

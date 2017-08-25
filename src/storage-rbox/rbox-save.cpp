@@ -309,6 +309,11 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     librmb::RadosXAttr::convert(RBOX_METADATA_PVT_FLAGS, pvt_flags, &xattr);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
+  {
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, ctx->mbox->box.name, &xattr);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
+  }
 
   i_debug("save_date %s", std::ctime(&mdata->save_date));
   write_op_xattr->mtime(&mdata->save_date);
