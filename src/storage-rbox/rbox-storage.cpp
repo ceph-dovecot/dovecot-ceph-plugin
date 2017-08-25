@@ -399,8 +399,7 @@ static void rbox_mailbox_close(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   struct expunged_item *const *moved_items, *moved_item;
-  unsigned int moved_count;
-  unsigned int i;
+  unsigned int moved_count, i;
 
   if (array_is_created(&rbox->moved_items)) {
     if (array_count(&rbox->moved_items) > 0) {

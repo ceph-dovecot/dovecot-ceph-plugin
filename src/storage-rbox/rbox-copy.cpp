@@ -85,6 +85,20 @@ static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, s
   return 0;
 }
 
+void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWriteOperation &write_op) {
+  {
+    struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(ctx->dest_mail->box);
+    librmb::RadosXAttr xattr;
+    librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+    write_op.setxattr(xattr.key.c_str(), xattr.bl);
+    i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
+    librmb::RadosXAttr xattr_mb;
+    librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+    write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
+    i_debug("setting done");
+  }
+}
+
 static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
@@ -117,12 +131,14 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
     librados::ObjectWriteOperation write_op;
+
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+
+
     if (ctx->moving != TRUE) {
       rbox_add_to_index(ctx);
       index_copy_cache_fields(ctx, mail, r_ctx->seq);
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
-
       std::string src_oid = rmail->mail_object->get_oid();
       std::string dest_oid = r_ctx->current_object->get_oid();
       i_debug("rbox_mail_storage_try_copy: from source %s to dest %s", src_oid.c_str(), dest_oid.c_str());
@@ -137,15 +153,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
       write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
 
-      // we need to update the mailbox x attr.
-      {
-        std::string key(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
-        librados::bufferlist bl;
-        struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)ctx->dest_mail->box;
-        bl.append(guid_128_to_string(dest_mailbox->mailbox_guid));
-        write_op.setxattr(key.c_str(), bl);
-      }
-
       // because we create a copy, save date needs to be updated
       // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
       // and restore it in read_metadata function. => save_date of copy/move will be same as source.
@@ -154,31 +161,36 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       write_op.mtime(&save_time);
 
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
+      {
+        struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)ctx->dest_mail->box;
+        librmb::RadosXAttr xattr;
+        librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+        write_op.setxattr(xattr.key.c_str(), xattr.bl);
+
+        i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
+        librmb::RadosXAttr xattr_mb;
+        librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+        write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
+        i_debug("setting done");
+      }
 
       ret_val = dest_io_ctx.aio_operate(dest_oid, completion, &write_op);
       i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
 
     } else {
-      std::string src_oid = rmail->mail_object->get_oid();
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      std::string src_oid = rmail->mail_object->get_oid();
+
       guid_128_from_string(src_oid.c_str(), item->oid);
       array_append(&rmailbox->moved_items, &item, 1);
 
       rbox_move_index(ctx, mail);
       index_copy_cache_fields(ctx, mail, r_ctx->seq);
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+      set_mailbox_xattr(ctx, write_op);
 
-      // we need to update the mailbox x attr.
-      {
-        std::string key(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
-        librados::bufferlist bl;
-        struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)ctx->dest_mail->box;
-        bl.append(guid_128_to_string(dest_mailbox->mailbox_guid));
-        write_op.setxattr(key.c_str(), bl);
-
-        int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
-        i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
-      }
+      int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
+      i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
     }
 
     completion->wait_for_complete();

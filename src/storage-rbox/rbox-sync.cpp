@@ -316,6 +316,8 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   FUNC_START();
   struct rbox_sync_context *ctx = *_ctx;
   int ret = success ? 0 : -1;
+  struct expunged_item *const *exp_items, *exp_item;
+  unsigned int count, i;
 
   *_ctx = NULL;
   if (success) {
@@ -335,8 +337,17 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
   index_storage_expunging_deinit(&ctx->mbox->box);
 
-  array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
-  array_free(&ctx->expunged_items);
+  if (array_is_created(&ctx->expunged_items)) {
+    if (array_count(&ctx->expunged_items) > 0) {
+      exp_items = array_get(&ctx->expunged_items, &count);
+      for (i = 0; i < count; i++) {
+        exp_item = exp_items[i];
+        i_free(exp_item);
+      }
+      array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
+    }
+    array_free(&ctx->expunged_items);
+  }
 
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_finish", NULL);
 

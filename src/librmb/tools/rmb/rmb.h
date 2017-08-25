@@ -13,18 +13,19 @@ namespace librmb {
 
 class RadosMailBox {
  public:
-  RadosMailBox(std::string _mailbox_guid, int _mail_count) {
+  RadosMailBox(std::string _mailbox_guid, int _mail_count, std::string _mbox_orig_name) {
     this->mail_count = _mail_count;
     this->mailbox_guid = _mailbox_guid;
     this->mailbox_size = 0;
     this->total_mails = 0;
-    this->parser = NULL;
+    this->parser = nullptr;
+    this->mbox_orig_name = _mbox_orig_name;
   }
   virtual ~RadosMailBox() {}
 
   void add_mail(RadosMailObject *mail) {
     total_mails++;
-    if (parser == NULL) {
+    if (parser == nullptr) {
       mails.push_back(mail);
       return;
     }
@@ -54,6 +55,8 @@ class RadosMailBox {
     std::ostringstream ss;
     ss << std::endl
        << "MAILBOX: " << (char)RBOX_METADATA_MAILBOX_GUID << "(mailbox_guid)=" << this->mailbox_guid << std::endl
+       << "         " << (char)RBOX_METADATA_ORIG_MAILBOX << "(mailbox_orig_name)=" << mbox_orig_name << std::endl
+
        << "         mail_total=" << total_mails << ", mails_displayed=" << mails.size() << std::endl
        << "         mailbox_size=" << mailbox_size << " bytes " << std::endl;
 
@@ -63,7 +66,7 @@ class RadosMailBox {
     }
     return ss.str();
   }
-  inline void add_to_mailbox_size(const uint64_t &mail_size) { this->mailbox_size += mail_size; }
+  inline void add_to_mailbox_size(const uint64_t &_mailbox_size) { this->mailbox_size += _mailbox_size; }
   void set_mails(std::vector<RadosMailObject *> _mails) { this->mails = _mails; }
 
   CmdLineParser *get_xattr_filter() { return this->parser; }
@@ -71,8 +74,8 @@ class RadosMailBox {
   std::vector<RadosMailObject *> &get_mails() { return this->mails; }
 
   std::string &get_mailbox_guid() { return this->mailbox_guid; }
-  void set_mailbox_guid(std::string &mbox_guid) { this->mailbox_guid = mbox_guid; }
-
+  void set_mailbox_guid(std::string &_mailbox_guid) { this->mailbox_guid = _mailbox_guid; }
+  void set_mailbox_orig_name(std::string &_mbox_orig_name) { this->mbox_orig_name = _mbox_orig_name; }
   int &get_mail_count() { return this->mail_count; }
 
  private:
@@ -83,6 +86,7 @@ class RadosMailBox {
   uint64_t mailbox_size;
   std::vector<RadosMailObject *> mails;
   uint64_t total_mails;
+  std::string mbox_orig_name;
 };
 }  // namespace librmb
 
