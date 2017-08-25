@@ -12,5 +12,4 @@ SUBDIRS = \
     librmb \
 	$(DICT_RADOS) \
     $(STORAGE_RBOX) \
-    test \
 	$(BUILD_LIBRMB_TESTS)
