@@ -1,26 +1,19 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
 extern "C" {
-#include "lib.h"
-#include "typeof-def.h"
-#include "ioloop.h"
-#include "str.h"
-#include "guid.h"
-#include "dirent.h"
+#include "dovecot-all.h"
+
 #include "rbox-sync.h"
 #include "debug-helper.h"
-#include "index-rebuild.h"
-#include "string.h"
 }
 
 #include "rbox-sync-rebuild.h"
 
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
-#include "../librmb/encoding.h"
-#include "rados-mail-object.h"
+#include "encoding.h"
 
-using namespace librmb;
+using namespace librmb;  // NOLINT
 
 static uint32_t stoui32(const std::string &s) {
   std::istringstream reader(s);

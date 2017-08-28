@@ -82,4 +82,6 @@ libtool
 /config-local.h.in~
 /config-local.h
 /dovecot-rados-plugins-config.h
-/.ptp-sync/
+.ptp-sync
+.ptp-sync-folder
+

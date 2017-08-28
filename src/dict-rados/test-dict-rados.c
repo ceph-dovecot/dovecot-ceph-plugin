@@ -1,6 +1,7 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#include "lib.h"
+#include "dovecot-dict.h"
+
 #include "test-common.h"
 #include "ioloop.h"
 #include "lib-signals.h"
@@ -12,8 +13,6 @@
 #include "unlink-directory.h"
 #include "randgen.h"
 #include "hex-binary.h"
-#include "dict.h"
-#include "dict-private.h"
 #include "guid.h"
 
 #include "libdict-rados-plugin.h"

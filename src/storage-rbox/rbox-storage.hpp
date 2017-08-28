@@ -23,7 +23,9 @@ struct rbox_storage {
   librmb::RadosCluster cluster;
   librmb::RadosStorage *s;
 };
+
 #endif
+
 struct index_rebuild_context;
 extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 extern struct mail_vfuncs rbox_mail_vfuncs;

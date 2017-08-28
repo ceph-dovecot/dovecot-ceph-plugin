@@ -7,6 +7,7 @@ shlibs = \
 libstorage_rbox_plugin_la_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
 	$(LIBDOVECOT_STORAGE_INCLUDE) \
+	-I../include \
 	-I$(top_srcdir)/src/librmb 
 	
 libstorage_rbox_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)

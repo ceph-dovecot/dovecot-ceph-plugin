@@ -1,25 +1,22 @@
-
 /* Copyright (c) 2007-2017 Dovecot authors, see the included COPYING file */
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
+#include <rados/librados.hpp>
+
 extern "C" {
-#include "lib.h"
-#include "typeof-def.h"
-#include "ioloop.h"
-#include "str.h"
-#include "guid.h"
-#include "dirent.h"
+#include "dovecot-all.h"
+
 #include "rbox-sync.h"
 #include "debug-helper.h"
-#include "index-rebuild.h"
-#include "string.h"
 }
-#include <rados/librados.hpp>
+
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-sync-rebuild.h"
+
 #define RBOX_REBUILD_COUNT 3
-using namespace librados;
+
+using namespace librados;  // NOLINT
 
 /*
 static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {

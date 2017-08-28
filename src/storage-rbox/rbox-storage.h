@@ -8,7 +8,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "index-storage.h"
+
+#include "dovecot-all.h"
 
 extern int rbox_storage_create(struct mail_storage *storage, struct mail_namespace *ns, const char **error_r);
 extern struct mail_storage *rbox_storage_alloc(void);

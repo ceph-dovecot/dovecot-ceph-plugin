@@ -22,9 +22,8 @@
 
 extern "C" {
 
-#include "lib.h"
+#include "dovecot-dict.h"
 #include "macros.h"
-#include "dict-private.h"
 #include "guid.h"
 
 #include "dict-rados.h"

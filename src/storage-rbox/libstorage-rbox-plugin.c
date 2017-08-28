@@ -1,7 +1,6 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#include "lib.h"
-#include "mail-storage.h"
+#include "dovecot-all.h"
 
 #include "libstorage-rbox-plugin.h"
 #include "rbox-storage.h"

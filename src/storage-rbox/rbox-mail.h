@@ -4,12 +4,7 @@
 #define SRC_STORAGE_RBOX_RBOX_MAIL_H_
 
 #include "index-mail.h"
-
 #include "rados-mail-object.h"
-
-#ifndef i_zero
-#define i_zero(p) memset(p, 0, sizeof(*(p)))
-#endif
 
 struct rbox_mail {
   struct index_mail imail;

@@ -5,12 +5,10 @@
 
 extern "C" {
 
-#include "lib.h"
-#include "typeof-def.h"
+#include "dovecot-all.h"
 #include "istream.h"
-#include "mail-storage.h"
 #include "mail-copy.h"
-#include "mailbox-list-private.h"
+
 #include "debug-helper.h"
 }
 #include "rados-mail-object.h"

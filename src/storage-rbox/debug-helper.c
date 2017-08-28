@@ -3,13 +3,8 @@
 #include <execinfo.h>
 #include <time.h>
 
-#include "lib.h"
-#include "failures.h"
-#include "index-mail.h"
-#include "mail-storage.h"
-#include "mail-storage-private.h"
-#include "mailbox-list.h"
-#include "mailbox-list-private.h"
+#include "dovecot-all.h"
+
 #include "rbox-storage.hpp"
 #include "rbox-sync.h"
 #include "debug-helper.h"
