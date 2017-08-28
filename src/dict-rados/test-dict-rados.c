@@ -621,8 +621,8 @@ int main(int argc, const char *argv[]) {
   rados_t rados = NULL;
   guid_128_t guid;
 
-  printf("%s Version %s \nreport bugs to v%s \n\n", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME,
-         DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION, DOVECOT_RADOS_PLUGINS_PACKAGE_BUGREPORT);
+  printf("%s Version %s \nreport bugs to v%s \n\n", DOVECOT_CEPH_PLUGINS_PACKAGE_NAME,
+         DOVECOT_CEPH_PLUGINS_PACKAGE_VERSION, DOVECOT_CEPH_PLUGINS_PACKAGE_BUGREPORT);
 
   // prepare Ceph
   {

@@ -9,7 +9,7 @@ EXTRA_DIST = \
 	COPYING \
 	ChangeLog
 
-nodist_pkginclude_HEADERS = config-local.h dovecot-rados-plugins-config.h
+nodist_pkginclude_HEADERS = config-local.h dovecot-ceph-plugins-config.h
 
 ChangeLog:
 	git log --name-status --pretty="format:%ai %aN <%aE> (%h)%n%n%w(80,4,4)%s%n%n%b" . > ChangeLog || rm -f ChangeLog

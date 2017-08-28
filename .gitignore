@@ -85,3 +85,4 @@ libtool
 .ptp-sync
 .ptp-sync-folder
 
+/dovecot-ceph-plugins-config.h
