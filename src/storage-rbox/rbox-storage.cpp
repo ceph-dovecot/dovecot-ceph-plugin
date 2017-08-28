@@ -27,9 +27,6 @@ extern "C" {
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
-using namespace librados;  // NOLINT
-using namespace librmb;    // NOLINT
-
 using std::string;
 
 extern struct mailbox rbox_mailbox;

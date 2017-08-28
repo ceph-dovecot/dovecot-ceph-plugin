@@ -11,7 +11,7 @@ using std::list;
 using std::pair;
 using std::string;
 
-using namespace librmb;  // NOLINT
+using librmb::RadosCluster;
 
 librados::Rados RadosCluster::cluster;
 int RadosCluster::cluster_ref_count = 0;

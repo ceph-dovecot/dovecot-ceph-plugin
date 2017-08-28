@@ -8,8 +8,7 @@
 #include <sstream>
 #include <vector>
 
-using namespace librados;  // NOLINT
-using namespace librmb;    // NOLINT
+using librmb::RadosMailObject;
 
 const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
 const char RadosMailObject::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";

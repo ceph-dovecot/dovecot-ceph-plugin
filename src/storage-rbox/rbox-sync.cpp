@@ -16,8 +16,6 @@ extern "C" {
 
 #define RBOX_REBUILD_COUNT 3
 
-using namespace librados;  // NOLINT
-
 /*
 static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
   FUNC_START();
@@ -197,9 +195,9 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
       FUNC_END_RET("ret <= 0");
       return ret;
     }
-    if (rebuild)
+    if (rebuild) {
       ret = 0;
-    else {
+    } else {
       if ((ret = rbox_sync_index(ctx)) > 0)
         break;
     }
@@ -256,7 +254,7 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
   cb_data->item = item;
   cb_data->box = box;
 
-  completion->set_complete_callback((void *)cb_data, remove_callback);
+  completion->set_complete_callback(cb_data, remove_callback);
 
   if (rbox_open_rados_connection(box) < 0) {
     i_debug("rbox_sync_object_expunge: connection to rados failed");

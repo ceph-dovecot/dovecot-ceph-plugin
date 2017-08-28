@@ -37,8 +37,6 @@ extern "C" {
 #define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
 #define FUNC_END_RET_INT(ret) i_debug("[END] %s: %s at line %d, ret==%d\n", __FILE__, __func__, __LINE__, ret)
 
-using namespace librados;  // NOLINT
-
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -47,9 +45,17 @@ using std::map;
 using std::pair;
 using std::set;
 
+using librados::ObjectReadOperation;
+using librados::bufferlist;
+using librados::AioCompletion;
+using librados::ObjectWriteOperation;
+using librados::completion_t;
+
+using librmb::RadosCluster;
+using librmb::RadosDictionary;
+
 #define DICT_USERNAME_SEPARATOR '/'
 static const char CACHE_DELETED[] = "_DELETED_";
-using namespace librmb;  // NOLINT
 
 struct rados_dict {
   struct dict dict;

@@ -59,6 +59,9 @@ enum rbox_metadata_key {
 
 class RadosXAttr {
  public:
+  RadosXAttr() {}
+
+ public:
   ceph::bufferlist bl;
   std::string key;
 

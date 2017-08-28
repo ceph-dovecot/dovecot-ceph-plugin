@@ -5,10 +5,9 @@
 #include <rados/librados.hpp>
 #include "rados-storage.h"
 
-using namespace librados;  // NOLINT
-using namespace librmb;    // NOLINT
-
 using std::string;
+
+using librmb::RadosStorage;
 
 #define DICT_USERNAME_SEPARATOR '/'
 
@@ -39,7 +38,7 @@ int RadosStorage::split_buffer_and_exec_op(const char *buffer, size_t buffer_len
     tmp_buffer.append(buf, length);
     op->write(offset, tmp_buffer);
 
-    AioCompletion *completion = librados::Rados::aio_create_completion();
+    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
     completion->set_complete_callback(current_object, nullptr);
 
     (*current_object->get_completion_op_map())[completion] = op;
@@ -76,12 +75,21 @@ int RadosStorage::read_mail(const std::string &oid, uint64_t *size_r, char *mail
 
 int RadosStorage::load_xattr(RadosMailObject *mail) {
   int ret = -1;
+
   if (mail != nullptr) {
     if (mail->get_xattr()->size() == 0) {
       ret = io_ctx.getxattrs(mail->get_oid(), *mail->get_xattr());
     } else {
       ret = 0;
     }
+  }
+  return ret;
+}
+
+int RadosStorage::delete_mail(RadosMailObject *mail) {
+  int ret = -1;
+  if (mail != nullptr) {
+    ret = io_ctx.remove(mail->get_oid());
   }
   return ret;
 }

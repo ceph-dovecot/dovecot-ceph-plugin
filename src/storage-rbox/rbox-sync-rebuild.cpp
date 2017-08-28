@@ -13,7 +13,11 @@ extern "C" {
 #include "rbox-mail.h"
 #include "encoding.h"
 
-using namespace librmb;  // NOLINT
+using librmb::RadosMailObject;
+using librmb::rbox_metadata_key;
+using librmb::rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID;
+using librmb::rbox_metadata_key::RBOX_METADATA_MAIL_UID;
+using librmb::rbox_metadata_key::RBOX_METADATA_GUID;
 
 static uint32_t stoui32(const std::string &s) {
   std::istringstream reader(s);
@@ -22,18 +26,20 @@ static uint32_t stoui32(const std::string &s) {
   return val;
 }
 
-static char *get_xattr_value(std::map<std::string, ceph::bufferlist> &attrset, enum rbox_metadata_key key) {
-  std::string skey(1, (char)key);
-  char *value;
+static char *get_xattr_value(const std::map<std::string, ceph::bufferlist> &attrset, enum rbox_metadata_key key) {
+  const std::string skey(1, static_cast<const char>(key));
   if (attrset.find(skey) != attrset.end()) {
-    value = i_strdup(attrset[skey].to_str().c_str());
-    return value;
+    auto value = attrset.find(skey);
+    if (value != attrset.end()) {
+      auto value_string = value->second.to_str();
+      return i_strdup(value_string.c_str());
+    }
   }
   return nullptr;
 }
 
 int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
-                         std::map<std::string, ceph::bufferlist> &attrset) {
+                         const std::map<std::string, ceph::bufferlist> &attrset) {
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
 
@@ -72,7 +78,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   return 0;
 }
 
-int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, std::string &mailbox_guid) {
+int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string &mailbox_guid) {
   struct mail_storage *storage = ctx->box->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
 
@@ -85,7 +91,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, std::string &mail
   }
 
   // find objects with mailbox_guid 'U' attribute
-  std::string xattr(1, (char)RBOX_METADATA_MAILBOX_GUID);
+  std::string xattr(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
   std::string filter_name = PLAIN_FILTER_NAME;
   ceph::bufferlist filter_bl;
 
@@ -100,7 +106,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, std::string &mail
     std::map<std::string, ceph::bufferlist> attrset;
 
     librados::bufferlist mail_uid;
-    std::string key(1, (char)RBOX_METADATA_MAIL_UID);
+    std::string key(1, static_cast<char>(RBOX_METADATA_MAIL_UID));
     int retx = r_storage->s->get_io_ctx().getxattrs((*iter).get_oid(), attrset);
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), attrset);

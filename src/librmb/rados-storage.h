@@ -29,6 +29,7 @@ class RadosStorage {
 
   int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer);
   int load_xattr(RadosMailObject *mail);
+  int delete_mail(RadosMailObject *mail);
 
  private:
   librados::IoCtx io_ctx;

@@ -15,14 +15,13 @@
 
 #include "rados-dictionary.h"
 
-using namespace librados;  // NOLINT
-using namespace librmb;    // NOLINT
-
 using std::string;
 using std::stringstream;
 using std::map;
 using std::pair;
 using std::set;
+
+using librmb::RadosDictionary;
 
 #define DICT_USERNAME_SEPARATOR '/'
 #define DICT_PATH_PRIVATE "priv/"
@@ -54,11 +53,11 @@ int RadosDictionary::get(const string &key, string *value_r) {
   set<string> keys;
   keys.insert(key);
 
-  map<std::string, bufferlist> map;
-  ObjectReadOperation oro;
+  map<std::string, librados::bufferlist> map;
+  librados::ObjectReadOperation oro;
   oro.omap_get_vals_by_keys(keys, &map, &r_val);
 
-  bufferlist bl;
+  librados::bufferlist bl;
   int err = io_ctx.operate(get_full_oid(key), &oro, &bl);
 
   if (err == 0) {
