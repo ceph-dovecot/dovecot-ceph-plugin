@@ -1,6 +1,6 @@
 AC_PREREQ([2.59])
 
-AC_INIT([Dovecot RADOS plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
+AC_INIT([Dovecot Ceph plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
@@ -33,13 +33,13 @@ CPPFLAGS=-I$2/include LDFLAGS=-L$2/lib ./configure --with-$1])
   fi
 ])
 
-# Look for RADOS
+# Look for librados
 have_librados=no
 AC_CHECK_HEADER([rados/librados.h], [
   have_librados=yes
   AC_DEFINE([HAVE_LIBRADOS], [], [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
-], [AC_ERROR([Can't build with RADOS support: librados.h not found])])
+], [AC_MSG_ERROR([cannot build without RADOS support: librados.h not found])])
 
 
 # Evaluate with options
@@ -65,6 +65,8 @@ AC_PROG_CC_C99
 AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LIBTOOL
+AC_PROG_GREP
+AC_PROG_INSTALL
 
 AC_ENABLE_SHARED
 AC_DISABLE_STATIC
@@ -97,36 +99,35 @@ AC_SUBST(BINARY_CFLAGS)
 AC_SUBST(BINARY_LDFLAGS)
 AC_SUBST(LIBDOVECOT_INCLUDE)
 
-AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot RADOS plugin major version])
-AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot RADOS plugin minor version])
+AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot Ceph plugins major version])
+AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot Ceph plugins minor version])
 
+
+AC_MSG_CHECKING([for DOVECOT_VERSION_MAJOR 2])
+AS_IF([$GREP -q "DOVECOT_VERSION_MAJOR 2" $dovecot_pkgincludedir/config.h], [AC_MSG_RESULT(yes)],[AC_MSG_ERROR([cannot build with DOVECOT_VERSION_MAJOR != 2])])
+AC_MSG_CHECKING([for DOVECOT_VERSION_MINOR 2])
+AS_IF([$GREP -q "DOVECOT_VERSION_MINOR 2" $dovecot_pkgincludedir/config.h], [AC_MSG_RESULT(yes)],[AC_MSG_ERROR([cannot build with DOVECOT_VERSION_MINOR != 2])])
 
 AC_MSG_CHECKING([for dict_vfuncs.switch_ioloop])
-grep switch_ioloop $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP switch_ioloop $dovecot_pkgincludedir/dict-private.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for dict_vfuncs.set_timestamp])
-grep set_timestamp $dovecot_pkgincludedir/dict-private.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SET_TIMESTAMP],,[dict_vfuncs.set_timestamp supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP -q set_timestamp $dovecot_pkgincludedir/dict-private.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SET_TIMESTAMP],,[dict_vfuncs.set_timestamp supported])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for index-pop3-uidl.h])
 AS_IF([test -f $dovecot_pkgincludedir/index-pop3-uidl.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_POP3_UIDL_H],,[index-pop3-uidl.h found])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for mail_vfuncs.index_mail_set_cache_corrupted_reason])
-grep index_mail_set_cache_corrupted_reason $dovecot_pkgincludedir/index-mail.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON],,[mail_vfuncs.index_mail_set_cache_corrupted_reason supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP -q index_mail_set_cache_corrupted_reason $dovecot_pkgincludedir/index-mail.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON],,[mail_vfuncs.index_mail_set_cache_corrupted_reason supported])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for dict_lookup_result.values])
-grep values_reason $dovecot_pkgincludedir/dict.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_LOOKUP_RESULT_VALUES],,[dict_lookup_result.values supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP -q values_reason $dovecot_pkgincludedir/dict.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_LOOKUP_RESULT_VALUES],,[dict_lookup_result.values supported])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for mail_save_context.copy_src_mail])
-grep copy_src_mail $dovecot_pkgincludedir/mail-storage-private.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL],,[mail_save_context.copy_src_mail supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP -q copy_src_mail $dovecot_pkgincludedir/mail-storage-private.h ], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL],,[mail_save_context.copy_src_mail supported])],[AC_MSG_RESULT(no)])
 
 AC_MSG_CHECKING([for MAIL_INDEX_HDR_FLAG_FSCKD])
-grep MAIL_INDEX_HDR_FLAG_FSCKD $dovecot_pkgincludedir/mail-index.h > /dev/null 2>&1
-AS_IF([test "$?" = 0], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_INDEX_HDR_FLAG_FSCKD],,[MAIL_INDEX_HDR_FLAG_FSCKD supported])],[AC_MSG_RESULT(no)])
+AS_IF([$GREP -q MAIL_INDEX_HDR_FLAG_FSCKD $dovecot_pkgincludedir/mail-index.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_INDEX_HDR_FLAG_FSCKD],,[MAIL_INDEX_HDR_FLAG_FSCKD supported])],[AC_MSG_RESULT(no)])
 
 
 AC_CONFIG_HEADERS([config-local.h])

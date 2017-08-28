@@ -21,7 +21,7 @@ struct mail_storage rbox_storage = {
     }};
 
 void storage_rbox_plugin_init(struct module *module ATTR_UNUSED) {
-  i_info("%s v%s storage starting up", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME, DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION);
+  i_info("%s v%s storage starting up", DOVECOT_CEPH_PLUGINS_PACKAGE_NAME, DOVECOT_CEPH_PLUGINS_PACKAGE_VERSION);
   if (refcount++ > 0)
     return;
   mail_storage_class_register(&rbox_storage);

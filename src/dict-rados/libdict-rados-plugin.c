@@ -34,7 +34,7 @@ struct dict dict_driver_rados = {.name = "rados",
 static int plugin_ref_count = 0;
 
 void dict_rados_plugin_init(struct module *module ATTR_UNUSED) {
-  i_info("%s v%s dictionary starting up", DOVECOT_RADOS_PLUGINS_PACKAGE_NAME, DOVECOT_RADOS_PLUGINS_PACKAGE_VERSION);
+  i_info("%s v%s dictionary starting up", DOVECOT_CEPH_PLUGINS_PACKAGE_NAME, DOVECOT_CEPH_PLUGINS_PACKAGE_VERSION);
   if (plugin_ref_count++ > 0)
     return;
   dict_driver_register(&dict_driver_rados);

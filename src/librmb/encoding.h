@@ -19,9 +19,11 @@
 #define SRC_LIBRMB_ENCODING_H_
 
 #include <rados/librados.h>
-#include <rados/librados.hpp>
+
 #include <iostream>
 #include <string>
+
+#include <rados/librados.hpp>
 
 typedef __u32 __bitwise__ __be32;
 
