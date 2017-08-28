@@ -76,6 +76,7 @@ int RadosStorage::read_mail(const std::string &oid, unsigned long &size_r, char 
 
 int RadosStorage::load_xattr(RadosMailObject *mail) {
   int ret = -1;
+
   if (mail != nullptr) {
     if (mail->get_xattr()->size() == 0) {
       ret = io_ctx.getxattrs(mail->get_oid(), *mail->get_xattr());
@@ -86,3 +87,10 @@ int RadosStorage::load_xattr(RadosMailObject *mail) {
   return ret;
 }
 
+int RadosStorage::delete_mail(RadosMailObject *mail) {
+  int ret = -1;
+  if (mail != nullptr) {
+    ret = io_ctx.remove(mail->get_oid());
+  }
+  return ret;
+}

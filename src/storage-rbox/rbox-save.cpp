@@ -23,6 +23,7 @@ extern "C" {
 #include "index-mail.h"
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include "ostream.h"
 }
 
 #include "rados-mail-object.h"
@@ -240,10 +241,12 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
-                                         size_t &message_size) {
+static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx,
+                                         librados::ObjectWriteOperation *write_op_xattr) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
+  struct rbox_mail *rmail = (struct rbox_mail *)ctx->ctx.dest_mail;
+  struct index_mail_data *data = &rmail->imail.data;
 
   {
     librmb::RadosXAttr xattr;
@@ -287,13 +290,18 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     }
   }
   {
+    uoff_t vsize = -1;
+    if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
+      i_debug("failed, unable to determine virtual size:");
+    }
+
     librmb::RadosXAttr xattr;
-    librmb::RadosXAttr::convert(RBOX_METADATA_VIRTUAL_SIZE, message_size, &xattr);
+    librmb::RadosXAttr::convert(RBOX_METADATA_VIRTUAL_SIZE, vsize, &xattr);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
     librmb::RadosXAttr xattr;
-    librmb::RadosXAttr::convert(RBOX_METADATA_PHYSICAL_SIZE, message_size, &xattr);
+    librmb::RadosXAttr::convert(RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset, &xattr);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
@@ -322,13 +330,6 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
   return 0;
 }
 
-static void remove_from_rados(librmb::RadosStorage *_storage, const std::string &_oid) {
-  if ((_storage->get_io_ctx()).remove(_oid) < 0) {
-    i_debug("Librados obj: %s, could not be removed", _oid.c_str());
-  }
-  i_debug("removed oid=%s", _oid.c_str());
-}
-
 static bool wait_for_rados_operations(std::vector<librmb::RadosMailObject *> &object_list) {
   bool ctx_failed = false;
   // wait for all writes to finish!
@@ -355,7 +356,9 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
 
   for (std::vector<librmb::RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin();
        it_cur_obj != r_ctx->objects.end(); ++it_cur_obj) {
-    remove_from_rados(r_storage->s, (*it_cur_obj)->get_oid());
+    if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
+      i_debug("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
+    }
   }
   // clean up index
   mail_index_expunge(r_ctx->trans, r_ctx->seq);
@@ -366,9 +369,6 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
 static void clean_up_write_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
-  if (r_ctx->copying != TRUE) {
-    index_mail_cache_parse_deinit(_ctx->dest_mail, _ctx->data.received_date, !r_ctx->failed);
-  }
   if (r_ctx->input != NULL) {
     i_stream_unref(&r_ctx->input);
   }
@@ -391,18 +391,20 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
   uint32_t save_date = _ctx->data.save_date;
   index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
-  i_debug("oid: %s, save_date: %s", r_ctx->current_object->get_oid().c_str(), std::ctime(&_ctx->data.save_date));
 
   if (!r_ctx->failed) {
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
+        index_mail_cache_parse_deinit(r_ctx->ctx.dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
+
         // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
         librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
 
         buffer_t *mail_buffer = (buffer_t *)r_ctx->current_object->get_mail_buffer();
         size_t write_buffer_size = buffer_get_used_size(mail_buffer);
-
-        rbox_save_mail_write_metadata(r_ctx, write_op_xattr, write_buffer_size);
+        i_debug("oid: %s, save_date: %s, mail_size %lu", r_ctx->current_object->get_oid().c_str(),
+                std::ctime(&_ctx->data.save_date), write_buffer_size);
+        rbox_save_mail_write_metadata(r_ctx, write_op_xattr);
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 
@@ -447,11 +449,10 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     ret = seq_range_array_iter_nth(&iter, n++, &uid);
     i_assert(ret);
     {
-      std::string value = std::to_string(uid);
-      std::string key(1, (char)RBOX_METADATA_MAIL_UID);
-      bufferlist bl;
-      bl.append(value);
-      int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), key.c_str(), bl);
+      librmb::RadosXAttr xattr;
+      librmb::RadosXAttr::convert(RBOX_METADATA_MAIL_UID, uid, &xattr);
+
+      int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), xattr.key.c_str(), xattr.bl);
       if (ret_val < 0) {
         return -1;
       }

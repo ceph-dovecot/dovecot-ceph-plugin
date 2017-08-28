@@ -57,6 +57,9 @@ enum rbox_metadata_key {
 
 class RadosXAttr {
  public:
+  RadosXAttr() {}
+
+ public:
   ceph::bufferlist bl;
   std::string key;
 
@@ -65,7 +68,6 @@ class RadosXAttr {
     attr->key = enum_to_string(key);
     attr->bl.append(val);
   }
-
   static void convert(enum rbox_metadata_key key, time_t* time, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
     long ts = static_cast<long int>(*time);
@@ -75,6 +77,7 @@ class RadosXAttr {
     attr->key = enum_to_string(key);
     attr->bl.append(value);
   }
+
   static void convert(enum rbox_metadata_key key, uint& value, RadosXAttr* attr) {
     attr->key = enum_to_string(key);
     attr->bl.append(std::to_string(value));

@@ -80,6 +80,11 @@ int rbox_get_index_record(struct mail *_mail) {
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
+
+    i_free(rmail->mail_buffer);
+    rmail->mail_buffer = NULL;
+    // empty list
+    rmail->mail_object->get_xattr()->clear();
   }
   uint64_t obj_size = -1;
   rmail->mail_object->set_object_size(obj_size);
@@ -105,15 +110,16 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, char **value_r) {
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
-
+  int ret = -1;
   if (rbox_open_rados_connection(mail->box) < 0) {
     i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
     return -1;
   }
 
-  if (r_storage->s->load_xattr(rmail->mail_object) < 0) {
+  ret = r_storage->s->load_xattr(rmail->mail_object);
+  if (ret < 0) {
     i_debug("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
-    return -1;
+    return ret;
   }
 
   std::string value = rmail->mail_object->get_xvalue(key);
@@ -121,8 +127,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     *value_r = i_strdup(value.c_str());
     return 0;
   }
-
-  return -1;
+  return 0;
 }
 
 static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
@@ -132,7 +137,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   char *value;
   uintmax_t time;
-
+  int ret = 0;
   if (index_mail_get_received_date(_mail, date_r) == 0) {
     // i_debug("received date = %s", ctime(date_r));
     //  debug_print_mail(_mail, "rbox-mail::rbox_mail_get_received_date (ret 0, 1)", NULL);
@@ -140,8 +145,16 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     return 0;
   }
 
-  if (rbox_mail_metadata_get(rmail, RBOX_METADATA_RECEIVED_TIME, &value) < 0)
-    return -1;
+  ret = rbox_mail_metadata_get(rmail, RBOX_METADATA_RECEIVED_TIME, &value);
+  if (ret < 0) {
+    if (ret == -ENOENT) {
+      rbox_mail_set_expunged(rmail);
+      return -1;
+    } else {
+      FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
+      return -1;
+    }
+  }
   time = 0;
   i_debug("received_date received, %s", value);
   if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
@@ -183,7 +196,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
     //  i_debug("cannot stat object %s to get received date and object size ", rmail->mail_object->get_oid().c_str());
-    if (ret_val == ((-1) * ENOENT)) {
+    if (ret_val == -ENOENT) {
       rbox_mail_set_expunged(rmail);
       return -1;
     } else {
@@ -204,30 +217,30 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 
 int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
-  struct index_mail_data *data = &mail->imail.data;
-  const char *value;
-  uintmax_t size;
+    struct index_mail_data *data = &mail->imail.data;
+    const char *value;
+    uintmax_t size;
 
-  if (index_mail_get_cached_virtual_size(&mail->imail, size_r))
+    if (index_mail_get_cached_virtual_size(&mail->imail, size_r))
+      return 0;
+
+    if (rbox_mail_metadata_get(mail, RBOX_METADATA_VIRTUAL_SIZE, &value) < 0)
+      return -1;
+    if (value == NULL)
+      return index_mail_get_virtual_size(_mail, size_r);
+
+    if (str_to_uintmax_hex(value, &size) < 0 || size > (uoff_t)-1)
+      return -1;
+    data->virtual_size = (uoff_t)size;
+    *size_r = data->virtual_size;
     return 0;
-
-  if (rbox_mail_metadata_get(mail, RBOX_METADATA_VIRTUAL_SIZE, &value) < 0)
-    return -1;
-  if (value == NULL)
-    return index_mail_get_virtual_size(_mail, size_r);
-
-  if (str_to_uintmax_hex(value, &size) < 0 || size > (uoff_t)-1)
-    return -1;
-  data->virtual_size = (uoff_t)size;
-  *size_r = data->virtual_size;
-  return 0;
 }
 
 static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-
+  struct index_mail_data *data = &rmail->imail.data;
   uint64_t file_size = -1;
   time_t time = 0;
 
@@ -263,7 +276,10 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   i_debug("rmail->mail_object->get_oid() %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
           _mail->uid);
 
-  *size_r = file_size;
+  // *size_r = file_size;
+  data->physical_size = (uoff_t)file_size;
+  *size_r = data->physical_size;
+
   FUNC_END();
   return file_size > 0 ? 0 : -1;
 }
@@ -287,12 +303,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     }
 
     uoff_t size_r = 0;
-
     if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {
       FUNC_END_RET("ret == -1; get mail size");
       return -1;
     }
-
     if (rmail->mail_buffer != NULL) {
       i_free(rmail->mail_buffer);
     }
@@ -306,7 +320,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     memset(rmail->mail_buffer, '\0', sizeof(char) * size_r);
     _mail->transaction->stats.open_lookup_count++;
 
-    ret = ((r_storage->s)->read_mail(rmail->mail_object->get_oid(), size_r, &rmail->mail_buffer[0]));
+    ret = ((r_storage->s)->read_mail(rmail->mail_object->get_oid(), size_r, rmail->mail_buffer));
     if (ret < 0) {
       if (ret == -ENOENT) {
         rbox_mail_set_expunged(rmail);
@@ -460,6 +474,7 @@ static void rbox_mail_close(struct mail *_mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   if (rmail_->mail_buffer != NULL) {
     i_free(rmail_->mail_buffer);
+    rmail_->mail_buffer = NULL;
   }
   if (rmail_->mail_object != NULL) {
     delete rmail_->mail_object;
@@ -470,6 +485,7 @@ static void rbox_mail_close(struct mail *_mail) {
 
 static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool saving) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
+
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
 
