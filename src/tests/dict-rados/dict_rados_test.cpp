@@ -51,19 +51,28 @@ static const char *OMAP_ITERATE_REC_RESULTS[] = {"V-A1/B1", "V-A1/B1/C2", "V-A1/
 
 extern struct dict dict_driver_rados;
 static struct dict_settings *set;
-static struct dict *test_dict = nullptr;
+static struct dict *test_dict_r = nullptr;
 static const char *error_r = nullptr;
 
 TEST_F(DictTest, dict_init) {
   set = i_new(struct dict_settings, 1);
   set->username = "username";
 
-  ASSERT_EQ(dict_driver_rados.v.init(&dict_driver_rados, uri.c_str(), set, &test_dict, &error_r), 0);
+  ASSERT_EQ(dict_driver_rados.v.init(&dict_driver_rados, uri.c_str(), set, &test_dict_r, &error_r), 0);
+}
+
+TEST_F(DictTest, dict_lookup_not_found) {
+  ASSERT_NE(test_dict_r, nullptr);
+  const char *value_r;
+
+  EXPECT_EQ(dict_lookup(test_dict_r, test_pool, "priv/dict_lookup_not_found", &value_r, &error_r), 0);
+  EXPECT_EQ(dict_lookup(test_dict_r, test_pool, "shared/dict_lookup_not_found", &value_r, &error_r), 0);
 }
 
 TEST_F(DictTest, dict_deinit) {
-  ASSERT_NE(test_dict, nullptr);
-  test_dict->v.deinit(test_dict);
+  ASSERT_NE(test_dict_r, nullptr);
+  test_dict_r->v.deinit(test_dict_r);
+  test_dict_r = nullptr;
   i_free(set);
 }
 
