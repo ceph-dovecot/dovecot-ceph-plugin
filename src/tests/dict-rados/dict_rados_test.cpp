@@ -62,6 +62,7 @@ TEST_F(DictTest, dict_init) {
 }
 
 TEST_F(DictTest, dict_deinit) {
+  ASSERT_NE(test_dict, nullptr);
   test_dict->v.deinit(test_dict);
   i_free(set);
 }
