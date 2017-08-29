@@ -507,9 +507,14 @@ struct mail_vfuncs rbox_mail_vfuncs = {
     index_mail_get_pvt_modseq, index_mail_get_parts, index_mail_get_date, rbox_mail_get_received_date,
     rbox_mail_get_save_date, rbox_mail_get_virtual_size, rbox_mail_get_physical_size, index_mail_get_first_header,
     index_mail_get_headers, index_mail_get_header_stream, rbox_mail_get_stream, index_mail_get_binary_stream,
-    rbox_mail_get_special, index_mail_get_real_mail, index_mail_update_flags, index_mail_update_keywords,
-    index_mail_update_modseq, index_mail_update_pvt_modseq, NULL, index_mail_expunge, index_mail_set_cache_corrupted,
-    index_mail_opened,
+    rbox_mail_get_special,
+#if DOVECOT_PREREQ(2, 3)
+    index_mail_get_backend_mail,
+#else
+    index_mail_get_real_mail,
+#endif
+    index_mail_update_flags, index_mail_update_keywords, index_mail_update_modseq, index_mail_update_pvt_modseq, NULL,
+    index_mail_expunge, index_mail_set_cache_corrupted, index_mail_opened,
 #ifdef HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
     index_mail_set_cache_corrupted_reason
 #endif

@@ -103,11 +103,6 @@ AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0
 AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot Ceph plugins minor version])
 
 
-AC_MSG_CHECKING([for DOVECOT_VERSION_MAJOR 2])
-AS_IF([$GREP -q "DOVECOT_VERSION_MAJOR 2" $dovecot_pkgincludedir/config.h], [AC_MSG_RESULT(yes)],[AC_MSG_ERROR([cannot build with DOVECOT_VERSION_MAJOR != 2])])
-AC_MSG_CHECKING([for DOVECOT_VERSION_MINOR 2])
-AS_IF([$GREP -q "DOVECOT_VERSION_MINOR 2" $dovecot_pkgincludedir/config.h], [AC_MSG_RESULT(yes)],[AC_MSG_ERROR([cannot build with DOVECOT_VERSION_MINOR != 2])])
-
 AC_MSG_CHECKING([for dict_vfuncs.switch_ioloop])
 AS_IF([$GREP switch_ioloop $dovecot_pkgincludedir/dict-private.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])
 
