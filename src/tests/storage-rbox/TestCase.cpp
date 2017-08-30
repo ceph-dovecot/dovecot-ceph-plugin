@@ -110,7 +110,7 @@ pool_t StorageTest::s_test_pool = nullptr;
 
 void StorageTest::SetUpTestCase() {
   // prepare Ceph
-  pool_name = get_temp_pool_name("test-dict-rados-");
+  pool_name = get_temp_pool_name("test-storage-rbox-");
   ASSERT_EQ("", create_one_pool(pool_name, &s_cluster));
   ASSERT_EQ(0, rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx));
 
@@ -120,7 +120,7 @@ void StorageTest::SetUpTestCase() {
   const char *error;
   char path_buf[4096];
 
-  char arg0[] = "dict-rados-test";
+  char arg0[] = "storage-rbox-test";
   char *argv[] = {&arg0[0], NULL};
   auto a = &argv;
   int argc = static_cast<int>((sizeof(argv) / sizeof(argv[0])) - 1);
@@ -190,12 +190,6 @@ void StorageTest::TearDownTestCase() {
   destroy_one_pool(pool_name, &s_cluster);
 }
 
-void StorageTest::SetUp() {
-  rados_remove(s_ioctx, "metadata/shared");
-  rados_remove(s_ioctx, "metadata/username");
-}
+void StorageTest::SetUp() {}
 
-void StorageTest::TearDown() {
-  rados_remove(s_ioctx, "metadata/shared");
-  rados_remove(s_ioctx, "metadata/username");
-}
+void StorageTest::TearDown() {}
