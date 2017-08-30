@@ -31,4 +31,13 @@ check_PROGRAMS += dict_rados_test
 dict_rados_test_SOURCES = dict-rados/dict_rados_test.cpp dict-rados/TestCase.cpp 
 dict_rados_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 dict_rados_test_LDADD = $(dict_shlibs) libgtest.la
+
+storage_shlibs = \
+	$(top_srcdir)/src/storage-rbox/libstorage_rbox_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
+
+TESTS += storage_rbox_test
+check_PROGRAMS += storage_rbox_test
+storage_rbox_test_SOURCES = storage-rbox/storage_rbox_test.cpp storage-rbox/TestCase.cpp 
+storage_rbox_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+storage_rbox_test_LDADD = $(storage_shlibs) libgtest.la
     
