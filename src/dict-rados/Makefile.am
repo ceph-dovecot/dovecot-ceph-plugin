@@ -24,17 +24,3 @@ libdict_rados_plugin_la_SOURCES = \
 noinst_HEADERS = \
 	dict-rados.h \
 	libdict-rados-plugin.h
-	
-test_programs = \
-	test-dict-rados
-
-test_dict_rados_SOURCES = \
-	test-dict-rados.c 
-
-test_dict_rados_LDADD = $(LIBDICT_RADOS_PLUGIN) $(LIBDOVECOT) $(LIBDOVECOT_STORAGE) $(shlibs)
-test_dict_rados_DEPENDENCIES = $(LIBDICT_RADOS_PLUGIN) $(LIBDOVECOT_DEPS)  $(LIBDOVECOT_STORAGE_DEPS)
-test_dict_rados_LDFLAGS = $(DOVECOT_BINARY_LDFLAGS) 
-test_dict_rados_CFLAGS = $(DOVECOT_BINARY_CFLAGS) 
-
-noinst_PROGRAMS = $(test_programs)
-

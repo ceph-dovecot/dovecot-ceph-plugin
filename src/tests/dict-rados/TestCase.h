@@ -24,19 +24,22 @@ class DictTest : public ::testing::Test {
   DictTest() {}
   ~DictTest() override {}
 
+  static pool_t get_test_pool() { return s_test_pool; }
+
  protected:
   static void SetUpTestCase();
   static void TearDownTestCase();
+
   static rados_t s_cluster;
+  static rados_ioctx_t s_ioctx;
+
   static std::string pool_name;
   static std::string uri;
   static struct ioloop *test_ioloop;
-  static pool_t test_pool;
+  static pool_t s_test_pool;
 
   void SetUp() override;
   void TearDown() override;
-  rados_t cluster;
-  rados_ioctx_t ioctx;
 };
 
 #endif  // SRC_TESTS_DICT_RADOS_TESTCASE_H_

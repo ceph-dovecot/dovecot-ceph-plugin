@@ -94,17 +94,22 @@ static int destroy_one_pool(const std::string &pool_name, rados_t *cluster) {
 }
 
 rados_t DictTest::s_cluster = nullptr;
-std::string DictTest::pool_name;
-std::string DictTest::uri;
+rados_ioctx_t DictTest::s_ioctx = nullptr;
+
+std::string DictTest::pool_name;  // NOLINT
+std::string DictTest::uri;        // NOLINT
 struct ioloop *DictTest::test_ioloop = nullptr;
-pool_t DictTest::test_pool = nullptr;
+pool_t DictTest::s_test_pool = nullptr;
 
 void DictTest::SetUpTestCase() {
+  // prepare Ceph
   pool_name = get_temp_pool_name("test-dict-rados-");
   ASSERT_EQ("", create_one_pool(pool_name, &s_cluster));
-  uri = "oid=metadata:pool=" + pool_name;
+  ASSERT_EQ(0, rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx));
 
   // prepare Dovecot
+  uri = "oid=metadata:pool=" + pool_name;
+
   char arg0[] = "dict-rados-test";
   char *argv[] = {&arg0[0], NULL};
   auto a = &argv;
@@ -114,14 +119,14 @@ void DictTest::SetUpTestCase() {
       "dict-rados-test",
       static_cast<master_service_flags>(MASTER_SERVICE_FLAG_STANDALONE | MASTER_SERVICE_FLAG_NO_CONFIG_SETTINGS |
                                         MASTER_SERVICE_FLAG_NO_SSL_INIT),
-      &argc, (char ***)&a, "");
+      &argc, reinterpret_cast<char ***>(&a), "");
 
   random_init();
 
   master_service_init_log(master_service, t_strdup_printf("dict(%s): ", my_pid));
   master_service_init_finish(master_service);
 
-  test_pool = pool_alloconly_create(MEMPOOL_GROWING "dict-rados-test-pool", 8192);
+  s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "dict-rados-test-pool", 64 * 1024);
   test_ioloop = io_loop_create();
 
   dict_rados_plugin_init(0);
@@ -131,13 +136,20 @@ void DictTest::TearDownTestCase() {
   dict_rados_plugin_deinit();
 
   io_loop_destroy(&test_ioloop);
-  pool_unref(&test_pool);
+  pool_unref(&s_test_pool);
 
   master_service_deinit(&master_service);
 
+  rados_ioctx_destroy(s_ioctx);
   destroy_one_pool(pool_name, &s_cluster);
 }
 
-void DictTest::SetUp() {}
+void DictTest::SetUp() {
+  rados_remove(s_ioctx, "metadata/shared");
+  rados_remove(s_ioctx, "metadata/username");
+}
 
-void DictTest::TearDown() {}
+void DictTest::TearDown() {
+  rados_remove(s_ioctx, "metadata/shared");
+  rados_remove(s_ioctx, "metadata/username");
+}
