@@ -139,6 +139,12 @@ void debug_print_mailbox_metadata(struct mailbox_metadata *target, const char *f
 }
 
 void debug_print_mailbox(struct mailbox *target, const char *funcname, const char *name) {
+  // Check if mailbox already freed
+  struct mailbox *undefined = (struct mailbox *)0xdededededededede;
+  if (target == undefined) {
+    return;
+  }
+
   RBOX_PRINT_START("mailbox")
 
   RBOX_PRINT_DEBUG("name = %s", target->name);
@@ -202,7 +208,14 @@ void debug_print_mailbox(struct mailbox *target, const char *funcname, const cha
 
   RBOX_PRINT_END()
 }
+
 void debug_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name) {
+  // Check if mailbox already freed
+  struct rbox_mailbox *undefined = (struct rbox_mailbox *)0xdededededededede;
+  if (target == undefined) {
+    return;
+  }
+
   RBOX_PRINT_START("rbox_mailbox")
 
   RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
