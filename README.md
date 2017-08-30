@@ -220,7 +220,7 @@ The plugin uses the default way for Ceph configuration described in [Step 2: Con
 
 ## Compile and install the Plugins
 
-To compile the plugin you need a configured or installed dovecot.
+To compile the plugin you need a configured or installed Dovecot >= 2.2.21.
 
 ### Checking out the source
 
