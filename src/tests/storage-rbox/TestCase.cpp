@@ -14,7 +14,6 @@
 
 extern "C" {
 #include "lib.h"
-#include "dict-private.h"
 #include "ioloop.h"
 #include "master-service.h"
 #include "master-service-settings.h"
@@ -24,6 +23,8 @@ extern "C" {
 #include "mail-storage-service.h"
 #include "settings-parser.h"
 #include "unlink-directory.h"
+
+#include "libstorage-rbox-plugin.h"
 }
 
 #pragma GCC diagnostic pop
@@ -158,6 +159,8 @@ void StorageTest::SetUpTestCase() {
                                                                              MAIL_STORAGE_SERVICE_FLAG_NO_PLUGINS);
   ASSERT_NE(mail_storage_service, nullptr);
 
+  storage_rbox_plugin_init(0);
+
   ASSERT_GE(mail_storage_service_lookup(mail_storage_service, &input, &test_service_user, &error), 0);
 
   struct setting_parser_context *set_parser = mail_storage_service_user_get_settings_parser(test_service_user);
@@ -167,8 +170,6 @@ void StorageTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
-
-  // dict_rados_plugin_init(0);
 }
 
 void StorageTest::TearDownTestCase() {
@@ -176,10 +177,11 @@ void StorageTest::TearDownTestCase() {
 
   mail_user_unref(&s_test_mail_user);
   mail_storage_service_user_unref(&test_service_user);
+
+  storage_rbox_plugin_deinit();
+
   mail_storage_service_deinit(&mail_storage_service);
   EXPECT_GE(unlink_directory(mail_home, UNLINK_DIRECTORY_FLAG_RMDIR, &error), 0);
-
-  // dict_rados_plugin_deinit();
 
   io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
