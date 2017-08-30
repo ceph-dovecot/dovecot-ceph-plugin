@@ -1,6 +1,6 @@
 
 AM_CPPFLAGS = -isystem $(top_srcdir)/src/googletest/googletest/include -I$(top_srcdir)/src  -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados $(GTEST_CPPFLAGS)
-AM_CXXFLAGS = $(GTEST_CXXFLAGS)
+AM_CXXFLAGS = -g -O0 $(GTEST_CXXFLAGS)
 
 TESTS = 
 check_PROGRAMS = 
@@ -21,13 +21,14 @@ librmb_test_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_pars
 TESTS += rmb_test
 check_PROGRAMS += rmb_test
 rmb_test_SOURCES = rmb/rmb_test.cpp
-rmb_test_LDADD = $(rmb_shlibs)  $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o libgtest.la
+rmb_test_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o libgtest.la
     
 dict_shlibs = \
-	$(top_srcdir)/src/dict-rados/libdict-rados.la $(rmb_shlibs)
+	$(top_srcdir)/src/dict-rados/libdict_rados_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
-#TESTS += dict_test
-#check_PROGRAMS += dict_test
-#dict_test_SOURCES = dict-rados/dict_test.cpp
-#dict_test_LDADD = $(dict_shlibs)  $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o libgtest.la
+TESTS += dict_rados_test
+check_PROGRAMS += dict_rados_test
+dict_rados_test_SOURCES = dict-rados/dict_rados_test.cpp dict-rados/TestCase.cpp 
+dict_rados_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+dict_rados_test_LDADD = $(dict_shlibs) libgtest.la
     

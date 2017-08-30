@@ -5,6 +5,7 @@
 
 extern "C" {
 #include "dovecot-all.h"
+#include "mailbox-recent-flags.h"
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
