@@ -202,6 +202,7 @@ void debug_print_mailbox(struct mailbox *target, const char *funcname, const cha
 
   RBOX_PRINT_END()
 }
+
 void debug_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name) {
   RBOX_PRINT_START("rbox_mailbox")
 
@@ -249,28 +250,15 @@ void debug_print_mail_save_context(struct mail_save_context *target, const char 
   RBOX_PRINT_DEBUG("copying_or_moving = %u", target->copying_or_moving);
   RBOX_PRINT_DEBUG("dest_mail_external = %u", target->dest_mail_external);
 
-  // debug_print_mail(target->dest_mail, NULL, "dest_mail");
   RBOX_PRINT_DEBUG("dest_mail = %p", target->dest_mail);
-  if (target->dest_mail != NULL) {
-    debug_print_mail(target->dest_mail, funcname, "dest_mail");
-  }
-  // debug_print_mail(target->copy_src_mail, NULL, "copy_src_mail");
   RBOX_PRINT_DEBUG("copy_src_mail = %p", target->copy_src_mail);
 #ifdef HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL
   if (target->copy_src_mail != NULL) {
     debug_print_mail(target->copy_src_mail, funcname, "copy_src_mail");
   }
 #endif
-  // debug_print_mailbox_transaction_context(mailSaveContext->transaction, NULL, "transaction");
   RBOX_PRINT_DEBUG("transaction = %p", target->transaction);
-  // debug_print_mail_save_data(&mailSaveContext->data, NULL, "data");
   RBOX_PRINT_DEBUG("data = %p", &target->data);
-  /*
-    if (target->data != NULL) {
-      RBOX_PRINT_DEBUG("data.uid = %u", target->data.uid);
-      RBOX_PRINT_DEBUG("data.guid = %s", target->data.guid);
-    }
-  */
 
   RBOX_PRINT_END()
 }
