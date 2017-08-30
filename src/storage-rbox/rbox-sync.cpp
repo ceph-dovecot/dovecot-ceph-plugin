@@ -78,7 +78,43 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_expunge", NULL);
   FUNC_END();
 }
+/*
+#ifndef HAVE_MAILBOX_RECENT_FLAGS_SEG_FLAGS
 
+bool mailbox_recent_flags_have_uid(struct mailbox *box, uint32_t uid) {
+  return array_is_created(&box->recent_flags) && seq_range_exists(&box->recent_flags, uid);
+}
+void mailbox_recent_flags_set_uid_forced(struct mailbox *box, uint32_t uid) {
+  box->recent_flags_prev_uid = uid;
+
+  if (!mailbox_recent_flags_have_uid(box, uid)) {
+    seq_range_array_add_with_init(&box->recent_flags, 64, uid);
+    box->recent_flags_count++;
+  }
+}
+void mailbox_recent_flags_set_uid(struct mailbox *box, uint32_t uid) {
+  if (uid <= box->recent_flags_prev_uid) {
+    if (seq_range_exists(&box->recent_flags, uid))
+      return;
+
+    mail_storage_set_critical(box->storage, "Recent flags state corrupted for mailbox %s", box->vname);
+    array_clear(&box->recent_flags);
+    box->recent_flags_count = 0;
+  }
+  mailbox_recent_flags_set_uid_forced(box, uid);
+}
+
+void mailbox_recent_flags_set_seqs(struct mailbox *box, struct mail_index_view *view, uint32_t seq1, uint32_t seq2) {
+  uint32_t uid;
+
+  for (; seq1 <= seq2; seq1++) {
+    mail_index_lookup_uid(view, seq1, &uid);
+    mailbox_recent_flags_set_uid(box, uid);
+  }
+}
+
+#endif
+*/
 static int rbox_sync_index(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
