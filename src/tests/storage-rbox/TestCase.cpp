@@ -14,7 +14,6 @@
 
 extern "C" {
 #include "lib.h"
-#include "dict-private.h"
 #include "ioloop.h"
 #include "master-service.h"
 #include "master-service-settings.h"
@@ -24,6 +23,8 @@ extern "C" {
 #include "mail-storage-service.h"
 #include "settings-parser.h"
 #include "unlink-directory.h"
+
+#include "libstorage-rbox-plugin.h"
 }
 
 #pragma GCC diagnostic pop
@@ -108,6 +109,8 @@ std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
 pool_t StorageTest::s_test_pool = nullptr;
 
+static const char *username = "user-rbox-test";
+
 void StorageTest::SetUpTestCase() {
   // prepare Ceph
   pool_name = get_temp_pool_name("test-storage-rbox-");
@@ -141,15 +144,16 @@ void StorageTest::SetUpTestCase() {
 
   ASSERT_NE(getcwd(path_buf, sizeof(path_buf)), nullptr);
 
-  mail_home = p_strdup_printf(s_test_pool, "%s/mcp_user/", path_buf);
+  // mail_home = p_strdup_printf(s_test_pool, "%s/user-%s/", path_buf, pool_name.c_str());
+  mail_home = p_strdup_printf(s_test_pool, "%s/%s/", path_buf, username);
 
-  const char *const userdb_fields[] = {t_strdup_printf("mail=sdbox:~/"), t_strdup_printf("home=%s", mail_home),
-                                       t_strdup_printf("mail_crypt_curve=prime256v1"), NULL};
+  const char *const userdb_fields[] = {t_strdup_printf("mail=rbox:%s", mail_home),
+                                       t_strdup_printf("home=%s", mail_home), NULL};
 
   struct mail_storage_service_input input;
   i_zero(&input);
   input.userdb_fields = userdb_fields;
-  input.username = "mcp_test";
+  input.username = username;
   input.no_userdb_lookup = TRUE;
   input.debug = TRUE;
 
@@ -157,6 +161,8 @@ void StorageTest::SetUpTestCase() {
                                                                              MAIL_STORAGE_SERVICE_FLAG_NO_LOG_INIT |
                                                                              MAIL_STORAGE_SERVICE_FLAG_NO_PLUGINS);
   ASSERT_NE(mail_storage_service, nullptr);
+
+  storage_rbox_plugin_init(0);
 
   ASSERT_GE(mail_storage_service_lookup(mail_storage_service, &input, &test_service_user, &error), 0);
 
@@ -167,8 +173,6 @@ void StorageTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
-
-  // dict_rados_plugin_init(0);
 }
 
 void StorageTest::TearDownTestCase() {
@@ -176,10 +180,11 @@ void StorageTest::TearDownTestCase() {
 
   mail_user_unref(&s_test_mail_user);
   mail_storage_service_user_unref(&test_service_user);
+
+  storage_rbox_plugin_deinit();
+
   mail_storage_service_deinit(&mail_storage_service);
   EXPECT_GE(unlink_directory(mail_home, UNLINK_DIRECTORY_FLAG_RMDIR, &error), 0);
-
-  // dict_rados_plugin_deinit();
 
   io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
