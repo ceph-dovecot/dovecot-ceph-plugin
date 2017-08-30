@@ -27,9 +27,6 @@ extern "C" {
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
-using namespace librados;  // NOLINT
-using namespace librmb;    // NOLINT
-
 using std::string;
 
 extern struct mailbox rbox_mailbox;
@@ -272,9 +269,7 @@ static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_tran
     mail_index_ext_resize_hdr(trans, mbox->hdr_ext_id, sizeof(new_hdr));
   }
   if (memcmp(&hdr, &new_hdr, sizeof(hdr)) != 0) {
-    i_debug("update guid oheader");
     mail_index_update_header_ext(trans, mbox->hdr_ext_id, 0, &new_hdr, sizeof(new_hdr));
-    i_debug("guid oeader updated");
   }
   memcpy(mbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
 }
@@ -287,20 +282,18 @@ uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
   return mailbox_uidvalidity_next(list, path);
 }
 
-int rbox_mailbox_create_index(struct mailbox *box, const struct mailbox_update *update,
-                              struct mail_index_transaction *trans) {
+int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
+                                struct mail_index_transaction *trans) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   struct mail_index_transaction *new_trans = NULL;
-
-  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
-
   const struct mail_index_header *hdr;
   uint32_t uid_validity, uid_next;
 
   if (trans == NULL) {
-    new_trans = mail_index_transaction_begin(box->view, 0);
+    new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
     trans = new_trans;
   }
+
   hdr = mail_index_get_header(box->view);
   if (update != NULL && update->uid_validity != 0) {
     uid_validity = update->uid_validity;
@@ -321,6 +314,7 @@ int rbox_mailbox_create_index(struct mailbox *box, const struct mailbox_update *
   }
   if (update != NULL && update->min_first_recent_uid != 0 && hdr->first_recent_uid < update->min_first_recent_uid) {
     uint32_t first_recent_uid = update->min_first_recent_uid;
+
     mail_index_update_header(trans, offsetof(struct mail_index_header, first_recent_uid), &first_recent_uid,
                              sizeof(first_recent_uid), FALSE);
   }
@@ -346,47 +340,6 @@ int rbox_mailbox_create_index(struct mailbox *box, const struct mailbox_update *
     }
   }
   return 0;
-}
-
-int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
-                                struct mail_index_transaction *trans) {
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
-
-  struct mail_index_transaction *new_trans = NULL;
-  const struct mail_index_header *hdr;
-  uint32_t uid_validity, uid_next;
-
-  /*if (trans == NULL) {
-    new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
-    trans = new_trans;
-  }*/
-  //#ifdef
-  struct mail_index_sync_ctx *sync_ctx;
-  struct mail_index_view *view;
-
-  /* use syncing as a lock */
-  int ret = mail_index_sync_begin(box->index, &sync_ctx, &view, &trans, 0);
-  if (ret <= 0) {
-    i_assert(ret != 0);
-    mailbox_set_index_error(box);
-    return -1;
-  }
-
-  hdr = mail_index_get_header(view);
-  if (hdr->uid_validity == 0) {
-    if (rbox_mailbox_create_index(box, update, trans) < 0) {
-      mail_index_sync_rollback(&sync_ctx);
-      return -1;
-    }
-  }
-  //#endif
-  // hdr = mail_index_get_header(box->view);
-
-  //#ifdef
-  return mail_index_sync_commit(&sync_ctx);
-  // endif
-  // return 0;
 }
 int rbox_mailbox_open(struct mailbox *box) {
   FUNC_START();
