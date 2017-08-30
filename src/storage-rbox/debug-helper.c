@@ -139,12 +139,6 @@ void debug_print_mailbox_metadata(struct mailbox_metadata *target, const char *f
 }
 
 void debug_print_mailbox(struct mailbox *target, const char *funcname, const char *name) {
-  // Check if mailbox already freed
-  struct mailbox *undefined = (struct mailbox *)0xdededededededede;
-  if (target == undefined) {
-    return;
-  }
-
   RBOX_PRINT_START("mailbox")
 
   RBOX_PRINT_DEBUG("name = %s", target->name);
@@ -210,12 +204,6 @@ void debug_print_mailbox(struct mailbox *target, const char *funcname, const cha
 }
 
 void debug_print_rbox_mailbox(struct rbox_mailbox *target, const char *funcname, const char *name) {
-  // Check if mailbox already freed
-  struct rbox_mailbox *undefined = (struct rbox_mailbox *)0xdededededededede;
-  if (target == undefined) {
-    return;
-  }
-
   RBOX_PRINT_START("rbox_mailbox")
 
   RBOX_PRINT_DEBUG("mailbox_guid = %s", guid_128_to_string(target->mailbox_guid));
@@ -262,10 +250,12 @@ void debug_print_mail_save_context(struct mail_save_context *target, const char 
   RBOX_PRINT_DEBUG("copying_or_moving = %u", target->copying_or_moving);
   RBOX_PRINT_DEBUG("dest_mail_external = %u", target->dest_mail_external);
 
-  // debug_print_mail(target->dest_mail, NULL, "dest_mail");
   RBOX_PRINT_DEBUG("dest_mail = %p", target->dest_mail);
   if (target->dest_mail != NULL) {
-    debug_print_mail(target->dest_mail, funcname, "dest_mail");
+    struct index_mail *mail = (struct index_mail *)target->dest_mail;
+    if (mail->freeing != TRUE) {
+      debug_print_mail(target->dest_mail, funcname, "dest_mail");
+    }
   }
   // debug_print_mail(target->copy_src_mail, NULL, "copy_src_mail");
   RBOX_PRINT_DEBUG("copy_src_mail = %p", target->copy_src_mail);
