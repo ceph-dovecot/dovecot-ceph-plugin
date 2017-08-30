@@ -98,7 +98,7 @@ rados_ioctx_t DictTest::s_ioctx = nullptr;
 
 std::string DictTest::pool_name;  // NOLINT
 std::string DictTest::uri;        // NOLINT
-struct ioloop *DictTest::test_ioloop = nullptr;
+struct ioloop *DictTest::s_test_ioloop = nullptr;
 pool_t DictTest::s_test_pool = nullptr;
 
 void DictTest::SetUpTestCase() {
@@ -127,7 +127,7 @@ void DictTest::SetUpTestCase() {
   master_service_init_finish(master_service);
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "dict-rados-test-pool", 64 * 1024);
-  test_ioloop = io_loop_create();
+  s_test_ioloop = io_loop_create();
 
   dict_rados_plugin_init(0);
 }
@@ -135,7 +135,7 @@ void DictTest::SetUpTestCase() {
 void DictTest::TearDownTestCase() {
   dict_rados_plugin_deinit();
 
-  io_loop_destroy(&test_ioloop);
+  io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
 
   master_service_deinit(&master_service);

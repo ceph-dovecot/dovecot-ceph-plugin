@@ -35,7 +35,7 @@ class DictTest : public ::testing::Test {
 
   static std::string pool_name;
   static std::string uri;
-  static struct ioloop *test_ioloop;
+  static struct ioloop *s_test_ioloop;
   static pool_t s_test_pool;
 
   void SetUp() override;
