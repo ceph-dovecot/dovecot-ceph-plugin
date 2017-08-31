@@ -509,13 +509,12 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
-  //#ifdef
+
   if (_ctx->dest_mail != NULL) {
     mail_free(&_ctx->dest_mail);
   }
-
   _t->changes->uid_validity = hdr->uid_validity;
-  // endifdef
+
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
   FUNC_END();
   return 0;
