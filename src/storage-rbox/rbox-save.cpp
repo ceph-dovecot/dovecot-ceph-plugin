@@ -57,17 +57,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->current_object = nullptr;
     t->save_ctx = &r_ctx->ctx;
   }
-  // ifdef
-  else {
-    // use existing context.
-    r_ctx->ctx.transaction = t;
-    r_ctx->failed = FALSE;
-    r_ctx->finished = FALSE;
-    if (r_ctx->current_object != nullptr) {
-      delete r_ctx->current_object;
-    }
-    r_ctx->current_object = nullptr;
-  }
+
   // ifdef
   debug_print_mail_save_context(t->save_ctx, "rbox-save::rbox_save_alloc", NULL);
 
