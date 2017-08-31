@@ -18,7 +18,7 @@ extern "C" {
 
 #include "istream.h"
 #include "ostream.h"
-
+#include "index-mail.h"
 #include "debug-helper.h"
 }
 
@@ -95,8 +95,10 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
                              struct mailbox_header_lookup_ctx *wanted_headers) {
   FUNC_START();
 
+  struct rbox_mail *mail;
+
   pool_t pool = pool_alloconly_create("mail", 2048);
-  struct rbox_mail *mail = p_new(pool, struct rbox_mail, 1);
+  mail = p_new(pool, struct rbox_mail, 1);
   i_zero(mail);
 
   mail->imail.mail.pool = pool;
@@ -194,7 +196,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   time_t save_date_rados = 0;
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
-    //  i_debug("cannot stat object %s to get received date and object size ", rmail->mail_object->get_oid().c_str());
     if (ret_val == -ENOENT) {
       rbox_mail_set_expunged(rmail);
       return -1;
@@ -218,19 +219,24 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &mail->imail.data;
   char *value;
-  uintmax_t size;
+  *size_r = -1;
 
-  if (index_mail_get_cached_virtual_size(&mail->imail, size_r))
+  bool ret = index_mail_get_cached_virtual_size(&mail->imail, size_r);
+  if (ret && *size_r > 0) {
     return 0;
+  }
 
-  if (rbox_mail_metadata_get(mail, RBOX_METADATA_VIRTUAL_SIZE, &value) < 0)
-    return -1;
+  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
+    value = NULL;
+  }
+
   if (value == NULL)
     return index_mail_get_virtual_size(_mail, size_r);
 
-  if (str_to_uintmax_hex(value, &size) < 0 || size > (uoff_t)-1)
-    return -1;
-  data->virtual_size = (uoff_t)size;
+  data->virtual_size = std::stol(value);
+
+  i_debug("VIRTUAL_SIZE:: %s , %lu", value, data->virtual_size);
+
   *size_r = data->virtual_size;
   return 0;
 }
@@ -263,6 +269,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   int ret_val = ((r_storage->s)->get_io_ctx()).stat(rmail->mail_object->get_oid(), &file_size, &time);
   if (ret_val < 0) {
     if (ret_val == ((-1) * ENOENT)) {
+      i_debug("no_object set_expunged: rmail->mail_object->get_oid() %s, size %lu, uid=%d",
+              rmail->mail_object->get_oid().c_str(), file_size, _mail->uid);
       rbox_mail_set_expunged(rmail);
       return -1;
     } else {
@@ -286,16 +294,17 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
                                 struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
-  struct index_mail *mail = (struct index_mail *)_mail;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  struct istream *input;
+  struct istream *input;// = *stream_r;
+
+  struct index_mail_data *data = &rmail->imail.data;
 
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   int ret = 0;
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
-  if (mail->data.stream == NULL) {
+  if (data->stream == NULL/* && rmail->mail_buffer == NULL*/) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
@@ -335,21 +344,22 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     input = i_stream_create_from_data(rmail->mail_buffer, size_r);
     i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME);
+
     index_mail_set_read_buffer_size(_mail, input);
 
-    if (mail->mail.v.istream_opened != NULL) {
-      if (mail->mail.v.istream_opened(_mail, &input) < 0) {
+    if (rmail->imail.mail.v.istream_opened != NULL) {
+      if (rmail->imail.mail.v.istream_opened(_mail, &input) < 0) {
         i_stream_unref(&input);
         debug_print_mail(_mail, "rbox-mail::rbox_mail_get_stream (ret -1, 2)", NULL);
         FUNC_END_RET("ret == -1");
         return -1;
       }
     }
-    mail->data.stream = input;
+    data->stream = input;
   }
-
-  ret = index_mail_init_stream(mail, hdr_size, body_size, stream_r);
+  ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
   debug_print_mail(_mail, "rbox-mail::rbox_mail_get_stream", NULL);
+
   FUNC_END();
   return ret;
 }
@@ -494,11 +504,15 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
     // init new mail object and load oid and uuid from index
     rmail_->mail_object = new RadosMailObject();
     rbox_get_index_record(_mail);
+    i_debug("rbox_mail_get_stream new rados_object %s", rmail_->mail_object->get_oid().c_str());
   }
 }
 
+
+/*ebd if old version */
 // rbox_mail_free,
 struct mail_vfuncs rbox_mail_vfuncs = {
+
     rbox_mail_close, index_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
     index_mail_prefetch, index_mail_precache, index_mail_add_temp_wanted_fields,
 

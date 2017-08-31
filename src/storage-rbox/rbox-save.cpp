@@ -55,6 +55,8 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->current_object = nullptr;
     t->save_ctx = &r_ctx->ctx;
   }
+
+  // ifdef
   debug_print_mail_save_context(t->save_ctx, "rbox-save::rbox_save_alloc", NULL);
 
   FUNC_END();
@@ -70,10 +72,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
-  i_debug("add seq %d to index ", r_ctx->seq);
-
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
-  i_debug("update flags for seq %d ", r_ctx->seq);
 
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
@@ -81,7 +80,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   if (_ctx->data.min_modseq != 0) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
-
   guid_128_generate(r_ctx->mail_oid);
 
   r_ctx->current_object = new RadosMailObject();
@@ -98,11 +96,8 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   i_zero(&rec);
   memcpy(rec.guid, r_ctx->mail_guid, sizeof(r_ctx->mail_guid));
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
+
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
-
-  i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
-
-  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 }
 
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
@@ -149,9 +144,11 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
-  i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
+  if (_ctx->dest_mail != 0) {
+    i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
+    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+  }
 
-  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 }
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
@@ -160,18 +157,21 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct istream *crlf_input;
 
   r_ctx->failed = FALSE;
+  if (_ctx->dest_mail == NULL) {
+    _ctx->dest_mail = mail_alloc(_ctx->transaction, 0, NULL);
+  }
 
   if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
     FUNC_END_RET("ret == -1 connection to rados failed");
     return -1;
   }
 
-  //  if (_ctx->dest_mail == NULL) {
-  //    _ctx->dest_mail = mail_alloc(_ctx->transaction, 0, NULL);
-  //  }
-
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
+
+    i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
+    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+
     crlf_input = i_stream_create_crlf(input);
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
@@ -389,16 +389,16 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   int ret = 0;
 
   r_ctx->finished = TRUE;
-  if (_ctx->data.save_date == (time_t)-1) {
-    _ctx->data.save_date = time(NULL);
+  if (_ctx->data.save_date != (time_t)-1) {
+    uint32_t save_date = _ctx->data.save_date;
+    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
   }
-  uint32_t save_date = _ctx->data.save_date;
-  index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
 
   if (!r_ctx->failed) {
     if (ret == 0) {
       if (r_ctx->copying != TRUE) {
-        index_mail_cache_parse_deinit(r_ctx->ctx.dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
+        // reset virtual size
+        index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
 
         // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
         librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
@@ -504,7 +504,15 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
 
-  rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids);
+  if (rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids) < 0) {
+    rbox_transaction_save_rollback(_ctx);
+    return -1;
+  }
+
+  if (_ctx->dest_mail != NULL) {
+    mail_free(&_ctx->dest_mail);
+  }
+  _t->changes->uid_validity = hdr->uid_validity;
 
   debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
   FUNC_END();
@@ -556,7 +564,10 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
-
+  if (_ctx->dest_mail != NULL) {
+    mail_free(&_ctx->dest_mail);
+  }
+  r_ctx->current_object = nullptr;
   delete r_ctx;
 
   FUNC_END();
