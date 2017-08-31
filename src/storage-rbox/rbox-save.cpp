@@ -100,11 +100,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
 
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
-
-  if (_ctx->dest_mail != 0) {
-    i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
-    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
-  }
 }
 
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
@@ -175,6 +170,10 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
+
+    i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
+    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+
     crlf_input = i_stream_create_crlf(input);
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
@@ -253,9 +252,6 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx,
 
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-  struct rbox_mail *rmail = (struct rbox_mail *)ctx->ctx.dest_mail;
-  struct index_mail_data *data = &rmail->imail.data;
-
   {
     RadosXAttr xattr;
     RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE, &xattr);
@@ -393,8 +389,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   int ret = 0;
-
-  struct index_mail_data *mdata = &((struct rbox_mail *)_ctx->dest_mail)->imail.data;
 
   r_ctx->finished = TRUE;
   if (_ctx->data.save_date != (time_t)-1) {

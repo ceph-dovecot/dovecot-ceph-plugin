@@ -29,11 +29,9 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   // char* storage_name =  _ctx->dest_mail->box->storage->name;
     //#else
   struct rbox_mailbox *dest_mbox = (struct rbox_mailbox *)_ctx->transaction->box;
-  char *storage_name = dest_mbox->storage->storage.name;
+  const char *storage_name = dest_mbox->storage->storage.name;
   //#endif
   struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
-  i_debug("mail : %lu, mail-box %lu, dest->mail %lu, dest_box_mail:ns %s", mail, mail->box, _ctx->dest_mail,
-          storage_name);
 
   ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
                  strcmp(mail->box->storage->name, storage_name) == 0;
@@ -156,7 +154,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
     if (ctx->moving != TRUE) {
       rbox_add_to_index(ctx);
-      index_copy_cache_fields(ctx, mail, r_ctx->seq);
       std::string src_oid = rmail->mail_object->get_oid();
       std::string dest_oid = r_ctx->current_object->get_oid();
       i_debug("rbox_mail_storage_try_copy: from source %s to dest %s", src_oid.c_str(), dest_oid.c_str());
@@ -203,16 +200,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       array_append(&rmailbox->moved_items, &item, 1);
 
       rbox_move_index(ctx, mail);
-      index_copy_cache_fields(ctx, mail, r_ctx->seq);
 
       set_mailbox_xattr(ctx, write_op);
 
       int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
       i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
     }
-    if (ctx->dest_mail == 0) {
-      i_debug("dest mail is null!!!");
-    } else {
+
+    index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    if (ctx->dest_mail != NULL) {
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
     }
     completion->wait_for_complete();

@@ -213,12 +213,10 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
     struct index_mail_data *data = &mail->imail.data;
     char *value;
-    uintmax_t size = -1;
     *size_r = -1;
 
     bool ret = index_mail_get_cached_virtual_size(&mail->imail, size_r);
-    if (ret && size_r > 0) {
-      i_debug("got size from cache: %lu", size_r);
+    if (ret && *size_r > 0) {
       return 0;
     }
 
