@@ -1,3 +1,4 @@
+# Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
 
 LIBSTORAGE_RBOX_PLUGIN = libstorage_rbox_plugin.la
 

@@ -1,11 +1,11 @@
 #
-# spec file for package dovecot22-rados-plugins
+# spec file for package dovecot22-ceph-plugins
 #
 # Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
 #
 
-Name:          	dovecot22-rados-plugins
-Summary:       	Dovecot RADOS plugins
+Name:          	dovecot22-ceph-plugins
+Summary:       	Dovecot Ceph plugins
 Version:       	0.0.1
 Release:       	1
 
@@ -17,9 +17,9 @@ Source:        	%{name}_%{version}-%{release}.tar.gz
 %define dovecot_home      /usr 
 %define librados_version  10.2.5
 
-Provides:       dovecot-rados-plugins = %{version}-%{release}
+Provides:       dovecot-ceph-plugins = %{version}-%{release}
 Requires: 		librados2 >= %{librados_version}
-Conflicts:      otherproviders(dovecot-rados-plugins)
+Conflicts:      otherproviders(dovecot-ceph-plugins)
 
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 BuildRequires: 	dovecot22-devel

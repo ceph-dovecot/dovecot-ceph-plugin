@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
+
 AC_PREREQ([2.59])
 
 AC_INIT([Dovecot Ceph plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])

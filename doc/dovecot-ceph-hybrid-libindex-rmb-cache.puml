@@ -1,4 +1,5 @@
 @startditaa -E -r
+' Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
 
 /---------------------------------------------------------------------------\
 |                    Dovecot IMAP4/POP3/LMTP/LDA Process                    |
