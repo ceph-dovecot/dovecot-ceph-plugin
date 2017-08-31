@@ -262,4 +262,8 @@ Ceph contains git submodules that need to be checked out with
     <td><img src="https://upload.wikimedia.org/wikipedia/commons/3/37/Dovecot-logo.png"</td>
     <td>This plugin borrows heavily from <a href="https://github.com/dovecot/core/">Dovecot</a> itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.</td>
   </tr>
+  <tr>
+    <td><img src="https://www.tallence.com/fileadmin/user_upload/content/Mailing/tallence_logo-email.png"</td>
+    <td><a href="https://www.tallence.com/">Tallence</a> carried out the initial development.</td>
+  </tr>
 </table>
