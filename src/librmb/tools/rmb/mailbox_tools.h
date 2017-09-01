@@ -3,10 +3,11 @@
 #ifndef SRC_LIBRMB_TOOLS_RMB_MAILBOX_TOOLS_H_
 #define SRC_LIBRMB_TOOLS_RMB_MAILBOX_TOOLS_H_
 
+#include <string>
 #include "rados-mail-object.h"
 #include "rmb.h"
-#include <string>
 
+namespace librmb {
 class MailboxTools {
  public:
   MailboxTools(librmb::RadosMailBox* mailbox, std::string base);
@@ -17,7 +18,7 @@ class MailboxTools {
   int delete_mailbox_dir();
   int delete_mail(librmb::RadosMailObject* mail_obj);
 
-  int build_filename(librmb::RadosMailObject* mail_obj, std::string& filename);
+  int build_filename(librmb::RadosMailObject* mail_obj, const std::string& filename);
 
   std::string& get_mailbox_path() { return this->mailbox_path; }
 
@@ -26,5 +27,6 @@ class MailboxTools {
   std::string base_path;
   std::string mailbox_path;
 };
+};  // namespace librmb
 
-#endif /* SRC_LIBRMB_TOOLS_RMB_MAILBOX_TOOLS_H_ */
+#endif  // SRC_LIBRMB_TOOLS_RMB_MAILBOX_TOOLS_H_

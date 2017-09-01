@@ -1,120 +1,27 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
-
 #include "rmb.h"
+#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
+#include <errno.h>
+#include <stdlib.h>
 
 #include <iostream>
-#include "rados-cluster.h"
-#include "rados-storage.h"
-#include "rados-mail-object.h"
 #include <map>
 #include <vector>
 #include <string>
 #include <sstream>
-#include <stdarg.h> /* va_list, va_start, va_arg, va_end */
-#include <stdlib.h>
-#include <errno.h>
-#include "limits.h"
+
 #include <algorithm>  // std::sort
 
+#include <limits>
+
+#include "rados-cluster.h"
+#include "rados-storage.h"
+#include "rados-mail-object.h"
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
-using namespace std;
-using namespace librmb;
 
-static void argv_to_vec(int argc, const char **argv, std::vector<const char *> &args) {
-  args.insert(args.end(), argv + 1, argv + argc);
-}
-
-static bool split_dashdash(const std::vector<const char *> &args, std::vector<const char *> &options,
-                           std::vector<const char *> &arguments) {
-  bool dashdash = false;
-  for (std::vector<const char *>::const_iterator i = args.begin(); i != args.end(); ++i) {
-    if (dashdash) {
-      arguments.push_back(*i);
-    } else {
-      if (strcmp(*i, "--") == 0)
-        dashdash = true;
-      else
-        options.push_back(*i);
-    }
-  }
-  return dashdash;
-}
-
-static bool get_next_token(const string &s, size_t &pos, const char *delims, string &token) {
-  int start = s.find_first_not_of(delims, pos);
-  int end;
-
-  if (start < 0) {
-    pos = s.size();
-    return false;
-  }
-
-  end = s.find_first_of(delims, start);
-  if (end >= 0)
-    pos = end + 1;
-  else {
-    pos = end = s.size();
-  }
-
-  token = s.substr(start, end - start);
-  return true;
-}
-
-static void get_str_vec(const string &str, const char *delims, vector<string> &str_vec) {
-  size_t pos = 0;
-  string token;
-  str_vec.clear();
-
-  while (pos < str.size()) {
-    if (get_next_token(str, pos, delims, token)) {
-      if (token.size() > 0) {
-        str_vec.push_back(token);
-      }
-    }
-  }
-}
-
-/*
-static std::vector<std::string> get_str_vec(const std::string &str) {
-  std::vector<std::string> str_vec;
-  const char *delims = ";,= \t";
-  get_str_vec(str, delims, str_vec);
-  return str_vec;
-}
-*/
-
-static void env_to_vec(std::vector<const char *> &args, const char *name) {
-  if (!name)
-    name = "CEPH_ARGS";
-  char *p = getenv(name);
-  if (!p)
-    return;
-
-  bool dashdash = false;
-  std::vector<const char *> options;
-  std::vector<const char *> arguments;
-  if (split_dashdash(args, options, arguments))
-    dashdash = true;
-
-  std::vector<const char *> env_options;
-  std::vector<const char *> env_arguments;
-  static vector<string> str_vec;
-  std::vector<const char *> env;
-  str_vec.clear();
-  get_str_vec(p, " ", str_vec);
-  for (vector<string>::iterator i = str_vec.begin(); i != str_vec.end(); ++i)
-    env.push_back(i->c_str());
-  if (split_dashdash(env, env_options, env_arguments))
-    dashdash = true;
-
-  args.clear();
-  args.insert(args.end(), options.begin(), options.end());
-  args.insert(args.end(), env_options.begin(), env_options.end());
-  if (dashdash)
-    args.push_back("--");
-  args.insert(args.end(), arguments.begin(), arguments.end());
-  args.insert(args.end(), env_arguments.begin(), env_arguments.end());
+static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
+  args->insert(args->end(), argv + 1, argv + argc);
 }
 
 static void dashes_to_underscores(const char *input, char *output) {
@@ -141,9 +48,9 @@ static void dashes_to_underscores(const char *input, char *output) {
   *o++ = '\0';
 }
 
-static int va_ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
+static int va_ceph_argparse_witharg(std::vector<const char *> *args, std::vector<const char *>::iterator *i,
                                     std::string *ret, std::ostream &oss, va_list ap) {
-  const char *first = *i;
+  const char *first = *(*i);
   char tmp[strlen(first) + 1];
   dashes_to_underscores(first, tmp);
   first = tmp;
@@ -153,222 +60,38 @@ static int va_ceph_argparse_witharg(std::vector<const char *> &args, std::vector
     const char *a = va_arg(ap, char *);
     if (a == NULL)
       return 0;
+
     int strlen_a = strlen(a);
     char a2[strlen_a + 1];
+
     dashes_to_underscores(a, a2);
     if (strncmp(a2, first, strlen(a2)) == 0) {
       if (first[strlen_a] == '=') {
         *ret = first + strlen_a + 1;
-        i = args.erase(i);
+        *i = args->erase(*i);
         return 1;
       } else if (first[strlen_a] == '\0') {
         // find second part (or not)
-        if (i + 1 == args.end()) {
-          oss << "Option " << *i << " requires an argument." << std::endl;
-          i = args.erase(i);
+        if (*i + 1 == args->end()) {
+          oss << "Option " << *(*i) << " requires an argument." << std::endl;
+          *i = args->erase(*i);
           return -EINVAL;
         }
-        i = args.erase(i);
-        *ret = *i;
-        i = args.erase(i);
+        *i = args->erase(*i);
+        *ret = *(*i);
+        *i = args->erase(*i);
         return 1;
       }
     }
   }
 }
 
-static void ceph_arg_value_type(const char *nextargstr, bool *bool_option, bool *bool_numeric) {
-  bool is_numeric = true;
-  bool is_float = false;
-  bool is_option;
-
-  if (nextargstr == NULL) {
-    return;
-  }
-
-  if (strlen(nextargstr) < 2) {
-    is_option = false;
-  } else {
-    is_option = (nextargstr[0] == '-') && (nextargstr[1] == '-');
-  }
-
-  for (unsigned int i = 0; i < strlen(nextargstr); i++) {
-    if (!(nextargstr[i] >= '0' && nextargstr[i] <= '9')) {
-      // May be negative numeral value
-      if ((i == 0) && (strlen(nextargstr) >= 2)) {
-        if (nextargstr[0] == '-')
-          continue;
-      }
-      if ((nextargstr[i] == '.') && (is_float == false)) {
-        is_float = true;
-        continue;
-      }
-
-      is_numeric = false;
-      break;
-    }
-  }
-
-  // -<option>
-  if (nextargstr[0] == '-' && is_numeric == false) {
-    is_option = true;
-  }
-
-  *bool_option = is_option;
-  *bool_numeric = is_numeric;
-
-  return;
-}
-
-static long long strict_strtoll(const char *str, int base, std::string *err) {
-  char *endptr;
-  std::string errStr;
-  errno = 0; /* To distinguish success/failure after call (see man page) */
-  long long ret = strtoll(str, &endptr, base);
-
-  if (endptr == str) {
-    errStr = "Expected option value to be integer, got '";
-    errStr.append(str);
-    errStr.append("'");
-    *err = errStr;
-    return 0;
-  }
-  if ((errno == ERANGE && (ret == LLONG_MAX || ret == LLONG_MIN)) || (errno != 0 && ret == 0)) {
-    errStr = "The option value '";
-    errStr.append(str);
-    errStr.append("'");
-    errStr.append(" seems to be invalid");
-    *err = errStr;
-    return 0;
-  }
-  if (*endptr != '\0') {
-    errStr = "The option value '";
-    errStr.append(str);
-    errStr.append("'");
-    errStr.append(" contains invalid digits");
-    *err = errStr;
-    return 0;
-  }
-  *err = "";
-  return ret;
-}
-
-static int strict_strtol(const char *str, int base, std::string *err) {
-  std::string errStr;
-  long long ret = strict_strtoll(str, base, err);
-  if (!err->empty())
-    return 0;
-  if ((ret <= INT_MIN) || (ret >= INT_MAX)) {
-    errStr = "The option value '";
-    errStr.append(str);
-    errStr.append("'");
-    errStr.append(" seems to be invalid");
-    *err = errStr;
-    return 0;
-  }
-  return static_cast<int>(ret);
-}
-
-static float strict_strtof(const char *str, std::string *err) {
-  char *endptr;
-  errno = 0; /* To distinguish success/failure after call (see man page) */
-  float ret = strtof(str, &endptr);
-  if (errno == ERANGE) {
-    ostringstream oss;
-    oss << "strict_strtof: floating point overflow or underflow parsing '" << str << "'";
-    *err = oss.str();
-    return 0.0;
-  }
-  if (endptr == str) {
-    ostringstream oss;
-    oss << "strict_strtof: expected float, got: '" << str << "'";
-    *err = oss.str();
-    return 0;
-  }
-  if (*endptr != '\0') {
-    ostringstream oss;
-    oss << "strict_strtof: garbage at end of string. got: '" << str << "'";
-    *err = oss.str();
-    return 0;
-  }
-  *err = "";
-  return ret;
-}
-
-struct strict_str_convert {
-  const char *str;
-  std::string *err;
-  strict_str_convert(const char *_str, std::string *_err) : str(_str), err(_err) {}
-
-  inline operator float() const { return strict_strtof(str, err); }
-  inline operator int() const { return strict_strtol(str, 10, err); }
-  inline operator long long() const { return strict_strtoll(str, 10, err); }
-};
-
-template <class T>
-bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i, T *ret,
-                           std::ostream &oss, ...) {
-  int r;
-  va_list ap;
-  bool is_option = false;
-  bool is_numeric = true;
-  std::string str;
-  va_start(ap, oss);
-  r = va_ceph_argparse_witharg(args, i, &str, oss, ap);
-  va_end(ap);
-  if (r == 0) {
-    return false;
-  } else if (r < 0) {
-    return true;
-  }
-
-  ceph_arg_value_type(str.c_str(), &is_option, &is_numeric);
-  if ((is_option == true) || (is_numeric == false)) {
-    *ret = EXIT_FAILURE;
-    if (is_option == true) {
-      oss << "Missing option value";
-    } else {
-      oss << "The option value '" << str << "' is invalid";
-    }
-    return true;
-  }
-
-  std::string err;
-  T myret = strict_str_convert(str.c_str(), &err);
-  *ret = myret;
-  if (!err.empty()) {
-    oss << err;
-  }
-  return true;
-}
-
-template bool ceph_argparse_witharg<int>(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
-                                         int *ret, std::ostream &oss, ...);
-
-template bool ceph_argparse_witharg<long long>(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
-                                               long long *ret, std::ostream &oss, ...);
-
-template bool ceph_argparse_witharg<float>(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
-                                           float *ret, std::ostream &oss, ...);
-
-/*
-static bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
-                                  std::string *ret, std::ostream &oss, ...) {
-  int r;
-  va_list ap;
-  va_start(ap, oss);
-  r = va_ceph_argparse_witharg(args, i, ret, oss, ap);
-  va_end(ap);
-  return r != 0;
-}
-*/
-
-static bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<const char *>::iterator &i,
+static bool ceph_argparse_witharg(std::vector<const char *> *args, std::vector<const char *>::iterator *i,
                                   std::string *ret, ...) {
   int r;
   va_list ap;
   va_start(ap, ret);
-  r = va_ceph_argparse_witharg(args, i, ret, cerr, ap);
+  r = va_ceph_argparse_witharg(args, i, ret, std::cerr, ap);
   va_end(ap);
   if (r < 0)
     _exit(1);
@@ -377,15 +100,15 @@ static bool ceph_argparse_witharg(std::vector<const char *> &args, std::vector<c
 
 /** Once we see a standalone double dash, '--', we should remove it and stop
  * looking for any other options and flags. */
-static bool ceph_argparse_double_dash(std::vector<const char *> &args, std::vector<const char *>::iterator &i) {
-  if (strcmp(*i, "--") == 0) {
-    i = args.erase(i);
+static bool ceph_argparse_double_dash(std::vector<const char *> *args, std::vector<const char *>::iterator *i) {
+  if (strcmp(*(*i), "--") == 0) {
+    *i = args->erase(*i);
     return true;
   }
   return false;
 }
 
-static void usage(ostream &out) {
+static void usage(std::ostream &out) {
   out << "usage: rmb [options] [commands]\n"
          "   -p pool\n"
          "        pool where mail data is saved, if not given mail_storage is used \n"
@@ -406,29 +129,29 @@ static void usage(ostream &out) {
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes \n"
          "\n";
-  //"MAILBOX COMMANDS\n"
-  //"\n";
+  // "MAILBOX COMMANDS\n"
+  // "\n";
 }
 
 static void usage_exit() {
-  usage(cerr);
+  usage(std::cerr);
   exit(1);
 }
 
-static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLineParser &parser, bool download,
-                               RadosStorage *storage) {
-  std::map<std::string, RadosMailBox *> mailbox;
+static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
+                               bool download, librmb::RadosStorage *storage) {
+  std::map<std::string, librmb::RadosMailBox *> mailbox;
 
-  for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-    std::string mailbox_key = std::string(1, (char)RBOX_METADATA_MAILBOX_GUID);
+  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects->begin(); it != mail_objects->end(); ++it) {
+    std::string mailbox_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_MAILBOX_GUID));
     std::string mailbox_guid = (*it)->get_xvalue(mailbox_key);
-    std::string mailbox_orig_name_key = std::string(1, (char)RBOX_METADATA_ORIG_MAILBOX);
+    std::string mailbox_orig_name_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_ORIG_MAILBOX));
     std::string mailbox_orig_name = (*it)->get_xvalue(mailbox_orig_name_key);
 
     // std::cout << " mailbox _guid : " << mailbox_guid << std::endl;
-    if (parser.contains_key(mailbox_key)) {
+    if (parser->contains_key(mailbox_key)) {
       //   std::cout << " containing key " << std::endl;
-      Predicate *p = parser.get_predicate(mailbox_key);
+      librmb::Predicate *p = parser->get_predicate(mailbox_key);
       if (!p->eval(mailbox_guid)) {
         continue;
       }
@@ -437,8 +160,8 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
     } else {
-      mailbox[mailbox_guid] = new RadosMailBox(mailbox_guid, 1, mailbox_orig_name);
-      mailbox[mailbox_guid]->set_xattr_filter(&parser);
+      mailbox[mailbox_guid] = new librmb::RadosMailBox(mailbox_guid, 1, mailbox_orig_name);
+      mailbox[mailbox_guid]->set_xattr_filter(parser);
       mailbox[mailbox_guid]->add_mail((*it));
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
     }
@@ -446,16 +169,16 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
   std::cout << "mailbox_count: " << mailbox.size() << std::endl;
 
   {
-    for (std::map<std::string, RadosMailBox *>::iterator it = mailbox.begin(); it != mailbox.end(); ++it) {
+    for (std::map<std::string, librmb::RadosMailBox *>::iterator it = mailbox.begin(); it != mailbox.end(); ++it) {
       if (it->second->get_mail_count() == 0) {
         continue;
       }
       std::cout << it->second->to_string() << std::endl;
 
       if (download) {
-        MailboxTools tools(it->second, parser.get_output_dir());
+        librmb::MailboxTools tools(it->second, parser->get_output_dir());
         if (tools.init_mailbox_dir() < 0) {
-          std::cout << " error initializing output dir : " << parser.get_output_dir() << std::endl;
+          std::cout << " error initializing output dir : " << parser->get_output_dir() << std::endl;
           break;
         }
 
@@ -481,29 +204,26 @@ static void query_mail_storage(vector<RadosMailObject *> mail_objects, CmdLinePa
 }
 
 int main(int argc, const char **argv) {
-  vector<RadosMailObject *> mail_objects;
+  std::vector<librmb::RadosMailObject *> mail_objects;
 
-  vector<const char *> args;
-  argv_to_vec(argc, argv, args);
-  env_to_vec(args, NULL);
+  std::vector<const char *> args;
+  argv_to_vec(argc, argv, &args);
   std::string val;
   std::map<std::string, std::string> opts;
 
   std::vector<const char *>::iterator i;
   for (i = args.begin(); i != args.end();) {
-    if (ceph_argparse_double_dash(args, i)) {
+    if (ceph_argparse_double_dash(&args, &i)) {
       break;
-    } else if (ceph_argparse_witharg(args, i, &val, "-p", "--pool", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
       opts["pool"] = val;
-      // std::cout << "pool: " << val << std::endl;
-    } else if (ceph_argparse_witharg(args, i, &val, "-N", "--namespace", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
       opts["namespace"] = val;
-      // std::cout << "namespace: " << val << std::endl;
-    } else if (ceph_argparse_witharg(args, i, &val, "ls", "--ls", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(&args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
       opts["ls"] = val;
-    } else if (ceph_argparse_witharg(args, i, &val, "get", "--get", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(&args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
       opts["get"] = val;
-    } else if (ceph_argparse_witharg(args, i, &val, "-O", "--out", (char *)NULL)) {
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
       opts["out"] = val;
     } else {
       ++i;
@@ -513,8 +233,8 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
-  RadosStorage *storage = NULL;
-  RadosCluster cluster;
+  librmb::RadosStorage *storage = NULL;
+  librmb::RadosCluster cluster;
   std::string pool_name(opts["pool"]);
   std::string ns(opts["namespace"]);
 
@@ -526,7 +246,7 @@ int main(int argc, const char **argv) {
   }
   librados::NObjectIterator iter(storage->get_io_ctx().nobjects_begin());
   while (iter != storage->get_io_ctx().nobjects_end()) {
-    RadosMailObject *mail = new RadosMailObject();
+    librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     mail->set_oid(iter->get_oid());
 
     storage->get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
@@ -543,18 +263,18 @@ int main(int argc, const char **argv) {
   }
 
   if (opts.find("ls") != opts.end()) {
-    CmdLineParser parser(opts["ls"]);
+    librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0) {
-      query_mail_storage(mail_objects, parser, false, nullptr);
+      query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else if (parser.parse_ls_string()) {
-      query_mail_storage(mail_objects, parser, false, nullptr);
+      query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else {
       // tear down.
       cluster.deinit();
       usage_exit();
     }
   } else if (opts.find("get") != opts.end()) {
-    CmdLineParser parser(opts["get"]);
+    librmb::CmdLineParser parser(opts["get"]);
 
     if (opts.find("out") != opts.end()) {
       parser.set_output_dir(opts["out"]);
@@ -562,9 +282,9 @@ int main(int argc, const char **argv) {
       parser.set_output_dir("rmb");
     }
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
-      query_mail_storage(mail_objects, parser, true, storage);
+      query_mail_storage(&mail_objects, &parser, true, storage);
     } else if (parser.parse_ls_string()) {
-      query_mail_storage(mail_objects, parser, true, storage);
+      query_mail_storage(&mail_objects, &parser, true, storage);
     } else {
       // tear down.
       cluster.deinit();
