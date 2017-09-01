@@ -26,11 +26,8 @@ extern "C" {
 #define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r, error_r)
 #define dict_iterate_deinit(ctx, error_r) dict_iterate_deinit(ctx, error_r)
 #define test_dict_transaction_commit(ctx, error_r) dict_transaction_commit(ctx, error_r)
-#else
-#define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r)
-#define dict_iterate_deinit(ctx, error_r) dict_driver_iterate_deinit(ctx)
-#define dict_transaction_commit(ctx, error_r) dict_transaction_commit(ctx)
-#endif
+
+static const char *error_r;
 
 #define EXPECT_KVEQ(k, v)                                          \
   {                                                                \
@@ -39,6 +36,24 @@ extern "C" {
     ASSERT_EQ(dict_lookup(target, s_test_pool, k, &v_r, &e_r), 1); \
     EXPECT_STREQ(v, v_r);                                          \
   }
+#else
+#define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r)
+#define dict_iterate_deinit(ctx, error_r) dict_iterate_deinit(ctx)
+#define dict_transaction_commit(ctx, error_r) dict_transaction_commit(ctx)
+
+#define EXPECT_KVEQ(k, v)                                             \
+  {                                                                   \
+    const char *v_r;                                                  \
+    ASSERT_EQ(dict_lookup(target, s_test_pool, k, &v_r, nullptr), 1); \
+    EXPECT_STREQ(v, v_r);                                             \
+  }
+#endif
+
+enum rados_commit_ret {
+  RADOS_COMMIT_RET_OK = 1,
+  RADOS_COMMIT_RET_NOTFOUND = 0,
+  RADOS_COMMIT_RET_FAILED = -1,
+};
 
 static const char *OMAP_KEY_PRIVATE = "priv/key";
 static const char *OMAP_VALUE_PRIVATE = "PRIVATE";
@@ -65,7 +80,6 @@ static struct dict_settings *set;
 static struct dict *target = nullptr;
 
 TEST_F(DictTest, init) {
-  const char *error_r;
   set = i_new(struct dict_settings, 1);
   set->username = "username";
 
@@ -74,7 +88,7 @@ TEST_F(DictTest, init) {
 
 TEST_F(DictTest, lookup_not_found) {
   ASSERT_NE(target, nullptr);
-  const char *value_r, *error_r;
+  const char *value_r;
 
   EXPECT_EQ(dict_lookup(target, s_test_pool, "priv/dict_lookup_not_found", &value_r, &error_r), 0);
   EXPECT_EQ(dict_lookup(target, s_test_pool, "shared/dict_lookup_not_found", &value_r, &error_r), 0);
@@ -82,7 +96,6 @@ TEST_F(DictTest, lookup_not_found) {
 
 TEST_F(DictTest, lookup) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
   dict_set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE_PRIVATE);
@@ -109,7 +122,6 @@ static void test_lookup_callback(const struct dict_lookup_result *result, void *
 
 TEST_F(DictTest, lookup_async) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
   const char *value_private = nullptr;
   const char *value_shared = nullptr;
 
@@ -128,7 +140,6 @@ TEST_F(DictTest, lookup_async) {
 
 TEST_F(DictTest, iterate) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
   int i;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
@@ -153,7 +164,6 @@ TEST_F(DictTest, iterate) {
 
 TEST_F(DictTest, iterate_exact_key) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
   int i;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
@@ -178,7 +188,6 @@ TEST_F(DictTest, iterate_exact_key) {
 
 TEST_F(DictTest, iterate_exact_key_no_value) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
   int i;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
@@ -203,7 +212,6 @@ TEST_F(DictTest, iterate_exact_key_no_value) {
 
 TEST_F(DictTest, iterate_recursive) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
   int i;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
@@ -236,7 +244,7 @@ static void test_dict_transaction_commit_callback(const struct dict_commit_resul
 #else
 static void test_dict_transaction_commit_callback(int ret, void *context) {
   if (context != NULL) {
-    *reinterpret_cast<int *>(context) = result->ret;
+    *reinterpret_cast<int *>(context) = ret;
   }
 }
 #endif
@@ -262,7 +270,6 @@ TEST_F(DictTest, transaction_commit_async) {
 
 TEST_F(DictTest, transaction_multiple) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
   dict_set(ctx, OMAP_KEY_PRIVATE, "0");
@@ -284,7 +291,6 @@ TEST_F(DictTest, transaction_multiple) {
 
 TEST_F(DictTest, atomic_inc) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
   dict_set(ctx, OMAP_KEY_ATOMIC_INC, "10");
@@ -314,16 +320,14 @@ TEST_F(DictTest, atomic_inc_async) {
 
 TEST_F(DictTest, atomic_inc_not_found) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
   dict_atomic_inc(ctx, OMAP_KEY_ATOMIC_INC_NOT_FOUND, 99);
-  ASSERT_EQ(dict_transaction_commit(&ctx, &error_r), DICT_COMMIT_RET_NOTFOUND);
+  ASSERT_EQ(dict_transaction_commit(&ctx, &error_r), RADOS_COMMIT_RET_NOTFOUND);
 }
 
 TEST_F(DictTest, atomic_inc_multiple) {
   ASSERT_NE(target, nullptr);
-  const char *error_r;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
   dict_set(ctx, OMAP_KEY_ATOMIC_INC, "10");

@@ -28,6 +28,17 @@ extern "C" {
 }
 
 #pragma GCC diagnostic pop
+
+#if DOVECOT_PREREQ(2, 3)
+#else
+#define mail_storage_service_next(ctx, user, mail_user_r, error_r) mail_storage_service_next(ctx, user, mail_user_r)
+#define unlink_directory(dir, flags, error_r) unlink_directory(dir, flags)
+#endif
+
+#ifndef i_zero
+#define i_zero(p) memset(p, 0, sizeof(*(p)))
+#endif
+
 static std::string get_temp_pool_name(const std::string &prefix) {
   char hostname[80];
   char out[160];
@@ -129,8 +140,9 @@ void StorageTest::SetUpTestCase() {
   int argc = static_cast<int>((sizeof(argv) / sizeof(argv[0])) - 1);
 
   master_service = master_service_init(
-      "storage-rbox-test", MASTER_SERVICE_FLAG_STANDALONE | MASTER_SERVICE_FLAG_NO_CONFIG_SETTINGS |
-                               MASTER_SERVICE_FLAG_NO_SSL_INIT | MASTER_SERVICE_FLAG_NO_INIT_DATASTACK_FRAME,
+      "storage-rbox-test",
+      (master_service_flags)(MASTER_SERVICE_FLAG_STANDALONE | MASTER_SERVICE_FLAG_NO_CONFIG_SETTINGS |
+                             MASTER_SERVICE_FLAG_NO_SSL_INIT),
       &argc, reinterpret_cast<char ***>(&a), "");
   ASSERT_NE(master_service, nullptr);
 
@@ -155,11 +167,14 @@ void StorageTest::SetUpTestCase() {
   input.userdb_fields = userdb_fields;
   input.username = username;
   input.no_userdb_lookup = TRUE;
+#if DOVECOT_PREREQ(2, 3)
   input.debug = TRUE;
+#endif
 
-  mail_storage_service = mail_storage_service_init(master_service, NULL, MAIL_STORAGE_SERVICE_FLAG_NO_RESTRICT_ACCESS |
-                                                                             MAIL_STORAGE_SERVICE_FLAG_NO_LOG_INIT |
-                                                                             MAIL_STORAGE_SERVICE_FLAG_NO_PLUGINS);
+  mail_storage_service = mail_storage_service_init(
+      master_service, NULL,
+      (mail_storage_service_flags)(MAIL_STORAGE_SERVICE_FLAG_NO_RESTRICT_ACCESS |
+                                   MAIL_STORAGE_SERVICE_FLAG_NO_LOG_INIT | MAIL_STORAGE_SERVICE_FLAG_NO_PLUGINS));
   ASSERT_NE(mail_storage_service, nullptr);
 
   storage_rbox_plugin_init(0);
@@ -176,10 +191,12 @@ void StorageTest::SetUpTestCase() {
 }
 
 void StorageTest::TearDownTestCase() {
-  const char *error;
-
   mail_user_unref(&s_test_mail_user);
+#if DOVECOT_PREREQ(2, 3)
   mail_storage_service_user_unref(&test_service_user);
+
+  const char *error;
+#endif
 
   storage_rbox_plugin_deinit();
 

@@ -26,6 +26,16 @@ extern "C" {
 
 #pragma GCC diagnostic pop
 
+#if DOVECOT_PREREQ(2, 3)
+#define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
+#else
+#define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_error(box, error_r)
+#endif
+
+#ifndef i_zero
+#define i_zero(p) memset(p, 0, sizeof(*(p)))
+#endif
+
 TEST_F(StorageTest, init) {}
 
 TEST_F(StorageTest, mailbox_open_inbox) {
@@ -38,7 +48,7 @@ TEST_F(StorageTest, mailbox_open_inbox) {
 TEST_F(StorageTest, mail_save_to_inbox) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
-  struct mailbox *box = mailbox_alloc(ns->list, "INBOX", 0);
+  struct mailbox *box = mailbox_alloc(ns->list, "INBOX", (mailbox_flags)0);
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
 
