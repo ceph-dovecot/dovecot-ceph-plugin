@@ -27,8 +27,6 @@ extern "C" {
 #define dict_iterate_deinit(ctx, error_r) dict_iterate_deinit(ctx, error_r)
 #define test_dict_transaction_commit(ctx, error_r) dict_transaction_commit(ctx, error_r)
 
-static const char *error_r;
-
 #define EXPECT_KVEQ(k, v)                                          \
   {                                                                \
     const char *v_r;                                               \
@@ -78,6 +76,7 @@ static const char *OMAP_ITERATE_REC_RESULTS[] = {"V-A1/B1", "V-A1/B1/C2", "V-A1/
 extern struct dict dict_driver_rados;
 static struct dict_settings *set;
 static struct dict *target = nullptr;
+static const char *error_r;
 
 TEST_F(DictTest, init) {
   set = i_new(struct dict_settings, 1);
