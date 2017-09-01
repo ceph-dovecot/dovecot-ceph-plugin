@@ -58,7 +58,19 @@ If the index data for a mailbox gets lost, there is currently no way to reconstr
 
 To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of the mailbox format is `rbox`.
 Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details.
-All Dovecot placeholders for _mail_location_ can be applied.
+Cause the index management of Dovecot is used, the description of _path_ and a lot of the optional parameters are valid for rbox, too.
+
+The optional parameters of the mailbox location specification that differ for rbox ares:
+
+* `LAYOUT` : specifies the directory layout to use:
+  * `fs`: **The default used by rbox**
+  * `index`: Uses mailbox GUIDs as the directory names. The mapping between mailbox names and GUIDs exists in dovecot.list.index* files.
+  * `Maildir++`: not tested
+* `MAILBOXDIR` : specifies directory name under which all mailbox directories are stored. With rbox like with dbox formats the default is "mailboxes/".
+* `DIRNAME` : specifies the directory name used for mailbox directories, or in the case of mbox specifies the mailbox message file name. With rbox the default is "rbox-Mails/". Note that this directory is used only for the mail directory and the alt directory, not for index/control directories (but see below).
+* `ALT` : specifies the Alternate storage path for dbox formats. **Not yet supported for rbox.**
+
+All Dovecot [variables](https://wiki2.dovecot.org/Variables) for _mail_location_ can be applied.
 
 The RADOS pool to use for the mail objects defaults to _mail_storage_.
 If the pool is missing, it will be created.
