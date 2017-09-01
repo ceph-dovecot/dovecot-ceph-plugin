@@ -5,9 +5,10 @@
 
 #include <string>
 #include <vector>
-#include "rados-mail-object.h"
 #include <iostream>
 #include <ctime>
+#include <map>
+#include "rados-mail-object.h"
 
 namespace librmb {
 
@@ -26,7 +27,7 @@ class Predicate {
       time_t query_date = 0;
       convert_str_to_time_t(this->value, &query_date);
 
-      long val2 = std::stol(_p_value);
+      uint64_t val2 = std::stol(_p_value);
       time_t obj_date = static_cast<time_t>(val2);
 
       double diff = difftime(obj_date, query_date);
@@ -62,7 +63,7 @@ class Predicate {
     return false;
   }
 
-  bool convert_str_to_time_t(std::string &date, time_t *val) {
+  bool convert_str_to_time_t(const std::string &date, time_t *val) {
     struct tm tm;
     memset(&tm, 0, sizeof(struct tm));
     if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
@@ -75,29 +76,29 @@ class Predicate {
     val = 0;
     return false;
   }
-  int convert_time_t_to_str(time_t &t, std::string &ret_val) {
-    ret_val = std::ctime(&t);
+  int convert_time_t_to_str(const time_t &t, std::string *ret_val) {
+    *ret_val = std::ctime(&t);
     return 0;
   }
 };
 
 class CmdLineParser {
  public:
-  CmdLineParser(std::string &_ls_value) {
+  explicit CmdLineParser(const std::string &_ls_value) {
     size_t pos = ls_value.find("\"");
     if (pos != std::string::npos) {
       this->ls_value = _ls_value.substr(1, _ls_value.length() - 1);
     }
     this->ls_value = _ls_value;
-  };
+  }
   bool parse_ls_string();
   std::map<std::string, Predicate *> &get_predicates() { return this->predicates; }
 
-  bool contains_key(std::string &key) { return keys.find(key) != keys.npos ? true : false; }
-  Predicate *get_predicate(std::string &key) { return predicates[key]; }
-  Predicate *create_predicate(std::string &ls_value);
+  bool contains_key(const std::string &key) { return keys.find(key) != keys.npos ? true : false; }
+  Predicate *get_predicate(const std::string &key) { return predicates[key]; }
+  Predicate *create_predicate(const std::string &ls_value);
 
-  void set_output_dir(std::string out) { this->out_dir = out; }
+  void set_output_dir(const std::string out) { this->out_dir = out; }
   std::string &get_output_dir() { return this->out_dir; }
 
  private:
@@ -106,5 +107,5 @@ class CmdLineParser {
   std::string keys;
   std::string out_dir;
 };
-};     // end namespace rmb
-#endif /* SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_ */
+};      // namespace librmb
+#endif  // SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_

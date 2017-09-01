@@ -7,7 +7,7 @@
 
 using namespace librmb;
 
-Predicate *CmdLineParser::create_predicate(std::string &_ls_value) {
+Predicate *CmdLineParser::create_predicate(const std::string &_ls_value) {
   Predicate *p = new Predicate();
 
   size_t pos = _ls_value.find("=");

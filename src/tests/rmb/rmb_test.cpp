@@ -56,13 +56,13 @@ TEST(rmb1, date_arg) {
   EXPECT_GT(t, -1);
   time_t t2 = 1503393219;
   std::string val;
-  p->convert_time_t_to_str(t, val);
+  p->convert_time_t_to_str(t, &val);
   std::cout << val << std::endl;
-  p->convert_time_t_to_str(t2, val);
+  p->convert_time_t_to_str(t2, &val);
   std::cout << val << std::endl;
 
   time_t t3 = 1086165760;
-  p->convert_time_t_to_str(t3, val);
+  p->convert_time_t_to_str(t3, &val);
   std::cout << val << std::endl;
 
   delete p;
@@ -73,7 +73,7 @@ TEST(rmb1, save_mail) {
   librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
 
   std::string base_path = "test";
-  MailboxTools tools(&mbox, base_path);
+  librmb::MailboxTools tools(&mbox, base_path);
 
   int init = tools.init_mailbox_dir();
   EXPECT_EQ(0, init);
@@ -102,14 +102,14 @@ TEST(rmb1, path_tests) {
   librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
 
   std::string base_path = "test";
-  MailboxTools tools(&mbox, base_path);
+  librmb::MailboxTools tools(&mbox, base_path);
   EXPECT_EQ("test/abc", tools.get_mailbox_path());
   std::string test_path = "test/";
-  MailboxTools tools2(&mbox, test_path);
+  librmb::MailboxTools tools2(&mbox, test_path);
   EXPECT_EQ("test/abc", tools2.get_mailbox_path());
 
   std::string test_path2 = "";
-  MailboxTools tools3(&mbox, test_path2);
+  librmb::MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
 

@@ -1,13 +1,13 @@
 /* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
 
-#ifndef SRC_LIBRMB_TOOLS_RBOX_LIST_OBJECTS_H_
-#define SRC_LIBRMB_TOOLS_RBOX_LIST_OBJECTS_H_
+#ifndef SRC_LIBRMB_TOOLS_RMB_RMB_H_
+#define SRC_LIBRMB_TOOLS_RMB_RMB_H_
 
 #include <string>
 #include <sstream>
-#include "rados-mail-object.h"
 #include <vector>
 #include <map>
+#include "rados-mail-object.h"
 #include "ls_cmd_parser.h"
 namespace librmb {
 
@@ -54,8 +54,10 @@ class RadosMailBox {
   inline std::string to_string() {
     std::ostringstream ss;
     ss << std::endl
-       << "MAILBOX: " << (char)RBOX_METADATA_MAILBOX_GUID << "(mailbox_guid)=" << this->mailbox_guid << std::endl
-       << "         " << (char)RBOX_METADATA_ORIG_MAILBOX << "(mailbox_orig_name)=" << mbox_orig_name << std::endl
+       << "MAILBOX: " << static_cast<char>(RBOX_METADATA_MAILBOX_GUID) << "(mailbox_guid)=" << this->mailbox_guid
+       << std::endl
+       << "         " << static_cast<char>(RBOX_METADATA_ORIG_MAILBOX) << "(mailbox_orig_name)=" << mbox_orig_name
+       << std::endl
 
        << "         mail_total=" << total_mails << ", mails_displayed=" << mails.size() << std::endl
        << "         mailbox_size=" << mailbox_size << " bytes " << std::endl;
@@ -74,8 +76,8 @@ class RadosMailBox {
   std::vector<RadosMailObject *> &get_mails() { return this->mails; }
 
   std::string &get_mailbox_guid() { return this->mailbox_guid; }
-  void set_mailbox_guid(std::string &_mailbox_guid) { this->mailbox_guid = _mailbox_guid; }
-  void set_mailbox_orig_name(std::string &_mbox_orig_name) { this->mbox_orig_name = _mbox_orig_name; }
+  void set_mailbox_guid(const std::string &_mailbox_guid) { this->mailbox_guid = _mailbox_guid; }
+  void set_mailbox_orig_name(const std::string &_mbox_orig_name) { this->mbox_orig_name = _mbox_orig_name; }
   int &get_mail_count() { return this->mail_count; }
 
  private:
@@ -90,4 +92,4 @@ class RadosMailBox {
 };
 }  // namespace librmb
 
-#endif /* SRC_LIBRMB_TOOLS_RBOX_LIST_OBJECTS_H_ */
+#endif  // SRC_LIBRMB_TOOLS_RMB_RMB_H_
