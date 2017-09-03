@@ -15,6 +15,10 @@ struct rbox_mail {
   librmb::RadosMailObject *mail_object;
   char *mail_buffer;
   uint32_t last_seq;  // TODO(jrse): init with -1
+
+#if DOVECOT_PREREQ(2, 2)
+  unsigned int is_deleted : 1;
+#endif
 };
 
 extern int rbox_get_index_record(struct mail *_mail);

@@ -295,7 +295,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
                                 struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  struct istream *input;// = *stream_r;
+  struct istream *input;  // = *stream_r;
 
   struct index_mail_data *data = &rmail->imail.data;
 
@@ -304,7 +304,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
-  if (data->stream == NULL/* && rmail->mail_buffer == NULL*/) {
+  if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
@@ -508,12 +508,19 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   }
 }
 
+static void rbox_mail_free(struct mail *mail) {
+  index_mail_free(mail);
+#if DOVECOT_PREREQ(2, 2)
+  struct rbox_mail *rmail = (struct rbox_mail *)mail;
+  rmail->is_deleted = TRUE;
+#endif
+}
 
 /*ebd if old version */
 // rbox_mail_free,
 struct mail_vfuncs rbox_mail_vfuncs = {
 
-    rbox_mail_close, index_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
+    rbox_mail_close, rbox_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
     index_mail_prefetch, index_mail_precache, index_mail_add_temp_wanted_fields,
 
     index_mail_get_flags, index_mail_get_keywords, index_mail_get_keyword_indexes, index_mail_get_modseq,
