@@ -48,17 +48,19 @@ int MailboxTools::init_mailbox_dir() {
   }
   return 0;
 }
+
 int MailboxTools::delete_mail(librmb::RadosMailObject* mail_obj) {
   if (mail_obj == nullptr) {
     return -1;
   }
   std::string filename;
-  if (build_filename(mail_obj, filename) < 0) {
+  if (build_filename(mail_obj, &filename) < 0) {
     return -1;
   }
   std::string file_path = mailbox_path + "/" + filename;
   return unlink(file_path.c_str());
 }
+
 int MailboxTools::delete_mailbox_dir() {
   if (this->mailbox_path.empty() || this->base_path.empty()) {
     return -1;
@@ -71,12 +73,13 @@ int MailboxTools::delete_mailbox_dir() {
   }
   return 0;
 }
+
 int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
   if (mail_obj == nullptr) {
     return -1;
   }
   std::string filename;
-  if (build_filename(mail_obj, filename) < 0) {
+  if (build_filename(mail_obj, &filename) < 0) {
     return -1;
   }
 
@@ -92,15 +95,16 @@ int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
   return 0;
 }
 
-int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, /*const*/ std::string& filename) {
-  if (mail_obj == nullptr || !filename.empty()) {
+int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, std::string* filename) {
+  if (mail_obj == nullptr || !filename->empty()) {
     return -1;
   }
 
   std::stringstream ss;
   ss << mail_obj->get_xvalue(librmb::RBOX_METADATA_MAIL_UID) << ".";
   ss << mail_obj->get_oid();
-  filename = ss.str();
-  return filename.empty() ? -1 : 0;
+  *filename = ss.str();
+  return filename->empty() ? -1 : 0;
 }
+
 }  // namespace librmb
