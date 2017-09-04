@@ -1,4 +1,10 @@
-# Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
+#
+# Copyright (c) 2017 Tallence AG and the authors
+#
+# This is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License version 2.1, as published by the Free Software
+# Foundation.  See file COPYING.
 
 LIBSTORAGE_RBOX_PLUGIN = libstorage_rbox_plugin.la
 
@@ -8,7 +14,6 @@ shlibs = \
 libstorage_rbox_plugin_la_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
 	$(LIBDOVECOT_STORAGE_INCLUDE) \
-	-I../include \
 	-I$(top_srcdir)/src/librmb 
 	
 libstorage_rbox_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)
