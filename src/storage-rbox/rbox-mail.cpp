@@ -517,12 +517,19 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   }
 }
 
+static void rbox_mail_free(struct mail *mail) {
+  index_mail_free(mail);
+#if DOVECOT_PREREQ(2, 2)
+  struct rbox_mail *rmail = (struct rbox_mail *)mail;
+  rmail->is_deleted = TRUE;
+#endif
+}
 /*ebd if old version */
 // rbox_mail_free,
 struct mail_vfuncs rbox_mail_vfuncs = {
 
     rbox_mail_close,
-    index_mail_free,
+    rbox_mail_free,
     rbox_index_mail_set_seq,
     index_mail_set_uid,
     index_mail_set_uid_cache_updates,

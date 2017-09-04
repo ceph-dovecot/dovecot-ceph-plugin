@@ -166,7 +166,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
-    _ctx->dest_mail = mail_alloc(_ctx->transaction, mail_fetch_field(0), NULL);
+     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
   }
 
   if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
@@ -573,7 +573,16 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
   if (_ctx->dest_mail != NULL) {
+#if DOVECOT_PREREQ(2, 2)
+    struct rbox_mail *rmail = (struct rbox_mail *)_ctx->dest_mail;
+    if (rmail->is_deleted == TRUE) {
+      _ctx->dest_mail = NULL;
+    } else {
+      mail_free(&_ctx->dest_mail);
+    }
+#else
     mail_free(&_ctx->dest_mail);
+#endif
   }
   r_ctx->current_object = nullptr;
   delete r_ctx;

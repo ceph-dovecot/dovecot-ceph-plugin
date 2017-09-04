@@ -92,7 +92,7 @@ int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
   return 0;
 }
 
-int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, const std::string& filename) {
+int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, /*const*/ std::string& filename) {
   if (mail_obj == nullptr || !filename.empty()) {
     return -1;
   }
