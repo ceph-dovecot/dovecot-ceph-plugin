@@ -1,5 +1,13 @@
-/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
-
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
+/*
+ * Copyright (c) 2017 Tallence AG and the authors
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -7,7 +15,9 @@
 #include <fstream>
 #include <iostream>
 #include "mailbox_tools.h"
-using namespace librmb;
+
+namespace librmb {
+
 MailboxTools::MailboxTools(librmb::RadosMailBox* mailbox, std::string base) {
   this->mbox = mailbox;
   this->base_path = base;
@@ -93,3 +103,4 @@ int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, const std::s
   filename = ss.str();
   return filename.empty() ? -1 : 0;
 }
+}  // namespace librmb

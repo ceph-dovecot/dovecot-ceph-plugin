@@ -7,10 +7,12 @@ Peter Mauritius <p.mauritius@tallence.com>
 Contributors
 ------------
 
-Peter Mauritius <p.mauritius@tallence.com>
+Danny Al-Gaaf <danny.al-gaaf@bisect.de>
 Peter Burow <h.burow@tallence.com>
+Peter Mauritius <p.mauritius@tallence.com>
 Jan Radon <j.radonw@tallence.com>
+Thomas Rieffel <t.rieffel@tallence.com>
 
 For a complete contributor list:
 
-  git shortlog -sn
+  git shortlog -sne

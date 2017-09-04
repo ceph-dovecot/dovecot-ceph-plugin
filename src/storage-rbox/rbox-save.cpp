@@ -1,4 +1,13 @@
-/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
+/*
+ * Copyright (c) 2017 Tallence AG and the authors
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
+ */
 
 #include <stdio.h>
 #include <utime.h>
@@ -148,7 +157,6 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
     i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
-
 }
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
@@ -158,7 +166,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
-    _ctx->dest_mail = mail_alloc(_ctx->transaction, 0, NULL);
+    _ctx->dest_mail = mail_alloc(_ctx->transaction, mail_fetch_field(0), NULL);
   }
 
   if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
