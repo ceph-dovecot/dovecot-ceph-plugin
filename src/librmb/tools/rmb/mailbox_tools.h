@@ -27,7 +27,7 @@ class MailboxTools {
   int delete_mailbox_dir();
   int delete_mail(librmb::RadosMailObject* mail_obj);
 
-  int build_filename(librmb::RadosMailObject* mail_obj, /*const*/ std::string& filename);
+  int build_filename(librmb::RadosMailObject* mail_obj, std::string* filename);
 
   std::string& get_mailbox_path() { return this->mailbox_path; }
 
