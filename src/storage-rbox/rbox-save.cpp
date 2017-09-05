@@ -153,7 +153,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
-  if (_ctx->dest_mail != 0) {
+  if (_ctx->dest_mail != NULL) {
     i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
@@ -167,6 +167,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
+    r_ctx->dest_mail_allocated = TRUE;
   }
 
   if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
@@ -518,16 +519,12 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
 
   if (_ctx->dest_mail != NULL) {
-#if DOVECOT_PREREQ(2, 2)
-    struct rbox_mail *rmail = (struct rbox_mail *)_ctx->dest_mail;
-    if (rmail->is_deleted == TRUE) {
-      _ctx->dest_mail = NULL;
-    } else {
+    if (r_ctx->dest_mail_allocated == TRUE) {
       mail_free(&_ctx->dest_mail);
+      r_ctx->dest_mail_allocated = FALSE;
+    } else {
+      _ctx->dest_mail = NULL;
     }
-#else
-    mail_free(&_ctx->dest_mail);
-#endif
   }
   _t->changes->uid_validity = hdr->uid_validity;
 
@@ -581,17 +578,8 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
-  if (_ctx->dest_mail != NULL) {
-#if DOVECOT_PREREQ(2, 2)
-    struct rbox_mail *rmail = (struct rbox_mail *)_ctx->dest_mail;
-    if (rmail->is_deleted == TRUE) {
-      _ctx->dest_mail = NULL;
-    } else {
-      mail_free(&_ctx->dest_mail);
-    }
-#else
+  if (_ctx->dest_mail != NULL && r_ctx->dest_mail_allocated == TRUE) {
     mail_free(&_ctx->dest_mail);
-#endif
   }
   r_ctx->current_object = nullptr;
   delete r_ctx;
