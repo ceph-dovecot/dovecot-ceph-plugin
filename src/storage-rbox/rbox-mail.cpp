@@ -517,56 +517,24 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   }
 }
 
-static void rbox_mail_free(struct mail *mail) {
-  index_mail_free(mail);
-#if DOVECOT_PREREQ(2, 2)
-  struct rbox_mail *rmail = (struct rbox_mail *)mail;
-  rmail->is_deleted = TRUE;
-#endif
-}
 /*ebd if old version */
 // rbox_mail_free,
 struct mail_vfuncs rbox_mail_vfuncs = {
+    rbox_mail_close, index_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
+    index_mail_prefetch, index_mail_precache, index_mail_add_temp_wanted_fields,
 
-    rbox_mail_close,
-    rbox_mail_free,
-    rbox_index_mail_set_seq,
-    index_mail_set_uid,
-    index_mail_set_uid_cache_updates,
-    index_mail_prefetch,
-    index_mail_precache,
-    index_mail_add_temp_wanted_fields,
-
-    index_mail_get_flags,
-    index_mail_get_keywords,
-    index_mail_get_keyword_indexes,
-    index_mail_get_modseq,
-    index_mail_get_pvt_modseq,
-    index_mail_get_parts,
-    index_mail_get_date,
-    rbox_mail_get_received_date,
-    rbox_mail_get_save_date,
-    rbox_mail_get_virtual_size,
-    rbox_mail_get_physical_size,
-    index_mail_get_first_header,
-    index_mail_get_headers,
-    index_mail_get_header_stream,
-    rbox_mail_get_stream,
-    index_mail_get_binary_stream,
+    index_mail_get_flags, index_mail_get_keywords, index_mail_get_keyword_indexes, index_mail_get_modseq,
+    index_mail_get_pvt_modseq, index_mail_get_parts, index_mail_get_date, rbox_mail_get_received_date,
+    rbox_mail_get_save_date, rbox_mail_get_virtual_size, rbox_mail_get_physical_size, index_mail_get_first_header,
+    index_mail_get_headers, index_mail_get_header_stream, rbox_mail_get_stream, index_mail_get_binary_stream,
     rbox_mail_get_special,
 #if DOVECOT_PREREQ(2, 3)
     index_mail_get_backend_mail,
 #else
     index_mail_get_real_mail,
 #endif
-    index_mail_update_flags,
-    index_mail_update_keywords,
-    index_mail_update_modseq,
-    index_mail_update_pvt_modseq,
-    NULL,
-    index_mail_expunge,
-    index_mail_set_cache_corrupted,
-    index_mail_opened,
+    index_mail_update_flags, index_mail_update_keywords, index_mail_update_modseq, index_mail_update_pvt_modseq, NULL,
+    index_mail_expunge, index_mail_set_cache_corrupted, index_mail_opened,
 #ifdef HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
     index_mail_set_cache_corrupted_reason
 #endif
