@@ -13,6 +13,7 @@
 #include <rados/librados.hpp>
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include "rados-storage.h"
 #include "rados-cluster.h"
 
@@ -227,9 +228,8 @@ TEST(librmb, load_xattr) {
   i = storage->load_xattr(&obj);
   EXPECT_EQ(0, i);
 }
-
+TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-
+  ::testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();
 }

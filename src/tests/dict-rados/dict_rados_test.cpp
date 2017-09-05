@@ -10,6 +10,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include "TestCase.h"
 
 #pragma GCC diagnostic push
@@ -364,7 +365,8 @@ TEST_F(DictTest, deinit) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
+  // ::testing::InitGoogleTest(&argc, argv);
+  ::testing::InitGoogleMock(&argc, argv);
 
   return RUN_ALL_TESTS();
 }

@@ -10,6 +10,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include "rados-storage.h"
 #include "rados-cluster.h"
 #include "rados-mail-object.h"
@@ -123,7 +124,6 @@ TEST(rmb1, path_tests) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-
+  ::testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();
 }
