@@ -252,11 +252,16 @@ static void remove_callback(rados_completion_t comp ATTR_UNUSED, void *arg) {
 
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
+
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  if (rbox_open_rados_connection(box) < 0) {
+    i_debug("rbox_sync_object_expunge: connection to rados failed");
+    return;
+  }
 
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   const char *oid = guid_128_to_string(item->oid);
 
   struct expunge_callback_data *cb_data = i_new(struct expunge_callback_data, 1);
@@ -264,15 +269,11 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
   cb_data->box = box;
 
   completion->set_complete_callback(cb_data, remove_callback);
-
-  if (rbox_open_rados_connection(box) < 0) {
-    i_debug("rbox_sync_object_expunge: connection to rados failed");
-    return;
-  }
-
   r_storage->s->get_io_ctx().aio_remove(oid, completion);
-
   completion->wait_for_complete_and_cb();
+
+  completion->release();
+  i_free(cb_data);
 
   FUNC_END();
 }
