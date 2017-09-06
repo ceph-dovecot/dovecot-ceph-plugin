@@ -18,10 +18,13 @@ librmb_la_SOURCES = \
 	rados-mail-object.cpp 
 
 headers = \
+	interfaces/rados-cluster-interface.h \
+	interfaces/rados-dictionary-interface.h \
+	interfaces/rados-storage-interface.h \
 	rados-cluster.h \
 	rados-storage.h \
 	rados-dictionary.h \
-	rados-mail-object.h
+	rados-mail-object.h 
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)

@@ -16,23 +16,24 @@
 #include <string>
 #include <cstdint>
 #include <mutex>  // NOLINT
+#include "interfaces/rados-dictionary-interface.h"
 
 #include <rados/librados.hpp>
 
 namespace librmb {
 
-class RadosDictionary {
+class RadosDictionaryImpl : public RadosDictionary {
  public:
-  RadosDictionary(librados::IoCtx* ctx, const std::string& username, const std::string& oid);
-  virtual ~RadosDictionary();
+  RadosDictionaryImpl(librados::IoCtx* ctx, const std::string& username, const std::string& oid);
+  virtual ~RadosDictionaryImpl();
 
   const std::string get_full_oid(const std::string& key);
   const std::string get_shared_oid();
   const std::string get_private_oid();
 
-  const std::string& get_oid() const { return oid; }
+  const std::string& get_oid() { return oid; } 
 
-  const std::string& get_username() const { return username; }
+  const std::string& get_username()  { return username; } 
 
   librados::IoCtx& get_io_ctx() { return io_ctx; }
 

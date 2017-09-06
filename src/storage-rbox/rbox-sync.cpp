@@ -233,17 +233,6 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   return 0;
 }
 
-static void remove_callback(rados_completion_t comp ATTR_UNUSED, void *arg) {
-  struct expunge_callback_data *data = (struct expunge_callback_data *)arg;
-  // callback
-  /* do sync_notify only when the file was unlinked by us */
-  if (data->box->v.sync_notify != NULL) {
-    i_debug("sync: notify oid: %s", guid_128_to_string(data->item->oid));
-    data->box->v.sync_notify(data->box, data->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-  }
-  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(data->item->oid), getpid());
-}
-
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
 
@@ -255,19 +244,21 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
     return;
   }
 
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   const char *oid = guid_128_to_string(item->oid);
 
-  struct expunge_callback_data *cb_data = i_new(struct expunge_callback_data, 1);
-  cb_data->item = item;
-  cb_data->box = box;
+  if (rbox_open_rados_connection(box) < 0) {
+    i_debug("rbox_sync_object_expunge: connection to rados failed");
+    return;
+  }
 
-  completion->set_complete_callback(cb_data, remove_callback);
-  r_storage->s->get_io_ctx().aio_remove(oid, completion);
-  completion->wait_for_complete_and_cb();
-
-  completion->release();
-  i_free(cb_data);
+  r_storage->s->delete_mail(oid);
+  // callback
+  /* do sync_notify only when the file was unlinked by us */
+  if (box->v.sync_notify != NULL) {
+    i_debug("sync: notify oid: %s", guid_128_to_string(item->oid));
+    box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+  }
+  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(item->oid), getpid());
 
   FUNC_END();
 }

@@ -49,7 +49,8 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage = p_new(pool, struct rbox_storage, 1);
   storage->storage = rbox_storage;
   storage->storage.pool = pool;
-  storage->s = nullptr;
+  storage->cluster = new librmb::RadosClusterImpl();
+  storage->s = new librmb::RadosStorageImpl(storage->cluster);
 
   FUNC_END();
   return &storage->storage;
@@ -82,9 +83,16 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
-  storage->cluster.deinit();
-  delete storage->s;
-  storage->s = nullptr;
+  storage->cluster->deinit();
+  if (storage->s != nullptr) {
+    delete storage->s;
+    storage->s = nullptr;
+  }
+  if (storage->cluster != nullptr) {
+    // delete cluster after storage!
+    delete storage->cluster;
+    storage->cluster = nullptr;
+  }
 
   index_storage_destroy(_storage);
 
@@ -230,7 +238,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
   if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
     poolname = settings_poolname;
   }
-  return mbox->storage->cluster.open_connection(&mbox->storage->s, poolname, ns);
+  return mbox->storage->s->open_connection(poolname, ns);
 }
 
 void rbox_sync_update_header(struct index_rebuild_context *ctx) {

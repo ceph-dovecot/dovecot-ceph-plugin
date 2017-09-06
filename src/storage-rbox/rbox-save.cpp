@@ -451,8 +451,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     {
       RadosXAttr xattr;
       RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid, &xattr);
-      int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), xattr.key.c_str(), xattr.bl);
-
+      int ret_val = r_storage->s->set_xattr(r_ctx->current_object->get_oid(), xattr);
       if (ret_val < 0) {
         return -1;
       }
@@ -471,7 +470,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct seq_range_iter iter;
 
   i_assert(r_ctx->finished);
-
+  
   r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!

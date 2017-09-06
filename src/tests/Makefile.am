@@ -6,7 +6,7 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-AM_CPPFLAGS = -isystem $(top_srcdir)/src/googletest/googletest/include  -I$(top_srcdir)/src/googletest/googlemock/include -I$(top_srcdir)/src  -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
+AM_CPPFLAGS = -isystem $(top_srcdir)/src/googletest/googletest/include  -I$(top_srcdir)/src/googletest/googlemock/include -I$(top_srcdir)/src  -Imocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
 AM_CXXFLAGS = -g -O0 $(GTEST_CXXFLAGS)
 
 TESTS = 
