@@ -123,26 +123,24 @@ static bool ceph_argparse_double_dash(std::vector<const char *> *args, std::vect
 static void usage(std::ostream &out) {
   out << "usage: rmb [options] [commands]\n"
          "   -p pool\n"
-         "        pool where mail data is saved, if not given mail_storage is used \n"
+         "        pool where mail data is saved, if not given mail_storage is used\n"
          "   -N namespace e.g. dovecot user name\n"
          "        specify the namespace/user to use for the mails\n"
-         "   -O path to store the boxes if not given, ~/rmb is used \n"
+         "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
          "\n"
          "MAIL COMMANDS\n"
-         "    ls     -   list all mails and mailbox statistic \n"
-         "           all list all mails and mailbox statistic \n"
-         "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\" \n"
+         "    ls     -   list all mails and mailbox statistic\n"
+         "           all list all mails and mailbox statistic\n"
+         "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
-         "    get     - download mails to file \n"
-         "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\" \n"
+         "    get     - download mails to file\n"
+         "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "MAILBOX COMMANDS\n"
-         "    ls     mb  list all mailboxes \n"
+         "    ls     mb  list all mailboxes\n"
          "\n";
-  // "MAILBOX COMMANDS\n"
-  // "\n";
 }
 
 static void usage_exit() {
@@ -198,20 +196,36 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
              it_mail != it->second->get_mails().end(); ++it_mail) {
           const std::string oid = (*it_mail)->get_oid();
           uint64_t size_r = std::stol((*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE));
-          char *mail_buffer = new char[size_r];
+          char *mail_buffer = new char[size_r + 1];
           (*it_mail)->set_mail_buffer(mail_buffer);
           (*it_mail)->set_object_size(size_r);
           if (storage->read_mail(oid, &size_r, mail_buffer) == 0) {
+            mail_buffer[size_r] = '\0';
             // std::cout << mail_buffer << std::endl;
             if (tools.save_mail((*it_mail)) < 0) {
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
             }
           }
 
-          delete mail_buffer;
+          delete[] mail_buffer;
         }
       }
     }
+  }
+
+  for (auto &it : mailbox) {
+    delete it.second;
+  }
+}
+
+static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::RadosCluster *cluster,
+                         bool exit) {
+  for (auto mo : *mail_objects) {
+    delete mo;
+  }
+  cluster->deinit();
+  if (exit == true) {
+    usage_exit();
   }
 }
 
@@ -283,8 +297,7 @@ int main(int argc, const char **argv) {
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else {
       // tear down.
-      cluster.deinit();
-      usage_exit();
+      release_exit(&mail_objects, &cluster, true);
     }
   } else if (opts.find("get") != opts.end()) {
     librmb::CmdLineParser parser(opts["get"]);
@@ -292,7 +305,14 @@ int main(int argc, const char **argv) {
     if (opts.find("out") != opts.end()) {
       parser.set_output_dir(opts["out"]);
     } else {
-      parser.set_output_dir("rmb");
+      char outpath[PATH_MAX];
+      char *home = getenv("HOME");
+      if (home != NULL) {
+        snprintf(outpath, sizeof(outpath), "%s/rmb", home);
+      } else {
+        snprintf(outpath, sizeof(outpath), "rmb");
+      }
+      parser.set_output_dir(outpath);
     }
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
       query_mail_storage(&mail_objects, &parser, true, &storage);
@@ -300,18 +320,16 @@ int main(int argc, const char **argv) {
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else {
       // tear down.
-      cluster.deinit();
-      usage_exit();
+      release_exit(&mail_objects, &cluster, true);
     }
   } else {
     // tear down.
-    cluster.deinit();
-    usage_exit();
+    release_exit(&mail_objects, &cluster, true);
   }
   /* for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
      std::cout << ' ' << (*it)->to_string();
    }
  */
   // tear down.
-  cluster.deinit();
+  release_exit(&mail_objects, &cluster, false);
 }

@@ -44,12 +44,9 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
                  strcmp(mail->box->storage->name, storage_name) == 0;
 
   i_debug("rbox_mail_copy: copying = %s", btoa(ctx->copying));
-
-  // debug_print_mail(mail, "rbox_mail_copy", NULL);
-  // debug_print_mail_save_context(_ctx, "rbox_mail_copy", NULL);
-
   int ret = rbox_mail_storage_copy(_ctx, mail);
   ctx->copying = FALSE;
+
   FUNC_END();
   return ret;
 }
@@ -102,11 +99,11 @@ static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, s
 
 static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWriteOperation *write_op) {
   {
-    //#ifdef
+    // #ifdef < 2.2.26
     struct mailbox *dest_mbox = ctx->transaction->box;
     // else
-    /// struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
-    //#endif
+    // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
+    // #endif
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
     librmb::RadosXAttr xattr;
     librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
@@ -128,18 +125,17 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   struct rbox_mailbox *rmailbox = (struct rbox_mailbox *)mail->box;
   librados::IoCtx src_io_ctx;
 
-  //#ifdef
+  // #ifdef < 2.2.26
   struct mailbox *dest_mbox = ctx->transaction->box;
   // else
-  /// struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
-  //#endif
+  // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
+  // #endif
 
   librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
   const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
   const char *ns_dest_mail = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
 
   i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
-  debug_print_mail_save_context(*_ctx, "rbox_mail_storage_try_copy", NULL);
   int ret_val = 0;
 
   if (r_ctx->copying == TRUE) {
@@ -233,11 +229,11 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
 
-  //#ifdef
+  // #ifdef < 2.2.26
   struct mailbox *dest_mbox = ctx->transaction->box;
   // else
-  /// struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
-  //#endif
+  // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
+  // #endif
 
   FUNC_START();
 #ifdef HAVE_COPYING_OR_MOVING

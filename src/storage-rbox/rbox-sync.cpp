@@ -33,7 +33,6 @@ static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
   mail_index_update_header(ctx->trans, offsetof(struct mail_index_header, uid_validity), &uid_validity,
                            sizeof(uid_validity), TRUE);
   ctx->uid_validity = uid_validity;
-  debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_set_uidvalidity", NULL);
   FUNC_END();
 }
 */
@@ -82,7 +81,6 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       }
     }
   }
-  debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_expunge", NULL);
   FUNC_END();
 }
 
@@ -135,8 +133,6 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 
   if (box->v.sync_notify != NULL)
     box->v.sync_notify(box, 0, static_cast<mailbox_sync_type>(0));
-
-  debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_index", NULL);
 
   FUNC_END();
   return 1;
@@ -196,7 +192,6 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
       rbox_set_mailbox_corrupted(&mbox->box);
 
     if (ret <= 0) {
-      debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_begin (ret <= 0, 1)", NULL);
       array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
       array_free(&ctx->expunged_items);
       i_free(ctx);
@@ -233,37 +228,23 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
     }
   }
 
-  debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_begin", NULL);
   *ctx_r = ctx;
   FUNC_END();
   return 0;
 }
 
-static void remove_callback(rados_completion_t comp ATTR_UNUSED, void *arg) {
-  struct expunge_callback_data *data = (struct expunge_callback_data *)arg;
-  // callback
-  /* do sync_notify only when the file was unlinked by us */
-  if (data->box->v.sync_notify != NULL) {
-    i_debug("sync: notify oid: %s", guid_128_to_string(data->item->oid));
-    data->box->v.sync_notify(data->box, data->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-  }
-  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(data->item->oid), getpid());
-}
-
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
+
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  if (rbox_open_rados_connection(box) < 0) {
+    i_debug("rbox_sync_object_expunge: connection to rados failed");
+    return;
+  }
 
   const char *oid = guid_128_to_string(item->oid);
-
-  struct expunge_callback_data *cb_data = i_new(struct expunge_callback_data, 1);
-  cb_data->item = item;
-  cb_data->box = box;
-
-  completion->set_complete_callback(cb_data, remove_callback);
 
   if (rbox_open_rados_connection(box) < 0) {
     i_debug("rbox_sync_object_expunge: connection to rados failed");
@@ -271,6 +252,13 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
   }
 
   r_storage->s->delete_mail(oid);
+  // callback
+  /* do sync_notify only when the file was unlinked by us */
+  if (box->v.sync_notify != NULL) {
+    i_debug("sync: notify oid: %s", guid_128_to_string(item->oid));
+    box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+  }
+  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(item->oid), getpid());
 
   FUNC_END();
 }
@@ -329,7 +317,6 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
     mail_index_view_ref(ctx->sync_view);
     if (mail_index_sync_commit(&ctx->index_sync_ctx) < 0) {
       mailbox_set_index_error(&ctx->mbox->box);
-      debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_finish (ret -1, 1)", NULL);
       FUNC_END_RET("ret == -1");
       ret = -1;
     } else {
@@ -353,8 +340,6 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
     }
     array_free(&ctx->expunged_items);
   }
-
-  debug_print_rbox_sync_context(ctx, "rbox-sync::rbox_sync_finish", NULL);
 
   i_free(ctx);
   FUNC_END();
@@ -383,7 +368,6 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
 
   if (!box->opened) {
     if (mailbox_open(box) < 0) {
-      debug_print_mailbox(box, "rbox-sync::rbox_storage_sync_init (ret -1, 1)", NULL);
       ret = -1;
     }
   }
@@ -403,7 +387,6 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
 
     struct mailbox_sync_context *ctx = index_mailbox_sync_init(box, flags, ret < 0);
 
-    debug_print_mailbox(box, "rbox-sync::rbox_storage_sync_init", NULL);
-
-    return ctx;*/
+    return ctx;
+   */
 }

@@ -52,7 +52,6 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->cluster = new librmb::RadosClusterImpl();
   storage->s = new librmb::RadosStorageImpl(storage->cluster);
 
-  debug_print_mail_storage(&storage->storage, "rados-storage::rados_storage_alloc", NULL);
   FUNC_END();
   return &storage->storage;
 }
@@ -69,7 +68,6 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
     set->mailbox_dir_name = RBOX_MAILBOX_DIR_NAME;
   if (set->subscription_fname == NULL)
     set->subscription_fname = RBOX_SUBSCRIPTION_FILE_NAME;
-  debug_print_mailbox_list_settings(set, "rbox-storage::rbox_storage_get_list_settings", NULL);
   FUNC_END();
 }
 
@@ -137,7 +135,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   mbox->storage = (struct rbox_storage *)storage;
 
   i_debug("list name = %s", list->name);
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_alloc", NULL);
   FUNC_END();
   return &mbox->box;
 }
@@ -205,23 +202,19 @@ static int rbox_open_mailbox(struct mailbox *box) {
     /* exists, open it */
   } else if (errno == ENOENT) {
     mail_storage_set_error(box->storage, MAIL_ERROR_NOTFOUND, T_MAIL_ERR_MAILBOX_NOT_FOUND(box->vname));
-    debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open (ret -1, 1)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   } else if (errno == EACCES) {
     mail_storage_set_critical(box->storage, "%s", mail_error_eacces_msg("stat", box_path));
-    debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open (ret -1, 2)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   } else {
     mail_storage_set_critical(box->storage, "stat(%s) failed: %m", box_path);
-    debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open (ret -1, 3)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
 
   if (index_storage_mailbox_open(box, FALSE) < 0) {
-    debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open (ret -1, 4)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -391,8 +384,6 @@ int rbox_mailbox_open(struct mailbox *box) {
   }
 
   memcpy(mbox->mailbox_guid, hdr.mailbox_guid, sizeof(mbox->mailbox_guid));
-
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_open", NULL);
   FUNC_END();
   return 0;
 }
@@ -463,14 +454,12 @@ static int dir_is_empty(struct mail_storage *storage, const char *path) {
 
 int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update, bool directory) {
   FUNC_START();
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   const char *alt_path;
   struct stat st;
   int ret;
 
   if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
-    debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_create (ret <= 0, 1)", NULL);
     FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
     return ret;
   }
@@ -506,14 +495,12 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
 
   i_debug("rbox_mailbox_create: mailbox update guid = %s",
           update != NULL ? guid_128_to_string(update->mailbox_guid) : "Invalid update");
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_create", NULL);
   FUNC_END();
   return rbox_mailbox_create_indexes(box, update, NULL);
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
   FUNC_START();
-  debug_print_mailbox(box, "rbox_mailbox_update", NULL);
 
   if (!box->opened) {
     if (mailbox_open(box) < 0)
@@ -532,11 +519,8 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
 
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_get_metadata", NULL);
-
   if (items != 0) {
     if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
-      debug_print_mailbox(box, "rbox-storage::rbox_mailbox_get_metadata (ret -1, 1)", NULL);
       FUNC_END_RET("ret == -1");
       return -1;
     }
@@ -550,9 +534,6 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
     i_debug("metadata size = %lu", metadata_r->cache_fields->arr.element_size);
   }
 
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_mailbox_get_metadata", NULL);
-  debug_print_mailbox_metadata(metadata_r, "rbox-storage::rbox_mailbox_get_metadata", NULL);
-
   FUNC_END();
   return 0;
 }
@@ -560,14 +541,11 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
 void rbox_notify_changes(struct mailbox *box) {
   FUNC_START();
 
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-
   if (box->notify_callback == NULL)
     mailbox_watch_remove_all(box);
   else
     mailbox_watch_add(box, mailbox_get_path(box));
 
-  debug_print_rbox_mailbox(mbox, "rbox-storage::rbox_notify_changes", NULL);
   FUNC_END();
 }
 

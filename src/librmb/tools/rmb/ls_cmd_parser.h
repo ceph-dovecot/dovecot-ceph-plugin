@@ -19,6 +19,10 @@
 #include <map>
 #include "rados-mail-object.h"
 
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
+
 namespace librmb {
 
 class Predicate {
@@ -100,6 +104,7 @@ class CmdLineParser {
     }
     this->ls_value = _ls_value;
   }
+  ~CmdLineParser();
   bool parse_ls_string();
   std::map<std::string, Predicate *> &get_predicates() { return this->predicates; }
 
@@ -107,7 +112,7 @@ class CmdLineParser {
   Predicate *get_predicate(const std::string &key) { return predicates[key]; }
   Predicate *create_predicate(const std::string &ls_value);
 
-  void set_output_dir(const std::string out) { this->out_dir = out; }
+  void set_output_dir(const std::string out);
   std::string &get_output_dir() { return this->out_dir; }
 
  private:

@@ -34,7 +34,8 @@ class rbox_save_context {
         current_object(NULL),
         failed(1),
         finished(1),
-        copying(0) {}
+        copying(0),
+        dest_mail_allocated(0) {}
 
   struct mail_save_context ctx;
 
@@ -59,6 +60,7 @@ class rbox_save_context {
   unsigned int failed : 1;
   unsigned int finished : 1;
   unsigned int copying : 1;
+  unsigned int dest_mail_allocated : 1;
 };
 
 void rbox_add_to_index(struct mail_save_context *_ctx);
