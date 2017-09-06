@@ -12,10 +12,22 @@
 #include <ctime>
 #include <rados/librados.hpp>
 
+#include "../mocks/mock_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "rados-storage.h"
 #include "rados-cluster.h"
+
+using ::testing::AtLeast;
+using ::testing::Return;
+
+TEST(librmb, mock_test) {
+  librmbtest::RadosClusterMock cluster;
+  librmbtest::RadosStorageMock storage;  // = new RadosStorageMock();
+  EXPECT_CALL(storage, get_max_write_size()).Times(AtLeast(1)).WillOnce(Return(100));
+  int i = storage.get_max_write_size();
+  EXPECT_EQ(i, 100);
+}
 
 TEST(librmb, split_write_operation) {
   const char *buffer = "abcdefghijklmn";
@@ -24,18 +36,18 @@ TEST(librmb, split_write_operation) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
-  librmb::RadosCluster cluster;
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
 
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  int open_connection = storage.open_connection(pool_name, ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
   obj.wait_for_write_operations_complete();
@@ -43,10 +55,10 @@ TEST(librmb, split_write_operation) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
 
   // remove it
-  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+  int ret_remove = storage.delete_mail(&obj);
 
   // tear down
   cluster.deinit();
@@ -65,18 +77,18 @@ TEST(librmb1, split_write_operation_1) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
-  librmb::RadosCluster cluster;
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
 
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  int open_connection = storage.open_connection(pool_name, ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
   obj.wait_for_write_operations_complete();
@@ -84,10 +96,10 @@ TEST(librmb1, split_write_operation_1) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
 
   // remove it
-  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+  int ret_remove = storage.delete_mail(obj.get_oid());
 
   // tear down.
   cluster.deinit();
@@ -135,18 +147,18 @@ TEST(librmb1, read_mail) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
-  librmb::RadosCluster cluster;
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
 
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  int open_connection = storage.open_connection(pool_name, ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
   obj.wait_for_write_operations_complete();
@@ -154,13 +166,13 @@ TEST(librmb1, read_mail) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
 
   char *buff = new char[size];
-  int ret = storage->read_mail(obj.get_oid(), &size, &buff[0]);
+  int ret = storage.read_mail(obj.get_oid(), &size, &buff[0]);
 
   // remove it
-  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+  int ret_remove = storage.delete_mail(obj.get_oid());
 
   // tear down
   cluster.deinit();
@@ -181,15 +193,15 @@ TEST(librmb, load_xattr) {
   librmb::RadosMailObject obj;
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
-  librmb::RadosStorage *storage = NULL;
 
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
-  librmb::RadosCluster cluster;
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
 
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  int open_connection = storage.open_connection(pool_name, ns);
   EXPECT_EQ(0, open_connection);
 
   ceph::bufferlist bl;
@@ -197,20 +209,20 @@ TEST(librmb, load_xattr) {
   op->setxattr("A", bl);
   op->setxattr("B", bl);
 
-  int ret_storage = storage->split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
   obj.wait_for_write_operations_complete();
 
-  storage->load_xattr(&obj);
+  storage.load_xattr(&obj);
 
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage->get_io_ctx().stat(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
 
   // remove it
-  int ret_remove = storage->get_io_ctx().remove(obj.get_oid());
+  int ret_remove = storage.delete_mail(obj.get_oid());
 
   // tear down
   cluster.deinit();
@@ -222,10 +234,10 @@ TEST(librmb, load_xattr) {
   EXPECT_EQ(5, obj.get_completion_op_map()->size());
   EXPECT_EQ(2, obj.get_xattr()->size());
 
-  int i = storage->load_xattr(nullptr);
+  int i = storage.load_xattr(nullptr);
   EXPECT_EQ(-1, i);
 
-  i = storage->load_xattr(&obj);
+  i = storage.load_xattr(&obj);
   EXPECT_EQ(0, i);
 }
 TEST(librmb, mock_obj) {}

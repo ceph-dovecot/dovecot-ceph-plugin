@@ -21,6 +21,7 @@ extern "C" {
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "encoding.h"
+#include "rados-mail-object.h"
 
 using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
@@ -35,34 +36,25 @@ static uint32_t stoui32(const std::string &s) {
   return val;
 }
 
-static char *get_xattr_value(const std::map<std::string, ceph::bufferlist> &attrset, enum rbox_metadata_key key) {
-  const std::string skey(1, static_cast<const char>(key));
-  if (attrset.find(skey) != attrset.end()) {
-    auto value = attrset.find(skey);
-    if (value != attrset.end()) {
-      auto value_string = value->second.to_str();
-      return i_strdup(value_string.c_str());
-    }
-  }
-  return nullptr;
-}
 
-int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
-                         const std::map<std::string, ceph::bufferlist> &attrset) {
+int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMailObject *mail_obj) {
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
-
-  char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
-  if (xattr_mail_uid == nullptr) {
+  std::string xattr_mail_uid = mail_obj->get_xvalue(RBOX_METADATA_MAIL_UID);
+  // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
+  if (xattr_mail_uid.empty()) {
     return -1;
   }
-  char *xattr_guid = get_xattr_value(attrset, RBOX_METADATA_GUID);
-  if (xattr_guid == nullptr) {
+
+  std::string xattr_guid = mail_obj->get_xvalue(RBOX_METADATA_GUID);
+  // char *xattr_guid = get_xattr_value(attrset, RBOX_METADATA_GUID);
+  if (xattr_guid.empty()) {
     return -1;
   }
-  uint32_t uid = stoui32(std::string(xattr_mail_uid));
 
+  uint32_t uid = stoui32(xattr_mail_uid);
   mail_index_append(ctx->trans, uid, &seq);
+
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
   i_zero(&rec);
@@ -72,7 +64,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     return -1;
   }
   guid_128_t guid;
-  if (guid_128_from_string(xattr_guid, guid) < 0) {
+  if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
     return -1;
   }
   memcpy(rec.guid, guid, sizeof(guid));
@@ -101,24 +93,21 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
 
   // find objects with mailbox_guid 'U' attribute
   std::string xattr(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
-  std::string filter_name = PLAIN_FILTER_NAME;
-  ceph::bufferlist filter_bl;
+  librmb::RadosXAttr attr;
+  attr.key = xattr;
+  attr.bl.append(mailbox_guid);
 
-  encode(filter_name, filter_bl);
-  encode("_" + xattr, filter_bl);
-  encode(mailbox_guid, filter_bl);
+  librados::NObjectIterator iter(r_storage->s->find_objects(&attr));
 
-  librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin(filter_bl));
   int found = 0;
   int ret = 0;
-  while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
+  while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
+    librmb::RadosMailObject mail_object;
+    int retx = r_storage->s->load_xattr(&mail_object);
 
-    librados::bufferlist mail_uid;
-    std::string key(1, static_cast<char>(RBOX_METADATA_MAIL_UID));
-    int retx = r_storage->s->get_io_ctx().getxattrs((*iter).get_oid(), attrset);
     if (retx >= 0) {
-      ret = rbox_sync_add_object(ctx, (*iter).get_oid(), attrset);
+      ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object);
       if (ret < 0) {
         break;
       }

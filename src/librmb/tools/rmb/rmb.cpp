@@ -23,6 +23,8 @@
 #include <algorithm>  // std::sort
 
 #include <limits>
+#include "interfaces/rados-cluster-interface.h"
+#include "interfaces/rados-storage-interface.h"
 
 #include "rados-cluster.h"
 #include "rados-storage.h"
@@ -243,26 +245,27 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
-  librmb::RadosStorage *storage = NULL;
-  librmb::RadosCluster cluster;
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
   std::string pool_name(opts["pool"]);
   std::string ns(opts["namespace"]);
 
-  int open_connection = cluster.open_connection(&storage, pool_name, ns);
+  int open_connection = storage.open_connection(pool_name, ns);
 
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
   }
-  librados::NObjectIterator iter(storage->get_io_ctx().nobjects_begin());
-  while (iter != storage->get_io_ctx().nobjects_end()) {
+  librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
+  while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     mail->set_oid(iter->get_oid());
 
-    storage->get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
+    storage.get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
-    storage->get_io_ctx().stat(iter->get_oid(), &object_size, &save_date_rados);
+    storage.get_io_ctx().stat(iter->get_oid(), &object_size, &save_date_rados);
     mail->set_object_size(object_size);
     mail->set_rados_save_date(save_date_rados);
 
@@ -292,9 +295,9 @@ int main(int argc, const char **argv) {
       parser.set_output_dir("rmb");
     }
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
-      query_mail_storage(&mail_objects, &parser, true, storage);
+      query_mail_storage(&mail_objects, &parser, true, &storage);
     } else if (parser.parse_ls_string()) {
-      query_mail_storage(&mail_objects, &parser, true, storage);
+      query_mail_storage(&mail_objects, &parser, true, &storage);
     } else {
       // tear down.
       cluster.deinit();

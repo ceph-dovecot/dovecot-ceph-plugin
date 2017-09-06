@@ -20,17 +20,15 @@ using std::list;
 using std::pair;
 using std::string;
 
-using librmb::RadosCluster;
+using librmb::RadosClusterImpl;
 
-librados::Rados RadosCluster::cluster;
-int RadosCluster::cluster_ref_count = 0;
-const char *RadosCluster::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
+librados::Rados RadosClusterImpl::cluster;
+int RadosClusterImpl::cluster_ref_count = 0;
+RadosClusterImpl::RadosClusterImpl() {}
 
-RadosCluster::RadosCluster() {}
+RadosClusterImpl::~RadosClusterImpl() {}
 
-RadosCluster::~RadosCluster() {}
-
-int RadosCluster::init(string *error_r) {
+int RadosClusterImpl::init(string *error_r) {
   if (cluster_ref_count == 0) {
     int ret = 0;
     ret = cluster.init(nullptr);
@@ -63,7 +61,7 @@ int RadosCluster::init(string *error_r) {
   return 0;
 }
 
-void RadosCluster::deinit() {
+void RadosClusterImpl::deinit() {
   if (cluster_ref_count > 0) {
     cluster_ref_count--;
     if (cluster_ref_count == 0) {
@@ -72,7 +70,7 @@ void RadosCluster::deinit() {
   }
 }
 
-int RadosCluster::pool_create(const string &pool) {
+int RadosClusterImpl::pool_create(const string &pool) {
   // pool exists? else create
   list<pair<int64_t, string>> pool_list;
   int err = cluster.pool_list2(pool_list);
@@ -98,8 +96,32 @@ int RadosCluster::pool_create(const string &pool) {
   return err;
 }
 
-int RadosCluster::dictionary_create(const string &pool, const string &username, const string &oid,
-                                    RadosDictionary **dictionary) {
+int RadosClusterImpl::io_ctx_create(const std::string &pool) {
+  if (cluster_ref_count == 0) {
+    return -ENOENT;
+  }
+  // pool exists? else create
+  int err = pool_create(pool);
+  if (err < 0) {
+    return err;
+  }
+  err = cluster.ioctx_create(pool.c_str(), io_ctx);
+  if (err < 0) {
+    return err;
+  }
+  return 0;
+}
+
+int RadosClusterImpl::get_config_option(const char *option, std::string *value) {
+  int err = cluster.conf_get(option, *value);
+  if (err < 0) {
+    return err;
+  }
+  return err;
+}
+
+int RadosClusterImpl::dictionary_create(const string &pool, const string &username, const string &oid,
+                                        RadosDictionary **dictionary) {
   if (cluster_ref_count == 0) {
     return -ENOENT;
   }
@@ -111,66 +133,15 @@ int RadosCluster::dictionary_create(const string &pool, const string &username, 
     return err;
   }
 
-  librados::IoCtx io_ctx;
-  err = cluster.ioctx_create(pool.c_str(), io_ctx);
+  librados::IoCtx _io_ctx;
+  err = cluster.ioctx_create(pool.c_str(), _io_ctx);
   if (err < 0) {
     // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
     return err;
   }
 
-  *dictionary = new RadosDictionary(&io_ctx, username, oid);
+  *dictionary = new RadosDictionaryImpl(&_io_ctx, username, oid);
   return 0;
 }
 
-int RadosCluster::storage_create(const string &pool, RadosStorage **storage) {
-  if (cluster_ref_count == 0) {
-    return -ENOENT;
-  } else if (*storage != NULL) {
-    // Storage already created
-    return 0;
-  }
 
-  // pool exists? else create
-  int err = pool_create(pool);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot list RADOS pools: %s", strerror(-err));
-    return err;
-  }
-
-  librados::IoCtx io_ctx;
-  err = cluster.ioctx_create(pool.c_str(), io_ctx);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
-    return err;
-  }
-
-  std::string max_write_size;
-  err = cluster.conf_get(RadosCluster::CFG_OSD_MAX_WRITE_SIZE, max_write_size);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
-    return err;
-  }
-
-  // "found: max write size " << max_write_size.c_str() << "\n";
-
-  *storage = new RadosStorage(&io_ctx, std::stoi(max_write_size));
-  return 0;
-}
-
-int RadosCluster::open_connection(RadosStorage **storage, const std::string &poolname, const std::string &ns) {
-  std::string error_msg;
-  if (init(&error_msg) < 0) {
-    return -1;
-  }
-
-  int ret = storage_create(poolname, storage);
-  if (ret < 0) {
-    deinit();
-    return -1;
-  }
-
-  if (!ns.empty()) {
-    (*storage)->get_io_ctx().set_namespace(ns);
-  }
-  return 0;
-}

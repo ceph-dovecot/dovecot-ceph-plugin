@@ -196,7 +196,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         i_debug("setting done");
       }
 
-      ret_val = dest_io_ctx.aio_operate(dest_oid, completion, &write_op);
+      ret_val = r_storage->s->aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+
       i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
 
     } else {
@@ -210,7 +211,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       set_mailbox_xattr(ctx, &write_op);
 
-      int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
+      // int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
+      int err = r_storage->s->aio_operate(&dest_io_ctx, src_oid, completion, &write_op);
+
       i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
     }
 

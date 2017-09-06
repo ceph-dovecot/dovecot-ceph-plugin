@@ -15,13 +15,14 @@
 #include <map>
 #include <string>
 #include <rados/librados.hpp>
+#include "rados-mail-object.h"
 
 extern "C" {
 #include "index-rebuild.h"
 }
-
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
-                                const std::map<std::string, ceph::bufferlist> &attrset);
+                                librmb::RadosMailObject *mail_obj);
+
 extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string &mailbox_guid);
 extern void rbox_sync_set_uidvalidity(struct index_rebuild_context *ctx);
 

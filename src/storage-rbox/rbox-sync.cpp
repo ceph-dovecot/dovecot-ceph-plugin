@@ -270,9 +270,7 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
     return;
   }
 
-  r_storage->s->get_io_ctx().aio_remove(oid, completion);
-
-  completion->wait_for_complete_and_cb();
+  r_storage->s->delete_mail(oid);
 
   FUNC_END();
 }

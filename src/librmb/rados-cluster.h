@@ -15,33 +15,31 @@
 #include <string>
 
 #include <rados/librados.hpp>
+#include "interfaces/rados-cluster-interface.h"
 
 namespace librmb {
 
-class RadosDictionary;
-class RadosStorage;
-
-class RadosCluster {
+class RadosClusterImpl : public RadosCluster {
  public:
-  RadosCluster();
-  virtual ~RadosCluster();
+  RadosClusterImpl();
+  virtual ~RadosClusterImpl();
 
   int init(std::string *error_r);
   void deinit();
 
   int pool_create(const std::string &pool);
+  int io_ctx_create(const std::string &pool);
+  int get_config_option(const char *option, std::string *value);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
-  int storage_create(const std::string &pool, RadosStorage **storage);
 
-  int open_connection(RadosStorage **storage, const std::string &poolname, const std::string &ns);
+  librados::IoCtx &get_io_ctx() { return this->io_ctx; }
 
  private:
   static librados::Rados cluster;
   static int cluster_ref_count;
+  librados::IoCtx io_ctx;
 
- public:
-  static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
 }  // namespace librmb

@@ -19,16 +19,19 @@
 #include <cstdint>
 
 #include <rados/librados.hpp>
+#include "interfaces/rados-storage-interface.h"
 #include "rados-mail-object.h"
 
 namespace librmb {
 
-class RadosStorage {
+class RadosStorageImpl : public RadosStorage {
  public:
-  RadosStorage(librados::IoCtx *ctx, const int max_write_size);
-  virtual ~RadosStorage();
+  RadosStorageImpl(RadosCluster *cluster);
+  virtual ~RadosStorageImpl();
 
-  librados::IoCtx &get_io_ctx() { return io_ctx; }
+  librados::IoCtx &get_io_ctx() { return cluster->get_io_ctx(); }
+  int stat_object(const std::string &oid, uint64_t *psize, time_t *pmtime);
+  void set_namespace(const std::string &nspace);
 
   int get_max_write_size() { return max_write_size; }
   int get_max_write_size_bytes() { return max_write_size * 1024 * 1024; }
@@ -38,11 +41,20 @@ class RadosStorage {
 
   int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer);
   int load_xattr(RadosMailObject *mail);
+  int set_xattr(const std::string &oid, RadosXAttr &xattr);
+
   int delete_mail(RadosMailObject *mail);
+  int delete_mail(std::string oid);
+
+  int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
+                  librados::ObjectWriteOperation *op);
+  librados::NObjectIterator find_objects(RadosXAttr *attr);
+  int open_connection(const std::string &poolname, const std::string &ns);
 
  private:
-  librados::IoCtx io_ctx;
+  RadosCluster *cluster;
   int max_write_size;
+  static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
 }  // namespace librmb

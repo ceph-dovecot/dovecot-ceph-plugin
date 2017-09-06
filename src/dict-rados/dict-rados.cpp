@@ -41,6 +41,7 @@ extern "C" {
 
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
+#include "interfaces/rados-cluster-interface.h"
 
 #ifdef NDEBUG
 #define FUNC_START() ((void)0)
@@ -76,7 +77,7 @@ static const char CACHE_DELETED[] = "_DELETED_";
 
 struct rados_dict {
   struct dict dict;
-  RadosCluster cluster;
+  RadosCluster *cluster;
   RadosDictionary *d;
 };
 
@@ -133,8 +134,10 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 
   dict = i_new(struct rados_dict, 1);
 
+  dict->cluster = new librmb::RadosClusterImpl();
+
   string error_msg;
-  int ret = dict->cluster.init(&error_msg);
+  int ret = dict->cluster->init(&error_msg);
 
   if (ret < 0) {
     i_free(dict);
@@ -142,11 +145,12 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     return -1;
   }
 
-  ret = dict->cluster.dictionary_create(pool, username, oid, &dict->d);
+  ret = dict->cluster->dictionary_create(pool, username, oid, &dict->d);
 
   if (ret < 0) {
     *error_r = t_strdup_printf("Error creating RadosDictionary()! %s", strerror(-ret));
-    dict->cluster.deinit();
+    dict->cluster->deinit();
+    delete dict->cluster;
     return -1;
   }
 
@@ -162,7 +166,8 @@ void rados_dict_deinit(struct dict *_dict) {
   // wait for open operations
   rados_dict_wait(_dict);
 
-  dict->cluster.deinit();
+  dict->cluster->deinit();
+  delete dict->cluster;
   delete dict->d;
   dict->d = nullptr;
 
