@@ -103,7 +103,6 @@ int rbox_get_index_record(struct mail *_mail) {
 struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
                              struct mailbox_header_lookup_ctx *wanted_headers) {
   FUNC_START();
-
   struct rbox_mail *mail;
 
   pool_t pool = pool_alloconly_create("mail", 2048);
@@ -135,7 +134,6 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   std::string value = rmail->mail_object->get_xvalue(key);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
-    return 0;
   }
   return 0;
 }
@@ -149,8 +147,6 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   uintmax_t time;
   int ret = 0;
   if (index_mail_get_received_date(_mail, date_r) == 0) {
-    // i_debug("received date = %s", ctime(date_r));
-    //  debug_print_mail(_mail, "rbox-mail::rbox_mail_get_received_date (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
     return 0;
   }
@@ -177,8 +173,6 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   i_free(value);
 
   i_debug("received date = %s", ctime(date_r));
-  debug_print_mail(_mail, "rbox-mail::rbox_mail_get_received_date", NULL);
-  debug_print_index_mail_data(data, "rbox-mail::rbox_mail_get_received_date", NULL);
   FUNC_END();
   return 0;
 }
@@ -192,7 +186,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 
   if (index_mail_get_save_date(_mail, date_r) == 0) {
     i_debug("save date = %s", ctime(date_r));
-    debug_print_mail(_mail, "rbox_mail_get_save_date (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
     return 0;
   }
@@ -218,8 +211,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   *date_r = data->save_date = save_date_rados;
 
   i_debug("save date = %s", ctime(date_r));
-  debug_print_mail(_mail, "rbox-mail::rbox_mail_get_save_date", NULL);
-  debug_print_index_mail_data(data, "rbox-mail::rbox_mail_get_save_date", NULL);
   FUNC_END();
   return 0;
 }
@@ -264,7 +255,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
             *size_r);
-    debug_print_mail(_mail, "rbox-mail::rbox_mail_get_physical_size (ret 0, 1)", NULL);
     FUNC_END_RET("ret == 0");
 
     return 0;
@@ -359,7 +349,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     if (rmail->imail.mail.v.istream_opened != NULL) {
       if (rmail->imail.mail.v.istream_opened(_mail, &input) < 0) {
         i_stream_unref(&input);
-        debug_print_mail(_mail, "rbox-mail::rbox_mail_get_stream (ret -1, 2)", NULL);
         FUNC_END_RET("ret == -1");
         return -1;
       }
@@ -367,7 +356,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     data->stream = input;
   }
   ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
-  debug_print_mail(_mail, "rbox-mail::rbox_mail_get_stream", NULL);
 
   FUNC_END();
   return ret;

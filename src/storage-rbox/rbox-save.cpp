@@ -65,9 +65,6 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     t->save_ctx = &r_ctx->ctx;
   }
 
-  // ifdef
-  debug_print_mail_save_context(t->save_ctx, "rbox-save::rbox_save_alloc", NULL);
-
   FUNC_END();
   return t->save_ctx;
 }
@@ -204,8 +201,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   //  _ctx->data.output = o_stream_create_buffer(r_ctx->mail_buffer);
   _ctx->data.output = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
-
   r_ctx->objects.push_back(r_ctx->current_object);
   if (_ctx->data.received_date == (time_t)-1)
     _ctx->data.received_date = ioloop_time;
@@ -224,8 +219,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   }
 
   if (r_ctx->failed) {
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue (ret -1, 1)", NULL);
-    debug_print_mail_storage(storage, "rbox-save::rbox_save_continue (ret -1, 1)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -236,8 +229,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
       }
       r_ctx->failed = TRUE;
-      debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue (ret -1, 2)", NULL);
-      debug_print_mail_storage(storage, "rbox-save::rbox_save_continue (ret -1, 2)", NULL);
       FUNC_END_RET("ret == -1");
       return -1;
     }
@@ -248,8 +239,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
      one of the streams still having data in them. */
   } while (i_stream_read(r_ctx->input) > 0);
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue", NULL);
-  debug_print_mail_storage(storage, "rbox-save::rbox_save_continue", NULL);
   FUNC_END();
   return 0;
 }
@@ -433,8 +422,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
 
   clean_up_write_finish(_ctx);
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
-
   FUNC_END();
   return r_ctx->failed ? -1 : 0;
 }
@@ -445,8 +432,6 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
 
   r_ctx->failed = TRUE;
   (void)rbox_save_finish(_ctx);
-
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_cancel", NULL);
   FUNC_END();
 }
 
@@ -501,7 +486,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -528,7 +512,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
   _t->changes->uid_validity = hdr->uid_validity;
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
   FUNC_END();
   return 0;
 }
@@ -543,8 +526,6 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
   (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
-
   rbox_transaction_save_rollback(_ctx);
 
   FUNC_END();
@@ -566,8 +547,6 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     // delete index entry and delete object if it exist
     clean_up_failed(r_ctx);
   }
-
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
 
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
