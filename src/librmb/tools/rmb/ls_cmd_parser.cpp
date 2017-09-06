@@ -16,6 +16,12 @@
 
 namespace librmb {
 
+CmdLineParser::~CmdLineParser() {
+  for (auto &it : predicates) {
+    delete it.second;
+  }
+}
+
 Predicate *CmdLineParser::create_predicate(const std::string &_ls_value) {
   Predicate *p = new Predicate();
 
@@ -31,6 +37,28 @@ Predicate *CmdLineParser::create_predicate(const std::string &_ls_value) {
   this->keys += p->key + " ";
   // std::cout << " predicate: key " << p->key << " op " << p->op << " value " << p->value << std::endl;
   return p;
+}
+
+void CmdLineParser::set_output_dir(const std::string out) {
+  if (out.length() > 0 && out.at(0) == '~') {
+    // Convert tilde to $HOME path (if exists)
+    char outpath[PATH_MAX];
+    char *home = getenv("HOME");
+    if (home != NULL) {
+      snprintf(outpath, sizeof(outpath), "%s", home);
+      out_dir.clear();
+      out_dir.append(outpath);
+      if (out.length() > 1 && out.at(1) != '/') {
+        out_dir.append(1, '/');
+      }
+      out_dir.append(out, 1, std::string::npos);
+    } else {
+      this->out_dir = out;
+    }
+
+  } else {
+    this->out_dir = out;
+  }
 }
 
 bool CmdLineParser::parse_ls_string() {
