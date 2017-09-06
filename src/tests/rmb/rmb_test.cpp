@@ -50,10 +50,6 @@ TEST(rmb, test_cmd_parser) {
 
   // value = "1086165760";
   // EXPECT_TRUE(p3->eval(value));
-
-  delete p;
-  delete p2;
-  delete p3;
 }
 
 TEST(rmb1, date_arg) {
