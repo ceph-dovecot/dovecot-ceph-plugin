@@ -27,7 +27,7 @@ class RadosCluster {
   virtual int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                                 RadosDictionary **dictionary) = 0;
 };
- 
+
 }  // namespace librmb
 
 #endif /* SRC_LIBRMB_RADOS_CLUSTER_INTERFACE_H_ */
