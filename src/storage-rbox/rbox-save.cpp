@@ -2,6 +2,7 @@
 // vim: ts=8 sw=2 smarttab
 /*
  * Copyright (c) 2017 Tallence AG and the authors
+ * Copyright (c) 2007-2017 Dovecot authors
  *
  * This is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -470,7 +471,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct seq_range_iter iter;
 
   i_assert(r_ctx->finished);
-  
+
   r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!

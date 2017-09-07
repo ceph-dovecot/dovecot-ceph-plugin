@@ -2,6 +2,7 @@
 // vim: ts=8 sw=2 smarttab
 /*
  * Copyright (c) 2017 Tallence AG and the authors
+ * Copyright (c) 2007-2017 Dovecot authors
  *
  * This is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
