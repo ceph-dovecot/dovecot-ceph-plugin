@@ -1,12 +1,18 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-storage.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Sep 4, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #ifndef SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_
 #define SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_
+
+#include <string>
 
 #include "../rados-mail-object.h"
 #include "rados-cluster-interface.h"
@@ -16,7 +22,7 @@ namespace librmb {
 
 class RadosStorage {
  public:
-  virtual ~RadosStorage(){};
+  virtual ~RadosStorage() {}
 
   virtual librados::IoCtx &get_io_ctx() = 0;
   virtual int stat_object(const std::string &oid, uint64_t *psize, time_t *pmtime) = 0;
@@ -29,7 +35,7 @@ class RadosStorage {
 
   virtual int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer) = 0;
   virtual int load_xattr(RadosMailObject *mail) = 0;
-  virtual int set_xattr(const std::string &oid, RadosXAttr &xattr) = 0;
+  virtual int set_xattr(const std::string &oid, const RadosXAttr &xattr) = 0;
 
   virtual int delete_mail(RadosMailObject *mail) = 0;
   virtual int delete_mail(std::string oid) = 0;
@@ -42,4 +48,4 @@ class RadosStorage {
 
 }  // namespace librmb
 
-#endif /* SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_ */
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_

@@ -1,12 +1,18 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-dictionary-interface.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Sep 4, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #ifndef SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_
 #define SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_
+
+#include <string>
 
 #include <rados/librados.hpp>
 
@@ -14,7 +20,7 @@ namespace librmb {
 
 class RadosDictionary {
  public:
-  virtual ~RadosDictionary(){};
+  virtual ~RadosDictionary() {}
 
   virtual const std::string get_full_oid(const std::string& key) = 0;
   virtual const std::string get_shared_oid() = 0;
@@ -31,6 +37,6 @@ class RadosDictionary {
   virtual void wait_for_completions() = 0;
   virtual int get(const std::string& key, std::string* value_r) = 0;
 };
-}  // END NAMEPSACE
+}  // namespace librmb
 
-#endif /* SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_ */
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_

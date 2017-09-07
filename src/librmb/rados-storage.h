@@ -26,7 +26,7 @@ namespace librmb {
 
 class RadosStorageImpl : public RadosStorage {
  public:
-  RadosStorageImpl(RadosCluster *cluster);
+  explicit RadosStorageImpl(RadosCluster *cluster);
   virtual ~RadosStorageImpl();
 
   librados::IoCtx &get_io_ctx() { return cluster->get_io_ctx(); }
@@ -41,7 +41,7 @@ class RadosStorageImpl : public RadosStorage {
 
   int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer);
   int load_xattr(RadosMailObject *mail);
-  int set_xattr(const std::string &oid, RadosXAttr &xattr);
+  int set_xattr(const std::string &oid, const RadosXAttr &xattr);
 
   int delete_mail(RadosMailObject *mail);
   int delete_mail(std::string oid);

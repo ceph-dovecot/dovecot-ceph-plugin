@@ -1,19 +1,27 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-cluster-Interface.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Sep 4, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
-#ifndef SRC_LIBRMB_RADOS_CLUSTER_INTERFACE_H_
-#define SRC_LIBRMB_RADOS_CLUSTER_INTERFACE_H_
+#ifndef SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_
+#define SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_
+
+#include <string>
+
+#include <rados/librados.hpp>
 
 namespace librmb {
 class RadosDictionary;
 
 class RadosCluster {
  public:
-  virtual ~RadosCluster(){};
+  virtual ~RadosCluster() {}
   virtual int init(std::string *error_r) = 0;
   virtual void deinit() = 0;
 
@@ -27,4 +35,4 @@ class RadosCluster {
 
 }  // namespace librmb
 
-#endif /* SRC_LIBRMB_RADOS_CLUSTER_INTERFACE_H_ */
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_

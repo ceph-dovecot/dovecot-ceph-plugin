@@ -100,8 +100,8 @@ int RadosStorageImpl::load_xattr(RadosMailObject *mail) {
   return ret;
 }
 
-int RadosStorageImpl::set_xattr(const std::string &oid, RadosXAttr &xattr) {
-  return cluster->get_io_ctx().setxattr(oid, xattr.key.c_str(), xattr.bl);
+int RadosStorageImpl::set_xattr(const std::string &oid, const RadosXAttr &xattr) {
+  return cluster->get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
