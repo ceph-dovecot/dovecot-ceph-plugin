@@ -60,7 +60,7 @@ To load the plugin, add _storage_rbox_ to the list of mail plugins. The name of 
 Add the plugin to `10-mail.conf` as _mail_location_. See [Mail location](http://wiki.dovecot.org/MailLocation) for details.
 Cause the index management of Dovecot is used, the description of _path_ and a lot of the optional parameters are valid for rbox, too.
 
-The optional parameters of the mailbox location specification that differ for rbox ares:
+The optional parameters of the mailbox location specification that differ for rbox are:
 
 * `LAYOUT` : specifies the directory layout to use:
   * `fs`: **The default used by rbox**
