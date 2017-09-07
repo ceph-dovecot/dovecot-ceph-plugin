@@ -120,28 +120,4 @@ int RadosClusterImpl::get_config_option(const char *option, std::string *value) 
   return err;
 }
 
-int RadosClusterImpl::dictionary_create(const string &pool, const string &username, const string &oid,
-                                        RadosDictionary **dictionary) {
-  if (cluster_ref_count == 0) {
-    return -ENOENT;
-  }
-
-  // pool exists? else create
-  int err = pool_create(pool);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot list RADOS pools: %s", strerror(-err));
-    return err;
-  }
-
-  librados::IoCtx _io_ctx;
-  err = cluster.ioctx_create(pool.c_str(), _io_ctx);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot open RADOS pool %s: %s", pool.c_str(), strerror(-err));
-    return err;
-  }
-
-  *dictionary = new RadosDictionaryImpl(&_io_ctx, username, oid);
-  return 0;
-}
-
 

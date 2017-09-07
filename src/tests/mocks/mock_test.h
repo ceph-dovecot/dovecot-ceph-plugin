@@ -61,9 +61,6 @@ class RadosClusterMock : public RadosCluster {
   MOCK_METHOD1(io_ctx_create, int(const std::string &pool));
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
   MOCK_METHOD0(get_io_ctx, librados::IoCtx &());
-
-  MOCK_METHOD4(dictionary_create, int(const std::string &pool, const std::string &username, const std::string &oid,
-                                      RadosDictionary **dictionary));
 };
 }
 
