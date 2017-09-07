@@ -65,6 +65,7 @@ void RadosClusterImpl::deinit() {
   if (cluster_ref_count > 0) {
     cluster_ref_count--;
     if (cluster_ref_count == 0) {
+      io_ctx.close();
       cluster.shutdown();
     }
   }

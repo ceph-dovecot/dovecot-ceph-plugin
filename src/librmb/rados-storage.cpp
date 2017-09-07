@@ -27,7 +27,7 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   this->max_write_size = 0;
 }
 
-RadosStorageImpl::~RadosStorageImpl() { cluster->get_io_ctx().close(); }
+RadosStorageImpl::~RadosStorageImpl() {}
 
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,

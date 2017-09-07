@@ -39,7 +39,7 @@ using librmb::RadosDictionaryImpl;
 RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_username, const string &_oid)
     : cluster(_cluster), username(_username), oid(_oid) {}
 
-RadosDictionaryImpl::~RadosDictionaryImpl() { get_io_ctx().close(); }
+RadosDictionaryImpl::~RadosDictionaryImpl() {}
 
 const string RadosDictionaryImpl::get_full_oid(const std::string &key) {
   if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
