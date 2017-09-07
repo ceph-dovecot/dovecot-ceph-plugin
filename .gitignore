@@ -91,3 +91,7 @@ libtool
 .ptp-sync-folder
 
 /dovecot-ceph-plugins-config.h
+
+.dirstamp
+.README.md.html
+
