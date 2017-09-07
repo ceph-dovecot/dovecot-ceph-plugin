@@ -28,9 +28,7 @@ extern "C" {
 #include "rbox-sync.h"
 #include "rbox-copy.h"
 
-using librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID;
-using librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX;
+using librmb::rbox_metadata_key;
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 
@@ -107,11 +105,12 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
     // #endif
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
     librmb::RadosXAttr xattr;
-    librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+    librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                                guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
     write_op->setxattr(xattr.key.c_str(), xattr.bl);
     i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
     librmb::RadosXAttr xattr_mb;
-    librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+    librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
     write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
     i_debug("setting done");
   }
@@ -183,12 +182,13 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       {
         struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)dest_mbox;
         librmb::RadosXAttr xattr;
-        librmb::RadosXAttr::convert(RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+        librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                                    guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
         write_op.setxattr(xattr.key.c_str(), xattr.bl);
 
         i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
         librmb::RadosXAttr xattr_mb;
-        librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+        librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
         write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
         i_debug("setting done");
       }
@@ -237,7 +237,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   // #endif
 
   FUNC_START();
-#ifdef HAVE_COPYING_OR_MOVING
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_COPYING_OR_MOVING
   i_assert(ctx->copying_or_moving);
 #endif
   r_ctx->finished = TRUE;

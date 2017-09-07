@@ -30,10 +30,10 @@ struct dict dict_driver_rados = {.name = "rados",
                                   .set = rados_dict_set,
                                   .unset = rados_dict_unset,
                                   .atomic_inc = rados_dict_atomic_inc,
-#ifdef HAVE_DICT_SWITCH_IOLOOP
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_SWITCH_IOLOOP
                                   .switch_ioloop = NULL,
 #endif
-#ifdef HAVE_DICT_SET_TIMESTAMP
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_SET_TIMESTAMP
                                   .set_timestamp = rados_dict_set_timestamp,
 #endif
                                   .lookup_async = rados_dict_lookup_async

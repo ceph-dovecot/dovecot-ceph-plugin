@@ -26,7 +26,10 @@ struct mail_storage rbox_storage = {
 
     .v = {
         NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings, NULL,
-        rbox_mailbox_alloc, NULL, NULL,
+        rbox_mailbox_alloc, NULL,
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_LIST_INDEX_CORRUPTED
+        NULL,
+#endif
     }};
 
 void storage_rbox_plugin_init(struct module *module ATTR_UNUSED) {

@@ -39,6 +39,7 @@ extern "C" {
 #include "dict-rados.h"
 }
 
+#include "libdict-rados-plugin.h"
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
 #include "interfaces/rados-cluster-interface.h"
@@ -222,7 +223,7 @@ static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, 
   i_zero(&result);
   result.ret = RADOS_COMMIT_RET_NOTFOUND;
 
-#ifdef HAVE_DICT_LOOKUP_RESULT_VALUES
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_LOOKUP_RESULT_VALUES
   const char *values[2];
 #endif
 
@@ -235,7 +236,7 @@ static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, 
         lc->value = it->second.to_str();
         i_debug("rados_dict_lookup_complete_callback('%s')='%s'", it->first.c_str(), lc->value.c_str());
         result.value = lc->value.c_str();
-#ifdef HAVE_DICT_LOOKUP_RESULT_VALUES
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_LOOKUP_RESULT_VALUES
         values[0] = lc->value.c_str();
         values[1] = nullptr;
         result.values = values;
@@ -368,7 +369,7 @@ class rados_dict_transaction_context {
     ctx.dict = _dict;
     ctx.changed = 0;
 
-#ifdef HAVE_DICT_SET_TIMESTAMP
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_SET_TIMESTAMP
     ctx.timestamp.tv_sec = 0;
     ctx.timestamp.tv_nsec = 0;
 #endif
@@ -420,10 +421,9 @@ struct dict_transaction_context *rados_dict_transaction_init(struct dict *_dict)
   return &ctx->ctx;
 }
 
-#ifdef HAVE_DICT_SET_TIMESTAMP
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_SET_TIMESTAMP
 void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struct timespec *ts) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
 
   struct timespec t = {ts->tv_sec, ts->tv_nsec};
 
@@ -819,8 +819,12 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : private_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_OMAP_GET_VALS2
           bool more;
           private_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, &more, &iter->results.back().rval);
+#else
+          private_read_op.omap_get_vals("", k, LONG_MAX, &iter->results.back().map, &iter->results.back().rval);
+#endif
         }
       }
 
@@ -842,8 +846,12 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : shared_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_OMAP_GET_VALS2
           bool more;
           shared_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, &more, &iter->results.back().rval);
+#else
+          shared_read_op.omap_get_vals("", k, LONG_MAX, &iter->results.back().map, &iter->results.back().rval);
+#endif
         }
       }
 

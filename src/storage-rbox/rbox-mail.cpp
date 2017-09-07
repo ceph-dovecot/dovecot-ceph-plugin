@@ -40,13 +40,6 @@ extern "C" {
 
 using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAIL_UID;
-using librmb::rbox_metadata_key::RBOX_METADATA_GUID;
-using librmb::rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE;
-using librmb::rbox_metadata_key::RBOX_METADATA_POP3_UIDL;
-using librmb::rbox_metadata_key::RBOX_METADATA_POP3_ORDER;
-using librmb::rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME;
 
 static void rbox_mail_set_expunged(struct rbox_mail *mail) {
   struct mail *_mail = &mail->imail.mail.mail;
@@ -152,7 +145,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     return 0;
   }
 
-  ret = rbox_mail_metadata_get(rmail, RBOX_METADATA_RECEIVED_TIME, &value);
+  ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
   if (ret < 0) {
     if (ret == -ENOENT) {
       rbox_mail_set_expunged(rmail);
@@ -425,25 +418,25 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
      used. */
   switch (field) {
     case MAIL_FETCH_GUID:
-      return rbox_get_cached_metadata(mail, RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+      return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
     case MAIL_FETCH_UIDL_BACKEND:
-#ifdef HAVE_INDEX_POP3_UIDL_H
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
       if (!index_pop3_uidl_can_exist(_mail)) {
         *value_r = "";
         return 0;
       }
 #endif
 
-      ret = rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
+      ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
 
-#ifdef HAVE_INDEX_POP3_UIDL_H
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
 #endif
       return ret;
     case MAIL_FETCH_POP3_ORDER:
-#ifdef HAVE_INDEX_POP3_UIDL_H
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
       if (!index_pop3_uidl_can_exist(_mail)) {
         /* we're assuming that if there's a POP3 order, there's
            also a UIDL */
@@ -451,7 +444,8 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         return 0;
       }
 #endif
-      return rbox_get_cached_metadata(mail, RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER, value_r);
+      return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER,
+                                      value_r);
 
     case MAIL_FETCH_FLAGS:
     case MAIL_FETCH_MESSAGE_PARTS:
@@ -525,7 +519,7 @@ struct mail_vfuncs rbox_mail_vfuncs = {
 #endif
     index_mail_update_flags, index_mail_update_keywords, index_mail_update_modseq, index_mail_update_pvt_modseq, NULL,
     index_mail_expunge, index_mail_set_cache_corrupted, index_mail_opened,
-#ifdef HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
     index_mail_set_cache_corrupted_reason
 #endif
 };
