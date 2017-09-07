@@ -10,6 +10,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include "rados-storage.h"
 #include "rados-cluster.h"
 #include "rados-mail-object.h"
@@ -49,10 +50,6 @@ TEST(rmb, test_cmd_parser) {
 
   // value = "1086165760";
   // EXPECT_TRUE(p3->eval(value));
-
-  delete p;
-  delete p2;
-  delete p3;
 }
 
 TEST(rmb1, date_arg) {
@@ -123,7 +120,6 @@ TEST(rmb1, path_tests) {
 }
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-
+  ::testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();
 }

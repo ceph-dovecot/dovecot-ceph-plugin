@@ -65,9 +65,6 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     t->save_ctx = &r_ctx->ctx;
   }
 
-  // ifdef
-  debug_print_mail_save_context(t->save_ctx, "rbox-save::rbox_save_alloc", NULL);
-
   FUNC_END();
   return t->save_ctx;
 }
@@ -153,7 +150,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
-  if (_ctx->dest_mail != 0) {
+  if (_ctx->dest_mail != NULL) {
     i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
@@ -167,6 +164,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
+    r_ctx->dest_mail_allocated = TRUE;
   }
 
   if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
@@ -203,8 +201,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   //  _ctx->data.output = o_stream_create_buffer(r_ctx->mail_buffer);
   _ctx->data.output = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_begin", NULL);
-
   r_ctx->objects.push_back(r_ctx->current_object);
   if (_ctx->data.received_date == (time_t)-1)
     _ctx->data.received_date = ioloop_time;
@@ -223,8 +219,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   }
 
   if (r_ctx->failed) {
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue (ret -1, 1)", NULL);
-    debug_print_mail_storage(storage, "rbox-save::rbox_save_continue (ret -1, 1)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -235,8 +229,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
       }
       r_ctx->failed = TRUE;
-      debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue (ret -1, 2)", NULL);
-      debug_print_mail_storage(storage, "rbox-save::rbox_save_continue (ret -1, 2)", NULL);
       FUNC_END_RET("ret == -1");
       return -1;
     }
@@ -247,8 +239,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
      one of the streams still having data in them. */
   } while (i_stream_read(r_ctx->input) > 0);
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_continue", NULL);
-  debug_print_mail_storage(storage, "rbox-save::rbox_save_continue", NULL);
   FUNC_END();
   return 0;
 }
@@ -432,8 +422,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   }
 
   clean_up_write_finish(_ctx);
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_finish", NULL);
-
   FUNC_END();
   return r_ctx->failed ? -1 : 0;
 }
@@ -444,8 +432,6 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
 
   r_ctx->failed = TRUE;
   (void)rbox_save_finish(_ctx);
-
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_save_cancel", NULL);
   FUNC_END();
 }
 
@@ -465,8 +451,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     {
       RadosXAttr xattr;
       RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid, &xattr);
-      int ret_val = r_storage->s->get_io_ctx().setxattr(r_ctx->current_object->get_oid(), xattr.key.c_str(), xattr.bl);
-
+      int ret_val = r_storage->s->set_xattr(r_ctx->current_object->get_oid(), xattr);
       if (ret_val < 0) {
         return -1;
       }
@@ -485,7 +470,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct seq_range_iter iter;
 
   i_assert(r_ctx->finished);
-
+  
   r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
@@ -500,7 +485,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
-    debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre (ret -1, 1)", NULL);
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -518,20 +502,15 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
 
   if (_ctx->dest_mail != NULL) {
-#if DOVECOT_PREREQ(2, 2)
-    struct rbox_mail *rmail = (struct rbox_mail *)_ctx->dest_mail;
-    if (rmail->is_deleted == TRUE) {
-      _ctx->dest_mail = NULL;
-    } else {
+    if (r_ctx->dest_mail_allocated == TRUE) {
       mail_free(&_ctx->dest_mail);
+      r_ctx->dest_mail_allocated = FALSE;
+    } else {
+      _ctx->dest_mail = NULL;
     }
-#else
-    mail_free(&_ctx->dest_mail);
-#endif
   }
   _t->changes->uid_validity = hdr->uid_validity;
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_pre", NULL);
   FUNC_END();
   return 0;
 }
@@ -546,8 +525,6 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
   (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_commit_post", NULL);
-
   rbox_transaction_save_rollback(_ctx);
 
   FUNC_END();
@@ -570,8 +547,6 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     clean_up_failed(r_ctx);
   }
 
-  debug_print_mail_save_context(_ctx, "rbox-save::rbox_transaction_save_rollback", NULL);
-
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
     buffer_free(&mail_buffer);
@@ -581,17 +556,8 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
-  if (_ctx->dest_mail != NULL) {
-#if DOVECOT_PREREQ(2, 2)
-    struct rbox_mail *rmail = (struct rbox_mail *)_ctx->dest_mail;
-    if (rmail->is_deleted == TRUE) {
-      _ctx->dest_mail = NULL;
-    } else {
-      mail_free(&_ctx->dest_mail);
-    }
-#else
+  if (_ctx->dest_mail != NULL && r_ctx->dest_mail_allocated == TRUE) {
     mail_free(&_ctx->dest_mail);
-#endif
   }
   r_ctx->current_object = nullptr;
   delete r_ctx;

@@ -30,18 +30,18 @@ using std::map;
 using std::pair;
 using std::set;
 
-using librmb::RadosDictionary;
+using librmb::RadosDictionaryImpl;
 
 #define DICT_USERNAME_SEPARATOR '/'
 #define DICT_PATH_PRIVATE "priv/"
 #define DICT_PATH_SHARED "shared/"
 
-RadosDictionary::RadosDictionary(librados::IoCtx *_ctx, const string &_username, const string &_oid)
+RadosDictionaryImpl::RadosDictionaryImpl(librados::IoCtx *_ctx, const string &_username, const string &_oid)
     : io_ctx(*_ctx), username(_username), oid(_oid) {}
 
-RadosDictionary::~RadosDictionary() { get_io_ctx().close(); }
+RadosDictionaryImpl::~RadosDictionaryImpl() { get_io_ctx().close(); }
 
-const string RadosDictionary::get_full_oid(const std::string &key) {
+const string RadosDictionaryImpl::get_full_oid(const std::string &key) {
   if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
     return get_private_oid();
   } else if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
@@ -52,11 +52,11 @@ const string RadosDictionary::get_full_oid(const std::string &key) {
   return "";
 }
 
-const string RadosDictionary::get_shared_oid() { return this->oid + DICT_USERNAME_SEPARATOR + "shared"; }
+const string RadosDictionaryImpl::get_shared_oid() { return this->oid + DICT_USERNAME_SEPARATOR + "shared"; }
 
-const string RadosDictionary::get_private_oid() { return this->oid + DICT_USERNAME_SEPARATOR + this->username; }
+const string RadosDictionaryImpl::get_private_oid() { return this->oid + DICT_USERNAME_SEPARATOR + this->username; }
 
-int RadosDictionary::get(const string &key, string *value_r) {
+int RadosDictionaryImpl::get(const string &key, string *value_r) {
   int r_val = -1;
 
   set<string> keys;
@@ -85,18 +85,18 @@ int RadosDictionary::get(const string &key, string *value_r) {
   return err;
 }
 
-void RadosDictionary::remove_completion(librados::AioCompletion *c) {
+void RadosDictionaryImpl::remove_completion(librados::AioCompletion *c) {
   completions_mutex.lock();
   completions.remove(c);
   completions_mutex.unlock();
 }
-void RadosDictionary::push_back_completion(librados::AioCompletion *c) {
+void RadosDictionaryImpl::push_back_completion(librados::AioCompletion *c) {
   completions_mutex.lock();
   completions.push_back(c);
   completions_mutex.unlock();
 }
 
-void RadosDictionary::wait_for_completions() {
+void RadosDictionaryImpl::wait_for_completions() {
   while (!completions.empty()) {
     auto c = completions.front();
     c->wait_for_complete_and_cb();
