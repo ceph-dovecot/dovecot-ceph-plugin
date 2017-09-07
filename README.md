@@ -5,6 +5,14 @@ The goal of this project is the creation of a storage plugin for Dovecot, which 
 
 As a bonus, a dictionary plugin is included, which allows the storage of Dovecot dictionaries in Ceph OMAPs.
 
+### Disclaimer
+
+This project is under heavy development and not in any kind of release state. Be aware it is possible and very likely that APIs, interfaces and or the data format change at any time before a first release.
+
+The code is in a tested state, but is NOT production ready. Although the code is still flagged as experimental, we encourage users to try it out for non-production clusters and non-critical data sets and report their experience, findings and issues.
+
+It is planned to move all or parts of this code into other git repositories to move these parts later into other open source community projects like Ceph and Dovecot.
+
 ## RADOS Storage Plugin
 ### The Hybrid Storage Model
 
@@ -191,12 +199,6 @@ service lmtp {
 
 #### ImapTest
 To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/profile-pop3.conf)
-
-### Status
-
-This project is under active development. If you find errors or omissions in this document, please don’t hesitate to mail the authors.
-The software has never proven its reliablity in production and has to be considered as beta.
-The project has not released a stable version, yet, and the API and object format my change til that happens.
 
 ## RADOS Dictionary Plugin
 

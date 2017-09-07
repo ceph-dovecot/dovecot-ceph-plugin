@@ -39,10 +39,11 @@ CPPFLAGS=-I$2/include LDFLAGS=-L$2/lib ./configure --with-$1])
 have_librados=no
 AC_CHECK_HEADER([rados/librados.h], [
   have_librados=yes
-  AC_DEFINE([HAVE_LIBRADOS], [], [Define if you have the RADOS library])
+  AC_DEFINE([HAVE_LIBRADOS], [1], [Define if you have the RADOS library])
   LIBS="$LIBS -lrados"
 ], [AC_MSG_ERROR([cannot build without RADOS support: librados.h not found])])
 
+AC_CHECK_FUNC(rados_read_op_omap_get_vals2, AC_DEFINE(HAVE_OMAP_GET_VALS2, 1, [Define if you have the `rados_read_op_omap_get_vals2' function]))
 
 # Evaluate with options
 AC_ARG_WITH(dict,
@@ -94,7 +95,7 @@ LIBDOVECOT_INCLUDE="$LIBDOVECOT_INCLUDE $LIBDOVECOT_STORAGE_INCLUDE"
 BINARY_CFLAGS="$DOVECOT_BINARY_CFLAGS"
 BINARY_LDFLAGS="$DOVECOT_BINARY_LDFLAGS"
 
-CFLAGS+=" $WARN_CFLAGS $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir)"
+CFLAGS+=" $WARN_CFLAGS $DOVECOT_CFLAGS $EXTRA_CFLAGS -I\$(top_srcdir) $LIBDOVECOT_INCLUDE"
 CXXFLAGS+=" $WARN_CXXFLAGS -fpermissive -std=c++11 $lt_cv_prog_compiler_pic_CXX"
 
 AC_SUBST(BINARY_CFLAGS)
@@ -126,17 +127,24 @@ AS_IF([$GREP -q copy_src_mail $dovecot_pkgincludedir/mail-storage-private.h ], [
 AC_MSG_CHECKING([for MAIL_INDEX_HDR_FLAG_FSCKD])
 AS_IF([$GREP -q MAIL_INDEX_HDR_FLAG_FSCKD $dovecot_pkgincludedir/mail-index.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_INDEX_HDR_FLAG_FSCKD],,[MAIL_INDEX_HDR_FLAG_FSCKD supported])],[AC_MSG_RESULT(no)])
 
+AC_CHECK_MEMBER([struct mail_storage_vfuncs.list_index_corrupted],
+  [AC_DEFINE(HAVE_LIST_INDEX_CORRUPTED, 1, [Define if you have the `struct mail_storage_vfuncs.list_index_corrupted' member])], [],
+                          [[
+                          #include "config.h"
+                          #include "lib.h"
+                          #include "mail-storage-private.h"
+                          ]])
 
 AC_CONFIG_HEADERS([config-local.h])
-AX_PREFIX_CONFIG_H([], [], [config-local.h])
+AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 
 # Active gtest
 AC_MSG_NOTICE([$gcc_debug])
 if test "$gcc_debug" = yes; then
-    AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
-    AC_DEFINE([DEBUG],[],[Debug Mode])
+  AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
+  AC_DEFINE([DEBUG],[],[Debug Mode])
 else
-    AC_DEFINE([NDEBUG],[],[Release Mode])
+  AC_DEFINE([NDEBUG],[],[Release Mode])
 fi
 
 # Configure pthreads.

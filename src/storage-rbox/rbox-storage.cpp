@@ -334,7 +334,7 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
     mail_index_update_highest_modseq(trans, update->min_highest_modseq);
   }
 
-#ifdef HAVE_INDEX_POP3_UIDL_H
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
   if (box->inbox_user && box->creating) {
     /* initialize pop3-uidl header when creating mailbox
        (not on mailbox_update()) */

@@ -128,7 +128,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
 
-#ifdef HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL
   struct rbox_mail *r_src_mail = (struct rbox_mail *)ctx->copy_src_mail;
 #else
   struct rbox_mail *r_src_mail = (struct rbox_mail *)src_mail;

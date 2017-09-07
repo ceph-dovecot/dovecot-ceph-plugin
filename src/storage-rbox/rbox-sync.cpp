@@ -168,7 +168,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || mbox->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
-#ifdef HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(mbox->box.view);
   rebuild = (hdr->flags & MAIL_INDEX_HDR_FLAG_FSCKD) != 0;
 #endif

@@ -25,9 +25,6 @@ extern "C" {
 
 using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAIL_UID;
-using librmb::rbox_metadata_key::RBOX_METADATA_GUID;
 
 static uint32_t stoui32(const std::string &s) {
   std::istringstream reader(s);
@@ -36,17 +33,16 @@ static uint32_t stoui32(const std::string &s) {
   return val;
 }
 
-
 int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMailObject *mail_obj) {
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
-  std::string xattr_mail_uid = mail_obj->get_xvalue(RBOX_METADATA_MAIL_UID);
+  std::string xattr_mail_uid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
   // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
   if (xattr_mail_uid.empty()) {
     return -1;
   }
 
-  std::string xattr_guid = mail_obj->get_xvalue(RBOX_METADATA_GUID);
+  std::string xattr_guid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_GUID);
   // char *xattr_guid = get_xattr_value(attrset, RBOX_METADATA_GUID);
   if (xattr_guid.empty()) {
     return -1;
@@ -92,7 +88,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
   }
 
   // find objects with mailbox_guid 'U' attribute
-  std::string xattr(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID));
+  std::string xattr(1, static_cast<char>(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID));
   librmb::RadosXAttr attr;
   attr.key = xattr;
   attr.bl.append(mailbox_guid);
@@ -187,7 +183,7 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
   if (ret < 0) {
     mail_index_transaction_rollback(&trans);
   } else {
-#ifdef HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
+#ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
     mail_index_unset_fscked(trans);
 #endif
     ret = mail_index_transaction_commit(&trans);
