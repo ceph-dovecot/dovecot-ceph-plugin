@@ -23,9 +23,6 @@ class RadosCluster {
   virtual int get_config_option(const char *option, std::string *value) = 0;
 
   virtual librados::IoCtx &get_io_ctx() = 0;
-  // move to dictionray
-  virtual int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
-                                RadosDictionary **dictionary) = 0;
 };
 
 }  // namespace librmb

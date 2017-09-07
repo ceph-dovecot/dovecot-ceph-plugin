@@ -36,8 +36,8 @@ using librmb::RadosDictionaryImpl;
 #define DICT_PATH_PRIVATE "priv/"
 #define DICT_PATH_SHARED "shared/"
 
-RadosDictionaryImpl::RadosDictionaryImpl(librados::IoCtx *_ctx, const string &_username, const string &_oid)
-    : io_ctx(*_ctx), username(_username), oid(_oid) {}
+RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_username, const string &_oid)
+    : cluster(_cluster), username(_username), oid(_oid) {}
 
 RadosDictionaryImpl::~RadosDictionaryImpl() { get_io_ctx().close(); }
 
@@ -67,7 +67,7 @@ int RadosDictionaryImpl::get(const string &key, string *value_r) {
   oro.omap_get_vals_by_keys(keys, &map, &r_val);
 
   librados::bufferlist bl;
-  int err = io_ctx.operate(get_full_oid(key), &oro, &bl);
+  int err = cluster->get_io_ctx().operate(get_full_oid(key), &oro, &bl);
 
   if (err == 0) {
     if (r_val == 0) {

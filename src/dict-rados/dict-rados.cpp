@@ -145,8 +145,9 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     *error_r = t_strdup_printf("%s", error_msg.c_str());
     return -1;
   }
+  ret = dict->cluster->io_ctx_create(pool);
 
-  ret = dict->cluster->dictionary_create(pool, username, oid, &dict->d);
+  // ret = dict->cluster->dictionary_create(pool, username, oid, &dict->d);
 
   if (ret < 0) {
     *error_r = t_strdup_printf("Error creating RadosDictionary()! %s", strerror(-ret));
@@ -154,7 +155,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     delete dict->cluster;
     return -1;
   }
-
+  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, username, oid);
   dict->dict = *driver;
   *dict_r = &dict->dict;
 
@@ -168,8 +169,9 @@ void rados_dict_deinit(struct dict *_dict) {
   rados_dict_wait(_dict);
 
   dict->cluster->deinit();
-  delete dict->cluster;
   delete dict->d;
+  delete dict->cluster;
+
   dict->d = nullptr;
 
   i_free(_dict);

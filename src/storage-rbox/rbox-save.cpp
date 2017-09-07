@@ -167,12 +167,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
-
-  if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
-    FUNC_END_RET("ret == -1 connection to rados failed");
-    return -1;
-  }
-
+  
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
 
@@ -388,27 +383,29 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   int ret = 0;
 
   r_ctx->finished = TRUE;
-  if (_ctx->data.save_date != (time_t)-1) {
-    uint32_t save_date = _ctx->data.save_date;
-    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
-  }
-
   if (!r_ctx->failed) {
-    if (ret == 0) {
-      if (r_ctx->copying != TRUE) {
-        // reset virtual size
-        index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
+    if (_ctx->data.save_date != (time_t)-1) {
+      uint32_t save_date = _ctx->data.save_date;
+      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
+    }
 
-        // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-        librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
+    if (r_ctx->copying != TRUE) {
+      // reset virtual size
+      index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
 
-        buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
-        size_t write_buffer_size = buffer_get_used_size(mail_buffer);
+      // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
+      librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
 
-        i_debug("oid: %s, save_date: %s, mail_size %lu", r_ctx->current_object->get_oid().c_str(),
-                std::ctime(&_ctx->data.save_date), write_buffer_size);
-        rbox_save_mail_write_metadata(r_ctx, write_op_xattr);
+      buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
+      size_t write_buffer_size = buffer_get_used_size(mail_buffer);
 
+      i_debug("oid: %s, save_date: %s, mail_size %lu", r_ctx->current_object->get_oid().c_str(),
+              std::ctime(&_ctx->data.save_date), write_buffer_size);
+      rbox_save_mail_write_metadata(r_ctx, write_op_xattr);
+
+      if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
+        r_ctx->failed = true;
+      } else {
         int max_write_size = r_storage->s->get_max_write_size_bytes();
         i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 
@@ -417,9 +414,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
                                                    r_ctx->current_object, write_op_xattr, max_write_size);
         r_ctx->current_object->set_active_op(true);
         i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
+        r_ctx->failed = ret < 0;
       }
     }
-    r_ctx->failed = ret < 0;
   }
 
   clean_up_write_finish(_ctx);

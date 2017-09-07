@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <mutex>  // NOLINT
 #include "interfaces/rados-dictionary-interface.h"
+#include "interfaces/rados-cluster-interface.h"
 
 #include <rados/librados.hpp>
 
@@ -24,18 +25,18 @@ namespace librmb {
 
 class RadosDictionaryImpl : public RadosDictionary {
  public:
-  RadosDictionaryImpl(librados::IoCtx* ctx, const std::string& username, const std::string& oid);
+  RadosDictionaryImpl(RadosCluster* cluster, const std::string& username, const std::string& oid);
   virtual ~RadosDictionaryImpl();
 
   const std::string get_full_oid(const std::string& key);
   const std::string get_shared_oid();
   const std::string get_private_oid();
 
-  const std::string& get_oid() { return oid; } 
+  const std::string& get_oid() { return oid; }
 
-  const std::string& get_username()  { return username; } 
+  const std::string& get_username()  { return username; }
 
-  librados::IoCtx& get_io_ctx() { return io_ctx; }
+  librados::IoCtx& get_io_ctx() { return cluster->get_io_ctx(); }
 
   void remove_completion(librados::AioCompletion* c);
   void push_back_completion(librados::AioCompletion* c);
@@ -44,7 +45,7 @@ class RadosDictionaryImpl : public RadosDictionary {
   int get(const std::string& key, std::string* value_r);
 
  private:
-  librados::IoCtx io_ctx;
+  RadosCluster* cluster;
   std::string username;
   std::string oid;
 
