@@ -52,7 +52,7 @@ RECORD: seq=1, uid=568, flags=0x19 (Seen Answered Draft)
                    : message_count = 1404118538
 ````
 
-If the index data for a mailbox gets lost, there is currently no way to reconstruct the mailbox from the RADOS objects. We want to use a RADOS namespace per user to make object iteration for a recovery possible.
+If the index data for a mailbox gets lost, there is currently no way to reconstruct the mailbox from the RADOS objects. We use a RADOS namespace per user to make object iteration for a recovery possible.
 
 ### Configuration
 
@@ -65,9 +65,7 @@ The optional parameters of the mailbox location specification that differ for rb
 * `LAYOUT` : specifies the directory layout to use:
   * `fs`: **The default used by rbox**
   * `index`: Uses mailbox GUIDs as the directory names. The mapping between mailbox names and GUIDs exists in dovecot.list.index* files.
-  * `Maildir++`: not tested
-* `MAILBOXDIR` : specifies directory name under which all mailbox directories are stored. With rbox like with dbox formats the default is "mailboxes/".
-* `DIRNAME` : specifies the directory name used for mailbox directories, or in the case of mbox specifies the mailbox message file name. With rbox the default is "rbox-Mails/". Note that this directory is used only for the mail directory and the alt directory, not for index/control directories (but see below).
+* `DIRNAME` : specifies the directory name used in mailbox directories to store the mailbox files. With rbox the default is "rbox-Mails/". Note that this directory is used only for the mail directory not for index/control directories (but see below).
 * `ALT` : specifies the Alternate storage path for dbox formats. **Not yet supported for rbox.**
 
 All Dovecot [variables](https://wiki2.dovecot.org/Variables) for _mail_location_ can be applied.
@@ -86,6 +84,28 @@ Add for example to dovecot.conf:
     }
 
 See also [Common Configuration](#common-configuration) for more information.
+
+### File System Layout
+
+The files system layout of rbox ist quite similar to [dbox](https://wiki.dovecot.org/MailboxFormat/dbox). Wihtout any special configuration
+the layout is as follows:
+
+* `<mail location root>/mailboxes/INBOX/rbox-Mails/dovecot.index*` - Index files for INBOX
+* `<mail location root>/mailboxes/foo/rbox-Mails/dovecot.index*` - Index files for mailbox "foo"
+* `<mail location root>/mailboxes/foo/bar/rbox-Mails/dovecot.index*` - Index files for mailbox "foo/bar"
+* `<mail location root>/dovecot.mailbox.log*` - Mailbox changelog
+* `<mail location root>/subscriptions` - subscribed mailboxes list
+* `<mail location root>/dovecot-uidvalidity*` - IMAP UID validity
+
+Note that with rbox the Index files actually contain significant data which is held nowhere else. Index files for rbox contain message flags and keywords. This data cannot be automatically recreated, so it is important that Index files are treated with the same care as message data files.
+
+Index files can be stored in a different location by using the INDEX parameter in the mail location specification. If the INDEX parameter is specified, it will make Dovecot look for the Index files as follows:
+
+* `<INDEX location>/mailboxes/INBOX/rbox-Mails/dovecot.index*` - Index files for INBOX
+* `<INDEX location>/mailboxes/foo/rbox-Mails/dovecot.index*` - Index files for mailbox "foo"
+* `<INDEX location>/mailboxes/foo/bar/rbox-Mails/dovecot.index*` - Index files for mailbox "foo/bar"
+
+The mail messages itself are stored in RADOS objects.
 
 #### shared/public folder
 
@@ -172,11 +192,17 @@ service lmtp {
 #### ImapTest
 To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/profile-pop3.conf)
 
+### Status
+
+This project is under active development. If you find errors or omissions in this document, please don’t hesitate to mail the authors.
+The software has never proven its reliablity in production and has to be considered as beta.
+The project has not released a stable version, yet, and the API and object format my change til that happens.
+
 ## RADOS Dictionary Plugin
 
 The Dovecot dictionaries are a good candidate to be implemented using the Ceph omap key/value store. They are a building block to enable a Dovecot, which runs exclusively on Ceph.
 
-Dovecot uses two namespaces for dictionary K/V.
+Dovecot uses two namespaces for dictionary keys.
 
 * `shared/<key>`: These are shared entries. These keys will be stored in a RADOS object named _<oid>/shared_. <key> will be used as omap key as given.
 * `priv/<key>`: These are private entries for a user. These keys will be stored in a RADOS object named _<oid>/<username>_. <key> will be used as omap key as given.
