@@ -6,9 +6,9 @@ The goal of this project is the creation of a storage plugin for Dovecot, which 
 As a bonus, a dictionary plugin is included, which allows the storage of Dovecot dictionaries in Ceph OMAPs.
 
 This project is under heavy development and not in any kind of release state. Be aware it is possible and very likely that APIs, interfaces and or the data format change at any time before a first release.
- 
+
 The code is in a tested state, but is NOT production ready. Although the code is still flagged as experimental, we encourage users to try it out for non-production clusters and non-critical data sets and report their experience, findings and issues.
- 
+
 It is planned to move all or parts of this code into other git repositories to move these parts later into other open source community projects like Ceph and Dovecot.
 
 ## RADOS Storage Plugin
