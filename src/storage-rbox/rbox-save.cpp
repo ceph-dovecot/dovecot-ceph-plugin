@@ -167,7 +167,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
-  
+
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
 
@@ -381,6 +381,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   int ret = 0;
+  int max_write_size = -1;
 
   r_ctx->finished = TRUE;
   if (!r_ctx->failed) {
@@ -406,15 +407,19 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
         r_ctx->failed = true;
       } else {
-        int max_write_size = r_storage->s->get_max_write_size_bytes();
-        i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
+        max_write_size = r_storage->s->get_max_write_size_bytes();
+        if (max_write_size <= 0) {
+          r_ctx->failed = true;
+        } else {
+          i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
 
-        ret =
-            r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data), write_buffer_size,
-                                                   r_ctx->current_object, write_op_xattr, max_write_size);
-        r_ctx->current_object->set_active_op(true);
-        i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
-        r_ctx->failed = ret < 0;
+          ret = r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data),
+                                                       write_buffer_size, r_ctx->current_object, write_op_xattr,
+                                                       max_write_size);
+          r_ctx->current_object->set_active_op(true);
+          i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
+          r_ctx->failed = ret < 0;
+        }
       }
     }
   }

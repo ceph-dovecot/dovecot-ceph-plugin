@@ -164,5 +164,6 @@ int RadosStorageImpl::open_connection(const std::string &poolname, const std::st
     return err;
   }
   max_write_size = std::stoi(max_write_size_str);
+  set_namespace(ns);
   return 0;
 }
