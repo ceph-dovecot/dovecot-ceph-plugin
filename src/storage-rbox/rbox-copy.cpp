@@ -31,9 +31,6 @@ extern "C" {
 const char *SETTINGS_RBOX_UPDATE_IMMUTABLE = "rbox_update_immutable";
 const char *SETTINGS_DEF_UPDATE_IMMUTABLE = "false";
 
-using librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX;
-using librmb::rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID;
-using librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX;
 using librmb::rbox_metadata_key;
 
 int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
@@ -202,11 +199,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         if (update_immutable.compare("true") == 0) {
           i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
           librmb::RadosXAttr xattr_mb;
-          librmb::RadosXAttr::convert(RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+          librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
           write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
           i_debug("setting done");
-		}
-
+        }
       }
 
       ret_val = r_storage->s->aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
