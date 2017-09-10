@@ -306,4 +306,8 @@ Ceph contains git submodules that need to be checked out with
     <td><img src="https://www.tallence.com/fileadmin/user_upload/content/Mailing/tallence_logo-email.png"</td>
     <td><a href="https://www.tallence.com/">Tallence</a> carried out the initial development.</td>
   </tr>
+  <tr>
+    <td><img src="https://avatars1.githubusercontent.com/u/20288092?v=4&s=100"</td>
+    <td>Wido den Hollander from <a href="http://www.42on.com">42on.com</a> for all the help and ideas.</td>
+  </tr>
 </table>
