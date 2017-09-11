@@ -6,8 +6,10 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-#ifndef SRC_LIBRMB_TESTING_MOCK_TEST_H_
-#define SRC_LIBRMB_TESTING_MOCK_TEST_H_
+#ifndef SRC_TESTS_MOCKS_MOCK_TEST_H_
+#define SRC_TESTS_MOCKS_MOCK_TEST_H_
+
+#include <string>
 
 #include "interfaces/rados-storage-interface.h"
 #include "interfaces/rados-dictionary-interface.h"
@@ -16,7 +18,9 @@
 #include "gmock/gmock.h"
 
 namespace librmbtest {
-using namespace librmb;
+using librmb::RadosStorage;
+using librmb::RadosMailObject;
+using librmb::RadosXAttr;
 
 class RadosStorageMock : public RadosStorage {
  public:
@@ -39,6 +43,8 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
 };
 
+using librmb::RadosDictionary;
+
 class RadosDictionaryMock : public RadosDictionary {
  public:
   MOCK_METHOD1(get_full_oid, const std::string(const std::string &key));
@@ -53,6 +59,8 @@ class RadosDictionaryMock : public RadosDictionary {
   MOCK_METHOD2(get, int(const std::string &key, std::string *value_r));
 };
 
+using librmb::RadosCluster;
+
 class RadosClusterMock : public RadosCluster {
  public:
   MOCK_METHOD1(init, int(std::string *error_r));
@@ -62,6 +70,7 @@ class RadosClusterMock : public RadosCluster {
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
   MOCK_METHOD0(get_io_ctx, librados::IoCtx &());
 };
-}
 
-#endif /* SRC_LIBRMB_TESTING_MOCK_TEST_H_ */
+}  // namespace librmbtest
+
+#endif  // SRC_TESTS_MOCKS_MOCK_TEST_H_
