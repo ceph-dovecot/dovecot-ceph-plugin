@@ -29,7 +29,7 @@ class RadosStorageMock : public RadosStorage {
                                              librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write));
   MOCK_METHOD3(read_mail, int(const std::string &oid, uint64_t *size_r, char *mail_buffer));
   MOCK_METHOD1(load_xattr, int(RadosMailObject *mail));
-  MOCK_METHOD2(set_xattr, int(const std::string &oid, RadosXAttr &xattr));
+  MOCK_METHOD2(set_xattr, int(const std::string &oid, const RadosXAttr &xattr));
 
   MOCK_METHOD1(delete_mail, int(RadosMailObject *mail));
   MOCK_METHOD1(delete_mail, int(std::string oid));
