@@ -55,7 +55,7 @@ TEST(librmb, split_write_operation) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
   // remove it
   int ret_remove = storage.delete_mail(&obj);
@@ -96,7 +96,7 @@ TEST(librmb1, split_write_operation_1) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());
@@ -166,7 +166,7 @@ TEST(librmb1, read_mail) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
   char *buff = new char[size];
   int ret = storage.read_mail(obj.get_oid(), &size, &buff[0]);
@@ -186,7 +186,7 @@ TEST(librmb1, read_mail) {
   EXPECT_EQ(buff[3], 'd');
 }
 
-TEST(librmb, load_xattr) {
+TEST(librmb, load_metadata) {
   const char *buffer = "abcdefghijklmn";
   size_t buffer_length = 14;
   uint64_t max_size = 3;
@@ -214,12 +214,12 @@ TEST(librmb, load_xattr) {
   // wait for op to finish.
   obj.wait_for_write_operations_complete();
 
-  storage.load_xattr(&obj);
+  storage.load_metadata(&obj);
 
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_object(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());
@@ -234,10 +234,10 @@ TEST(librmb, load_xattr) {
   EXPECT_EQ(5, obj.get_completion_op_map()->size());
   EXPECT_EQ(2, obj.get_xattr()->size());
 
-  int i = storage.load_xattr(nullptr);
+  int i = storage.load_metadata(nullptr);
   EXPECT_EQ(-1, i);
 
-  i = storage.load_xattr(&obj);
+  i = storage.load_metadata(&obj);
   EXPECT_EQ(0, i);
 }
 TEST(librmb, mock_obj) {}

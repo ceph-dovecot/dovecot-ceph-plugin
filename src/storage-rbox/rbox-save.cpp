@@ -454,7 +454,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     {
       RadosXAttr xattr;
       RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid, &xattr);
-      int ret_val = r_storage->s->set_xattr(r_ctx->current_object->get_oid(), xattr);
+      int ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), xattr);
       if (ret_val < 0) {
         return -1;
       }
