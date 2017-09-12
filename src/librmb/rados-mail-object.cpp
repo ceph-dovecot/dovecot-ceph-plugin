@@ -32,22 +32,6 @@ RadosMailObject::RadosMailObject() {
   this->save_date_rados = 0;
 }
 
-bool RadosMailObject::wait_for_write_operations_complete() {
-  bool ctx_failed = false;
-
-  for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
-           get_completion_op_map()->begin();
-       map_it != get_completion_op_map()->end(); ++map_it) {
-    map_it->first->wait_for_complete_and_cb();
-    ctx_failed = map_it->first->get_return_value() < 0 || ctx_failed ? true : false;
-    // clean up
-    map_it->first->release();
-    map_it->second->remove();
-    delete map_it->second;
-  }
-  return ctx_failed;
-}
-
 std::string RadosMailObject::to_string(const std::string &padding) {
   std::string uid = get_xvalue(RBOX_METADATA_MAIL_UID);
   std::string recv_time_str = get_xvalue(RBOX_METADATA_RECEIVED_TIME);

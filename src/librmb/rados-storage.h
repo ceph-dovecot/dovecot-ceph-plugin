@@ -51,6 +51,9 @@ class RadosStorageImpl : public RadosStorage {
   librados::NObjectIterator find_mails(RadosXAttr *attr);
   int open_connection(const std::string &poolname, const std::string &ns);
 
+  bool wait_for_write_operations_complete(
+      std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map);
+
  private:
   RadosCluster *cluster;
   int max_write_size;
