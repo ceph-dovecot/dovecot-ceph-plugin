@@ -429,6 +429,11 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
           r_ctx->failed = ret < 0;
         }
       }
+
+      if (r_ctx->failed == true) {
+        write_op_xattr->remove();
+        delete write_op_xattr;
+      }
     }
   }
 
