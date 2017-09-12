@@ -107,14 +107,23 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
     // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
     // #endif
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
-    librmb::RadosXAttr xattr;
-    librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                                guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+    librmb::RadosXAttr xattr(
+        rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+        guid_128_to_string(dest_mailbox->mailbox_guid));
     write_op->setxattr(xattr.key.c_str(), xattr.bl);
     i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
-    librmb::RadosXAttr xattr_mb;
-    librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+    std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
+    const char *setting_update_immutable = mail_user_plugin_getenv(
+        dest_mailbox->storage->storage.user, SETTINGS_RBOX_UPDATE_IMMUTABLE);
+    if (setting_update_immutable != nullptr
+        && strlen(setting_update_immutable) > 0) {
+      update_immutable = setting_update_immutable;
+    }
+    if (update_immutable.compare("true") == 0) {
+    librmb::RadosXAttr xattr_mb(
+        rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
     write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
+    }
     i_debug("setting done");
   }
 }
@@ -184,9 +193,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
       {
         struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)dest_mbox;
-        librmb::RadosXAttr xattr;
-        librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                                    guid_128_to_string(dest_mailbox->mailbox_guid), &xattr);
+        librmb::RadosXAttr xattr(
+            rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+            guid_128_to_string(dest_mailbox->mailbox_guid));
         write_op.setxattr(xattr.key.c_str(), xattr.bl);
 
         std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
@@ -198,8 +207,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
         if (update_immutable.compare("true") == 0) {
           i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
-          librmb::RadosXAttr xattr_mb;
-          librmb::RadosXAttr::convert(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name, &xattr_mb);
+          librmb::RadosXAttr xattr_mb(
+              rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX,
+              dest_mailbox->box.name);
           write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
           i_debug("setting done");
         }

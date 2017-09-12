@@ -68,46 +68,67 @@ enum rbox_metadata_key {
 
 class RadosXAttr {
  public:
-  RadosXAttr() {}
 
+  RadosXAttr(enum rbox_metadata_key _key, const std::string& val) {
+    convert(_key, val);
+  }
+
+  RadosXAttr(enum rbox_metadata_key _key, const time_t& val) {
+    convert(_key, val);
+  }
+
+  RadosXAttr(enum rbox_metadata_key _key, const char* val) {
+    convert(_key, val);
+  }
+
+  RadosXAttr(enum rbox_metadata_key _key, const uint& val) {
+    convert(_key, val);
+  }
+
+  RadosXAttr(enum rbox_metadata_key _key, const size_t& val) {
+    convert(_key, val);
+  }
+ public:
+  ceph::bufferlist &get_bl();
+  std::string &get_key();
+
+  void convert(const char* value, time_t* t) {
+    std::istringstream stream(value);
+    stream >> *t;
+  }
  public:
   ceph::bufferlist bl;
   std::string key;
 
- public:
-  static void convert(enum rbox_metadata_key key, const std::string& val, RadosXAttr* attr) {
-    attr->key = enum_to_string(key);
-    attr->bl.append(val);
-  }
-
-  static void convert(enum rbox_metadata_key key, const time_t& time, RadosXAttr* attr) {
-    attr->key = enum_to_string(key);
-    attr->bl.append(std::to_string(time));
-  }
-
-  static void convert(enum rbox_metadata_key key, char* value, RadosXAttr* attr) {
-    attr->key = enum_to_string(key);
-    attr->bl.append(value);
-  }
-
-  static void convert(enum rbox_metadata_key key, const uint& value, RadosXAttr* attr) {
-    attr->key = enum_to_string(key);
-    attr->bl.append(std::to_string(value));
-  }
-
-  static void convert(enum rbox_metadata_key key, const size_t& value, RadosXAttr* attr) {
-    attr->key = enum_to_string(key);
-    attr->bl.append(std::to_string(static_cast<int>(value)));
-  }
-
-  static void convert(const char* value, time_t* t) {
-    std::istringstream stream(value);
-    stream >> *t;
-  }
-
  private:
-  static std::string enum_to_string(enum rbox_metadata_key key) {
-    std::string k(1, static_cast<char>(key));
+
+  void convert(enum rbox_metadata_key _key, const std::string& val) {
+    key = enum_to_string(_key);
+    bl.append(val);
+  }
+
+  void convert(enum rbox_metadata_key _key, const time_t& time) {
+    key = enum_to_string(_key);
+    bl.append(std::to_string(time));
+  }
+
+  void convert(enum rbox_metadata_key _key, char* value) {
+    key = enum_to_string(_key);
+    bl.append(value);
+  }
+
+  void convert(enum rbox_metadata_key _key, const uint& value) {
+    key = enum_to_string(_key);
+    bl.append(std::to_string(value));
+  }
+
+  void convert(enum rbox_metadata_key _key, const size_t& value) {
+    key = enum_to_string(_key);
+    bl.append(std::to_string(static_cast<int>(value)));
+  }
+
+  std::string enum_to_string(enum rbox_metadata_key _key) {
+    std::string k(1, static_cast<char>(_key));
     return k;
   }
 };

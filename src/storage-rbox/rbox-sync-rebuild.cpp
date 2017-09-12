@@ -88,10 +88,9 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
   }
 
   // find objects with mailbox_guid 'U' attribute
-  std::string xattr(1, static_cast<char>(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID));
-  librmb::RadosXAttr attr;
-  attr.key = xattr;
-  attr.bl.append(mailbox_guid);
+  librmb::RadosXAttr attr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                          mailbox_guid);
+
 
   librados::NObjectIterator iter(r_storage->s->find_mails(&attr));
 
