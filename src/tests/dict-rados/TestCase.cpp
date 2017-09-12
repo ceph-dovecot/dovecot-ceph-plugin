@@ -147,8 +147,8 @@ void DictTest::TearDownTestCase() {
   io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
 
-  rados_ioctx_destroy(s_ioctx);
   destroy_one_pool(pool_name, &s_cluster);
+  rados_ioctx_destroy(s_ioctx);
 
   master_service_deinit(&master_service);
 }
