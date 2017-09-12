@@ -36,10 +36,18 @@ using librmb::RadosDictionaryImpl;
 #define DICT_PATH_PRIVATE "priv/"
 #define DICT_PATH_SHARED "shared/"
 
-RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_username, const string &_oid)
-    : cluster(_cluster), username(_username), oid(_oid) {}
+RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_poolname, const string &_username,
+                                         const string &_oid)
+    : cluster(_cluster), poolname(_poolname), username(_username), oid(_oid) {
+  shared_oid = oid + DICT_USERNAME_SEPARATOR + "shared";
+  private_oid = oid + DICT_USERNAME_SEPARATOR + username;
+}
 
 RadosDictionaryImpl::~RadosDictionaryImpl() {}
+
+const string RadosDictionaryImpl::get_shared_oid() { return shared_oid; }
+
+const string RadosDictionaryImpl::get_private_oid() { return private_oid; }
 
 const string RadosDictionaryImpl::get_full_oid(const std::string &key) {
   if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -52,9 +60,31 @@ const string RadosDictionaryImpl::get_full_oid(const std::string &key) {
   return "";
 }
 
-const string RadosDictionaryImpl::get_shared_oid() { return this->oid + DICT_USERNAME_SEPARATOR + "shared"; }
+librados::IoCtx &RadosDictionaryImpl::get_shared_io_ctx() {
+  if (!shared_io_ctx_created) {
+    shared_io_ctx_created = cluster->io_ctx_create(poolname, &shared_io_ctx) == 0;
+  }
+  return shared_io_ctx;
+}
 
-const string RadosDictionaryImpl::get_private_oid() { return this->oid + DICT_USERNAME_SEPARATOR + this->username; }
+librados::IoCtx &RadosDictionaryImpl::get_private_io_ctx() {
+  if (!private_io_ctx_created) {
+    if (cluster->io_ctx_create(poolname, &private_io_ctx) == 0) {
+      private_io_ctx_created = true;
+      private_io_ctx.set_namespace(username);
+    }
+  }
+  return private_io_ctx;
+}
+
+librados::IoCtx &RadosDictionaryImpl::get_io_ctx(const std::string &key) {
+  if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
+    return get_private_io_ctx();
+  } else if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
+    return get_shared_io_ctx();
+  }
+  assert(false);
+}
 
 int RadosDictionaryImpl::get(const string &key, string *value_r) {
   int r_val = -1;
@@ -67,7 +97,7 @@ int RadosDictionaryImpl::get(const string &key, string *value_r) {
   oro.omap_get_vals_by_keys(keys, &map, &r_val);
 
   librados::bufferlist bl;
-  int err = cluster->get_io_ctx().operate(get_full_oid(key), &oro, &bl);
+  int err = get_io_ctx(key).operate(get_full_oid(key), &oro, &bl);
 
   if (err == 0) {
     if (r_val == 0) {

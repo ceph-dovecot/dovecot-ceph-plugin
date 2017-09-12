@@ -16,6 +16,7 @@
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
 #include "rados-storage.h"
+
 using std::list;
 using std::pair;
 using std::string;
@@ -24,101 +25,102 @@ using librmb::RadosClusterImpl;
 
 librados::Rados RadosClusterImpl::cluster;
 int RadosClusterImpl::cluster_ref_count = 0;
+bool RadosClusterImpl::connected = false;
+
 RadosClusterImpl::RadosClusterImpl() {}
 
 RadosClusterImpl::~RadosClusterImpl() {}
 
-int RadosClusterImpl::init(string *error_r) {
+int RadosClusterImpl::init() {
+  int ret = 0;
   if (cluster_ref_count == 0) {
-    int ret = 0;
     ret = cluster.init(nullptr);
-    if (ret < 0) {
-      *error_r = "Couldn't create the cluster handle! " + string(strerror(-ret));
-      return ret;
+
+    if (ret == 0) {
+      ret = cluster.conf_parse_env(nullptr);
     }
 
-    ret = cluster.conf_parse_env(nullptr);
-    if (ret < 0) {
-      *error_r = "Cannot parse config environment! " + string(strerror(-ret));
-      return ret;
+    if (ret == 0) {
+      ret = cluster.conf_read_file(nullptr);
     }
 
-    ret = cluster.conf_read_file(nullptr);
-    if (ret < 0) {
-      *error_r = "Cannot read config file! " + string(strerror(-ret));
-      return ret;
-    }
-
-    ret = cluster.connect();
-    if (ret < 0) {
-      *error_r = "Cannot connect to cluster! " + string(strerror(-ret));
-      return ret;
-    } else {
+    if (ret == 0)
       cluster_ref_count++;
-    }
   }
+  return ret;
+}
 
-  return 0;
+int RadosClusterImpl::connect() {
+  int ret = 0;
+  if (cluster_ref_count > 0 && !connected) {
+    ret = cluster.connect();
+    connected = ret == 0;
+  }
+  return ret;
 }
 
 void RadosClusterImpl::deinit() {
   if (cluster_ref_count > 0) {
-    cluster_ref_count--;
-    if (cluster_ref_count == 0) {
-      io_ctx.close();
-      cluster.shutdown();
+    if (--cluster_ref_count == 0) {
+      if (connected) {
+        cluster.shutdown();
+        connected = false;
+      }
     }
   }
 }
 
 int RadosClusterImpl::pool_create(const string &pool) {
   // pool exists? else create
-  list<pair<int64_t, string>> pool_list;
-  int err = cluster.pool_list2(pool_list);
-  if (err < 0) {
-    // *error_r = t_strdup_printf("Cannot list RADOS pools: %s", strerror(-err));
-    return err;
-  }
 
-  bool pool_found = false;
-  for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); ++it) {
-    if ((*it).second.compare(pool) == 0) {
-      pool_found = true;
-      break;
+  int ret = connect();
+  if (ret == 0) {
+    list<pair<int64_t, string>> pool_list;
+    ret = cluster.pool_list2(pool_list);
+
+    if (ret == 0) {
+      bool pool_found = false;
+
+      for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); ++it) {
+        if ((*it).second.compare(pool) == 0) {
+          pool_found = true;
+          break;
+        }
+      }
+
+      if (pool_found != true) {
+        ret = cluster.pool_create(pool.c_str());
+        pool_found = ret == 0;
+      }
     }
   }
 
-  if (pool_found != true) {
-    err = cluster.pool_create(pool.c_str());
-    if (err < 0) {
-      // *error_r = t_strdup_printf("Cannot create RADOS pool %s: %s", pool.c_str(), strerror(-err));
-    }
-  }
-  return err;
+  return ret;
 }
 
-int RadosClusterImpl::io_ctx_create(const std::string &pool) {
+int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx) {
+  int ret = 0;
+
+  assert(io_ctx != nullptr);
+
   if (cluster_ref_count == 0) {
-    return -ENOENT;
+    ret = -ENOENT;
   }
-  // pool exists? else create
-  int err = pool_create(pool);
-  if (err < 0) {
-    return err;
+
+  if (ret == 0) {
+    ret = connect();
+
+    if (ret == 0) {
+      // pool exists? else create
+      ret = pool_create(pool);
+    }
+
+    if (ret == 0) {
+      ret = cluster.ioctx_create(pool.c_str(), *io_ctx);
+    }
   }
-  err = cluster.ioctx_create(pool.c_str(), io_ctx);
-  if (err < 0) {
-    return err;
-  }
-  return 0;
+
+  return ret;
 }
 
-int RadosClusterImpl::get_config_option(const char *option, std::string *value) {
-  int err = cluster.conf_get(option, *value);
-  if (err < 0) {
-    return err;
-  }
-  return err;
-}
-
-
+int RadosClusterImpl::get_config_option(const char *option, string *value) { return cluster.conf_get(option, *value); }

@@ -29,7 +29,7 @@ class RadosStorageImpl : public RadosStorage {
   explicit RadosStorageImpl(RadosCluster *cluster);
   virtual ~RadosStorageImpl();
 
-  librados::IoCtx &get_io_ctx() { return cluster->get_io_ctx(); }
+  librados::IoCtx &get_io_ctx();
   int stat_object(const std::string &oid, uint64_t *psize, time_t *pmtime);
   void set_namespace(const std::string &nspace);
 
@@ -54,6 +54,9 @@ class RadosStorageImpl : public RadosStorage {
  private:
   RadosCluster *cluster;
   int max_write_size;
+
+  librados::IoCtx io_ctx;
+
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
