@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "../storage-mock-rbox/TestCase.h"
+#include "src/tests/storage-mock-rbox/TestCase.h"
 
 #include <errno.h>
 
@@ -60,7 +60,6 @@ pool_t StorageTest::s_test_pool = nullptr;
 static const char *username = "user-rbox-test";
 
 void StorageTest::SetUpTestCase() {
-
   // prepare Dovecot
   uri = "oid=metadata:pool=" + pool_name;
 
@@ -121,6 +120,7 @@ void StorageTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
+  mail_storage_service_user_free(&test_service_user);
 }
 
 void StorageTest::TearDownTestCase() {
