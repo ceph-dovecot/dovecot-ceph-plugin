@@ -12,6 +12,7 @@
 #ifndef SRC_LIBRMB_RADOS_CLUSTER_H_
 #define SRC_LIBRMB_RADOS_CLUSTER_H_
 
+#include <list>
 #include <string>
 
 #include <rados/librados.hpp>
@@ -24,21 +25,21 @@ class RadosClusterImpl : public RadosCluster {
   RadosClusterImpl();
   virtual ~RadosClusterImpl();
 
-  int init(std::string *error_r);
+  int init();
+  int connect();
   void deinit();
 
   int pool_create(const std::string &pool);
-  int io_ctx_create(const std::string &pool);
+  int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx);
   int get_config_option(const char *option, std::string *value);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
 
-  librados::IoCtx &get_io_ctx() { return this->io_ctx; }
-
  private:
   static librados::Rados cluster;
   static int cluster_ref_count;
-  librados::IoCtx io_ctx;
+  static bool connected;
+
   static const char *CLIENT_MOUNT_TIMEOUT;
   static const char *RADOS_MON_OP_TIMEOUT;
   static const char *RADOS_OSD_OP_TIMEOUT;
@@ -46,9 +47,6 @@ class RadosClusterImpl : public RadosCluster {
   static const char *CLIENT_MOUNT_TIMEOUT_DEFAULT;
   static const char *RADOS_MON_OP_TIMEOUT_DEFAULT;
   static const char *RADOS_OSD_OP_TIMEOUT_DEFAULT;
-
-
-
 };
 
 }  // namespace librmb

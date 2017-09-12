@@ -205,6 +205,8 @@ void StorageTest::TearDownTestCase() {
   mail_storage_service_user_unref(&test_service_user);
 
   const char *error;
+#else
+  mail_storage_service_user_free(&test_service_user);
 #endif
 
   storage_rbox_plugin_deinit();

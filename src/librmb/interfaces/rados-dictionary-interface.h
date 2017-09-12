@@ -27,10 +27,12 @@ class RadosDictionary {
   virtual const std::string get_private_oid() = 0;
 
   virtual const std::string& get_oid() = 0;
-
   virtual const std::string& get_username() = 0;
+  virtual const std::string& get_poolname() = 0;
 
-  virtual librados::IoCtx& get_io_ctx() = 0;
+  virtual librados::IoCtx& get_io_ctx(const std::string& key) = 0;
+  virtual librados::IoCtx& get_shared_io_ctx() = 0;
+  virtual librados::IoCtx& get_private_io_ctx() = 0;
 
   virtual void remove_completion(librados::AioCompletion* c) = 0;
   virtual void push_back_completion(librados::AioCompletion* c) = 0;

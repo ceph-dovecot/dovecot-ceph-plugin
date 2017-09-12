@@ -120,6 +120,7 @@ TEST_F(StorageTest, mail_save_to_inbox) {
     EXPECT_TRUE(input->eof);
     EXPECT_GE(ret, 0);
   }
+  i_stream_unref(&input);
   mailbox_free(&box);
 }
 

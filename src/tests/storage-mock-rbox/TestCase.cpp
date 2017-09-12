@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "../storage-mock-rbox/TestCase.h"
+#include "src/tests/storage-mock-rbox/TestCase.h"
 
 #include <errno.h>
 
@@ -60,7 +60,6 @@ pool_t StorageTest::s_test_pool = nullptr;
 static const char *username = "user-rbox-test";
 
 void StorageTest::SetUpTestCase() {
-
   // prepare Dovecot
   uri = "oid=metadata:pool=" + pool_name;
 
@@ -129,6 +128,8 @@ void StorageTest::TearDownTestCase() {
   mail_storage_service_user_unref(&test_service_user);
 
   const char *error;
+#else
+  mail_storage_service_user_free(&test_service_user);
 #endif
 
   storage_rbox_plugin_deinit();

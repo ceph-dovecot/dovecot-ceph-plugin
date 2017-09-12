@@ -29,6 +29,3 @@ libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
     dict-rados.cpp 
 
-noinst_HEADERS = \
-	dict-rados.h \
-	libdict-rados-plugin.h

@@ -183,6 +183,8 @@ TEST(librmb1, read_mail) {
   EXPECT_EQ(buff[1], 'b');
   EXPECT_EQ(buff[2], 'c');
   EXPECT_EQ(buff[3], 'd');
+
+  delete[] buff;
 }
 
 TEST(librmb, load_metadata) {

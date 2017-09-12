@@ -22,15 +22,13 @@ class RadosDictionary;
 class RadosCluster {
  public:
   virtual ~RadosCluster() {}
-  virtual int init(std::string *error_r) = 0;
+  virtual int init() = 0;
   virtual void deinit() = 0;
 
   virtual int pool_create(const std::string &pool) = 0;
 
-  virtual int io_ctx_create(const std::string &pool) = 0;
+  virtual int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) = 0;
   virtual int get_config_option(const char *option, std::string *value) = 0;
-
-  virtual librados::IoCtx &get_io_ctx() = 0;
 };
 
 }  // namespace librmb

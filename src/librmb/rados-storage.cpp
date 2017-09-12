@@ -23,8 +23,8 @@ using librmb::RadosStorageImpl;
 const char *RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
 
 RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
-  this->cluster = _cluster;
-  this->max_write_size = 0;
+  cluster = _cluster;
+  max_write_size = 0;
 }
 
 RadosStorageImpl::~RadosStorageImpl() {}
@@ -57,7 +57,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
 
     (*current_object->get_completion_op_map())[completion] = op;
 
-    ret_val = cluster->get_io_ctx().aio_operate(current_object->get_oid(), completion, op);
+    ret_val = get_io_ctx().aio_operate(current_object->get_oid(), completion, op);
     if (ret_val < 0) {
       break;
     }
@@ -74,7 +74,7 @@ int RadosStorageImpl::read_mail(const std::string &oid, uint64_t *size_r, char *
   int ret = 0;
   do {
     mail_data_bl.clear();
-    ret = cluster->get_io_ctx().read(oid, mail_data_bl, *size_r, offset);
+    ret = get_io_ctx().read(oid, mail_data_bl, *size_r, offset);
     if (ret < 0) {
       return ret;
     }
@@ -92,7 +92,7 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
 
   if (mail != nullptr) {
     if (mail->get_xattr()->size() == 0) {
-      ret = cluster->get_io_ctx().getxattrs(mail->get_oid(), *mail->get_xattr());
+      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_xattr());
     } else {
       ret = 0;
     }
@@ -101,7 +101,7 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
 }
 
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosXAttr &xattr) {
-  return cluster->get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
+  return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
@@ -114,7 +114,7 @@ int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
 int RadosStorageImpl::delete_mail(std::string oid) {
   int ret = -1;
   if (!oid.empty()) {
-    ret = cluster->get_io_ctx().remove(oid);
+    ret = get_io_ctx().remove(oid);
   }
   return ret;
 }
@@ -124,14 +124,14 @@ int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &o
   if (io_ctx_ != nullptr) {
     return io_ctx_->aio_operate(oid, c, op);
   } else {
-    return cluster->get_io_ctx().aio_operate(oid, c, op);
+    return get_io_ctx().aio_operate(oid, c, op);
   }
 }
 
 int RadosStorageImpl::stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) {
-  return cluster->get_io_ctx().stat(oid, psize, pmtime);
+  return get_io_ctx().stat(oid, psize, pmtime);
 }
-void RadosStorageImpl::set_namespace(const std::string &nspace) { cluster->get_io_ctx().set_namespace(nspace); }
+void RadosStorageImpl::set_namespace(const std::string &nspace) { get_io_ctx().set_namespace(nspace); }
 
 librados::NObjectIterator RadosStorageImpl::find_mails(RadosXAttr *attr) {
   if (attr != nullptr) {
@@ -142,23 +142,24 @@ librados::NObjectIterator RadosStorageImpl::find_mails(RadosXAttr *attr) {
     encode("_" + attr->key, filter_bl);
     encode(attr->bl.to_str(), filter_bl);
 
-    return cluster->get_io_ctx().nobjects_begin(filter_bl);
+    return get_io_ctx().nobjects_begin(filter_bl);
   } else {
-    return cluster->get_io_ctx().nobjects_begin();
+    return get_io_ctx().nobjects_begin();
   }
 }
 
-int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &ns) {
-  std::string error_msg;
-  if (cluster->init(&error_msg) < 0) {
+librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
+
+int RadosStorageImpl::open_connection(const string &poolname, const string &ns) {
+  if (cluster->init() < 0) {
     return -1;
   }
   // pool exists? else create
-  int err = cluster->io_ctx_create(poolname);
+  int err = cluster->io_ctx_create(poolname, &io_ctx);
   if (err < 0) {
     return err;
   }
-  std::string max_write_size_str;
+  string max_write_size_str;
   err = cluster->get_config_option(RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE, &max_write_size_str);
   if (err < 0) {
     return err;

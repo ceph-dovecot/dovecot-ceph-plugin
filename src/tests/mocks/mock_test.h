@@ -64,12 +64,11 @@ using librmb::RadosCluster;
 
 class RadosClusterMock : public RadosCluster {
  public:
-  MOCK_METHOD1(init, int(std::string *error_r));
+  MOCK_METHOD0(init, int());
   MOCK_METHOD0(deinit, void());
   MOCK_METHOD1(pool_create, int(const std::string &pool));
-  MOCK_METHOD1(io_ctx_create, int(const std::string &pool));
+  MOCK_METHOD2(io_ctx_create, int(const std::string &pool, librados::IoCtx *io_ctx));
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
-  MOCK_METHOD0(get_io_ctx, librados::IoCtx &());
 };
 
 }  // namespace librmbtest

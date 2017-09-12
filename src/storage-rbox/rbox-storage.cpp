@@ -84,16 +84,12 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
   FUNC_START();
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
+  delete storage->s;
+  storage->s = nullptr;
+
   storage->cluster->deinit();
-  if (storage->s != nullptr) {
-    delete storage->s;
-    storage->s = nullptr;
-  }
-  if (storage->cluster != nullptr) {
-    // delete cluster after storage!
-    delete storage->cluster;
-    storage->cluster = nullptr;
-  }
+  delete storage->cluster;
+  storage->cluster = nullptr;
 
   index_storage_destroy(_storage);
 

@@ -125,6 +125,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
     EXPECT_TRUE(input->eof);
     EXPECT_GE(ret, -1);
   }
+  i_stream_unref(&input);
   mailbox_free(&box);
 }
 

@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-#include <list>
+#include <map>
 #include <string>
 #include <cstdint>
 
@@ -29,7 +29,7 @@ class RadosStorageImpl : public RadosStorage {
   explicit RadosStorageImpl(RadosCluster *cluster);
   virtual ~RadosStorageImpl();
 
-  librados::IoCtx &get_io_ctx() { return cluster->get_io_ctx(); }
+  librados::IoCtx &get_io_ctx();
   int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime);
   void set_namespace(const std::string &nspace);
 
@@ -52,11 +52,14 @@ class RadosStorageImpl : public RadosStorage {
   int open_connection(const std::string &poolname, const std::string &ns);
 
   bool wait_for_write_operations_complete(
-      std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map);
+      std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
 
  private:
   RadosCluster *cluster;
   int max_write_size;
+
+  librados::IoCtx io_ctx;
+
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
 
