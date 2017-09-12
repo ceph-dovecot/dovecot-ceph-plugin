@@ -87,7 +87,7 @@ int RadosStorageImpl::read_mail(const std::string &oid, uint64_t *size_r, char *
   return ret;
 }
 
-int RadosStorageImpl::load_xattr(RadosMailObject *mail) {
+int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   int ret = -1;
 
   if (mail != nullptr) {
@@ -100,7 +100,7 @@ int RadosStorageImpl::load_xattr(RadosMailObject *mail) {
   return ret;
 }
 
-int RadosStorageImpl::set_xattr(const std::string &oid, const RadosXAttr &xattr) {
+int RadosStorageImpl::set_metadata(const std::string &oid, const RadosXAttr &xattr) {
   return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
 
@@ -128,12 +128,12 @@ int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &o
   }
 }
 
-int RadosStorageImpl::stat_object(const std::string &oid, uint64_t *psize, time_t *pmtime) {
+int RadosStorageImpl::stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) {
   return get_io_ctx().stat(oid, psize, pmtime);
 }
 void RadosStorageImpl::set_namespace(const std::string &nspace) { get_io_ctx().set_namespace(nspace); }
 
-librados::NObjectIterator RadosStorageImpl::find_objects(RadosXAttr *attr) {
+librados::NObjectIterator RadosStorageImpl::find_mails(RadosXAttr *attr) {
   if (attr != nullptr) {
     std::string filter_name = PLAIN_FILTER_NAME;
     ceph::bufferlist filter_bl;
@@ -167,4 +167,21 @@ int RadosStorageImpl::open_connection(const string &poolname, const string &ns) 
   max_write_size = std::stoi(max_write_size_str);
   set_namespace(ns);
   return 0;
+}
+
+bool RadosStorageImpl::wait_for_write_operations_complete(
+    std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) {
+  bool failed = false;
+
+  for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
+      completion_op_map->begin(); map_it != completion_op_map->end();
+      ++map_it) {
+    map_it->first->wait_for_complete_and_cb();
+    failed = map_it->first->get_return_value() < 0 || failed ? true : false;
+    // clean up
+    map_it->first->release();
+    map_it->second->remove();
+    delete map_it->second;
+  }
+  return failed;
 }

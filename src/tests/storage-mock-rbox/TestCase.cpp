@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "src/tests/storage-rbox/TestCase.h"
+#include "../storage-mock-rbox/TestCase.h"
 
 #include <errno.h>
 
@@ -48,82 +48,10 @@ extern "C" {
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 
-static std::string get_temp_pool_name(const std::string &prefix) {
-  char hostname[80];
-  char out[160];
-  memset(hostname, 0, sizeof(hostname));
-  memset(out, 0, sizeof(out));
-  gethostname(hostname, sizeof(hostname) - 1);
-  static int num = 1;
-  snprintf(out, sizeof(out), "%s-%d-%d", hostname, getpid(), num);
-  num++;
-  return prefix + out;
-}
-
-static std::string connect_cluster(rados_t *cluster) {
-  char *id = getenv("CEPH_CLIENT_ID");
-  if (id)
-    std::cerr << "Client id is: " << id << std::endl;
-
-  int ret;
-  ret = rados_create(cluster, NULL);
-  if (ret) {
-    std::ostringstream oss;
-    oss << "rados_create failed with error " << ret;
-    return oss.str();
-  }
-  ret = rados_conf_read_file(*cluster, NULL);
-  if (ret) {
-    rados_shutdown(*cluster);
-    std::ostringstream oss;
-    oss << "rados_conf_read_file failed with error " << ret;
-    return oss.str();
-  }
-  rados_conf_parse_env(*cluster, NULL);
-  ret = rados_connect(*cluster);
-  if (ret) {
-    rados_shutdown(*cluster);
-    std::ostringstream oss;
-    oss << "rados_connect failed with error " << ret;
-    return oss.str();
-  }
-  return "";
-}
-
-static std::string create_one_pool(const std::string &pool_name, rados_t *cluster, uint32_t pg_num = 0) {
-  std::string err_str = connect_cluster(cluster);
-  if (err_str.length())
-    return err_str;
-
-  int ret = rados_pool_create(*cluster, pool_name.c_str());
-  if (ret) {
-    rados_shutdown(*cluster);
-    std::ostringstream oss;
-    oss << "create_one_pool(" << pool_name << ") failed with error " << ret;
-    return oss.str();
-  }
-
-  return "";
-}
-
-static int destroy_one_pool(const std::string &pool_name, rados_t *cluster) {
-  int ret = rados_pool_delete(*cluster, pool_name.c_str());
-  if (ret) {
-    rados_shutdown(*cluster);
-    return ret;
-  }
-  rados_shutdown(*cluster);
-  return 0;
-}
-
 static struct mail_storage_service_ctx *mail_storage_service = nullptr;
 struct mail_user *StorageTest::s_test_mail_user = nullptr;
 static struct mail_storage_service_user *test_service_user = nullptr;
 static const char *mail_home;
-
-rados_t StorageTest::s_cluster = nullptr;
-rados_ioctx_t StorageTest::s_ioctx = nullptr;
-
 std::string StorageTest::pool_name;  // NOLINT
 std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
@@ -132,10 +60,6 @@ pool_t StorageTest::s_test_pool = nullptr;
 static const char *username = "user-rbox-test";
 
 void StorageTest::SetUpTestCase() {
-  // prepare Ceph
-  pool_name = get_temp_pool_name("test-storage-rbox-");
-  ASSERT_EQ("", create_one_pool(pool_name, &s_cluster));
-  ASSERT_EQ(0, rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx));
 
   // prepare Dovecot
   uri = "oid=metadata:pool=" + pool_name;
@@ -214,9 +138,6 @@ void StorageTest::TearDownTestCase() {
 
   io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
-
-  rados_ioctx_destroy(s_ioctx);
-  destroy_one_pool(pool_name, &s_cluster);
 
   master_service_deinit(&master_service);
 }

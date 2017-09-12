@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-#include <list>
+#include <map>
 #include <string>
 #include <cstdint>
 
@@ -30,7 +30,7 @@ class RadosStorageImpl : public RadosStorage {
   virtual ~RadosStorageImpl();
 
   librados::IoCtx &get_io_ctx();
-  int stat_object(const std::string &oid, uint64_t *psize, time_t *pmtime);
+  int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime);
   void set_namespace(const std::string &nspace);
 
   int get_max_write_size() { return max_write_size; }
@@ -40,16 +40,19 @@ class RadosStorageImpl : public RadosStorage {
                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 
   int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer);
-  int load_xattr(RadosMailObject *mail);
-  int set_xattr(const std::string &oid, const RadosXAttr &xattr);
+  int load_metadata(RadosMailObject *mail);
+  int set_metadata(const std::string &oid, const RadosXAttr &xattr);
 
   int delete_mail(RadosMailObject *mail);
   int delete_mail(std::string oid);
 
   int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                   librados::ObjectWriteOperation *op);
-  librados::NObjectIterator find_objects(RadosXAttr *attr);
+  librados::NObjectIterator find_mails(RadosXAttr *attr);
   int open_connection(const std::string &poolname, const std::string &ns);
+
+  bool wait_for_write_operations_complete(
+      std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
 
  private:
   RadosCluster *cluster;

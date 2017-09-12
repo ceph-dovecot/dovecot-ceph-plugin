@@ -33,4 +33,3 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-storage.cpp \
 	rbox-sync-rebuild.cpp \
 	debug-helper.c 
-	

@@ -140,8 +140,6 @@ class RadosMailObject {
   void set_mail_buffer(char* _mail_buffer) { this->mail_buffer = _mail_buffer; }
   char* get_mail_buffer() { return this->mail_buffer; }
 
-  bool wait_for_write_operations_complete();
-
   std::map<std::string, ceph::bufferlist>* get_xattr() { return &this->attrset; }
 
   std::string get_xvalue(rbox_metadata_key key) {
