@@ -50,7 +50,7 @@ TEST(librmb, split_write_operation) {
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
-  obj.wait_for_write_operations_complete();
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
   // stat the object
   uint64_t size;
@@ -91,7 +91,7 @@ TEST(librmb1, split_write_operation_1) {
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
-  obj.wait_for_write_operations_complete();
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
   // stat the object
   uint64_t size;
@@ -161,7 +161,7 @@ TEST(librmb1, read_mail) {
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
-  obj.wait_for_write_operations_complete();
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
   // stat the object
   uint64_t size;
@@ -214,7 +214,7 @@ TEST(librmb, load_metadata) {
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
 
   // wait for op to finish.
-  obj.wait_for_write_operations_complete();
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
   storage.load_metadata(&obj);
 

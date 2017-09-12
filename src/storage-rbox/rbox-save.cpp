@@ -327,7 +327,9 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx,
   return 0;
 }
 
-static bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) {
+static bool wait_for_rados_operations(
+    struct rbox_storage *r_storage,
+    const std::vector<librmb::RadosMailObject *> &object_list) {
   bool ctx_failed = false;
   // wait for all writes to finish!
   // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
@@ -336,7 +338,13 @@ static bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject 
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
-      ctx_failed = (*it_cur_obj)->wait_for_write_operations_complete();
+
+      bool op_failed = r_storage->s->wait_for_write_operations_complete(
+          (*it_cur_obj)->get_completion_op_map());
+
+      ctx_failed = ctx_failed ? ctx_failed : op_failed;
+
+      //  ctx_failed = (*it_cur_obj)->wait_for_write_operations_complete();
       i_debug("OID %s, SAVED success=%s", (*it_cur_obj)->get_oid().c_str(),
               ctx_failed ? "false" : "true");  //, file_size);
       (*it_cur_obj)->get_completion_op_map()->clear();
@@ -349,7 +357,7 @@ static bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject 
 static void clean_up_failed(struct rbox_save_context *r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  wait_for_rados_operations(r_ctx->objects);
+  wait_for_rados_operations(r_storage, r_ctx->objects);
 
   for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin(); it_cur_obj != r_ctx->objects.end();
        ++it_cur_obj) {
@@ -473,20 +481,23 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mailbox_transaction_context *_t = _ctx->transaction;
+  struct rbox_storage *r_storage = (struct rbox_storage *) &r_ctx->mbox->storage
+      ->storage;
 
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
 
   i_assert(r_ctx->finished);
 
-  r_ctx->failed = wait_for_rados_operations(r_ctx->objects);
+  r_ctx->failed = wait_for_rados_operations(r_storage, r_ctx->objects);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
   if (r_ctx->failed) {
     // delete index entry and delete object if it exist
     // remove entry from index is not successful in rbox_transaction_commit_post
     // clean up will wait for object operation to complete
-    clean_up_failed(r_ctx);
+    rbox_transaction_save_rollback(_ctx);
+    return -1;
   }
 
   int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;

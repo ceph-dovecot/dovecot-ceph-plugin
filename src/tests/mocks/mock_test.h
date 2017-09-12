@@ -41,6 +41,7 @@ class RadosStorageMock : public RadosStorage {
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(RadosXAttr *attr));
   MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
+  MOCK_METHOD1(wait_for_write_operations_complete,bool(std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map));
 };
 
 using librmb::RadosDictionary;

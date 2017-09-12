@@ -13,6 +13,7 @@
 #define SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_
 
 #include <string>
+#include <map>
 
 #include "../rados-mail-object.h"
 #include "rados-cluster-interface.h"
@@ -44,6 +45,9 @@ class RadosStorage {
                           librados::ObjectWriteOperation *op) = 0;
   virtual librados::NObjectIterator find_mails(RadosXAttr *attr) = 0;
   virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
+  virtual bool wait_for_write_operations_complete(
+      std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
+
 };
 
 }  // namespace librmb
