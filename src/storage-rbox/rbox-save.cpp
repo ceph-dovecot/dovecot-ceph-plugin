@@ -338,8 +338,11 @@ static bool wait_for_rados_operations(
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
-      ctx_failed = r_storage->s->wait_for_write_operations_complete(
+
+      bool op_failed = r_storage->s->wait_for_write_operations_complete(
           (*it_cur_obj)->get_completion_op_map());
+
+      ctx_failed = ctx_failed ? ctx_failed : op_failed;
 
       //  ctx_failed = (*it_cur_obj)->wait_for_write_operations_complete();
       i_debug("OID %s, SAVED success=%s", (*it_cur_obj)->get_oid().c_str(),
