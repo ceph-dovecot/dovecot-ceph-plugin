@@ -24,6 +24,14 @@ using librmb::RadosClusterImpl;
 
 librados::Rados RadosClusterImpl::cluster;
 int RadosClusterImpl::cluster_ref_count = 0;
+
+const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT = "client_mount_timeout";
+const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT = "rados_mon_op_timeout";
+const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT = "rados_osd_op_timeout";
+
+const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT_DEFAULT = "10";
+const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
+const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
 RadosClusterImpl::RadosClusterImpl() {}
 
 RadosClusterImpl::~RadosClusterImpl() {}
@@ -47,6 +55,23 @@ int RadosClusterImpl::init(string *error_r) {
     if (ret < 0) {
       *error_r = "Cannot read config file! " + string(strerror(-ret));
       return ret;
+    }
+    std::string value_mount_timeout;
+
+    if (get_config_option(CLIENT_MOUNT_TIMEOUT, &value_mount_timeout) < 0) {
+      cluster.conf_set(CLIENT_MOUNT_TIMEOUT, CLIENT_MOUNT_TIMEOUT_DEFAULT);
+    }
+
+    std::string value_mon_op_timeout;
+    ret = get_config_option(RADOS_MON_OP_TIMEOUT, &value_mon_op_timeout);
+    if (ret < 0 || value_mon_op_timeout.compare("0") == 0) {
+      cluster.conf_set(RADOS_MON_OP_TIMEOUT, RADOS_MON_OP_TIMEOUT_DEFAULT);
+    }
+
+    std::string value_osd_op_timeout;
+    ret = get_config_option(RADOS_OSD_OP_TIMEOUT, &value_mon_op_timeout);
+    if (ret < 0 || value_osd_op_timeout.compare("0") == 0) {
+      cluster.conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
     }
 
     ret = cluster.connect();

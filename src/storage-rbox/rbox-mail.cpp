@@ -119,7 +119,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     return -1;
   }
 
-  ret = r_storage->s->load_xattr(rmail->mail_object);
+  ret = r_storage->s->load_metadata(rmail->mail_object);
   if (ret < 0) {
     i_debug("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
     return ret;
@@ -191,7 +191,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   uint64_t object_size = 0;
   time_t save_date_rados = 0;
 
-  int ret_val = (r_storage->s)->stat_object(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
+  int ret_val = (r_storage->s)->stat_mail(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
     if (ret_val == -ENOENT) {
       rbox_mail_set_expunged(rmail);
@@ -260,7 +260,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return -1;
   }
 
-  int ret_val = (r_storage->s)->stat_object(rmail->mail_object->get_oid(), &file_size, &time);
+  int ret_val = (r_storage->s)->stat_mail(rmail->mail_object->get_oid(), &file_size, &time);
   if (ret_val < 0) {
     if (ret_val == ((-1) * ENOENT)) {
       i_debug("no_object set_expunged: rmail->mail_object->get_oid() %s, size %lu, uid=%d",

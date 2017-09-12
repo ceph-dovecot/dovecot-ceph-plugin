@@ -9,9 +9,9 @@
  * Foundation.  See file COPYING.
  */
 
+#include "../storage-mock-rbox/TestCase.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "TestCase.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
@@ -53,14 +53,7 @@ using ::testing::Return;
 
 TEST_F(StorageTest, init) {}
 
-TEST_F(StorageTest, mailbox_open_inbox) {
-  struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
-  struct mailbox *box = mailbox_alloc(ns->list, "INBOX", MAILBOX_FLAG_READONLY);
-  ASSERT_GE(mailbox_open(box), 0);
-  mailbox_free(&box);
-}
-
-TEST_F(StorageTest, mail_save_to_inbox) {
+TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
   struct mailbox *box = mailbox_alloc(ns->list, "INBOX", (mailbox_flags)0);
@@ -79,7 +72,17 @@ TEST_F(StorageTest, mail_save_to_inbox) {
 
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
+
+  // set the Mock storage
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  delete storage->s;
+  librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
+  // first call to open_connection will fail!
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(-1));
+
+  storage->s = storage_mock;
   ssize_t ret;
+
   bool save_failed = FALSE;
 
   if (mailbox_save_begin(&save_ctx, input) < 0) {
@@ -102,23 +105,24 @@ TEST_F(StorageTest, mail_save_to_inbox) {
     } else if (save_failed) {
       FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
     } else if (mailbox_save_finish(&save_ctx) < 0) {
-      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
+      SUCCEED() << "Saving should fail, due to connection to rados is not available.";
     } else if (mailbox_transaction_commit(&trans) < 0) {
       FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
     } else {
       ret = 0;
+      // FAIL() << "connection is not open: " << mailbox_get_last_internal_error(box, NULL);
     }
 
     EXPECT_EQ(save_ctx, nullptr);
     if (save_ctx != nullptr)
       mailbox_save_cancel(&save_ctx);
 
-    EXPECT_EQ(trans, nullptr);
+    EXPECT_NE(trans, nullptr);
     if (trans != nullptr)
       mailbox_transaction_rollback(&trans);
 
     EXPECT_TRUE(input->eof);
-    EXPECT_GE(ret, 0);
+    EXPECT_GE(ret, -1);
   }
   mailbox_free(&box);
 }

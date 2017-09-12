@@ -93,14 +93,14 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
   attr.key = xattr;
   attr.bl.append(mailbox_guid);
 
-  librados::NObjectIterator iter(r_storage->s->find_objects(&attr));
+  librados::NObjectIterator iter(r_storage->s->find_mails(&attr));
 
   int found = 0;
   int ret = 0;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
     librmb::RadosMailObject mail_object;
-    int retx = r_storage->s->load_xattr(&mail_object);
+    int retx = r_storage->s->load_metadata(&mail_object);
 
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object);

@@ -39,6 +39,15 @@ class RadosClusterImpl : public RadosCluster {
   static librados::Rados cluster;
   static int cluster_ref_count;
   librados::IoCtx io_ctx;
+  static const char *CLIENT_MOUNT_TIMEOUT;
+  static const char *RADOS_MON_OP_TIMEOUT;
+  static const char *RADOS_OSD_OP_TIMEOUT;
+
+  static const char *CLIENT_MOUNT_TIMEOUT_DEFAULT;
+  static const char *RADOS_MON_OP_TIMEOUT_DEFAULT;
+  static const char *RADOS_OSD_OP_TIMEOUT_DEFAULT;
+
+
 
 };
 
