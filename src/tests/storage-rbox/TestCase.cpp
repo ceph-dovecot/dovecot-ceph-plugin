@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "TestCase.h"
+#include "src/tests/storage-rbox/TestCase.h"
 
 #include <errno.h>
 
@@ -215,10 +215,10 @@ void StorageTest::TearDownTestCase() {
   io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
 
-  master_service_deinit(&master_service);
-
   rados_ioctx_destroy(s_ioctx);
   destroy_one_pool(pool_name, &s_cluster);
+
+  master_service_deinit(&master_service);
 }
 
 void StorageTest::SetUp() {}
