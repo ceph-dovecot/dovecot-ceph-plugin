@@ -41,6 +41,8 @@ RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_
     : cluster(_cluster), poolname(_poolname), username(_username), oid(_oid) {
   shared_oid = oid + DICT_USERNAME_SEPARATOR + "shared";
   private_oid = oid + DICT_USERNAME_SEPARATOR + username;
+  shared_io_ctx_created = false;
+  private_io_ctx_created = false;
 }
 
 RadosDictionaryImpl::~RadosDictionaryImpl() {}
