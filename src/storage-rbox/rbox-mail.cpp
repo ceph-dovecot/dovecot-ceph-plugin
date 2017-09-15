@@ -327,7 +327,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   int ret = 0;
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
-
+  rbox_get_index_record(_mail);
   uint64_t size_r = 0;
 
   if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
