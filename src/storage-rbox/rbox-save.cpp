@@ -299,17 +299,9 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    if (ctx->input->v_offset != output_msg_size) {
-      i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", (long)ctx->input->v_offset, (long)output_msg_size);
-      librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, output_msg_size);
-      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
-
-      ((struct rbox_mail *)((struct mail_save_context *)ctx)->dest_mail)->imail.data.physical_size = output_msg_size;
-
-    } else {
-      librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
-      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
-    }
+    i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", (long)ctx->input->v_offset, (long)output_msg_size);
+    librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
+    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
     std::string flags = std::to_string(mdata->flags);

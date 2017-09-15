@@ -211,17 +211,17 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 }
 
 int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
-  struct rbox_mail *mail = (struct rbox_mail *)_mail;
-  struct index_mail_data *data = &mail->imail.data;
+  struct rbox_mail *rmail = (struct rbox_mail *)_mail;
+  struct index_mail_data *data = &rmail->imail.data;
   char *value;
   *size_r = -1;
 
-  bool ret = index_mail_get_cached_virtual_size(&mail->imail, size_r);
+  bool ret = index_mail_get_cached_virtual_size(&rmail->imail, size_r);
   if (ret && *size_r > 0) {
     return 0;
   }
 
-  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
+  if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
     value = NULL;
   }
 
@@ -238,20 +238,39 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
 
 static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
-  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
-  uint64_t file_size = -1;
-  time_t time = 0;
 
+  char *value;
   //  rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("get_physical_size from index(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
             *size_r);
     FUNC_END_RET("ret == 0");
-
     return 0;
   }
+
+  if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value) < 0) {
+    value = NULL;
+    FUNC_END_RET("ret == -1; rados_read_metadata ");
+    return -1;
+  }
+
+  i_debug("get_physical_size from Rados %s, size %s, uid=%d", rmail->mail_object->get_oid().c_str(), value, _mail->uid);
+
+  data->physical_size = std::stol(value);
+  *size_r = data->physical_size;
+
+  FUNC_END();
+  return 0;
+}
+static int rbox_get_mail_size(struct mail *_mail, uoff_t *size_r) {
+  FUNC_START();
+  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+  struct rbox_mail *rmail = (struct rbox_mail *)_mail;
+  struct index_mail_data *data = &rmail->imail.data;
+  uint64_t file_size = -1;
+  time_t time = 0;
 
   if (rbox_open_rados_connection(_mail->box) < 0) {
     FUNC_END_RET("ret == -1;  connection to rados failed");
@@ -271,52 +290,14 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
       FUNC_END_RET("ret == -1; rbox_read");
       return -1;
     }
-  }
-  i_debug("get_physical_size from Rados %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
-          _mail->uid);
-
-  // *size_r = file_size;
-  data->physical_size = (uoff_t)file_size;
-  *size_r = data->physical_size;
-
-  FUNC_END();
-  return file_size > 0 ? 0 : -1;
-}
-static int rbox_get_mail_size(struct mail *_mail, uoff_t *size_r) {
-  FUNC_START();
-  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  struct index_mail_data *data = &rmail->imail.data;
-  uint64_t file_size = -1;
-  time_t time = 0;
-
-  if (rbox_open_rados_connection(_mail->box) < 0) {
-    FUNC_END_RET("ret == -1;  connection to rados failed");
-    return -1;
-   }
-
-   int ret_val = (r_storage->s)->stat_mail(rmail->mail_object->get_oid(), &file_size, &time);
-   if (ret_val < 0) {
-     if (ret_val == ((-1) * ENOENT)) {
-       i_debug("no_object set_expunged: rmail->mail_object->get_oid() %s, size %lu, uid=%d",
-               rmail->mail_object->get_oid().c_str(), file_size, _mail->uid);
-       rbox_mail_set_expunged(rmail);
-       return -1;
-     } else {
-       i_debug("no_object: rmail->mail_object->get_oid() %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(),
-               file_size, _mail->uid);
-       FUNC_END_RET("ret == -1; rbox_read");
-       return -1;
-     }
    }
    i_debug("get_physical_size from Rados %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
            _mail->uid);
 
    *size_r = (uoff_t)file_size;
-   ;
 
    FUNC_END();
-   return file_size > 0 ? 0 : -1;
+   return 0;
 }
 
 static int get_mail_stream(struct rbox_mail *mail, char *buffer, uint64_t physical_size, struct istream **stream_r) {
@@ -356,6 +337,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
+    // real object size
     if (rbox_get_mail_size(_mail, &size_r) < 0) {
       FUNC_END_RET("ret == -1; get mail size");
       return -1;
@@ -394,9 +376,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     uoff_t size_decompressed = -1;
     i_stream_get_size(input, TRUE, &size_decompressed);
-    //    i_debug("SETTING PHYSICAL_SIZE TO : %d", size_decompressed);
-    rmail->imail.data.physical_size = size_decompressed;
-    // rmail->imail.data.physical_size = -1;
     i_debug("INPUT compressed %ld, decompressed %ld", (long)size_r, (long)size_decompressed);
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
