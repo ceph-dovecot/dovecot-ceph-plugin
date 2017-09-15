@@ -244,11 +244,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   uint64_t file_size = -1;
   time_t time = 0;
 
-  i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
-
-  rbox_get_index_record(_mail);
+  //  rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
-    i_debug("rbox_mail_get_physical_size(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
+    i_debug("get_physical_size from index(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
             *size_r);
     FUNC_END_RET("ret == 0");
 
@@ -274,7 +272,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
       return -1;
     }
   }
-  i_debug("rmail->mail_object->get_oid() %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
+  i_debug("get_physical_size from Rados %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
           _mail->uid);
 
   // *size_r = file_size;
@@ -283,6 +281,58 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   FUNC_END();
   return file_size > 0 ? 0 : -1;
+}
+static int rbox_get_mail_size(struct mail *_mail, uoff_t *size_r) {
+  FUNC_START();
+  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+  struct rbox_mail *rmail = (struct rbox_mail *)_mail;
+  struct index_mail_data *data = &rmail->imail.data;
+  uint64_t file_size = -1;
+  time_t time = 0;
+
+  if (rbox_open_rados_connection(_mail->box) < 0) {
+    FUNC_END_RET("ret == -1;  connection to rados failed");
+    return -1;
+   }
+
+   int ret_val = (r_storage->s)->stat_mail(rmail->mail_object->get_oid(), &file_size, &time);
+   if (ret_val < 0) {
+     if (ret_val == ((-1) * ENOENT)) {
+       i_debug("no_object set_expunged: rmail->mail_object->get_oid() %s, size %lu, uid=%d",
+               rmail->mail_object->get_oid().c_str(), file_size, _mail->uid);
+       rbox_mail_set_expunged(rmail);
+       return -1;
+     } else {
+       i_debug("no_object: rmail->mail_object->get_oid() %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(),
+               file_size, _mail->uid);
+       FUNC_END_RET("ret == -1; rbox_read");
+       return -1;
+     }
+   }
+   i_debug("get_physical_size from Rados %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
+           _mail->uid);
+
+   *size_r = (uoff_t)file_size;
+   ;
+
+   FUNC_END();
+   return file_size > 0 ? 0 : -1;
+}
+
+static int get_mail_stream(struct rbox_mail *mail, char *buffer, uint64_t physical_size, struct istream **stream_r) {
+  struct mail_private *pmail = &mail->imail.mail;
+  struct istream *input;  // = *stream_r;
+  input = i_stream_create_from_data(buffer, physical_size);
+  i_stream_set_max_buffer_size(input, physical_size);
+  i_stream_seek(input, 0);
+
+  *stream_r = i_stream_create_limit(input, physical_size);
+
+  if (pmail->v.istream_opened != NULL) {
+    if (pmail->v.istream_opened(&pmail->mail, stream_r) < 0)
+      return -1;
+  }
+  return 0;
 }
 
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
@@ -298,15 +348,15 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
 
+  uint64_t size_r = 0;
+
   if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
 
-    uint64_t size_r = 0;
-
-    if (rbox_mail_get_physical_size(_mail, &size_r) < 0) {
+    if (rbox_get_mail_size(_mail, &size_r) < 0) {
       FUNC_END_RET("ret == -1; get mail size");
       return -1;
     }
@@ -335,20 +385,21 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     }
+    unsigned char data0 = rmail->mail_buffer[0];
 
-    input = i_stream_create_from_data(rmail->mail_buffer, size_r);
-    i_stream_set_name(input, RadosMailObject::DATA_BUFFER_NAME);
+    unsigned char data1 = rmail->mail_buffer[1];
+    i_debug("data[0] %u, data[1] %u ", (unsigned int)data0, (unsigned int)data1);
 
-    index_mail_set_read_buffer_size(_mail, input);
+    get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);
 
-    if (rmail->imail.mail.v.istream_opened != NULL) {
-      if (rmail->imail.mail.v.istream_opened(_mail, &input) < 0) {
-        i_stream_unref(&input);
-        FUNC_END_RET("ret == -1");
-        return -1;
-      }
-    }
+    uoff_t size_decompressed = -1;
+    i_stream_get_size(input, TRUE, &size_decompressed);
+    //    i_debug("SETTING PHYSICAL_SIZE TO : %d", size_decompressed);
+    // rmail->imail.data.physical_size = size_decompressed;
+    rmail->imail.data.physical_size = -1;
+    i_debug("INPUT compressed %ld, decompressed %ld", (long)size_r, (long)size_decompressed);
     data->stream = input;
+    index_mail_set_read_buffer_size(_mail, input);
   }
   ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
 
@@ -485,6 +536,8 @@ static void rbox_mail_close(struct mail *_mail) {
     delete rmail_->mail_object;
     rmail_->mail_object = NULL;
   }
+
+  i_debug("INDEX_ physical size : %d", rmail_->imail.data.physical_size);
   index_mail_close(_mail);
 }
 

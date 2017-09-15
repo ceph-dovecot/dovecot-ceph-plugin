@@ -30,6 +30,7 @@ class rbox_save_context {
         sync_ctx(NULL),
         seq(0),
         input(NULL),
+        output_stream(NULL),
         rados_storage(_rados_storage),
         current_object(NULL),
         failed(1),
@@ -52,6 +53,7 @@ class rbox_save_context {
   /* updated for each appended mail: */
   uint32_t seq;
   struct istream *input;
+  struct ostream *output_stream;
 
   const librmb::RadosStorage &rados_storage;
   std::vector<librmb::RadosMailObject *> objects;

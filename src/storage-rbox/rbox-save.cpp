@@ -184,7 +184,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     // make 100% sure, buffer is empty!
     buffer_free(&buffer);
   }
-  r_ctx->current_object->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, 1014)));
+  r_ctx->current_object->set_mail_buffer(reinterpret_cast<unsigned char *>(buffer_create_dynamic(default_pool, 1024)));
   // r_ctx->mail_buffer = ;
   if (r_ctx->current_object->get_mail_buffer() == NULL) {
     FUNC_END_RET("ret == -1");
@@ -194,8 +194,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     o_stream_unref(&_ctx->data.output);
   }
 
-  //  _ctx->data.output = o_stream_create_buffer(r_ctx->mail_buffer);
-  _ctx->data.output = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
+  r_ctx->output_stream = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
+  o_stream_cork(r_ctx->output_stream);
+  _ctx->data.output = r_ctx->output_stream;
 
   r_ctx->objects.push_back(r_ctx->current_object);
   if (_ctx->data.received_date == (time_t)-1)
@@ -239,8 +240,8 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx,
-                                         librados::ObjectWriteOperation *write_op_xattr) {
+static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
+                                         uoff_t &output_msg_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
 
@@ -298,9 +299,17 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx,
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    librmb::RadosXAttr xattr(
-        rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
-    write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
+    if (ctx->input->v_offset != output_msg_size) {
+      i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", (long)ctx->input->v_offset, (long)output_msg_size);
+      librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, output_msg_size);
+      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
+
+      ((struct rbox_mail *)((struct mail_save_context *)ctx)->dest_mail)->imail.data.physical_size = output_msg_size;
+
+    } else {
+      librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
+      write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
+    }
   }
   {
     std::string flags = std::to_string(mdata->flags);
@@ -400,6 +409,14 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     }
 
     if (r_ctx->copying != TRUE) {
+      struct mail_save_data *mdata = &r_ctx->ctx.data;
+      if (mdata->output != r_ctx->output_stream) {
+        i_debug("mdata output changed..");
+        /* e.g. zlib plugin had changed this */
+        o_stream_ref(r_ctx->output_stream);
+        o_stream_destroy(&mdata->output);
+        mdata->output = r_ctx->output_stream;
+      }
       // reset virtual size
       index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
 
@@ -407,11 +424,14 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
 
       buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
+      size_t total_size = buffer_get_size(mail_buffer);
+
       size_t write_buffer_size = buffer_get_used_size(mail_buffer);
 
-      i_debug("oid: %s, save_date: %s, mail_size %lu", r_ctx->current_object->get_oid().c_str(),
-              std::ctime(&_ctx->data.save_date), write_buffer_size);
-      rbox_save_mail_write_metadata(r_ctx, write_op_xattr);
+      i_debug("oid: %s, save_date: %s, mail_size %lu, total_buf size %lu", r_ctx->current_object->get_oid().c_str(),
+              std::ctime(&_ctx->data.save_date), write_buffer_size, total_size);
+
+      rbox_save_mail_write_metadata(r_ctx, write_op_xattr, r_ctx->output_stream->offset);
 
       if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
         r_ctx->failed = true;
