@@ -14,44 +14,7 @@
 
 #include "dovecot-all.h"
 
-#include "rbox-storage.hpp"
-#include "rbox-sync.h"
 #include "debug-helper.h"
-
-// #define RBOX_DEBUG
-
-#ifdef RBOX_DEBUG
-static const char *enum_mail_access_type_strs[] = {"MAIL_ACCESS_TYPE_DEFAULT", "MAIL_ACCESS_TYPE_SEARCH",
-                                                   "MAIL_ACCESS_TYPE_SORT"};
-static const char *enum_mail_lookup_abort_strs[] = {"MAIL_LOOKUP_ABORT_NEVER", "MAIL_LOOKUP_ABORT_READ_MAIL",
-                                                    "MAIL_LOOKUP_ABORT_NOT_IN_CACHE"};
-static const char *enum_mail_error_strs[] = {
-    "MAIL_ERROR_NONE",     "MAIL_ERROR_TEMP",          "MAIL_ERROR_NOTPOSSIBLE", "MAIL_ERROR_PARAMS",
-    "MAIL_ERROR_PERM",     "MAIL_ERROR_NOQUOTA",       "MAIL_ERROR_NOTFOUND",    "MAIL_ERROR_EXISTS",
-    "MAIL_ERROR_EXPUNGED", "MAIL_ERROR_INUSE",         "MAIL_ERROR_CONVERSION",  "MAIL_ERROR_INVALIDDATA",
-    "MAIL_ERROR_LIMIT",    "MAIL_ERROR_LOOKUP_ABORTED"};
-static const char *enum_file_lock_method[] = {"FILE_LOCK_METHOD_FCNTL", "FILE_LOCK_METHOD_FLOCK",
-                                              "FILE_LOCK_METHOD_DOTLOCK"};
-#define RBOX_PRINT_START(NAME)                \
-  if (funcname == NULL)                       \
-    funcname = "-";                           \
-  if (name == NULL)                           \
-    name = NAME;                              \
-  if (target == NULL)                         \
-    i_debug("%s: %s = NULL", funcname, name); \
-  else {
-#define RBOX_PRINT_DEBUG(FORMAT, ...) \
-  ;                                   \
-  i_debug("%s: %s." FORMAT, funcname, name, __VA_ARGS__)
-#define RBOX_PRINT_END() }
-#else
-#define RBOX_PRINT_START(NAME) \
-  (void)target;                \
-  (void)funcname;              \
-  (void)name;
-#define RBOX_PRINT_DEBUG(FORMAT, ...)
-#define RBOX_PRINT_END()
-#endif
 
 #define STRFTIME_MAX_BUFSIZE (1024 * 64)
 

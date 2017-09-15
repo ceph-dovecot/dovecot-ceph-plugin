@@ -12,9 +12,6 @@
 #ifndef SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 #define SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 
-struct rbox_sync_context;
-struct index_mail_data;
-
 #define btoa(x) ((x) ? "true" : "false")
 
 #ifdef NDEBUG
