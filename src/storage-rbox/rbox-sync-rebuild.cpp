@@ -88,9 +88,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
   }
 
   // find objects with mailbox_guid 'U' attribute
-  librmb::RadosXAttr attr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                          mailbox_guid);
-
+  librmb::RadosXAttr attr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, mailbox_guid);
 
   librados::NObjectIterator iter(r_storage->s->find_mails(&attr));
 
@@ -99,6 +97,8 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
     librmb::RadosMailObject mail_object;
+    mail_object.set_oid((*iter).get_oid());
+
     int retx = r_storage->s->load_metadata(&mail_object);
 
     if (retx >= 0) {
