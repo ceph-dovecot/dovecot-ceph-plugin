@@ -395,8 +395,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     uoff_t size_decompressed = -1;
     i_stream_get_size(input, TRUE, &size_decompressed);
     //    i_debug("SETTING PHYSICAL_SIZE TO : %d", size_decompressed);
-    // rmail->imail.data.physical_size = size_decompressed;
-    rmail->imail.data.physical_size = -1;
+    rmail->imail.data.physical_size = size_decompressed;
+    // rmail->imail.data.physical_size = -1;
     i_debug("INPUT compressed %ld, decompressed %ld", (long)size_r, (long)size_decompressed);
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
