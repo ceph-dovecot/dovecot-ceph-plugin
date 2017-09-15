@@ -268,7 +268,6 @@ static int rbox_get_mail_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  struct index_mail_data *data = &rmail->imail.data;
   uint64_t file_size = -1;
   time_t time = 0;
 
@@ -516,7 +515,6 @@ static void rbox_mail_close(struct mail *_mail) {
     rmail_->mail_object = NULL;
   }
 
-  i_debug("INDEX_ physical size : %d", rmail_->imail.data.physical_size);
   index_mail_close(_mail);
 }
 
@@ -526,10 +524,8 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   index_mail_set_seq(_mail, seq, saving);
 
   if (rmail_->mail_object == NULL) {
-    // init new mail object and load oid and uuid from index
     rmail_->mail_object = new RadosMailObject();
     rbox_get_index_record(_mail);
-    i_debug("rbox_mail_get_stream new rados_object %s", rmail_->mail_object->get_oid().c_str());
   }
 }
 

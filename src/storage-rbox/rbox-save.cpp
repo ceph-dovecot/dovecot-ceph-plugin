@@ -184,7 +184,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     // make 100% sure, buffer is empty!
     buffer_free(&buffer);
   }
-  r_ctx->current_object->set_mail_buffer(reinterpret_cast<unsigned char *>(buffer_create_dynamic(default_pool, 1024)));
+  r_ctx->current_object->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, 1024)));
   // r_ctx->mail_buffer = ;
   if (r_ctx->current_object->get_mail_buffer() == NULL) {
     FUNC_END_RET("ret == -1");
