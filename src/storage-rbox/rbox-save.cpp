@@ -170,14 +170,15 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   if (r_ctx->copying != TRUE) {
     rbox_add_to_index(_ctx);
-
     i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
-    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 
-    crlf_input = i_stream_create_crlf(input);
-    r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
-    i_stream_unref(&crlf_input);
   }
+  // currently it is required to have a input stream, also when we copy or move
+  // a mail. (this is due to plugins like zlib, which manipulate input and output stream).
+  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+  crlf_input = i_stream_create_crlf(input);
+  r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
+  i_stream_unref(&crlf_input);
 
   if (r_ctx->current_object->get_mail_buffer() != NULL) {
     buffer_t *buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
@@ -211,9 +212,10 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mail_storage *storage = &r_ctx->mbox->storage->storage;
 
-  if (r_ctx->copying == TRUE) {
+  /*if (r_ctx->copying == TRUE) {
+    // this fails if a plugin like zlib is active
     return 0;
-  }
+  }*/
 
   if (r_ctx->failed) {
     FUNC_END_RET("ret == -1");
@@ -229,8 +231,9 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
       FUNC_END_RET("ret == -1");
       return -1;
     }
+    i_debug("read....");
     index_mail_cache_parse_continue(_ctx->dest_mail);
-
+    i_debug("index cache parse_continue");
     /* both tee input readers may consume data from our primary
      input stream. we'll have to make sure we don't return with
      one of the streams still having data in them. */
@@ -400,17 +403,18 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
     }
 
+    struct mail_save_data *mdata = &r_ctx->ctx.data;
+    if (mdata->output != r_ctx->output_stream) {
+      i_debug("mdata output changed..");
+      /* e.g. zlib plugin had changed this */
+      o_stream_ref(r_ctx->output_stream);
+      o_stream_destroy(&mdata->output);
+      mdata->output = r_ctx->output_stream;
+    }
+    // reset virtual size
+    index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
+
     if (r_ctx->copying != TRUE) {
-      struct mail_save_data *mdata = &r_ctx->ctx.data;
-      if (mdata->output != r_ctx->output_stream) {
-        i_debug("mdata output changed..");
-        /* e.g. zlib plugin had changed this */
-        o_stream_ref(r_ctx->output_stream);
-        o_stream_destroy(&mdata->output);
-        mdata->output = r_ctx->output_stream;
-      }
-      // reset virtual size
-      index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
 
       // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
       librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
