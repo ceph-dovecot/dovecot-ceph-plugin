@@ -1,5 +1,8 @@
 language: cpp
-sudo: enabled
+
+compiler: gcc
+
+sudo: required
 
 matrix:
   include:
