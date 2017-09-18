@@ -14,6 +14,9 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-4.9
+            - dovecot-dev
+            - librados2
+            - librados-dev
       env:
          - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
@@ -25,7 +28,10 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
-      env:
+            - dovecot-dev
+            - librados2
+            - librados-dev
+     env:
          - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
 
     # works on Precise and Trusty
@@ -36,6 +42,9 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-6
+            - dovecot-dev
+            - librados2
+            - librados-dev
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
 
