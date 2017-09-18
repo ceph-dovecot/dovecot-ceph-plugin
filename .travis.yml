@@ -14,8 +14,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-4.9
+            - dovecot-core
             - dovecot-dev
-            - librados2
             - librados-dev
       env:
          - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
@@ -28,8 +28,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-5
+            - dovecot-core
             - dovecot-dev
-            - librados2
             - librados-dev
      env:
          - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
@@ -42,8 +42,8 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-6
+            - dovecot-core
             - dovecot-dev
-            - librados2
             - librados-dev
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
@@ -51,3 +51,6 @@ matrix:
 before_install:
     - eval "${MATRIX_EVAL}"
     
+script:
+    - autogen.sh
+    - configure --with-dovecot=/usr/lib/dovecot --enable-maintainer-mode --enable-debug
