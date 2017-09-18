@@ -4,52 +4,9 @@ compiler: gcc
 
 sudo: required
 
-matrix:
-  include:
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-            - dovecot-core
-            - dovecot-dev
-            - librados-dev
-      env:
-         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
-
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-            - dovecot-core
-            - dovecot-dev
-            - librados-dev
-     env:
-         - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-
-    # works on Precise and Trusty
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - dovecot-core
-            - dovecot-dev
-            - librados-dev
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-
 before_install:
-    - eval "${MATRIX_EVAL}"
+  - sudo apt-get -qq update
+  - sudo apt-get install -y dovecot-core dovecot-dev librados-dev
     
 script:
     - autogen.sh
