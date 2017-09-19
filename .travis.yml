@@ -11,7 +11,7 @@ before_install:
   - docker pull ubuntu:latest
   - docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh           
   - docker exec build apt-get -qq update
-  - docker exec build apt-get install -y build-essential apt-utils git automake autoconf autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev  
+  - docker exec build apt-get install -y build-essential apt-utils git gettext automake autoconf autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev  
   - docker exec build sh -c 'cd repo; git clone https://github.com/dovecot/core.git dovecot'
   
 install:
