@@ -45,12 +45,21 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
                  strcmp(mail->box->storage->name, storage_name) == 0;
 
-  i_debug("rbox_mail_copy: copying = %s", btoa(ctx->copying));
   int ret = rbox_mail_storage_copy(_ctx, mail);
   ctx->copying = FALSE;
 
   FUNC_END();
   return ret;
+}
+
+bool rbox_is_op_on_shared_folder(struct mail *src_mail, struct mailbox *dest_mbox) {
+  const char *ns_src_mail = src_mail->box->list->ns->owner != nullptr ? src_mail->box->list->ns->owner->username : "";
+  const char *ns_dest_mail = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
+  if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
+    return true;
+  }
+
+  return false;
 }
 
 static void rbox_mail_copy_set_failed(struct mail_save_context *ctx, struct mail *mail, const char *func) {
@@ -111,7 +120,6 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
         rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
         guid_128_to_string(dest_mailbox->mailbox_guid));
     write_op->setxattr(xattr.key.c_str(), xattr.bl);
-    i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
     std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
     const char *setting_update_immutable = mail_user_plugin_getenv(
         dest_mailbox->storage->storage.user, SETTINGS_RBOX_UPDATE_IMMUTABLE);
@@ -124,7 +132,6 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
         rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
     write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
     }
-    i_debug("setting done");
   }
 }
 
@@ -147,12 +154,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
   const char *ns_dest_mail = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
 
-  i_debug("rbox_mail_storage_try_copy: mail = %p", mail);
   int ret_val = 0;
 
   if (r_ctx->copying == TRUE) {
-    i_debug("namespace src %s, namespace dest %s", ns_src_mail, ns_dest_mail);
-
     if (rbox_get_index_record(mail) < 0) {
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
@@ -171,16 +175,14 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       rbox_add_to_index(ctx);
       std::string src_oid = rmail->mail_object->get_oid();
       std::string dest_oid = r_ctx->current_object->get_oid();
-      i_debug("rbox_mail_storage_try_copy: from source %s to dest %s", src_oid.c_str(), dest_oid.c_str());
 
-      if (strcmp(ns_src_mail, ns_dest_mail) != 0) {
+      if (rbox_is_op_on_shared_folder(mail, dest_mbox)) {
         src_io_ctx.dup(dest_io_ctx);
         src_io_ctx.set_namespace(ns_src_mail);
         dest_io_ctx.set_namespace(ns_dest_mail);
       } else {
         src_io_ctx = dest_io_ctx;
       }
-      i_debug("ns_compare: %s %s", ns_src_mail, ns_dest_mail);
       write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
 
       // because we create a copy, save date needs to be updated
@@ -190,7 +192,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       time_t save_time = time(NULL);
       write_op.mtime(&save_time);
 
-      i_debug("cpy_time: oid: %s, save_date: %s", src_oid.c_str(), std::ctime(&save_time));
       {
         struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)dest_mbox;
         librmb::RadosXAttr xattr(
@@ -206,22 +207,41 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         }
 
         if (update_immutable.compare("true") == 0) {
-          i_debug("setting orig mailbox_name %s", dest_mailbox->box.name);
           librmb::RadosXAttr xattr_mb(
               rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX,
               dest_mailbox->box.name);
           write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
-          i_debug("setting done");
         }
       }
 
       ret_val = r_storage->s->aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+      completion->wait_for_complete();
 
       i_debug("copy finished: oid = %s, ret_val = %d, mtime = %ld", dest_oid.c_str(), ret_val, save_time);
-
-    } else {
+    }
+    if (ctx->moving) {
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      if (rbox_is_op_on_shared_folder(mail, dest_mbox)) {
+        librados::ObjectWriteOperation write_op2;
+        librados::AioCompletion *completion2 = librados::Rados::aio_create_completion();
+
+        std::string src_oid = rmail->mail_object->get_oid();
+        std::string dest_oid = src_oid;  // r_ctx->current_object->get_oid();
+
+        src_io_ctx.dup(dest_io_ctx);
+        src_io_ctx.set_namespace(ns_src_mail);
+        dest_io_ctx.set_namespace(ns_dest_mail);
+
+        write_op2.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+
+        ret_val = r_storage->s->aio_operate(&dest_io_ctx, dest_oid, completion2, &write_op2);
+        completion2->wait_for_complete();
+
+        completion2->release();
+      }
+
       std::string src_oid = rmail->mail_object->get_oid();
+      dest_io_ctx.set_namespace(ns_dest_mail);
 
       guid_128_from_string(src_oid.c_str(), item->oid);
       array_append(&rmailbox->moved_items, &item, 1);
@@ -230,20 +250,20 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       set_mailbox_xattr(ctx, &write_op);
 
-      // int err = dest_io_ctx.aio_operate(src_oid, completion, &write_op);
       int err = r_storage->s->aio_operate(&dest_io_ctx, src_oid, completion, &write_op);
-
-      i_debug("move finished: oid = %s, ret_val = %d", src_oid.c_str(), err);
+      completion->wait_for_complete();
+      i_debug("moving mail from %s (ns=%s) to %s (ns=%s) finished (%d)", src_oid.c_str(), ns_src_mail, src_oid.c_str(),
+              ns_dest_mail, err);
     }
 
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     if (ctx->dest_mail != NULL) {
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
     }
-    completion->wait_for_complete();
+
     completion->release();
     // reset io_ctx
-    dest_io_ctx.set_namespace(ns_src_mail);
+    dest_io_ctx.set_namespace(ns_dest_mail);
   }
   FUNC_END();
   return ret_val;
@@ -284,5 +304,24 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   }
   FUNC_END();
 
-  return mail_storage_copy(ctx, mail);
+  int ret = mail_storage_copy(ctx, mail);
+
+  if (rbox_is_op_on_shared_folder(mail, dest_mbox) && ctx->moving && ret >= 0) {
+    // delete original email from src namespace
+    // currently we need to do it this late, due to mail_storage_copy call which reads src_mail into input stream.
+    const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
+    const char *ns_dest_mail = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
+
+    struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+    struct rbox_mail *rmail = (struct rbox_mail *)mail;
+
+    std::string src_oid = rmail->mail_object->get_oid();
+    librados::IoCtx dest_io_ctx = r_storage->s->get_io_ctx();
+    dest_io_ctx.set_namespace(ns_src_mail);
+    dest_io_ctx.remove(src_oid);
+    dest_io_ctx.set_namespace(ns_dest_mail);
+    i_debug("removed src_oid %s from ns %s ", src_oid.c_str(), ns_src_mail);
+  }
+
+  return ret;
 }

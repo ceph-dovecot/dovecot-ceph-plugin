@@ -131,7 +131,10 @@ int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &o
 int RadosStorageImpl::stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) {
   return get_io_ctx().stat(oid, psize, pmtime);
 }
-void RadosStorageImpl::set_namespace(const std::string &nspace) { get_io_ctx().set_namespace(nspace); }
+void RadosStorageImpl::set_namespace(const std::string &_nspace) {
+  get_io_ctx().set_namespace(_nspace);
+  this->nspace = _nspace;
+}
 
 librados::NObjectIterator RadosStorageImpl::find_mails(RadosXAttr *attr) {
   if (attr != nullptr) {

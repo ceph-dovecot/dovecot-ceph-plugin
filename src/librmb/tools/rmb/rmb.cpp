@@ -195,7 +195,11 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
         for (std::vector<librmb::RadosMailObject *>::iterator it_mail = it->second->get_mails().begin();
              it_mail != it->second->get_mails().end(); ++it_mail) {
           const std::string oid = (*it_mail)->get_oid();
-          uint64_t size_r = std::stol((*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE));
+          std::string value = (*it_mail)->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE);
+          uint64_t size_r = 0;
+          if (!value.empty()) {
+            size_r = std::stol(value);
+          }
           char *mail_buffer = new char[size_r + 1];
           (*it_mail)->set_mail_buffer(mail_buffer);
           (*it_mail)->set_object_size(size_r);

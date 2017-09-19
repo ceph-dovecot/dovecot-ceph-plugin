@@ -240,18 +240,13 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  if (rbox_open_rados_connection(box) < 0) {
-    i_debug("rbox_sync_object_expunge: connection to rados failed");
-    return;
-  }
-
   const char *oid = guid_128_to_string(item->oid);
 
   if (rbox_open_rados_connection(box) < 0) {
     i_debug("rbox_sync_object_expunge: connection to rados failed");
     return;
   }
-
+  i_debug("deleting mail: %s, in namespace %s", oid, r_storage->s->get_namespace().c_str());
   r_storage->s->delete_mail(oid);
   // callback
   /* do sync_notify only when the file was unlinked by us */

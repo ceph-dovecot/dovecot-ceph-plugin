@@ -27,6 +27,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD0(get_io_ctx, librados::IoCtx &());
   MOCK_METHOD3(stat_mail, int(const std::string &oid, uint64_t *psize, time_t *pmtime));
   MOCK_METHOD1(set_namespace, void(const std::string &nspace));
+  MOCK_METHOD0(get_namespace, std::string());
   MOCK_METHOD0(get_max_write_size, int());
   MOCK_METHOD0(get_max_write_size_bytes, int());
   MOCK_METHOD5(split_buffer_and_exec_op, int(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
