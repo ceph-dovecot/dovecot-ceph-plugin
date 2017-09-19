@@ -4,22 +4,24 @@ services:
   - docker
 
 env:
-  - DOVECOT_TAG="release-2.2.21"
-  - DOVECOT_TAG="release-2.2.32"
+  - DOVECOT="release-2.2.21"
+  - DOVECOT="release-2.2.32"
+  - DOVECOT="master-2.2"
+  - DOVECOT="master"
 
 before_install:
-  - docker pull ubuntu:latest
   - docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh           
   - docker exec build apt-get -qq update
-  - docker exec build apt-get install -y build-essential apt-utils git gettext automake autoconf autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev  
-  - docker exec build sh -c 'cd repo; git clone https://github.com/dovecot/core.git dovecot'
+  - git clone https://github.com/dovecot/core.git dovecot
   
 install:
-  - docker exec build sh -c 'cd repo/dovecot; git checkout $DOVECOT_TAG'
+  - docker exec build apt-get install -qq -y build-essential apt-utils git gettext automake autoconf autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev  
+  - cd dovecot; git checkout $DOVECOT
   - docker exec build sh -c 'cd repo/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode --enable-devel-checks'
-  - docker exec build sh -c 'cd repo/dovecot; make install'
+  - docker exec build sh -c 'cd repo/dovecot; make clean install'
 
 script:
   - docker exec build sh -c 'cd repo; ./autogen.sh'
-  - docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/lib/dovecot --enable-maintainer-mode --enable-debug'
-  - docker exec build sh -c 'cd repo; make'
+  - docker exec build sh -c 'cd repo; ./configure --with-dovecot=$(pwd)/dovecot --enable-maintainer-mode --enable-debug'
+  - docker exec build sh -c 'cd repo; make clean all'
+  - docker exec build sh -c 'cd repo; make check TESTS=test_\*'
