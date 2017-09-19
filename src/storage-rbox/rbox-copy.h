@@ -13,5 +13,6 @@
 #define SRC_STORAGE_RBOX_RBOX_COPY_H_
 
 int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail);
+bool rbox_is_op_on_shared_folder(struct mail *src_mail, struct mailbox *dest_mbox);
 
 #endif /* SRC_STORAGE_RBOX_RBOX_COPY_H_ */

@@ -27,7 +27,8 @@ class RadosStorage {
 
   virtual librados::IoCtx &get_io_ctx() = 0;
   virtual int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) = 0;
-  virtual void set_namespace(const std::string &nspace) = 0;
+  virtual void set_namespace(const std::string &_nspace) = 0;
+  virtual std::string get_namespace() = 0;
   virtual int get_max_write_size() = 0;
   virtual int get_max_write_size_bytes() = 0;
 

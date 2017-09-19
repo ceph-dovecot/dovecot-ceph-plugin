@@ -27,39 +27,39 @@ libgmock_la_LDFLAGS = -pthread
 rmb_shlibs = \
 	$(top_srcdir)/src/librmb/librmb.la 
 
-TESTS += librmb_test
-check_PROGRAMS += librmb_test
-librmb_test_SOURCES = librmb/librmb_test.cpp
-librmb_test_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o  libgtest.la libgmock.la
+TESTS += it_test_librmb
+check_PROGRAMS += it_test_librmb
+it_test_librmb_SOURCES = librmb/it_test_librmb.cpp
+it_test_librmb_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o  libgtest.la libgmock.la
     
-TESTS += rmb_test
-check_PROGRAMS += rmb_test
-rmb_test_SOURCES = rmb/rmb_test.cpp
-rmb_test_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o libgtest.la libgmock.la
+TESTS += test_rmb
+check_PROGRAMS += test_rmb
+test_rmb_SOURCES = rmb/test_rmb.cpp
+test_rmb_LDADD = $(rmb_shlibs) $(top_srcdir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_srcdir)/src/librmb/tools/rmb/mailbox_tools.o libgtest.la libgmock.la
     
 dict_shlibs = \
 	$(top_srcdir)/src/dict-rados/libdict_rados_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
-TESTS += dict_rados_test
-check_PROGRAMS += dict_rados_test
-dict_rados_test_SOURCES = dict-rados/dict_rados_test.cpp dict-rados/TestCase.cpp 
-dict_rados_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
-dict_rados_test_LDADD = $(dict_shlibs) libgtest.la libgmock.la
+TESTS += it_test_dict_rados
+check_PROGRAMS += it_test_dict_rados
+it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp 
+it_test_dict_rados_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_dict_rados_LDADD = $(dict_shlibs) libgtest.la libgmock.la
 
 storage_shlibs = \
 	$(top_srcdir)/src/storage-rbox/libstorage_rbox_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
-TESTS += storage_rbox_test
-check_PROGRAMS += storage_rbox_test
-storage_rbox_test_SOURCES = storage-rbox/storage_rbox_test.cpp storage-rbox/TestCase.cpp 
-storage_rbox_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
-storage_rbox_test_LDADD = $(storage_shlibs) libgtest.la libgmock.la
+TESTS += it_test_storage_rbox
+check_PROGRAMS += it_test_storage_rbox
+it_test_storage_rbox_SOURCES = storage-rbox/it_test_storage_rbox.cpp storage-rbox/TestCase.cpp 
+it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_storage_rbox_LDADD = $(storage_shlibs) libgtest.la libgmock.la
 
 
-TESTS += storage_mock_rbox_test
-check_PROGRAMS += storage_mock_rbox_test
-storage_mock_rbox_test_SOURCES = storage-mock-rbox/storage_mock_rbox_test.cpp storage-mock-rbox/TestCase.cpp 
-storage_mock_rbox_test_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
-storage_mock_rbox_test_LDADD = $(storage_shlibs) libgtest.la libgmock.la
+TESTS += test_storage_mock_rbox
+check_PROGRAMS += test_storage_mock_rbox
+test_storage_mock_rbox_SOURCES = storage-mock-rbox/test_storage_mock_rbox.cpp storage-mock-rbox/TestCase.cpp 
+test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+test_storage_mock_rbox_LDADD = $(storage_shlibs) libgtest.la libgmock.la
 
     

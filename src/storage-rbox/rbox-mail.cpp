@@ -137,8 +137,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   struct index_mail *mail = (struct index_mail *)_mail;
   struct index_mail_data *data = &mail->data;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  char *value;
-  uintmax_t time;
+  char *value = NULL;
   int ret = 0;
   if (index_mail_get_received_date(_mail, date_r) == 0) {
     FUNC_END_RET("ret == 0");
@@ -156,13 +155,11 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     }
   }
 
-  time = 0;
-  i_debug("received_date received, %s", value);
-  if (value != NULL && str_to_uintmax_hex(value, &time) < 0)
+  if (value == NULL)
     return -1;
 
   data->received_date = static_cast<time_t>(std::stol(value));
-  i_debug("received_date is %lu", data->received_date);
+
   *date_r = data->received_date;
   i_free(value);
 
@@ -205,7 +202,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   // check if this is null
   *date_r = data->save_date = save_date_rados;
 
-  i_debug("save date = %s", ctime(date_r));
   FUNC_END();
   return 0;
 }
@@ -213,7 +209,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
-  char *value;
+  char *value = NULL;
   *size_r = -1;
 
   bool ret = index_mail_get_cached_virtual_size(&rmail->imail, size_r);
@@ -230,8 +226,6 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
 
   data->virtual_size = std::stol(value);
 
-  i_debug("VIRTUAL_SIZE:: %s , %lu", value, data->virtual_size);
-
   *size_r = data->virtual_size;
   return 0;
 }
@@ -241,7 +235,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
 
-  char *value;
+  char *value = NULL;
   //  rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("get_physical_size from index(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
@@ -256,7 +250,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return -1;
   }
 
-  i_debug("get_physical_size from Rados %s, size %s, uid=%d", rmail->mail_object->get_oid().c_str(), value, _mail->uid);
+  if (value == NULL) {
+    return -1;
+  }
 
   data->physical_size = std::stol(value);
   *size_r = data->physical_size;
@@ -290,8 +286,6 @@ static int rbox_get_mail_size(struct mail *_mail, uoff_t *size_r) {
       return -1;
     }
    }
-   i_debug("get_physical_size from Rados %s, size %lu, uid=%d", rmail->mail_object->get_oid().c_str(), file_size,
-           _mail->uid);
 
    *size_r = (uoff_t)file_size;
 
@@ -366,16 +360,12 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     }
-    unsigned char data0 = rmail->mail_buffer[0];
-
-    unsigned char data1 = rmail->mail_buffer[1];
-    i_debug("data[0] %u, data[1] %u ", (unsigned int)data0, (unsigned int)data1);
 
     get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);
 
     uoff_t size_decompressed = -1;
     i_stream_get_size(input, TRUE, &size_decompressed);
-    i_debug("INPUT compressed %ld, decompressed %ld", (long)size_r, (long)size_decompressed);
+
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
   }

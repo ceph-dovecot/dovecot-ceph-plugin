@@ -116,10 +116,8 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
-  i_debug("add seq %d to index ", r_ctx->seq);
 
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
-  i_debug("update flags for seq %d ", r_ctx->seq);
 
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
@@ -231,9 +229,8 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
       FUNC_END_RET("ret == -1");
       return -1;
     }
-    i_debug("read....");
+
     index_mail_cache_parse_continue(_ctx->dest_mail);
-    i_debug("index cache parse_continue");
     /* both tee input readers may consume data from our primary
      input stream. we'll have to make sure we don't return with
      one of the streams still having data in them. */
@@ -405,7 +402,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
     struct mail_save_data *mdata = &r_ctx->ctx.data;
     if (mdata->output != r_ctx->output_stream) {
-      i_debug("mdata output changed..");
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&mdata->output);
@@ -430,19 +426,17 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       rbox_save_mail_write_metadata(r_ctx, write_op_xattr, r_ctx->output_stream->offset);
 
       if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
+        i_debug("ERROR, cannot open rados connection (rbox_save_finish)");
         r_ctx->failed = true;
       } else {
         max_write_size = r_storage->s->get_max_write_size_bytes();
         if (max_write_size <= 0) {
           r_ctx->failed = true;
         } else {
-          i_debug("OSD_MAX_WRITE_SIZE=%dmb", (max_write_size / 1024 / 1024));
-
           ret = r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data),
                                                        write_buffer_size, r_ctx->current_object, write_op_xattr,
                                                        max_write_size);
           r_ctx->current_object->set_active_op(true);
-          i_debug("async operate executed oid: %s, ret=%d", r_ctx->current_object->get_oid().c_str(), ret);
           r_ctx->failed = ret < 0;
         }
       }
@@ -527,7 +521,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
   _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
-  i_debug("RBOX_SAVE_UID: %d", hdr->next_uid);
 
   seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
 
