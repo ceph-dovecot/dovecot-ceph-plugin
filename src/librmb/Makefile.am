@@ -27,4 +27,6 @@ headers = \
 	rados-mail-object.h 
 
 pkginc_libdir=$(pkgincludedir)
-pkginc_lib_HEADERS = $(headers)
+# 
+# skip header installation because all parts are in one projekt right now
+# pkginc_lib_HEADERS = $(headers)
