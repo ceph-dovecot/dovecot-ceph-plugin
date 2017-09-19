@@ -1,14 +1,15 @@
-language: cpp
-
-compiler: gcc
-
 sudo: required
+language: cpp
+services:
+  - docker
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y dovecot-core dovecot-dev librados-dev
-    
+  - docker pull ubuntu:latest
+  - docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh           
+  - docker exec build apt-get -qq update
+  - docker exec build apt-get install -y build-essential apt-utils git automake autoconf libtool  dovecot-core dovecot-dev librados-dev  
+
 script:
-    - ./autogen.sh
-    - ./configure --with-dovecot=/usr/lib/dovecot --enable-maintainer-mode --enable-debug
-    - make
+  - docker exec build sh -c 'cd repo; ./autogen.sh'
+  - docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/lib/dovecot --enable-maintainer-mode --enable-debug'
+  - docker exec build sh -c 'cd repo; make'
