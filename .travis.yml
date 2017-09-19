@@ -3,11 +3,21 @@ language: cpp
 services:
   - docker
 
+env:
+  - DOVECOT_TAG="release-2.2.21"
+  - DOVECOT_TAG="release-2.2.32"
+
 before_install:
   - docker pull ubuntu:latest
   - docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh           
   - docker exec build apt-get -qq update
-  - docker exec build apt-get install -y build-essential apt-utils git automake autoconf libtool  dovecot-core dovecot-dev librados-dev  
+  - docker exec build apt-get install -y build-essential apt-utils git autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev  
+  - docker exec build sh -c 'cd repo; git clone https://github.com/dovecot/core.git dovecot'
+  
+install:
+  - docker exec build sh -c 'cd repo/dovecot; git checkout $DOVECOT_TAG'
+  - docker exec build sh -c 'cd repo/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode --enable-devel-checks'
+  - docker exec build sh -c 'cd repo/dovecot; make install'
 
 script:
   - docker exec build sh -c 'cd repo; ./autogen.sh'
