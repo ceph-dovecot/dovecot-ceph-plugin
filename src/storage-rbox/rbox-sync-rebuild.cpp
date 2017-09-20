@@ -43,7 +43,6 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   }
 
   std::string xattr_guid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_GUID);
-  // char *xattr_guid = get_xattr_value(attrset, RBOX_METADATA_GUID);
   if (xattr_guid.empty()) {
     return -1;
   }
@@ -110,12 +109,17 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, const std::string
     ++iter;
     ++found;
   }
-
-  if (found == 0) {
-    i_debug("no entry to restore");
+  if (ret < 0) {
+    i_debug("error rbox_sync_add_objects for mbox %s", mailbox_guid.c_str());
     mailbox_set_deleted(ctx->box);
     mail_storage_set_critical(storage, "find mailbox(%s) failed: %m", mailbox_guid.c_str());
     return -1;
+  }
+
+  if (found == 0) {
+    i_debug("no entry to restore can be found for mailbox_guid %s", mailbox_guid.c_str());
+    mailbox_set_deleted(ctx->box);
+    return 0;
   }
 
   return ret;
@@ -165,6 +169,8 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
       /* already rebuilt by someone else */
       return 0;
     }
+    i_debug("index could not be opened");
+    // try to determine mailbox guid via xattr.
   }
   i_warning("rbox %s: Rebuilding index, guid: %s", mailbox_get_path(&mbox->box),
             guid_128_to_string(mbox->mailbox_guid));

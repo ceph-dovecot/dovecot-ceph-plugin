@@ -62,4 +62,11 @@ test_storage_mock_rbox_SOURCES = storage-mock-rbox/test_storage_mock_rbox.cpp st
 test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 test_storage_mock_rbox_LDADD = $(storage_shlibs) libgtest.la libgmock.la
 
+TESTS += it_test_sync_rbox
+check_PROGRAMS += it_test_sync_rbox
+it_test_sync_rbox_SOURCES = sync-rbox/it_test_sync_rbox.cpp sync-rbox/TestCase.cpp 
+it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_LDADD = $(storage_shlibs) libgtest.la libgmock.la
+
+
     
