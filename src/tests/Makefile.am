@@ -68,5 +68,9 @@ it_test_sync_rbox_SOURCES = sync-rbox/it_test_sync_rbox.cpp sync-rbox/TestCase.c
 it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 it_test_sync_rbox_LDADD = $(storage_shlibs) libgtest.la libgmock.la
 
-
+TESTS += it_test_sync_rbox_2
+check_PROGRAMS += it_test_sync_rbox_2
+it_test_sync_rbox_2_SOURCES = sync-rbox/it_test_sync_rbox_2.cpp sync-rbox/TestCase.cpp 
+it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_2_LDADD = $(storage_shlibs) libgtest.la libgmock.la
     

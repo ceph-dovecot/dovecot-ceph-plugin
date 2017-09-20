@@ -123,7 +123,39 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
   mailbox_free(&box);
 }
 
-TEST_F(SyncTest, force_resync_missing_rados_object) {
+void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
+  struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
+  librmb::RadosXAttr xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
+  librados::NObjectIterator iter = r_storage->s->find_mails(&xattr);
+
+  std::string oid;
+  while (iter != librados::NObjectIterator::__EndObjectIterator) {
+    oid = iter->get_oid();
+    i_debug("copy : %s", oid.c_str());
+    break;
+  }
+
+  guid_128_t temp_oid_guid;
+  guid_128_generate(temp_oid_guid);
+
+  std::string test_oid =  guid_128_to_string(temp_oid_guid);
+  librados::ObjectWriteOperation write_op;
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+
+  write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+
+  int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), test_oid, completion, &write_op);
+  i_debug("copy aioperate: %d", ret);
+  completion->wait_for_complete();
+  completion->release();
+  librados::bufferlist list;
+  list.append("10");
+  r_storage->s->get_io_ctx().setxattr(test_oid, "U", list);
+}
+
+TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   const char *message =
       "From: user@domain.org\n"
       "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
@@ -138,29 +170,16 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
   add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
   add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
 
-
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
+
   struct mailbox *box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_IGNORE_ACLS);
 
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
-  } else{
-    // removing one mail from rados!!
-    struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-    librmb::RadosXAttr attr(librmb::RBOX_METADATA_MAIL_UID, "4");
-
-    librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
-    std::string oid_to_delete;
-    while (iter != librados::NObjectIterator::__EndObjectIterator) {
-      oid_to_delete = (*iter).get_oid();
-      i_debug("oid: %s", oid_to_delete.c_str());
-      break;
-    }
-    r_storage->s->delete_mail(oid_to_delete);
-    i_debug("ok starting rsync.");
-
+  } else {
+    copy_object(ns, box);
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
     EXPECT_EQ(msg_count, 3);
 
@@ -170,13 +189,11 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
     }
     msg_count = mail_index_view_get_messages_count(box->view);
 
-    EXPECT_EQ(msg_count, 2);
+    EXPECT_EQ(msg_count, 4);
   }
 
   mailbox_free(&box);
-
 }
-
 
 TEST_F(SyncTest, deinit) {}
 
