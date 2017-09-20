@@ -64,8 +64,6 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
 
-  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-
   /* const char *message =
        "From: user@domain.org\n"
        "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
@@ -164,7 +162,8 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
     EXPECT_EQ(msg_count, 3);
 
-    if (mailbox_sync(box, MAILBOX_SYNC_FLAG_FORCE_RESYNC | MAILBOX_SYNC_FLAG_FIX_INCONSISTENT) < 0) {
+    if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
+                                                          MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }

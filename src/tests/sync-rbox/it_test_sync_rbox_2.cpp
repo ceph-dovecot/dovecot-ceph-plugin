@@ -64,7 +64,6 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
 
-  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
   /* const char *message =
        "From: user@domain.org\n"
@@ -123,8 +122,7 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
   mailbox_free(&box);
 }
 
-void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
-  struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
+static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
   librmb::RadosXAttr xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
