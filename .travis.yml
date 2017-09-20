@@ -1,14 +1,29 @@
-language: cpp
-
-compiler: gcc
-
 sudo: required
-
+language: cpp
+services:
+- docker
+env:
+- DOVECOT="release-2.2.21"
+- DOVECOT="release-2.2.32"
+- DOVECOT="master-2.2"
+- DOVECOT="master"
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y dovecot-core dovecot-dev librados-dev
-    
+- docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh
+- docker exec build apt-get -qq update
+- git clone https://github.com/dovecot/core.git dovecot
+install:
+- docker exec build apt-get install -qq -y build-essential apt-utils git gettext automake
+  autoconf autotools-dev libtool wget pkg-config pandoc libssl-dev librados-dev
+- cd dovecot; git checkout $DOVECOT
+- docker exec build sh -c 'cd repo/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode
+  --enable-devel-checks'
+- docker exec build sh -c 'cd repo/dovecot; make clean install'
 script:
-    - ./autogen.sh
-    - ./configure --with-dovecot=/usr/lib/dovecot --enable-maintainer-mode --enable-debug
-    - make
+- docker exec build sh -c 'cd repo; ./autogen.sh'
+- docker exec build sh -c 'cd repo; ./configure --with-dovecot=$(pwd)/dovecot --enable-maintainer-mode
+  --enable-debug'
+- docker exec build sh -c 'cd repo; make clean all'
+- docker exec build sh -c 'cd repo; make check TESTS=test_\*'
+notifications:
+  slack:
+    secure: CZ4/u+Hl2K2/YIsjwJoghhO3zm5XkJffiXk7voppIBFSLTUHPEgSSsZCdcBgNUSh/gjMI23geQb5PgTcfuVjuexDuX5RH43pRLHKJoFPK4UHkUEucebUY1O5K0Czvw0s1Y5YWWBWoJCsYf540kIA7hi4PoyPQ+dUC0bUItYs8APLrsz2BssEnbWR9W0mo7v4N43+KSDUObxnpNGTUVhepogrw4/cmcpUeqJU0c+lt9QpV4wMkoiRgBVfX696SCegPTOq/CtOhTzHJ5R65Bv+7zImA+/AYpRtIvkJMoHY5brRNm3bYz7an0QnFJq5B+K52Q/1CU7qhH6iED/Do35HvhW7DWJ3NBnV49vD4hR8Gam0nhHsqgd8zDpA4pIYHpC2GjXKnKk5GETIz+Ju0aepccheyLzxEK1wZKM4heMVdizA4KMyYDSGyAkElWuJhCQ0SXO8NVwH5onpQtU9rWWgGAXAV4qnHoxXzsqexw6bE7sik2h/SVUdXYmhKDT4gGUlFH+RN/5xGnMOaaYYduYi4z2ueMANw6PfROT64arsRKyFaCby9MT1YgOGtDyXee2o1RfyI1FbOTEzb+q/yOrUnk0eExBzSBi8dYjJwccY2A57bYfTNYtNLDXbsQmuVjeBiZuc1RujOsnfPpklgcWAj59OwcmkjlCzrU9uC7/vzKI=
