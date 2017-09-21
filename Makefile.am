@@ -14,7 +14,10 @@ SUBDIRS = \
 	src 
 
 EXTRA_DIST = \
-	COPYING \
+    autogen.sh \
+	COPYING-LGPL2.1 \
+    README.md \
+    packaging \
 	ChangeLog
 
 ChangeLog:

@@ -9,7 +9,7 @@
 LIBSTORAGE_RBOX_PLUGIN = libstorage_rbox_plugin.la
 
 shlibs = \
-	../librmb/librmb.la
+	$(top_builddir)/src/librmb/librmb.la
 
 libstorage_rbox_plugin_la_CPPFLAGS = \
 	$(LIBDOVECOT_INCLUDE) \
@@ -32,4 +32,17 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-sync.cpp \
 	rbox-storage.cpp \
 	rbox-sync-rebuild.cpp \
-	debug-helper.c 
+	debug-helper.c \
+    debug-helper.h \
+    dovecot-all.h \
+    libstorage-rbox-plugin.h \
+    rbox-copy.h \
+    rbox-mail.h \
+    rbox-save.h \
+    rbox-storage-struct.h \
+    rbox-storage.h \
+    rbox-storage.hpp \
+    rbox-sync-rebuild.h \
+    rbox-sync.h \
+    typeof-def.h
+

@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "src/tests/sync-rbox/TestCase.h"
+#include "TestCase.h"
 
 #include <errno.h>
 

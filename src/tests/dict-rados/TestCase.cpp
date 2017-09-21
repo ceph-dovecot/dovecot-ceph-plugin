@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "src/tests/dict-rados/TestCase.h"
+#include "TestCase.h"
 
 #include <errno.h>
 

@@ -15,7 +15,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 LIBDICT_RADOS_PLUGIN = libdict_rados_plugin.la
 
 shlibs = \
-	$(top_srcdir)/src/librmb/librmb.la
+	$(top_builddir)/src/librmb/librmb.la
 
 libdict_rados_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)
 libdict_rados_plugin_la_LDFLAGS = -module -avoid-version
@@ -27,5 +27,9 @@ module_LTLIBRARIES = \
 
 libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
-    dict-rados.cpp 
+    dict-rados.cpp \
+	dovecot-dict.h \
+	libdict-rados-plugin.h \
+    dict-rados.h 
+
 
