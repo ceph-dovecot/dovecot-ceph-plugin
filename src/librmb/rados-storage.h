@@ -48,7 +48,7 @@ class RadosStorageImpl : public RadosStorage {
 
   int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                   librados::ObjectWriteOperation *op);
-  librados::NObjectIterator find_mails(RadosXAttr *attr);
+  librados::NObjectIterator find_mails(const RadosXAttr *attr);
   int open_connection(const std::string &poolname, const std::string &ns);
 
   bool wait_for_write_operations_complete(

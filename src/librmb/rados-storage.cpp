@@ -136,7 +136,7 @@ void RadosStorageImpl::set_namespace(const std::string &_nspace) {
   this->nspace = _nspace;
 }
 
-librados::NObjectIterator RadosStorageImpl::find_mails(RadosXAttr *attr) {
+librados::NObjectIterator RadosStorageImpl::find_mails(const RadosXAttr *attr) {
   if (attr != nullptr) {
     std::string filter_name = PLAIN_FILTER_NAME;
     ceph::bufferlist filter_bl;

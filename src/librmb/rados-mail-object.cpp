@@ -43,7 +43,7 @@ std::string RadosMailObject::to_string(const std::string &padding) {
   std::string mail_guid = get_xvalue(RBOX_METADATA_GUID);
   std::string mb_orig_name = get_xvalue(RBOX_METADATA_ORIG_MAILBOX);
 
-  time_t ts = NULL;
+  time_t ts = -1;
 
   if (!recv_time_str.empty()) {
     ts = static_cast<time_t>(std::stol(recv_time_str));
