@@ -29,7 +29,5 @@ librmb_la_SOURCES = \
 	rados-mail-object.cpp
 
 pkginc_libdir=$(pkgincludedir)
-#
-# skip header installation because all parts are in one projekt right now
-# pkginc_lib_HEADERS = $(headers)
+pkginc_lib_HEADERS = $(headers)
 
