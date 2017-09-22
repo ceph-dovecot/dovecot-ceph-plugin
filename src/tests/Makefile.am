@@ -6,7 +6,7 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-AM_CPPFLAGS = -isystem $(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src -Imocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
+AM_CPPFLAGS = -isystem $(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src -I$(top_srcdir)/src/tests/mocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
 AM_CXXFLAGS = $(GTEST_CXXFLAGS)
 
 check_LTLIBRARIES = libgtest.la
@@ -19,7 +19,7 @@ libgmock_la_SOURCES = googletest/googlemock/src/gmock-all.cc
 libgmock_la_CPPFLAGS = -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src/tests/googletest/googlemock -I$(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googletest
 libgmock_la_LDFLAGS = -pthread
 
-EXTRA_DIST = googletest
+EXTRA_DIST = googletest mocks
 
 rmb_shlibs = \
 	$(top_builddir)/src/librmb/librmb.la 
