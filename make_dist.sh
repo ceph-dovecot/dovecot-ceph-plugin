@@ -32,6 +32,6 @@ bin/git-archive-all.sh --prefix $outfile/ \
 		       --verbose \
 		       $outfile.tar
 echo "compressing..."
-bzip2 -9 $outfile.tar
+xz -z9 $outfile.tar
 
 echo "done."
