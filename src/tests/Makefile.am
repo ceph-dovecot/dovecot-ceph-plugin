@@ -32,8 +32,8 @@ libgmockgtest_la_CPPFLAGS = \
  -lglog
 
 libgmockgtest_la_SOURCES = \
-	$(srcdir)/googletest/googletest/src/gtest-all.cc \
-	$(srcdir)/googletest/googlemock/src/gmock-all.cc
+	googletest/googletest/src/gtest-all.cc \
+	googletest/googlemock/src/gmock-all.cc
 
 gtest_shlibs = libgmockgtest.la
 
