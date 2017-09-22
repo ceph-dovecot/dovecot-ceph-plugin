@@ -150,7 +150,6 @@ AC_CHECK_MEMBER([struct mail_storage_vfuncs.list_index_corrupted],
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 
-# Active gtest
 AC_MSG_NOTICE([$gcc_debug])
 if test "$gcc_debug" = yes; then
   AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
@@ -159,28 +158,31 @@ else
   AC_DEFINE([NDEBUG],[],[Release Mode])
 fi
 
-# Configure pthreads.
-ACX_PTHREAD([have_pthread=yes])
+if test "x$want_tests" = "xyes"; then
+  # Configure pthreads.
+  ACX_PTHREAD([have_pthread=yes])
 
-# Define gtest variables
-GTEST_VERSION="1.8.0"
-if test "x$have_pthread" = "xyes"; then
-  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
-  GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
-  GTEST_LDFLAGS="-module -avoid-version"
-  GTEST_LIBS="$PTHREAD_LIBS"
-else
-  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
-  GTEST_CXXFLAGS=
-  GTEST_LDFLAGS=
-  GTEST_LIBS=
+  # Define gtest variables
+  GTEST_VERSION="1.8.0"
+
+  if test "x$have_pthread" = "xyes"; then
+    GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
+    GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
+    GTEST_LDFLAGS="-module -avoid-version"
+    GTEST_LIBS="$PTHREAD_LIBS"
+  else
+    GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
+    GTEST_CXXFLAGS=
+    GTEST_LDFLAGS=
+    GTEST_LIBS=
+  fi
+
+  AC_SUBST([GTEST_VERSION])
+  AC_SUBST([GTEST_CPPFLAGS])
+  AC_SUBST([GTEST_CXXFLAGS])
+  AC_SUBST([GTEST_LDFLAGS])
+  AC_SUBST([GTEST_LIBS])
 fi
-
-AC_SUBST([GTEST_VERSION])
-AC_SUBST([GTEST_CPPFLAGS])
-AC_SUBST([GTEST_CXXFLAGS])
-AC_SUBST([GTEST_LDFLAGS])
-AC_SUBST([GTEST_LIBS])
 
 # finish
 
@@ -198,13 +200,14 @@ src/tests/Makefile
 AC_OUTPUT
 
 echo
-AC_MSG_NOTICE([Install prefix .... : $prefix])
-AC_MSG_NOTICE([Dovecot directory . : $dovecotdir])
-AC_MSG_NOTICE([With dictionary ... : $want_dict])
-AC_MSG_NOTICE([With storage ...... : $want_storage])
-AC_MSG_NOTICE([With tests ........ : $want_tests])
+AC_MSG_NOTICE([Install prefix ................ : $prefix])
+AC_MSG_NOTICE([Dovecot directory ............. : $dovecotdir])
+AC_MSG_NOTICE([With dictionary ............... : $want_dict])
+AC_MSG_NOTICE([With storage .................. : $want_storage])
+AC_MSG_NOTICE([With tests .................... : $want_tests])
+AC_MSG_NOTICE([With integration tests ........ : $want_integration_tests])
 
-if test "$want_tests" = yes; then
+if test "x$want_tests" = "xyes"; then
 AC_MSG_NOTICE([
 
 minimal-gtest-autotools $VERSION is now configured

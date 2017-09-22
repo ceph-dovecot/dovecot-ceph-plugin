@@ -95,3 +95,5 @@ libtool
 .dirstamp
 .README.md.html
 
+/dovecot-ceph-plugin-config.h
+/dovecot-ceph-plugin-*.tar.gz
