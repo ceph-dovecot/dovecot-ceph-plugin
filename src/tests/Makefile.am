@@ -6,18 +6,12 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-AM_CPPFLAGS = -isystem $(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src -I$(top_srcdir)/src/tests/mocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
+AM_CPPFLAGS = -isystem -I$(top_srcdir)/src -I$(top_srcdir)/src/tests/mocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox \
+ -I$(srcdir)/googletest/googletest/include \
+ -I$(srcdir)/googletest/googlemock/include 
+
 AM_CXXFLAGS = $(GTEST_CXXFLAGS)
-
-check_LTLIBRARIES = libgtest.la
-libgtest_la_SOURCES = googletest/googletest/src/gtest-all.cc
-libgtest_la_CPPFLAGS = -I$(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googletest
-libgtest_la_LDFLAGS = -pthread
-
-check_LTLIBRARIES += libgmock.la
-libgmock_la_SOURCES = googletest/googlemock/src/gmock-all.cc
-libgmock_la_CPPFLAGS = -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src/tests/googletest/googlemock -I$(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googletest
-libgmock_la_LDFLAGS = -pthread
+AM_LDFLAGS = $(GTEST_LDFLAGS)
 
 EXTRA_DIST = googletest mocks
 
@@ -28,40 +22,55 @@ dict_shlibs = \
 storage_shlibs = \
 	$(top_builddir)/src/storage-rbox/libstorage_rbox_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
+check_LTLIBRARIES = libgmockgtest.la
+
+libgmockgtest_la_CPPFLAGS = \
+ -I$(srcdir)/googletest/googletest \
+ -I$(srcdir)/googletest/googlemock \
+ -I$(srcdir)/googletest/googletest/include \
+ -I$(srcdir)/googletest/googlemock/include \
+ -lglog
+
+libgmockgtest_la_SOURCES = \
+	$(srcdir)/googletest/googletest/src/gtest-all.cc \
+	$(srcdir)/googletest/googlemock/src/gmock-all.cc
+
+gtest_shlibs = libgmockgtest.la
+
 TESTS = test_rmb
 test_rmb_SOURCES = rmb/test_rmb.cpp mocks/mock_test.h
-test_rmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(check_LTLIBRARIES)
-
+test_rmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
+    
 TESTS += test_storage_mock_rbox
 test_storage_mock_rbox_SOURCES = storage-mock-rbox/test_storage_mock_rbox.cpp storage-mock-rbox/TestCase.cpp storage-mock-rbox/TestCase.h mocks/mock_test.h
-test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
-test_storage_mock_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
+test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+test_storage_mock_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
 if BUILD_INTEGRATION_TESTS
 
 TESTS += it_test_librmb
 it_test_librmb_SOURCES = librmb/it_test_librmb.cpp
-it_test_librmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(check_LTLIBRARIES)
-
+it_test_librmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
+    
 TESTS += it_test_dict_rados
-it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp dict-rados/TestCase.h
-it_test_dict_rados_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
-it_test_dict_rados_LDADD = $(dict_shlibs) $(check_LTLIBRARIES)
+it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp dict-rados/TestCase.h 
+it_test_dict_rados_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_dict_rados_LDADD = $(dict_shlibs) $(gtest_shlibs)
 
 TESTS += it_test_storage_rbox
 it_test_storage_rbox_SOURCES = storage-rbox/it_test_storage_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
-it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
-it_test_storage_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
+it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_storage_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
 TESTS += it_test_sync_rbox
 it_test_sync_rbox_SOURCES = sync-rbox/it_test_sync_rbox.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h
-it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
-it_test_sync_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
+it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
 TESTS += it_test_sync_rbox_2
 it_test_sync_rbox_2_SOURCES = sync-rbox/it_test_sync_rbox_2.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h
-it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
-it_test_sync_rbox_2_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
+it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_2_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
 endif
 
