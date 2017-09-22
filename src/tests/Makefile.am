@@ -22,20 +22,19 @@ libgmock_la_LDFLAGS = -pthread
 EXTRA_DIST = googletest mocks
 
 rmb_shlibs = \
-	$(top_builddir)/src/librmb/librmb.la 
+	$(top_builddir)/src/librmb/librmb.la
 dict_shlibs = \
 	$(top_builddir)/src/dict-rados/libdict_rados_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 storage_shlibs = \
 	$(top_builddir)/src/storage-rbox/libstorage_rbox_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
-
 TESTS = test_rmb
 test_rmb_SOURCES = rmb/test_rmb.cpp mocks/mock_test.h
 test_rmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(check_LTLIBRARIES)
-    
+
 TESTS += test_storage_mock_rbox
 test_storage_mock_rbox_SOURCES = storage-mock-rbox/test_storage_mock_rbox.cpp storage-mock-rbox/TestCase.cpp storage-mock-rbox/TestCase.h mocks/mock_test.h
-test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+test_storage_mock_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 test_storage_mock_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
 
 if BUILD_INTEGRATION_TESTS
@@ -43,25 +42,25 @@ if BUILD_INTEGRATION_TESTS
 TESTS += it_test_librmb
 it_test_librmb_SOURCES = librmb/it_test_librmb.cpp
 it_test_librmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(check_LTLIBRARIES)
-    
+
 TESTS += it_test_dict_rados
-it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp dict-rados/TestCase.h 
-it_test_dict_rados_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp dict-rados/TestCase.h
+it_test_dict_rados_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 it_test_dict_rados_LDADD = $(dict_shlibs) $(check_LTLIBRARIES)
 
 TESTS += it_test_storage_rbox
 it_test_storage_rbox_SOURCES = storage-rbox/it_test_storage_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
-it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 it_test_storage_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
 
 TESTS += it_test_sync_rbox
 it_test_sync_rbox_SOURCES = sync-rbox/it_test_sync_rbox.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h
-it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 it_test_sync_rbox_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
 
 TESTS += it_test_sync_rbox_2
 it_test_sync_rbox_2_SOURCES = sync-rbox/it_test_sync_rbox_2.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h
-it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 it_test_sync_rbox_2_LDADD = $(storage_shlibs) $(check_LTLIBRARIES)
 
 endif

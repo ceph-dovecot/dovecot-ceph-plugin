@@ -27,9 +27,8 @@ module_LTLIBRARIES = \
 
 libdict_rados_plugin_la_SOURCES = \
 	libdict-rados-plugin.c \
-    dict-rados.cpp \
+	dict-rados.cpp \
 	dovecot-dict.h \
 	libdict-rados-plugin.h \
-    dict-rados.h 
-
+	dict-rados.h
 

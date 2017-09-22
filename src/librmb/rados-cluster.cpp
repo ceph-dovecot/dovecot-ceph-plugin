@@ -68,7 +68,7 @@ int RadosClusterImpl::init() {
     if (ret < 0 || value_osd_op_timeout.compare("0") == 0) {
       cluster.conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
     }
-    
+
     if (ret == 0)
       cluster_ref_count++;
   }
