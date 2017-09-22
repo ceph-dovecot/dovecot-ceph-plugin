@@ -13,7 +13,7 @@
 #define SRC_STORAGE_RBOX_LIBSTORAGE_RBOX_PLUGIN_H_
 
 #ifdef HAVE_CONFIG_H
-#include "dovecot-ceph-plugins-config.h"
+#include "dovecot-ceph-plugin-config.h"
 #endif
 
 void storage_rbox_plugin_init(struct module *module);

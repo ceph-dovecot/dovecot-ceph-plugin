@@ -1,8 +1,14 @@
-# Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
+#
+# Copyright (c) 2017 Tallence AG and the authors
+#
+# This is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License version 2.1, as published by the Free Software
+# Foundation.  See file COPYING.
 
 AC_PREREQ([2.59])
 
-AC_INIT([Dovecot Ceph plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
+AC_INIT([dovecot-ceph-plugin], [0.0.1], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
@@ -62,7 +68,13 @@ AC_ARG_WITH(tests,
 AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS librmb tests (yes)]),
   TEST_WITH(tests, $withval),
   want_tests=yes)
-AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
+AM_CONDITIONAL(BUILD_TESTS, test "$want_tests" = "yes")
+
+AC_ARG_WITH(integration-tests,
+AS_HELP_STRING([--with-integration-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] integration tests (no)]),
+  TEST_WITH(integration-tests, $withval),
+  want_integration_tests=no)
+AM_CONDITIONAL(BUILD_INTEGRATION_TESTS, test "$want_integration_tests" = "yes")
 
 AC_PROG_CC_C99
 AC_PROG_CXX
