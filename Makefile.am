@@ -11,13 +11,13 @@ ACLOCAL_AMFLAGS=-I m4
 
 SUBDIRS = \
 	. \
-	src 
+	src
 
 EXTRA_DIST = \
-    autogen.sh \
+	autogen.sh \
 	COPYING-LGPL2.1 \
-    README.md \
-    packaging \
+	README.md \
+	packaging \
 	ChangeLog
 
 ChangeLog:
