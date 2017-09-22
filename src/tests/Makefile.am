@@ -16,7 +16,7 @@ AM_LDFLAGS = $(GTEST_LDFLAGS)
 EXTRA_DIST = googletest mocks
 
 rmb_shlibs = \
-	$(top_builddir)/src/librmb/librmb.la 
+	$(top_builddir)/src/librmb/librmb.la
 dict_shlibs = \
 	$(top_builddir)/src/dict-rados/libdict_rados_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 storage_shlibs = \
