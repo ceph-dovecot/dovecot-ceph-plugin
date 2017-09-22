@@ -24,5 +24,4 @@ SUBDIRS = \
     $(STORAGE_RBOX) \
 	$(PLUGIN_TESTS)
 
-EXTRA_DIST = googletest
 

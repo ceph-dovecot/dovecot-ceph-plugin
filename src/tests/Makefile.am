@@ -6,22 +6,20 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-AM_CPPFLAGS = -isystem $(top_srcdir)/src/googletest/googletest/include -I$(top_srcdir)/src/googletest/googlemock/include -I$(top_srcdir)/src -Imocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
-AM_CXXFLAGS = -g -O0 $(GTEST_CXXFLAGS)
+AM_CPPFLAGS = -isystem $(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src -Imocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox $(GTEST_CPPFLAGS)
+AM_CXXFLAGS = $(GTEST_CXXFLAGS)
 
 check_LTLIBRARIES = libgtest.la
-libgtest_la_SOURCES = $(top_srcdir)/src/googletest/googletest/src/gtest-all.cc
-libgtest_la_CPPFLAGS = -I$(top_srcdir)/src/googletest/googletest/include -I$(top_srcdir)/src/googletest/googletest
+libgtest_la_SOURCES = googletest/googletest/src/gtest-all.cc
+libgtest_la_CPPFLAGS = -I$(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googletest
 libgtest_la_LDFLAGS = -pthread
 
 check_LTLIBRARIES += libgmock.la
-libgmock_la_SOURCES = $(top_srcdir)/src/googletest/googlemock/src/gmock-all.cc
-libgmock_la_CPPFLAGS = -I$(top_srcdir)/src/googletest/googlemock/include -I$(top_srcdir)/src/googletest/googlemock -I$(top_srcdir)/src/googletest/googletest/include -I$(top_srcdir)/src/googletest/googletest
+libgmock_la_SOURCES = googletest/googlemock/src/gmock-all.cc
+libgmock_la_CPPFLAGS = -I$(top_srcdir)/src/tests/googletest/googlemock/include -I$(top_srcdir)/src/tests/googletest/googlemock -I$(top_srcdir)/src/tests/googletest/googletest/include -I$(top_srcdir)/src/tests/googletest/googletest
 libgmock_la_LDFLAGS = -pthread
 
-distcleancheck_listfiles = \
-  find . -type f -exec sh -c 'test -f $(srcdir)/$$1 || echo $$1' \
-       sh '{}' ';'
+EXTRA_DIST = googletest
 
 rmb_shlibs = \
 	$(top_builddir)/src/librmb/librmb.la 

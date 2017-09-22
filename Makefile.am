@@ -25,4 +25,7 @@ ChangeLog:
 
 DISTCLEANFILES = \
 	$(top_builddir)/run-test.sh
-	
+
+distcleancheck:
+        @:
+
