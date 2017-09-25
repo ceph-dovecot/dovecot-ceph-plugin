@@ -147,6 +147,13 @@ AC_CHECK_MEMBER([struct mail_storage_vfuncs.list_index_corrupted],
                           #include "mail-storage-private.h"
                           ]])
 
+
+AC_MSG_CHECKING([for HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE])
+AS_IF([$GREP -A 1 'mailbox_transaction_begin(struct mailbox \*box' $dovecot_pkgincludedir/mail-storage.h | grep 'enum mailbox_transaction_flags flags);'], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE],,[HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE supported])],[AC_MSG_RESULT(no)])
+
+
+
+
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 

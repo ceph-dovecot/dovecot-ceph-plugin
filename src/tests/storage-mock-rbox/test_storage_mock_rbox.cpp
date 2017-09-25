@@ -33,6 +33,8 @@ extern "C" {
 
 #include "libdict-rados-plugin.h"
 }
+#include "dovecot-ceph-plugin-config.h"
+
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
 
@@ -70,8 +72,13 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
       "body\n";
 
   struct istream *input = i_stream_create_from_data(message, strlen(message));
-
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
+
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
 
   // set the Mock storage
@@ -146,7 +153,12 @@ TEST_F(StorageTest, exec_write_op_fails) {
 
   struct istream *input = i_stream_create_from_data(message, strlen(message));
 
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
 
   // set the Mock storage
@@ -224,7 +236,12 @@ TEST_F(StorageTest, write_op_fails) {
 
   struct istream *input = i_stream_create_from_data(message, strlen(message));
 
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
 
   // set the Mock storage
