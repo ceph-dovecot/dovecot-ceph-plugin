@@ -8,28 +8,27 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-Name:          	dovecot22-rados-plugins
-Summary:       	Dovecot RADOS plugins
-Version:       	0.0.1
-Release:       	1
-
-Group:          Productivity/Networking/Email/Servers
-License:        LGPL-2.1
-
-Source:        	%{name}_%{version}-%{release}.tar.gz
-
-%define dovecot_home      /usr
 %define librados_version  10.2.5
 
-Provides:       dovecot-rados-plugins = %{version}-%{release}
-Requires: 		librados2 >= %{librados_version}
-Conflicts:      otherproviders(dovecot-rados-plugins)
+Name:		dovecot-ceph-plugin
+Summary:	Dovecot Ceph RADOS plugins
+Version:	0.0.1
+Release:	0%{?dist}
+URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
+Group:		Productivity/Networking/Email/Servers
+License:	LGPL-2.1
+Source:		%{name}-%{version}.tar.xz
 
-BuildRoot:		%{_tmppath}/%{name}-%{version}-build
-BuildRequires: 	dovecot22-devel
-BuildRequires:  librados-devel >= %{librados_version}
-BuildRequires:  gcc-c++
-BuildRequires:  libtool
+Provides:	dovecot-rados-plugins = %{version}-%{release}
+Requires:	librmb0 >= %{version}-%{release}
+Requires:	librados2 >= %{librados_version}
+Conflicts:	otherproviders(dovecot-rados-plugins)
+
+BuildRoot:	%{_tmppath}/%{name}-%{version}-build
+BuildRequires:	dovecot22-devel
+BuildRequires:	librados-devel >= %{librados_version}
+BuildRequires:	gcc-c++
+BuildRequires:	libtool
 
 %description
 Dovecot is an IMAP and POP3 server for Linux and UNIX-like systems,
@@ -42,6 +41,27 @@ clients accessing the mailboxes directly.
 
 This package holds the files needed for RADOS support.
 
+%package -n librmb0
+Summary:	RADOS mailbox library
+Group:		System/Libraries
+%description -n librmb0
+Library with generic abstraction to store emails in RADOS
+
+%package -n librmb-devel
+Summary:	RADOS mailbox headers
+Requires: 	librmb0 >= %{version}-%{release}
+Group:		Development/Libraries/C and C++
+%description -n librmb-devel
+This package contains libraries and headers needed to develop programs
+that use rados mailbox library.
+
+%package -n rmb-tools
+Summary:	RADOS mailbox tools
+Requires: 	librmb0 >= %{version}-%{release}
+Group:		Productivity/Networking/Email/Servers
+%description -n rmb-tools
+This package contains useful tools to manage RADOS mailbox setups.
+
 %prep
 %setup -q
 
@@ -52,36 +72,43 @@ export LIBS="-pie"
 
 ./autogen.sh
 %configure \
-	--prefix=%{dovecot_home} \
-	--with-dovecot=%{dovecot_home}/lib64/dovecot
+	--prefix=%{_prefix} \
+	--with-dovecot=%{_libdir}dovecot
 %{__make}
 
 %install
 %makeinstall
 
 # clean up unused files
-find %{buildroot}%{dovecot_home}/lib64/dovecot/ -type f -name \*.la -delete
-find %{buildroot}%{dovecot_home}/lib64/dovecot/ -type f -name \*.a  -delete
-find %{buildroot}%{dovecot_home}/ -type f -name \*.h  -delete
+find %{buildroot}%{_libdir}/ -type f -name \*.la -delete
+find %{buildroot}%{_libdir}/dovecot/ -type f -name \*.a  -delete
 
 %clean
 %{__rm} -rf %{buildroot}
 
 %post
 /sbin/ldconfig
-
 %postun
 /sbin/ldconfig
 
 %files
 %defattr(-,root,root)
+%dir %{_libdir}/dovecot
+%{_libdir}/dovecot/lib*.so*
 
-#%dir /opt/app/
-%dir %{dovecot_home}/
-%dir %{dovecot_home}/lib64/
-%dir %{dovecot_home}/lib64/dovecot
-%{dovecot_home}/lib64/dovecot/lib*.so*
-#%{dovecot_home}/lib64
-%doc HISTORY
+%files -n librmb0
+%{_libdir}/librmb.so.*
+
+%post -n librmb0 -p /sbin/ldconfig
+
+%postun -n librmb0 -p /sbin/ldconfig
+
+%files -n librmb-devel
+# TODO: add header files
+%{_libdir}/librmb.so
+
+%files -n rmb-tools
+%defattr(0755,root,root)
+%{_bindir}/rmb
 
 %changelog

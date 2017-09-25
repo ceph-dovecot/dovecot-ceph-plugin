@@ -12,7 +12,7 @@
 #include <ctime>
 #include <rados/librados.hpp>
 
-#include "../mocks/mock_test.h"
+#include "mock_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "rados-storage.h"

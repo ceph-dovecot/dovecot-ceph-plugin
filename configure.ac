@@ -1,8 +1,14 @@
-# Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file
+#
+# Copyright (c) 2017 Tallence AG and the authors
+#
+# This is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License version 2.1, as published by the Free Software
+# Foundation.  See file COPYING.
 
 AC_PREREQ([2.59])
 
-AC_INIT([Dovecot Ceph plugins], [0.0.1], [https://github.com/tallence/dovecot-ceph-plugin/issues/new], ,[https://github.com/tallence/dovecot-ceph-plugin])
+AC_INIT([dovecot-ceph-plugin], [0.0.1], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
@@ -62,7 +68,13 @@ AC_ARG_WITH(tests,
 AS_HELP_STRING([--with-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] RADOS librmb tests (yes)]),
   TEST_WITH(tests, $withval),
   want_tests=yes)
-AM_CONDITIONAL(BUILD_LIBRMB_TESTS, test "$want_tests" = "yes")
+AM_CONDITIONAL(BUILD_TESTS, test "$want_tests" = "yes")
+
+AC_ARG_WITH(integration-tests,
+AS_HELP_STRING([--with-integration-tests[=ARG]], [Build with [ARG=yes] or without [ARG=no] integration tests (no)]),
+  TEST_WITH(integration-tests, $withval),
+  want_integration_tests=no)
+AM_CONDITIONAL(BUILD_INTEGRATION_TESTS, test "$want_integration_tests" = "yes")
 
 AC_PROG_CC_C99
 AC_PROG_CXX
@@ -138,7 +150,6 @@ AC_CHECK_MEMBER([struct mail_storage_vfuncs.list_index_corrupted],
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 
-# Active gtest
 AC_MSG_NOTICE([$gcc_debug])
 if test "$gcc_debug" = yes; then
   AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
@@ -147,28 +158,31 @@ else
   AC_DEFINE([NDEBUG],[],[Release Mode])
 fi
 
-# Configure pthreads.
-ACX_PTHREAD([have_pthread=yes])
+if test "x$want_tests" = "xyes"; then
+  # Configure pthreads.
+  ACX_PTHREAD([have_pthread=yes])
 
-# Define gtest variables
-GTEST_VERSION="1.8.0"
-if test "x$have_pthread" = "xyes"; then
-  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
-  GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
-  GTEST_LDFLAGS="-module -avoid-version"
-  GTEST_LIBS="$PTHREAD_LIBS"
-else
-  GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
-  GTEST_CXXFLAGS=
-  GTEST_LDFLAGS=
-  GTEST_LIBS=
+  # Define gtest variables
+  GTEST_VERSION="1.8.0"
+
+  if test "x$have_pthread" = "xyes"; then
+    GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
+    GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
+    GTEST_LDFLAGS="-module -avoid-version"
+    GTEST_LIBS="$PTHREAD_LIBS"
+  else
+    GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=0"
+    GTEST_CXXFLAGS=
+    GTEST_LDFLAGS=
+    GTEST_LIBS=
+  fi
+
+  AC_SUBST([GTEST_VERSION])
+  AC_SUBST([GTEST_CPPFLAGS])
+  AC_SUBST([GTEST_CXXFLAGS])
+  AC_SUBST([GTEST_LDFLAGS])
+  AC_SUBST([GTEST_LIBS])
 fi
-
-AC_SUBST([GTEST_VERSION])
-AC_SUBST([GTEST_CPPFLAGS])
-AC_SUBST([GTEST_CXXFLAGS])
-AC_SUBST([GTEST_LDFLAGS])
-AC_SUBST([GTEST_LIBS])
 
 # finish
 
@@ -186,13 +200,14 @@ src/tests/Makefile
 AC_OUTPUT
 
 echo
-AC_MSG_NOTICE([Install prefix .... : $prefix])
-AC_MSG_NOTICE([Dovecot directory . : $dovecotdir])
-AC_MSG_NOTICE([With dictionary ... : $want_dict])
-AC_MSG_NOTICE([With storage ...... : $want_storage])
-AC_MSG_NOTICE([With tests ........ : $want_tests])
+AC_MSG_NOTICE([Install prefix ................ : $prefix])
+AC_MSG_NOTICE([Dovecot directory ............. : $dovecotdir])
+AC_MSG_NOTICE([With dictionary ............... : $want_dict])
+AC_MSG_NOTICE([With storage .................. : $want_storage])
+AC_MSG_NOTICE([With tests .................... : $want_tests])
+AC_MSG_NOTICE([With integration tests ........ : $want_integration_tests])
 
-if test "$want_tests" = yes; then
+if test "x$want_tests" = "xyes"; then
 AC_MSG_NOTICE([
 
 minimal-gtest-autotools $VERSION is now configured

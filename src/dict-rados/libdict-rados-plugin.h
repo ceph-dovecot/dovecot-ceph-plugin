@@ -13,7 +13,7 @@
 #define SRC_DICT_RADOS_LIBDICT_RADOS_PLUGIN_H_
 
 #ifdef HAVE_CONFIG_H
-#include "dovecot-ceph-plugins-config.h"
+#include "dovecot-ceph-plugin-config.h"
 #endif
 
 struct module;

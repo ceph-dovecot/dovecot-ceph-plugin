@@ -1,0 +1,14 @@
+*.log
+*.trs
+it_test_dict_rados
+it_test_librmb
+it_test_storage_rbox
+test_rmb
+test_storage_mock_rbox
+/dict_rados_test
+/it_test_sync_rbox
+/it_test_sync_rbox_2
+/librmb_test
+/rmb_test
+/storage_mock_rbox_test
+/storage_rbox_test

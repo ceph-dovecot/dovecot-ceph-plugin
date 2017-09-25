@@ -11,10 +11,13 @@ ACLOCAL_AMFLAGS=-I m4
 
 SUBDIRS = \
 	. \
-	src 
+	src
 
 EXTRA_DIST = \
-	COPYING \
+	autogen.sh \
+	COPYING-LGPL2.1 \
+	README.md \
+	packaging \
 	ChangeLog
 
 ChangeLog:
@@ -22,4 +25,7 @@ ChangeLog:
 
 DISTCLEANFILES = \
 	$(top_builddir)/run-test.sh
-	
+
+distcleancheck:
+        @:
+

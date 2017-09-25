@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "src/tests/storage-rbox/TestCase.h"
+#include "TestCase.h"
 
 #include <errno.h>
 #define typeof(x) __typeof__(x)
