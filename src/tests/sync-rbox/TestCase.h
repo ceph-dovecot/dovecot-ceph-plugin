@@ -42,6 +42,7 @@ class SyncTest : public ::testing::Test {
 
   static rados_t s_cluster;
   static rados_ioctx_t s_ioctx;
+  static char *mail_home;
 
   static std::string pool_name;
   static std::string uri;

@@ -39,7 +39,6 @@ class StorageTest : public ::testing::Test {
   static void SetUpTestCase();
   static void TearDownTestCase();
   static int init_test_mail_user(void);
-
   static std::string pool_name;
   static std::string uri;
   static struct ioloop *s_test_ioloop;

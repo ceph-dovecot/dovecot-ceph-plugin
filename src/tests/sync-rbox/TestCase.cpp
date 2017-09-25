@@ -12,6 +12,7 @@
 #include "src/tests/sync-rbox/TestCase.h"
 
 #include <errno.h>
+#define typeof(x) __typeof__(x)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
@@ -34,6 +35,8 @@ extern "C" {
 #include "unlink-directory.h"
 
 #include "libstorage-rbox-plugin.h"
+#include "array.h"
+#include "array-decl.h"
 }
 
 #pragma GCC diagnostic pop
@@ -48,6 +51,34 @@ extern "C" {
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 
+static const char *rbox_pool_name = "rbox_pool_name";
+
+static int set_user_env(struct mail_user *user, const char *val) {
+  const char *const *envs;
+  unsigned int count, i;
+  bool newly_created = false;
+
+  if (!array_is_created(&user->set->plugin_envs)) {
+    i_array_init(&user->set->plugin_envs, 2);
+    newly_created = true;
+  }
+
+  if (!newly_created) {
+    return 0;
+  }
+  array_append(&user->set->plugin_envs, &rbox_pool_name, 1);
+  array_append(&user->set->plugin_envs, &val, 1);
+  envs = array_get_modifiable(&user->set->plugin_envs, &count);
+
+  for (i = 0; i < count; i += 2) {
+    if (strcmp(envs[i], rbox_pool_name) == 0) {
+      i_debug("found %s", envs[i + 1]);
+      return 0;
+    }
+  }
+
+  return -1;
+}
 static std::string get_temp_pool_name(const std::string &prefix) {
   char hostname[80];
   char out[160];
@@ -119,7 +150,7 @@ static int destroy_one_pool(const std::string &pool_name, rados_t *cluster) {
 static struct mail_storage_service_ctx *mail_storage_service = nullptr;
 struct mail_user *SyncTest::s_test_mail_user = nullptr;
 static struct mail_storage_service_user *test_service_user = nullptr;
-static const char *mail_home;
+static char *SyncTest::mail_home = NULL;
 
 rados_t SyncTest::s_cluster = nullptr;
 rados_ioctx_t SyncTest::s_ioctx = nullptr;
@@ -197,6 +228,7 @@ void SyncTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
+  set_user_env(s_test_mail_user, SyncTest::pool_name.c_str());
 }
 
 void SyncTest::TearDownTestCase() {

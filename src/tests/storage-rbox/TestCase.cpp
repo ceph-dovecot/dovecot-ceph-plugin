@@ -12,6 +12,7 @@
 #include "src/tests/storage-rbox/TestCase.h"
 
 #include <errno.h>
+#define typeof(x) __typeof__(x)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
@@ -34,6 +35,8 @@ extern "C" {
 #include "unlink-directory.h"
 
 #include "libstorage-rbox-plugin.h"
+#include "array.h"
+#include "array-decl.h"
 }
 
 #pragma GCC diagnostic pop
@@ -47,6 +50,34 @@ extern "C" {
 #ifndef i_zero
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
+static const char *rbox_pool_name = "rbox_pool_name";
+
+static int set_user_env(struct mail_user *user, const char *val) {
+  const char *const *envs;
+  unsigned int count, i;
+  bool newly_created = false;
+
+  if (!array_is_created(&user->set->plugin_envs)) {
+    i_array_init(&user->set->plugin_envs, 2);
+    newly_created = true;
+  }
+
+  if (!newly_created) {
+    return 0;
+  }
+  array_append(&user->set->plugin_envs, &rbox_pool_name, 1);
+  array_append(&user->set->plugin_envs, &val, 1);
+  envs = array_get_modifiable(&user->set->plugin_envs, &count);
+
+  for (i = 0; i < count; i += 2) {
+    if (strcmp(envs[i], rbox_pool_name) == 0) {
+      i_debug("found %s", envs[i + 1]);
+      return 0;
+    }
+  }
+
+  return -1;
+}
 
 static std::string get_temp_pool_name(const std::string &prefix) {
   char hostname[80];
@@ -80,6 +111,10 @@ static std::string connect_cluster(rados_t *cluster) {
     return oss.str();
   }
   rados_conf_parse_env(*cluster, NULL);
+  rados_conf_set(*cluster, "client_mount_timeout", "300");
+  rados_conf_set(*cluster, "rados_mon_op_timeout", "300");
+  rados_conf_set(*cluster, "os_osd_op_timeout", "300");
+
   ret = rados_connect(*cluster);
   if (ret) {
     rados_shutdown(*cluster);
@@ -90,8 +125,12 @@ static std::string connect_cluster(rados_t *cluster) {
   return "";
 }
 
+
+
 static std::string create_one_pool(const std::string &pool_name, rados_t *cluster, uint32_t pg_num = 0) {
+
   std::string err_str = connect_cluster(cluster);
+
   if (err_str.length())
     return err_str;
 
@@ -99,6 +138,7 @@ static std::string create_one_pool(const std::string &pool_name, rados_t *cluste
   if (ret) {
     rados_shutdown(*cluster);
     std::ostringstream oss;
+
     oss << "create_one_pool(" << pool_name << ") failed with error " << ret;
     return oss.str();
   }
@@ -133,9 +173,9 @@ static const char *username = "user-rbox-test";
 
 void StorageTest::SetUpTestCase() {
   // prepare Ceph
-  pool_name = get_temp_pool_name("test-storage-rbox-");
-  ASSERT_EQ("", create_one_pool(pool_name, &s_cluster));
-  ASSERT_EQ(0, rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx));
+  pool_name =   get_temp_pool_name("test-storage-rbox-");
+  create_one_pool(pool_name, &s_cluster);
+  rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx);
 
   // prepare Dovecot
   uri = "oid=metadata:pool=" + pool_name;
@@ -197,6 +237,8 @@ void StorageTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
+
+  set_user_env(s_test_mail_user, StorageTest::pool_name.c_str());
 }
 
 void StorageTest::TearDownTestCase() {
@@ -218,7 +260,6 @@ void StorageTest::TearDownTestCase() {
   pool_unref(&s_test_pool);
   destroy_one_pool(pool_name, &s_cluster);
   rados_ioctx_destroy(s_ioctx);
-
 
   master_service_deinit(&master_service);
 }

@@ -140,17 +140,18 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
 
   std::string test_oid =  guid_128_to_string(temp_oid_guid);
   librados::ObjectWriteOperation write_op;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-
-  write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
-
-  int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), test_oid, completion, &write_op);
-  i_debug("copy aioperate: %d", ret);
-  completion->wait_for_complete();
-  completion->release();
   librados::bufferlist list;
-  list.append("10");
-  r_storage->s->get_io_ctx().setxattr(test_oid, "U", list);
+  list.append("100");
+  write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+  // write_op.setxattr("U", list);
+  int ret = r_storage->s->get_io_ctx().operate(test_oid, &write_op);
+
+  // int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), test_oid, completion, &write_op);
+  i_debug("copy aioperate: %d for %s", ret, test_oid.c_str());
+  EXPECT_EQ(ret, 0);
+  ret = r_storage->s->get_io_ctx().setxattr(test_oid, "U", list);
+  i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
+  EXPECT_EQ(ret, 0);
 }
 
 TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
@@ -178,16 +179,15 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   } else {
     copy_object(ns, box);
-    uint32_t msg_count = mail_index_view_get_messages_count(box->view);
-    EXPECT_EQ(msg_count, 3);
+    uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
 
     if (mailbox_sync(box, MAILBOX_SYNC_FLAG_FORCE_RESYNC | MAILBOX_SYNC_FLAG_FIX_INCONSISTENT) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }
-    msg_count = mail_index_view_get_messages_count(box->view);
+    uint32_t msg_count = mail_index_view_get_messages_count(box->view);
 
-    EXPECT_EQ(msg_count, 4);
+    EXPECT_EQ(msg_count, msg_count_org + 1);
   }
 
   mailbox_free(&box);
