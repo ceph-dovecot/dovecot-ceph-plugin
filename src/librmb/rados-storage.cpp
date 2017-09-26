@@ -14,6 +14,7 @@
 #include <rados/librados.hpp>
 #include "rados-storage.h"
 #include "encoding.h"
+#include "limits.h"
 
 using std::string;
 
@@ -66,26 +67,13 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
   return ret_val;
 }
 
-int RadosStorageImpl::read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer) {
-  int offset = 0;
-  librados::bufferlist mail_data_bl;
-
-  std::string str_buf;
+int RadosStorageImpl::read_mail(librados::bufferlist *buffer, const std::string &oid) {
   int ret = 0;
-  do {
-    mail_data_bl.clear();
-    ret = get_io_ctx().read(oid, mail_data_bl, *size_r, offset);
-    if (ret < 0) {
-      return ret;
-    }
-    if (ret == 0) {
-      break;
-    }
-    mail_data_bl.copy(0, (unsigned)ret, mail_buffer);
-    offset += ret;
-  } while (ret > 0);
+  size_t max = INT_MAX;
+  ret = get_io_ctx().read(oid, *buffer, max, 0);
   return ret;
 }
+
 
 int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   int ret = -1;

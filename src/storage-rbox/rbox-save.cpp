@@ -159,6 +159,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct istream *crlf_input;
+  int initial_mail_buffer_size = 512;
 
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
@@ -183,8 +184,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     // make 100% sure, buffer is empty!
     buffer_free(&buffer);
   }
-  r_ctx->current_object->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, 1024)));
-  // r_ctx->mail_buffer = ;
+  r_ctx->current_object->set_mail_buffer(
+      reinterpret_cast<char *>(buffer_create_dynamic(default_pool, initial_mail_buffer_size)));
+
   if (r_ctx->current_object->get_mail_buffer() == NULL) {
     FUNC_END_RET("ret == -1");
     return -1;
@@ -252,14 +254,12 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                           guid_128_to_string(ctx->mbox->mailbox_guid));
+    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(ctx->mbox->mailbox_guid));
 
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_GUID,
-                            guid_128_to_string(ctx->mail_guid));
+    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(ctx->mail_guid));
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
@@ -269,33 +269,29 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
   }
   {
     if (mdata->pop3_uidl != NULL) {
-      RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL,
-                                   mdata->pop3_uidl);
+      RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
       write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
     if (mdata->pop3_order != 0) {
-      RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER,
-                                   mdata->pop3_order);
+      RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER, mdata->pop3_order);
       write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
     if (mdata->from_envelope != NULL) {
-      RadosXAttr xattr(
-          rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope);
+      RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope);
       write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
     }
   }
   {
     uoff_t vsize = -1;
     if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
-      i_debug("failed, unable to determine virtual size:");
+      i_debug("failed, unable to determine virtual size, using physical size instead.");
+      vsize = ctx->input->v_offset;
     }
-
-    librmb::RadosXAttr xattr(
-        rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
+    librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
@@ -305,20 +301,17 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
   }
   {
     std::string flags = std::to_string(mdata->flags);
-    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS,
-                                  flags);
+    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
 
   {
     std::string pvt_flags = std::to_string(mdata->pvt_flags);
-    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS,
-                                  pvt_flags);
+    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX,
-                            ctx->mbox->box.name);
+    RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, ctx->mbox->box.name);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
 

@@ -35,7 +35,6 @@ class RadosStorage {
   virtual int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
                                        librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) = 0;
 
-  virtual int read_mail(const std::string &oid, uint64_t *size_r, char *mail_buffer) = 0;
   virtual int load_metadata(RadosMailObject *mail) = 0;
   virtual int set_metadata(const std::string &oid, const RadosXAttr &xattr) = 0;
 
@@ -48,7 +47,7 @@ class RadosStorage {
   virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
   virtual bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
-
+  virtual int read_mail(librados::bufferlist *buffer, const std::string &oid) = 0;
 };
 
 }  // namespace librmb

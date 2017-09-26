@@ -167,8 +167,11 @@ TEST(librmb1, read_mail) {
   time_t save_date;
   int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
-  char *buff = new char[size];
-  int ret = storage.read_mail(obj.get_oid(), &size, &buff[0]);
+  char *buff = new char[size + 1];
+  librados::bufferlist bl;
+  int copy_mail_ret = storage.read_mail(&bl, obj.get_oid());
+  memcpy(buff, bl.c_str(), size);
+  EXPECT_EQ(buff[size], '\0');
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());
@@ -178,7 +181,7 @@ TEST(librmb1, read_mail) {
   EXPECT_EQ(ret_storage, 0);
   EXPECT_EQ(ret_stat, 0);
   EXPECT_EQ(ret_remove, 0);
-  EXPECT_EQ(ret, 0);
+  EXPECT_EQ(copy_mail_ret, 14);
   EXPECT_EQ(buff[0], 'a');
   EXPECT_EQ(buff[1], 'b');
   EXPECT_EQ(buff[2], 'c');

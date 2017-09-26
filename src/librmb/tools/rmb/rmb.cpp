@@ -200,10 +200,15 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           if (!value.empty()) {
             size_r = std::stol(value);
           }
+          librados::bufferlist buffer;
+
           char *mail_buffer = new char[size_r + 1];
           (*it_mail)->set_mail_buffer(mail_buffer);
+
           (*it_mail)->set_object_size(size_r);
-          if (storage->read_mail(oid, &size_r, mail_buffer) == 0) {
+          if (storage->read_mail(&buffer, oid) > 0) {
+            // if (storage->read_mail(oid, &size_r, mail_buffer) == 0) {
+            memcpy(mail_buffer, buffer.c_str(), size_r);
             mail_buffer[size_r] = '\0';
             // std::cout << mail_buffer << std::endl;
             if (tools.save_mail((*it_mail)) < 0) {
