@@ -150,7 +150,6 @@ static int destroy_one_pool(const std::string &pool_name, rados_t *cluster) {
 static struct mail_storage_service_ctx *mail_storage_service = nullptr;
 struct mail_user *SyncTest::s_test_mail_user = nullptr;
 static struct mail_storage_service_user *test_service_user = nullptr;
-static char *SyncTest::mail_home = NULL;
 
 rados_t SyncTest::s_cluster = nullptr;
 rados_ioctx_t SyncTest::s_ioctx = nullptr;
@@ -159,7 +158,7 @@ std::string SyncTest::pool_name;  // NOLINT
 std::string SyncTest::uri;        // NOLINT
 struct ioloop *SyncTest::s_test_ioloop = nullptr;
 pool_t SyncTest::s_test_pool = nullptr;
-
+char *SyncTest::mail_home = NULL;
 static const char *username = "user-rbox-test";
 
 void SyncTest::SetUpTestCase() {
