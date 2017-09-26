@@ -6,6 +6,7 @@ env:
 - DOVECOT="release-2.2.21"
 - DOVECOT="release-2.2.32"
 - DOVECOT="master-2.2"
+- DOVECOT="master"
 before_install:
 - docker run -itd --name build -v $(pwd):/repo ubuntu:latest sh
 - docker exec build apt-get -qq update
