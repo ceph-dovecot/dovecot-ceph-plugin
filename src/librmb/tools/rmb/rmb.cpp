@@ -207,9 +207,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
 
           (*it_mail)->set_object_size(size_r);
           if (storage->read_mail(&buffer, oid) > 0) {
-            // if (storage->read_mail(oid, &size_r, mail_buffer) == 0) {
-            memcpy(mail_buffer, buffer.c_str(), size_r);
-            mail_buffer[size_r] = '\0';
+            memcpy(mail_buffer, buffer.to_str().c_str(), size_r + 1);
             // std::cout << mail_buffer << std::endl;
             if (tools.save_mail((*it_mail)) < 0) {
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;

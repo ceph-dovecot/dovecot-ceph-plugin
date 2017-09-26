@@ -322,7 +322,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
          FUNC_END_RET("ret == -1; out of memory");
          return -1;
        }
-       memcpy(rmail->mail_buffer, mail_data_bl.c_str(), size_r);
+       memcpy(rmail->mail_buffer, mail_data_bl.to_str().c_str(), size_r + 1);
      }
      // ret = r_storage->s->read_mail(rmail->mail_object->get_oid(), &size_r, rmail->mail_buffer);
      get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);

@@ -169,9 +169,10 @@ TEST(librmb1, read_mail) {
 
   char *buff = new char[size + 1];
   librados::bufferlist bl;
+  memset(buff, 1, size + 1);
   int copy_mail_ret = storage.read_mail(&bl, obj.get_oid());
-  memcpy(buff, bl.c_str(), size);
-  EXPECT_EQ(buff[size], '\0');
+  memcpy(buff, bl.to_str().c_str(), size + 1);
+  EXPECT_EQ(buff[size + 1], '\0');
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());

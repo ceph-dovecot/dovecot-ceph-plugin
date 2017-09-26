@@ -143,13 +143,12 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   librados::bufferlist list;
   list.append("100");
   write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
-  // write_op.setxattr("U", list);
   int ret = r_storage->s->get_io_ctx().operate(test_oid, &write_op);
 
-  // int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), test_oid, completion, &write_op);
   i_debug("copy aioperate: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
-  ret = r_storage->s->get_io_ctx().setxattr(test_oid, "U", list);
+  const char *metadata_name = "U";
+  ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
   i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
 }
