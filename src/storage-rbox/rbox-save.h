@@ -15,9 +15,9 @@
 #include <string>
 #include <vector>
 
+#include "../librmb/rados-storage-impl.h"
 #include "mail-storage-private.h"
 
-#include "rados-storage.h"
 #include "rados-mail-object.h"
 
 class rbox_save_context {

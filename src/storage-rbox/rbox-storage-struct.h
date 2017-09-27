@@ -12,8 +12,8 @@
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 
-#include "rados-cluster.h"
-#include "rados-storage.h"
+#include "../librmb/rados-cluster-impl.h"
+#include "../librmb/rados-storage-impl.h"
 
 struct rbox_storage {
   struct mail_storage storage;

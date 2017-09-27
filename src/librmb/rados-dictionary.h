@@ -9,63 +9,36 @@
  * Foundation.  See file COPYING.
  */
 
-#ifndef SRC_LIBRMB_RADOS_DICTIONARY_H_
-#define SRC_LIBRMB_RADOS_DICTIONARY_H_
+#ifndef SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_
+#define SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_
 
-#include <list>
 #include <string>
-#include <cstdint>
-#include <mutex>  // NOLINT
-
-#include "interfaces/rados-dictionary-interface.h"
-#include "interfaces/rados-cluster-interface.h"
 
 #include <rados/librados.hpp>
 
 namespace librmb {
 
-class RadosDictionaryImpl : public RadosDictionary {
+class RadosDictionary {
  public:
-  RadosDictionaryImpl(RadosCluster* cluster, const std::string& poolname, const std::string& username,
-                      const std::string& oid);
-  virtual ~RadosDictionaryImpl();
+  virtual ~RadosDictionary() {}
 
-  const std::string get_full_oid(const std::string& key);
-  const std::string get_shared_oid();
-  const std::string get_private_oid();
+  virtual const std::string get_full_oid(const std::string& key) = 0;
+  virtual const std::string get_shared_oid() = 0;
+  virtual const std::string get_private_oid() = 0;
 
-  const std::string& get_oid() { return oid; }
-  const std::string& get_username() { return username; }
-  const std::string& get_poolname() { return poolname; }
+  virtual const std::string& get_oid() = 0;
+  virtual const std::string& get_username() = 0;
+  virtual const std::string& get_poolname() = 0;
 
-  librados::IoCtx& get_io_ctx(const std::string& key);
-  librados::IoCtx& get_shared_io_ctx();
-  librados::IoCtx& get_private_io_ctx();
+  virtual librados::IoCtx& get_io_ctx(const std::string& key) = 0;
+  virtual librados::IoCtx& get_shared_io_ctx() = 0;
+  virtual librados::IoCtx& get_private_io_ctx() = 0;
 
-  void remove_completion(librados::AioCompletion* c);
-  void push_back_completion(librados::AioCompletion* c);
-  void wait_for_completions();
-
-  int get(const std::string& key, std::string* value_r);
-
- private:
-  RadosCluster* cluster;
-  std::string poolname;
-  std::string username;
-  std::string oid;
-
-  std::string shared_oid;
-  librados::IoCtx shared_io_ctx;
-  bool shared_io_ctx_created;
-
-  std::string private_oid;
-  librados::IoCtx private_io_ctx;
-  bool private_io_ctx_created;
-
-  std::list<librados::AioCompletion*> completions;
-  std::mutex completions_mutex;
+  virtual void remove_completion(librados::AioCompletion* c) = 0;
+  virtual void push_back_completion(librados::AioCompletion* c) = 0;
+  virtual void wait_for_completions() = 0;
+  virtual int get(const std::string& key, std::string* value_r) = 0;
 };
-
 }  // namespace librmb
 
-#endif  // SRC_LIBRMB_RADOS_DICTIONARY_H_
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_DICTIONARY_INTERFACE_H_

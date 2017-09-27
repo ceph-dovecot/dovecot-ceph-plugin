@@ -23,11 +23,11 @@
 #include <algorithm>  // std::sort
 
 #include <limits>
-#include "interfaces/rados-cluster-interface.h"
-#include "interfaces/rados-storage-interface.h"
 
-#include "rados-cluster.h"
-#include "rados-storage.h"
+#include "../../rados-cluster.h"
+#include "../../rados-cluster-impl.h"
+#include "../../rados-storage.h"
+#include "../../rados-storage-impl.h"
 #include "rados-mail-object.h"
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"

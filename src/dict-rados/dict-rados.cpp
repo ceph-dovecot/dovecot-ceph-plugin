@@ -40,9 +40,9 @@ extern "C" {
 }
 
 #include "libdict-rados-plugin.h"
-#include "rados-cluster.h"
-#include "rados-dictionary.h"
-#include "interfaces/rados-cluster-interface.h"
+#include "../librmb/rados-cluster-impl.h"
+#include "../librmb/rados-dictionary-impl.h"
+#include "../librmb/rados-cluster.h"
 
 #ifdef NDEBUG
 #define FUNC_START() ((void)0)

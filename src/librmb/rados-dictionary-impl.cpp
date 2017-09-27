@@ -9,6 +9,8 @@
  * Foundation.  See file COPYING.
  */
 
+#include "rados-dictionary-impl.h"
+
 #include <limits.h>
 
 #include <iostream>
@@ -22,7 +24,6 @@
 
 #include <rados/librados.hpp>
 
-#include "rados-dictionary.h"
 
 using std::string;
 using std::stringstream;

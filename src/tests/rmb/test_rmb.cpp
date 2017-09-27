@@ -11,10 +11,11 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "rados-storage.h"
-#include "rados-cluster.h"
 #include "rados-mail-object.h"
 #include <rados/librados.hpp>
+
+#include "../../librmb/rados-cluster-impl.h"
+#include "../../librmb/rados-storage-impl.h"
 #include "../../librmb/tools/rmb/ls_cmd_parser.h"
 #include "../../librmb/tools/rmb/mailbox_tools.h"
 

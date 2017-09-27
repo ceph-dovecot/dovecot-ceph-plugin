@@ -11,10 +11,9 @@
 
 #include <string>
 
-#include "interfaces/rados-storage-interface.h"
-#include "interfaces/rados-dictionary-interface.h"
-#include "interfaces/rados-cluster-interface.h"
-
+#include "../../librmb/rados-cluster.h"
+#include "../../librmb/rados-dictionary.h"
+#include "../../librmb/rados-storage.h"
 #include "gmock/gmock.h"
 
 namespace librmbtest {

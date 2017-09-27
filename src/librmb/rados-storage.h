@@ -9,61 +9,47 @@
  * Foundation.  See file COPYING.
  */
 
-#ifndef SRC_LIBRMB_RADOS_STORAGE_H_
-#define SRC_LIBRMB_RADOS_STORAGE_H_
+#ifndef SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_
+#define SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_
 
-#include <stddef.h>
-
-#include <map>
 #include <string>
-#include <cstdint>
+#include <map>
 
-#include <rados/librados.hpp>
-#include "interfaces/rados-storage-interface.h"
 #include "rados-mail-object.h"
+#include <rados/librados.hpp>
+#include "rados-cluster.h"
 
 namespace librmb {
 
-class RadosStorageImpl : public RadosStorage {
+class RadosStorage {
  public:
-  explicit RadosStorageImpl(RadosCluster *cluster);
-  virtual ~RadosStorageImpl();
+  virtual ~RadosStorage() {}
 
-  librados::IoCtx &get_io_ctx();
-  int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime);
-  void set_namespace(const std::string &_nspace);
-  std::string get_namespace() { return nspace; }
-  int get_max_write_size() { return max_write_size; }
-  int get_max_write_size_bytes() { return max_write_size * 1024 * 1024; }
+  virtual librados::IoCtx &get_io_ctx() = 0;
+  virtual int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) = 0;
+  virtual void set_namespace(const std::string &_nspace) = 0;
+  virtual std::string get_namespace() = 0;
+  virtual int get_max_write_size() = 0;
+  virtual int get_max_write_size_bytes() = 0;
 
-  int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
-                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
+  virtual int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
+                                       librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) = 0;
 
-  int load_metadata(RadosMailObject *mail);
-  int set_metadata(const std::string &oid, const RadosXAttr &xattr);
+  virtual int load_metadata(RadosMailObject *mail) = 0;
+  virtual int set_metadata(const std::string &oid, const RadosXAttr &xattr) = 0;
 
-  int delete_mail(RadosMailObject *mail);
-  int delete_mail(std::string oid);
+  virtual int delete_mail(RadosMailObject *mail) = 0;
+  virtual int delete_mail(std::string oid) = 0;
 
-  int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
-                  librados::ObjectWriteOperation *op);
-  librados::NObjectIterator find_mails(const RadosXAttr *attr);
-  int open_connection(const std::string &poolname, const std::string &ns);
-
-  bool wait_for_write_operations_complete(
-      std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
-
-  int read_mail(librados::bufferlist *buffer, const std::string &oid);
-
- private:
-  RadosCluster *cluster;
-  int max_write_size;
-  std::string nspace;
-  librados::IoCtx io_ctx;
-
-  static const char *CFG_OSD_MAX_WRITE_SIZE;
+  virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
+                          librados::ObjectWriteOperation *op) = 0;
+  virtual librados::NObjectIterator find_mails(const RadosXAttr *attr) = 0;
+  virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
+  virtual bool wait_for_write_operations_complete(
+      std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
+  virtual int read_mail(librados::bufferlist *buffer, const std::string &oid) = 0;
 };
 
 }  // namespace librmb
 
-#endif  // SRC_LIBRMB_RADOS_STORAGE_H_
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_STORAGE_INTERFACE_H_

@@ -12,11 +12,11 @@
 #include <ctime>
 #include <rados/librados.hpp>
 
+#include "../../librmb/rados-cluster-impl.h"
+#include "../../librmb/rados-storage-impl.h"
 #include "mock_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "rados-storage.h"
-#include "rados-cluster.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -167,12 +167,12 @@ TEST(librmb1, read_mail) {
   time_t save_date;
   int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
-  char *buff = new char[size + 1];
   librados::bufferlist bl;
-  memset(buff, 1, size + 1);
   int copy_mail_ret = storage.read_mail(&bl, obj.get_oid());
-  memcpy(buff, bl.to_str().c_str(), size + 1);
-  EXPECT_EQ(buff[size + 1], '\0');
+  char *buff = new char[copy_mail_ret + 1];
+  memset(buff, 1, size + 1);
+  memcpy(buff, bl.to_str().c_str(), copy_mail_ret + 1);
+  EXPECT_EQ(buff[copy_mail_ret + 1], '\0');
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());

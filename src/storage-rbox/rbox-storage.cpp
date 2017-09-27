@@ -31,8 +31,8 @@ extern "C" {
 
 #include "rbox-storage.hpp"
 
-#include "rados-cluster.h"
-#include "rados-storage.h"
+#include "../librmb/rados-cluster-impl.h"
+#include "../librmb/rados-storage-impl.h"
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 

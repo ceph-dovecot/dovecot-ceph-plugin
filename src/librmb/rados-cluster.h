@@ -9,46 +9,28 @@
  * Foundation.  See file COPYING.
  */
 
-#ifndef SRC_LIBRMB_RADOS_CLUSTER_H_
-#define SRC_LIBRMB_RADOS_CLUSTER_H_
+#ifndef SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_
+#define SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_
 
-#include <list>
 #include <string>
 
 #include <rados/librados.hpp>
-#include "interfaces/rados-cluster-interface.h"
 
 namespace librmb {
+class RadosDictionary;
 
-class RadosClusterImpl : public RadosCluster {
+class RadosCluster {
  public:
-  RadosClusterImpl();
-  virtual ~RadosClusterImpl();
+  virtual ~RadosCluster() {}
+  virtual int init() = 0;
+  virtual void deinit() = 0;
 
-  int init();
-  int connect();
-  void deinit();
+  virtual int pool_create(const std::string &pool) = 0;
 
-  int pool_create(const std::string &pool);
-  int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx);
-  int get_config_option(const char *option, std::string *value);
-  int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
-                        RadosDictionary **dictionary);
-
- private:
-  static librados::Rados cluster;
-  static int cluster_ref_count;
-  static bool connected;
-
-  static const char *CLIENT_MOUNT_TIMEOUT;
-  static const char *RADOS_MON_OP_TIMEOUT;
-  static const char *RADOS_OSD_OP_TIMEOUT;
-
-  static const char *CLIENT_MOUNT_TIMEOUT_DEFAULT;
-  static const char *RADOS_MON_OP_TIMEOUT_DEFAULT;
-  static const char *RADOS_OSD_OP_TIMEOUT_DEFAULT;
+  virtual int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) = 0;
+  virtual int get_config_option(const char *option, std::string *value) = 0;
 };
 
 }  // namespace librmb
 
-#endif  // SRC_LIBRMB_RADOS_CLUSTER_H_
+#endif  // SRC_LIBRMB_INTERFACES_RADOS_CLUSTER_INTERFACE_H_

@@ -35,7 +35,7 @@ extern "C" {
 
 #include "rados-mail-object.h"
 #include "rbox-storage.hpp"
-#include "rados-storage.h"
+#include "../librmb/rados-storage-impl.h"
 
 #include "rbox-mail.h"
 

@@ -12,20 +12,20 @@ lib_LTLIBRARIES = \
 	librmb.la
 
 headers = \
-	interfaces/rados-cluster-interface.h \
-	interfaces/rados-dictionary-interface.h \
-	interfaces/rados-storage-interface.h \
-	encoding.h \
 	rados-cluster.h \
-	rados-storage.h \
 	rados-dictionary.h \
+	rados-storage.h \
+	encoding.h \
+	rados-cluster-impl.h \
+	rados-storage-impl.h \
+	rados-dictionary-impl.h \
 	rados-mail-object.h
 
 librmb_la_SOURCES = \
     $(headers) \
-	rados-cluster.cpp \
-	rados-storage.cpp \
-	rados-dictionary.cpp \
+	rados-cluster-impl.cpp \
+	rados-storage-impl.cpp \
+	rados-dictionary-impl.cpp \
 	rados-mail-object.cpp
 
 pkginc_libdir=$(pkgincludedir)

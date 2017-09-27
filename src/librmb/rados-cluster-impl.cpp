@@ -9,13 +9,14 @@
  * Foundation.  See file COPYING.
  */
 
+#include "rados-cluster-impl.h"
+
 #include <list>
 #include <string>
 #include <utility>
 
-#include "rados-cluster.h"
-#include "rados-dictionary.h"
-#include "rados-storage.h"
+#include "rados-dictionary-impl.h"
+#include "rados-storage-impl.h"
 
 using std::list;
 using std::pair;

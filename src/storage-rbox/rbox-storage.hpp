@@ -23,8 +23,8 @@
 #define RBOX_MAILDIR_NAME "rbox-Mails"
 
 #ifdef __cplusplus
-#include "rados-cluster.h"
-#include "rados-storage.h"
+#include "../librmb/rados-cluster-impl.h"
+#include "../librmb/rados-storage-impl.h"
 
 struct rbox_storage {
   struct mail_storage storage;

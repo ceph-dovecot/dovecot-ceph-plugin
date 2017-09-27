@@ -9,10 +9,11 @@
  * Foundation.  See file COPYING.
  */
 
+#include "rados-storage-impl.h"
+
 #include <string>
 
 #include <rados/librados.hpp>
-#include "rados-storage.h"
 #include "encoding.h"
 #include "limits.h"
 
