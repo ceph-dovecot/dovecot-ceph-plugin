@@ -62,6 +62,11 @@ it_test_storage_rbox_SOURCES = storage-rbox/it_test_storage_rbox.cpp storage-rbo
 it_test_storage_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 it_test_storage_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
+TESTS += it_test_copy_rbox
+it_test_copy_rbox_SOURCES = storage-rbox/it_test_copy_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
+it_test_copy_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_copy_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
+
 TESTS += it_test_sync_rbox
 it_test_sync_rbox_SOURCES = sync-rbox/it_test_sync_rbox.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h
 it_test_sync_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
