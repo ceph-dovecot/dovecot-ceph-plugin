@@ -12,3 +12,5 @@ test_storage_mock_rbox
 /rmb_test
 /storage_mock_rbox_test
 /storage_rbox_test
+/it_test_copy_rbox
+/it_test_move_rbox
