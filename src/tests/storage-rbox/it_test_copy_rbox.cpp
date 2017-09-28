@@ -44,6 +44,7 @@ extern "C" {
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
+#include "dovecot-ceph-plugin-config.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -78,7 +79,12 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
 
   struct istream *input = i_stream_create_from_data(message, strlen(message));
 
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
   ssize_t ret;
   bool save_failed = FALSE;
@@ -159,8 +165,12 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   }
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
-
+#else
+  char reason[256];
+  desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
 
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, 0, NULL);
   mail_search_args_unref(&search_args);
