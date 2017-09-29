@@ -302,11 +302,11 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed");
     return -1;
   }
-  FUNC_END();
 
-  int ret = mail_storage_copy(ctx, mail);
 
-  if (rbox_is_op_on_shared_folder(mail, dest_mbox) && ctx->moving && ret >= 0) {
+  ctx->unfinished = false;
+
+  if (rbox_is_op_on_shared_folder(mail, dest_mbox) && ctx->moving) {
     // delete original email from src namespace
     // currently we need to do it this late, due to mail_storage_copy call which reads src_mail into input stream.
     const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
@@ -322,6 +322,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     dest_io_ctx.set_namespace(ns_dest_mail);
     i_debug("removed src_oid %s from ns %s ", src_oid.c_str(), ns_src_mail);
   }
+  FUNC_END();
 
-  return ret;
+  return 0;
 }

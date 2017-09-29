@@ -91,6 +91,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 
   r_ctx->current_object = new RadosMailObject();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+  r_ctx->objects.push_back(r_ctx->current_object);
 
   if (mdata->guid != NULL) {
     mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
@@ -135,6 +136,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 
   r_ctx->current_object = new RadosMailObject();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+  r_ctx->objects.push_back(r_ctx->current_object);
 
   if (mdata->guid != NULL) {
     mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
@@ -199,7 +201,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
 
-  r_ctx->objects.push_back(r_ctx->current_object);
   if (_ctx->data.received_date == (time_t)-1)
     _ctx->data.received_date = ioloop_time;
 
@@ -502,7 +503,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
-
+  // bool copying = true;
   int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
@@ -515,20 +516,21 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
   _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
 
+  // if (!copying) {
   seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
-
   if (rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids) < 0) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
-  }
-
-  if (_ctx->dest_mail != NULL) {
-    if (r_ctx->dest_mail_allocated == TRUE) {
-      mail_free(&_ctx->dest_mail);
-      r_ctx->dest_mail_allocated = FALSE;
-    } else {
-      _ctx->dest_mail = NULL;
     }
+    // }
+
+    if (_ctx->dest_mail != NULL) {
+      if (r_ctx->dest_mail_allocated == TRUE) {
+        mail_free(&_ctx->dest_mail);
+        r_ctx->dest_mail_allocated = FALSE;
+      } else {
+        _ctx->dest_mail = NULL;
+      }
   }
   _t->changes->uid_validity = hdr->uid_validity;
 
@@ -570,7 +572,9 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
-    buffer_free(&mail_buffer);
+    if (mail_buffer != NULL) {
+      buffer_free(&mail_buffer);
+    }
     delete *it;
   }
   r_ctx->objects.clear();
