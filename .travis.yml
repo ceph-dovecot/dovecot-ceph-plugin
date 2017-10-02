@@ -7,10 +7,13 @@ env:
 - DOVECOT="release-2.2.32"
 - DOVECOT="master-2.2"
 - DOVECOT="master"
-before_script:
+before_install:
 - docker run -itd --name build -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build apt-get -qq update
 - docker exec build apt-get -qq upgrade
+before_script:
+- docker exec build sh -c 'cd /usr/local/src/dovecot; git pull'
+- docker exec build sh -c 'cd /usr/local/src/dovecot; make install'
 script:
 - docker exec build sh -c 'cd repo; ./autogen.sh'
 - docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode
