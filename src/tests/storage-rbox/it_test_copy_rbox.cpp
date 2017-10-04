@@ -195,7 +195,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   if (mailbox_sync(box, 0) < 0) {
     FAIL() << "sync failed";
   }
-  // removing one mail from rados!!
+
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
   std::vector<librmb::RadosMailObject> objects;
@@ -235,6 +235,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   ASSERT_EQ(mail1.get_xvalue(librmb::RBOX_METADATA_OLDV1_SAVE_TIME),
             mail2.get_xvalue(librmb::RBOX_METADATA_OLDV1_SAVE_TIME));
 
+  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_MAIL_UID), mail2.get_xvalue(librmb::RBOX_METADATA_MAIL_UID));
   mailbox_free(&box);
 }
 
