@@ -308,30 +308,30 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     librados::bufferlist mail_data_bl;
     size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
     if (size_r <= 0) {
-      if (size_r == -ENOENT) {
+      if (size_r == (uint64_t)-ENOENT) {
         rbox_mail_set_expunged(rmail);
         return -1;
       } else {
-        i_debug("error code: %d", size_r);
+        i_debug("error code: %lu", size_r);
         FUNC_END_RET("ret == -1");
         return -1;
       }
-     } else {
-       rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
-       if (rmail->mail_buffer == NULL) {
-         FUNC_END_RET("ret == -1; out of memory");
-         return -1;
-       }
-       memcpy(rmail->mail_buffer, mail_data_bl.to_str().c_str(), size_r + 1);
-     }
-     // ret = r_storage->s->read_mail(rmail->mail_object->get_oid(), &size_r, rmail->mail_buffer);
-     get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);
+    } else {
+      rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
+      if (rmail->mail_buffer == NULL) {
+        FUNC_END_RET("ret == -1; out of memory");
+        return -1;
+      }
+      memcpy(rmail->mail_buffer, mail_data_bl.to_str().c_str(), size_r + 1);
+    }
+    // ret = r_storage->s->read_mail(rmail->mail_object->get_oid(), &size_r, rmail->mail_buffer);
+    get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);
 
-     uoff_t size_decompressed = -1;
-     i_stream_get_size(input, TRUE, &size_decompressed);
+    uoff_t size_decompressed = -1;
+    i_stream_get_size(input, TRUE, &size_decompressed);
 
-     data->stream = input;
-     index_mail_set_read_buffer_size(_mail, input);
+    data->stream = input;
+    index_mail_set_read_buffer_size(_mail, input);
   }
   ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
 
