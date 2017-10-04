@@ -236,6 +236,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
             mail2.get_xvalue(librmb::RBOX_METADATA_OLDV1_SAVE_TIME));
 
   ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_MAIL_UID), mail2.get_xvalue(librmb::RBOX_METADATA_MAIL_UID));
+
+  ASSERT_EQ(2, box->index->map->hdr.messages_count);
   mailbox_free(&box);
 }
 

@@ -219,6 +219,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME), "");
   ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
 
+  ASSERT_EQ(1, box->index->map->hdr.messages_count);
+
   mailbox_free(&box);
 }
 
