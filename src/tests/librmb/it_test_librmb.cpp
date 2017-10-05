@@ -67,7 +67,7 @@ TEST(librmb, split_write_operation) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(5, obj.get_completion_op_map()->size());
+  EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
 }
 
 TEST(librmb1, split_write_operation_1) {
@@ -108,7 +108,7 @@ TEST(librmb1, split_write_operation_1) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(1, obj.get_completion_op_map()->size());
+  EXPECT_EQ(1, (int)obj.get_completion_op_map()->size());
 }
 
 TEST(librmb1, convert_types) {
@@ -172,7 +172,7 @@ TEST(librmb1, read_mail) {
   char *buff = new char[copy_mail_ret + 1];
   memset(buff, 1, size + 1);
   memcpy(buff, bl.to_str().c_str(), copy_mail_ret + 1);
-  EXPECT_EQ(buff[copy_mail_ret + 1], '\0');
+  EXPECT_EQ(buff[copy_mail_ret], '\0');
 
   // remove it
   int ret_remove = storage.delete_mail(obj.get_oid());
@@ -236,8 +236,8 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(5, obj.get_completion_op_map()->size());
-  EXPECT_EQ(2, obj.get_xattr()->size());
+  EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
+  EXPECT_EQ(2, (int)obj.get_xattr()->size());
 
   int i = storage.load_metadata(nullptr);
   EXPECT_EQ(-1, i);
