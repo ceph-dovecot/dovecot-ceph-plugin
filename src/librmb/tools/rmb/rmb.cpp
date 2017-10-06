@@ -138,7 +138,7 @@ static void usage(std::ostream &out) {
          "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
-         "    set     oid XATTR value e.g. U 1 B INBOX\n"
+         "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
          "\n";
@@ -225,7 +225,40 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
     delete it.second;
   }
 }
+static bool is_date_attribute(librmb::rbox_metadata_key &key) {
+  if (key == librmb::RBOX_METADATA_OLDV1_SAVE_TIME || key == librmb::RBOX_METADATA_RECEIVED_TIME) {
+    return true;
+  }
+  return false;
+}
 
+static bool is_number(const std::string &s) {
+  std::string::const_iterator it = s.begin();
+  while (it != s.end() && std::isdigit(*it))
+    ++it;
+  return !s.empty() && it == s.end();
+}
+static bool convert_str_to_time_t(const std::string &date, time_t *val) {
+  struct tm tm;
+  memset(&tm, 0, sizeof(struct tm));
+  if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
+    tm.tm_isdst = -1;
+    time_t t = mktime(&tm);  // t is now your desired time_t
+    *val = t;
+    return true;
+  }
+
+  val = 0;
+  return false;
+}
+static std::string convert_string_to_date(std::string &date) {
+  std::string ret;
+  time_t t;
+  if (convert_str_to_time_t(date, &t)) {
+    ret = std::to_string(t);
+  }
+  return ret;
+}
 static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::RadosCluster *cluster,
                          bool exit) {
   for (auto mo : *mail_objects) {
@@ -349,7 +382,13 @@ int main(int argc, const char **argv) {
     for (std::map<std::string, std::string>::iterator it = xattr.begin(); it != xattr.end(); ++it) {
       std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
       librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
-      librmb::RadosXAttr attr(ke, it->second);
+      std::string value = it->second;
+      if (is_date_attribute(ke)) {
+        if (!is_number(value)) {
+          value = convert_string_to_date(value);
+        }
+      }
+      librmb::RadosXAttr attr(ke, value);
       storage.set_metadata(oid, attr);
     }
 
