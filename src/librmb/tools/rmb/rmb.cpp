@@ -311,23 +311,28 @@ int main(int argc, const char **argv) {
   if (args.size() <= 0 && opts.size() <= 0) {
     usage_exit();
   }
+
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
   if (strcmp(args[0], "lspools") == 0) {
     cluster.init();
-    cluster.connect();
+    if (cluster.connect() < 0) {
+      std::cout << " error opening rados connection" << std::endl;
+      return 0;
+    }
     std::list<std::string> vec;
     int ret = cluster.get_cluster().pool_list(vec);
-    for (std::list<std::string>::iterator it = vec.begin(); it != vec.end(); ++it) {
-      std::cout << ' ' << *it << std::endl;
+    if (ret == 0) {
+      for (std::list<std::string>::iterator it = vec.begin(); it != vec.end(); ++it) {
+        std::cout << ' ' << *it << std::endl;
+      }
     }
     cluster.deinit();
     return 0;
   }
 
   if (opts.find("pool") == opts.end() || opts.find("namespace") == opts.end()) {
-    std::cout << " hääää " << std::endl;
     usage_exit();
   }
 
@@ -342,7 +347,6 @@ int main(int argc, const char **argv) {
   }
 
   if (opts.size() < 3) {
-    std::cout << " ops < 3" << std::endl;
     usage_exit();
   }
 
