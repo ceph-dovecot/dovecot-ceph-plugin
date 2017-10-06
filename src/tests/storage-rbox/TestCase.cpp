@@ -125,10 +125,7 @@ static std::string connect_cluster(rados_t *cluster) {
   return "";
 }
 
-
-
 static std::string create_one_pool(const std::string &pool_name, rados_t *cluster, uint32_t pg_num = 0) {
-
   std::string err_str = connect_cluster(cluster);
 
   if (err_str.length())
@@ -173,7 +170,7 @@ static const char *username = "user-rbox-test";
 
 void StorageTest::SetUpTestCase() {
   // prepare Ceph
-  pool_name =   get_temp_pool_name("test-storage-rbox-");
+  pool_name = get_temp_pool_name("test-storage-rbox-");
   create_one_pool(pool_name, &s_cluster);
   rados_ioctx_create(s_cluster, pool_name.c_str(), &s_ioctx);
 
@@ -242,6 +239,12 @@ void StorageTest::SetUpTestCase() {
 }
 
 void StorageTest::TearDownTestCase() {
+  if (array_is_created(&s_test_mail_user->set->plugin_envs)) {
+    if (array_count(&s_test_mail_user->set->plugin_envs) > 0) {
+      array_delete(&s_test_mail_user->set->plugin_envs, array_count(&s_test_mail_user->set->plugin_envs) - 1, 1);
+    }
+    array_free(&s_test_mail_user->set->plugin_envs);
+  }
   mail_user_unref(&s_test_mail_user);
 #if DOVECOT_PREREQ(2, 3)
   mail_storage_service_user_unref(&test_service_user);

@@ -48,6 +48,8 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   int ret = rbox_mail_storage_copy(_ctx, mail);
   ctx->copying = FALSE;
 
+  index_save_context_free(_ctx);
+
   FUNC_END();
   return ret;
 }
@@ -104,6 +106,7 @@ static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, s
     if (*guid != '\0')
       mailbox_save_set_guid(ctx, guid);
   }
+
   FUNC_END();
   return 0;
 }
@@ -116,21 +119,18 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
     // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
     // #endif
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
-    librmb::RadosXAttr xattr(
-        rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-        guid_128_to_string(dest_mailbox->mailbox_guid));
+    librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                             guid_128_to_string(dest_mailbox->mailbox_guid));
     write_op->setxattr(xattr.key.c_str(), xattr.bl);
     std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
-    const char *setting_update_immutable = mail_user_plugin_getenv(
-        dest_mailbox->storage->storage.user, SETTINGS_RBOX_UPDATE_IMMUTABLE);
-    if (setting_update_immutable != nullptr
-        && strlen(setting_update_immutable) > 0) {
+    const char *setting_update_immutable =
+        mail_user_plugin_getenv(dest_mailbox->storage->storage.user, SETTINGS_RBOX_UPDATE_IMMUTABLE);
+    if (setting_update_immutable != nullptr && strlen(setting_update_immutable) > 0) {
       update_immutable = setting_update_immutable;
     }
     if (update_immutable.compare("true") == 0) {
-    librmb::RadosXAttr xattr_mb(
-        rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
-    write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
+      librmb::RadosXAttr xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
+      write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
     }
   }
 }
@@ -194,9 +194,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       {
         struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)dest_mbox;
-        librmb::RadosXAttr xattr(
-            rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-            guid_128_to_string(dest_mailbox->mailbox_guid));
+        librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                                 guid_128_to_string(dest_mailbox->mailbox_guid));
         write_op.setxattr(xattr.key.c_str(), xattr.bl);
 
         std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
@@ -207,9 +206,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         }
 
         if (update_immutable.compare("true") == 0) {
-          librmb::RadosXAttr xattr_mb(
-              rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX,
-              dest_mailbox->box.name);
+          librmb::RadosXAttr xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
           write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
         }
       }
@@ -302,7 +299,6 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed");
     return -1;
   }
-
 
   ctx->unfinished = false;
 
