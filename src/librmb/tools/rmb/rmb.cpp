@@ -127,6 +127,7 @@ static void usage(std::ostream &out) {
          "   -N namespace e.g. dovecot user name\n"
          "        specify the namespace/user to use for the mails\n"
          "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
+         "   lspools  list pools\n "
          "\n"
          "MAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
@@ -306,12 +307,29 @@ int main(int argc, const char **argv) {
       ++i;
     }
   }
-  if (opts.size() < 3) {
+
+  if (args.size() <= 0 && opts.size() <= 0) {
     usage_exit();
   }
-
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
+
+  if (strcmp(args[0], "lspools") == 0) {
+    cluster.init();
+    cluster.connect();
+    std::list<std::string> vec;
+    int ret = cluster.get_cluster().pool_list(vec);
+    for (std::list<std::string>::iterator it = vec.begin(); it != vec.end(); ++it) {
+      std::cout << ' ' << *it << std::endl;
+    }
+    cluster.deinit();
+    return 0;
+  }
+
+  if (opts.find("pool") == opts.end() || opts.find("namespace") == opts.end()) {
+    std::cout << " hääää " << std::endl;
+    usage_exit();
+  }
 
   std::string pool_name(opts["pool"]);
   std::string ns(opts["namespace"]);
@@ -322,6 +340,12 @@ int main(int argc, const char **argv) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
   }
+
+  if (opts.size() < 3) {
+    std::cout << " ops < 3" << std::endl;
+    usage_exit();
+  }
+
   librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
   while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
@@ -392,8 +416,9 @@ int main(int argc, const char **argv) {
       storage.set_metadata(oid, attr);
     }
 
-  }
-  else {
+  } else if (opts.find("lspools") != opts.end()) {
+    std::cout << "ls pools" << std::endl;
+  } else {
     // tear down.
     release_exit(&mail_objects, &cluster, true);
   }
