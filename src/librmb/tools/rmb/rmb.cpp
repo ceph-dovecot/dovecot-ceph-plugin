@@ -138,6 +138,7 @@ static void usage(std::ostream &out) {
          "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
+         "    set     oid XATTR value e.g. U 1 B INBOX\n"
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
          "\n";
@@ -209,8 +210,6 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           int read = storage->read_mail(&buffer, oid);
           if (read > 0) {
             memcpy(mail_buffer, buffer.to_str().c_str(), read + 1);
-
-            mail_buffer[read + 1] = "\0";
             if (tools.save_mail((*it_mail)) < 0) {
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
             }
@@ -246,6 +245,8 @@ int main(int argc, const char **argv) {
   std::string val;
   std::map<std::string, std::string> opts;
 
+  std::map<std::string, std::string> xattr;
+  unsigned int idx = 0;
   std::vector<const char *>::iterator i;
   for (i = args.begin(); i != args.end();) {
     if (ceph_argparse_double_dash(&args, &i)) {
@@ -260,7 +261,15 @@ int main(int argc, const char **argv) {
       opts["get"] = val;
     } else if (ceph_argparse_witharg(&args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
       opts["out"] = val;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
+      opts["set"] = val;
+      std::cout << " set : " << val << std::endl;
     } else {
+      if (idx + 1 < args.size()) {
+        xattr[args[idx]] = args[idx + 1];
+        idx++;
+      }
+      ++idx;
       ++i;
     }
   }
@@ -331,14 +340,26 @@ int main(int argc, const char **argv) {
       // tear down.
       release_exit(&mail_objects, &cluster, true);
     }
-  } else {
+  } else if (opts.find("set") != opts.end()) {
+    std::string oid = opts["set"];
+    if (oid.empty() || xattr.size() < 1) {
+      usage_exit();
+    }
+
+    for (std::map<std::string, std::string>::iterator it = xattr.begin(); it != xattr.end(); ++it) {
+      std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
+      librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
+      librmb::RadosXAttr attr(ke, it->second);
+      storage.set_metadata(oid, attr);
+    }
+
+  }
+  else {
     // tear down.
     release_exit(&mail_objects, &cluster, true);
   }
-  /* for (std::vector<RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-     std::cout << ' ' << (*it)->to_string();
-   }
- */
   // tear down.
   release_exit(&mail_objects, &cluster, false);
 }
+
+
