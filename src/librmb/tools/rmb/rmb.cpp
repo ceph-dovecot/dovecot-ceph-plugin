@@ -214,7 +214,6 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
             }
           }
-
           delete[] mail_buffer;
         }
       }
@@ -226,16 +225,14 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
   }
 }
 static bool is_date_attribute(librmb::rbox_metadata_key &key) {
-  if (key == librmb::RBOX_METADATA_OLDV1_SAVE_TIME || key == librmb::RBOX_METADATA_RECEIVED_TIME) {
-    return true;
-  }
-  return false;
+  return (key == librmb::RBOX_METADATA_OLDV1_SAVE_TIME || key == librmb::RBOX_METADATA_RECEIVED_TIME);
 }
 
 static bool is_number(const std::string &s) {
   std::string::const_iterator it = s.begin();
-  while (it != s.end() && std::isdigit(*it))
+  while (it != s.end() && std::isdigit(*it)) {
     ++it;
+  }
   return !s.empty() && it == s.end();
 }
 static bool convert_str_to_time_t(const std::string &date, time_t *val) {
@@ -243,7 +240,7 @@ static bool convert_str_to_time_t(const std::string &date, time_t *val) {
   memset(&tm, 0, sizeof(struct tm));
   if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S", &tm)) {
     tm.tm_isdst = -1;
-    time_t t = mktime(&tm);  // t is now your desired time_t
+    time_t t = mktime(&tm);
     *val = t;
     return true;
   }
@@ -254,18 +251,15 @@ static bool convert_str_to_time_t(const std::string &date, time_t *val) {
 static std::string convert_string_to_date(std::string &date) {
   std::string ret;
   time_t t;
-  if (convert_str_to_time_t(date, &t)) {
-    ret = std::to_string(t);
-  }
-  return ret;
+  return convert_str_to_time_t(date, &t) ? std::to_string(t) : "";
 }
 static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::RadosCluster *cluster,
-                         bool exit) {
+                         bool show_usage) {
   for (auto mo : *mail_objects) {
     delete mo;
   }
   cluster->deinit();
-  if (exit == true) {
+  if (show_usage == true) {
     usage_exit();
   }
 }
@@ -337,14 +331,16 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
 int main(int argc, const char **argv) {
   std::vector<librmb::RadosMailObject *> mail_objects;
   std::vector<const char *> args;
-  argv_to_vec(argc, argv, &args);
+
   std::string val;
   std::map<std::string, std::string> opts;
   std::map<std::string, std::string> xattr;
   std::string sort_type;
-
   unsigned int idx = 0;
   std::vector<const char *>::iterator i;
+
+  argv_to_vec(argc, argv, &args);
+
   for (i = args.begin(); i != args.end();) {
     if (ceph_argparse_double_dash(&args, &i)) {
       break;
@@ -407,7 +403,6 @@ int main(int argc, const char **argv) {
   std::string ns(opts["namespace"]);
 
   int open_connection = storage.open_connection(pool_name, ns);
-
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
@@ -466,13 +461,8 @@ int main(int argc, const char **argv) {
       librmb::RadosXAttr attr(ke, value);
       storage.set_metadata(oid, attr);
     }
-
-  } else {
-    // tear down.
-    release_exit(&mail_objects, &cluster, true);
   }
   // tear down.
   release_exit(&mail_objects, &cluster, false);
 }
-
 
