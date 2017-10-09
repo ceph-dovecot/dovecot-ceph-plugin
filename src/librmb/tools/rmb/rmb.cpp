@@ -140,6 +140,7 @@ static void usage(std::ostream &out) {
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
+         "    sort    uid, recv_date, save_date\n"
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
          "\n";
@@ -286,7 +287,21 @@ bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_MAIL_UID), &sz);
   return i_uid < j_uid;
 }
-void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects) {
+
+bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+  std::string::size_type sz;  // alias of size_t
+  std::string t = i->get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME);
+  long i_uid = std::stol(t, &sz);
+  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME), &sz);
+  return i_uid < j_uid;
+}
+
+bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+  return i->get_rados_save_date() < j->get_rados_save_date();
+}
+
+void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects,
+                  std::string &sort_string) {
   // get load all objects metadata into memory
   librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
   while (iter != storage.get_io_ctx().nobjects_end()) {
@@ -301,8 +316,14 @@ void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMa
     ++iter;
     mail_objects.push_back(mail);
   }
-  std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
-  mail_objects.erase(std::unique(mail_objects.begin(), mail_objects.end()), mail_objects.end());
+
+  if (sort_string.compare("uid") == 0) {
+    std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
+  } else if (sort_string.compare("recv_date") == 0) {
+    std::sort(mail_objects.begin(), mail_objects.end(), sort_recv_date);
+  } else {
+    std::sort(mail_objects.begin(), mail_objects.end(), sort_save_date);
+  }
 }
 
 int main(int argc, const char **argv) {
@@ -312,8 +333,8 @@ int main(int argc, const char **argv) {
   argv_to_vec(argc, argv, &args);
   std::string val;
   std::map<std::string, std::string> opts;
-
   std::map<std::string, std::string> xattr;
+  std::string sort_type = "uid";
   unsigned int idx = 0;
   std::vector<const char *>::iterator i;
   for (i = args.begin(); i != args.end();) {
@@ -331,7 +352,8 @@ int main(int argc, const char **argv) {
       opts["out"] = val;
     } else if (ceph_argparse_witharg(&args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
       opts["set"] = val;
-      std::cout << " set : " << val << std::endl;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
+      opts["sort"] = val;
     } else {
       if (idx + 1 < args.size()) {
         xattr[args[idx]] = args[idx + 1];
@@ -383,16 +405,20 @@ int main(int argc, const char **argv) {
     return -1;
   }
 
+  if (opts.find("sort") != opts.end()) {
+    sort_type = opts["sort"];
+  }
+
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0) {
       // get load all objects metadata into memory
-      load_objects(storage, mail_objects);
+      load_objects(storage, mail_objects, sort_type);
 
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else if (parser.parse_ls_string()) {
       // get load all objects metadata into memory
-      load_objects(storage, mail_objects);
+      load_objects(storage, mail_objects, sort_type);
 
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else {
@@ -417,12 +443,12 @@ int main(int argc, const char **argv) {
 
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
       // get load all objects metadata into memory
-      load_objects(storage, mail_objects);
+      load_objects(storage, mail_objects, sort_type);
 
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else if (parser.parse_ls_string()) {
       // get load all objects metadata into memory
-      load_objects(storage, mail_objects);
+      load_objects(storage, mail_objects, sort_type);
 
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else {
