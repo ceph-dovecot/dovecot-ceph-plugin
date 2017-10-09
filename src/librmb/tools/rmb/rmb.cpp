@@ -270,6 +270,40 @@ static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, l
     usage_exit();
   }
 }
+static bool check_connection_args(std::map<std::string, std::string> &opts) {
+  if (opts.find("pool") == opts.end()) {
+    return false;
+  }
+  if (opts.find("namespace") == opts.end()) {
+    return false;
+  }
+  return true;
+}
+bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+  std::string::size_type sz;  // alias of size_t
+  std::string t = i->get_xvalue(librmb::RBOX_METADATA_MAIL_UID);
+  long i_uid = std::stol(t, &sz);
+  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_MAIL_UID), &sz);
+  return i_uid < j_uid;
+}
+void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects) {
+  // get load all objects metadata into memory
+  librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
+  while (iter != storage.get_io_ctx().nobjects_end()) {
+    librmb::RadosMailObject *mail = new librmb::RadosMailObject();
+    mail->set_oid(iter->get_oid());
+    storage.get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
+    uint64_t object_size = 0;
+    time_t save_date_rados = 0;
+    storage.get_io_ctx().stat(iter->get_oid(), &object_size, &save_date_rados);
+    mail->set_object_size(object_size);
+    mail->set_rados_save_date(save_date_rados);
+    ++iter;
+    mail_objects.push_back(mail);
+  }
+  std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
+  mail_objects.erase(std::unique(mail_objects.begin(), mail_objects.end()), mail_objects.end());
+}
 
 int main(int argc, const char **argv) {
   std::vector<librmb::RadosMailObject *> mail_objects;
@@ -336,6 +370,9 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
+  if (!check_connection_args(opts)) {
+    usage_exit();
+  }
   std::string pool_name(opts["pool"]);
   std::string ns(opts["namespace"]);
 
@@ -346,33 +383,17 @@ int main(int argc, const char **argv) {
     return -1;
   }
 
-  if (opts.size() < 3) {
-    usage_exit();
-  }
-
-  librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
-  while (iter != storage.get_io_ctx().nobjects_end()) {
-    librmb::RadosMailObject *mail = new librmb::RadosMailObject();
-    mail->set_oid(iter->get_oid());
-
-    storage.get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
-    uint64_t object_size = 0;
-    time_t save_date_rados = 0;
-    storage.get_io_ctx().stat(iter->get_oid(), &object_size, &save_date_rados);
-    mail->set_object_size(object_size);
-    mail->set_rados_save_date(save_date_rados);
-
-    // print_rados_mail(storage->get_io_ctx(), iter->get_oid());
-    ++iter;
-
-    mail_objects.push_back(mail);
-  }
-
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0) {
+      // get load all objects metadata into memory
+      load_objects(storage, mail_objects);
+
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else if (parser.parse_ls_string()) {
+      // get load all objects metadata into memory
+      load_objects(storage, mail_objects);
+
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else {
       // tear down.
@@ -393,9 +414,16 @@ int main(int argc, const char **argv) {
       }
       parser.set_output_dir(outpath);
     }
+
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0) {
+      // get load all objects metadata into memory
+      load_objects(storage, mail_objects);
+
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else if (parser.parse_ls_string()) {
+      // get load all objects metadata into memory
+      load_objects(storage, mail_objects);
+
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else {
       // tear down.
