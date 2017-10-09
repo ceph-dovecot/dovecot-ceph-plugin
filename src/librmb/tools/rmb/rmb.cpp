@@ -133,11 +133,11 @@ static void usage(std::ostream &out) {
          "    ls     -   list all mails and mailbox statistic\n"
          "           all list all mails and mailbox statistic\n"
          "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
-         "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
+         "                      <VALUE> e.g. R= %Y-%m-%d %H:%M:%S (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    get     - download mails to file\n"
          "            <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
-         "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
+         "                      <VALUE> e.g. R= %Y-%m-%d %H:%M:%S (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "    sort    uid, recv_date, save_date, phy_size\n"
@@ -241,7 +241,7 @@ static bool is_number(const std::string &s) {
 static bool convert_str_to_time_t(const std::string &date, time_t *val) {
   struct tm tm;
   memset(&tm, 0, sizeof(struct tm));
-  if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
+  if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S", &tm)) {
     tm.tm_isdst = -1;
     time_t t = mktime(&tm);  // t is now your desired time_t
     *val = t;
@@ -278,7 +278,7 @@ static bool check_connection_args(std::map<std::string, std::string> &opts) {
   }
   return true;
 }
-bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_xvalue(librmb::RBOX_METADATA_MAIL_UID);
   long i_uid = std::stol(t, &sz);
@@ -286,7 +286,7 @@ bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return i_uid < j_uid;
 }
 
-bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME);
   long i_uid = std::stol(t, &sz);
@@ -294,7 +294,7 @@ bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return i_uid < j_uid;
 }
 
-bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE);
   long i_uid = std::stol(t, &sz);
@@ -302,12 +302,12 @@ bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return i_uid < j_uid;
 }
 
-bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+static bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return *i->get_rados_save_date() < *j->get_rados_save_date();
 }
 
-void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects,
-                  std::string &sort_string) {
+static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects,
+                         std::string &sort_string) {
   // get load all objects metadata into memory
   librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
   while (iter != storage.get_io_ctx().nobjects_end()) {
