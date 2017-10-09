@@ -446,7 +446,7 @@ int main(int argc, const char **argv) {
   } else if (opts.find("set") != opts.end()) {
     std::string oid = opts["set"];
     if (oid.empty() || xattr.size() < 1) {
-      usage_exit();
+      release_exit(&mail_objects, &cluster, true);
     }
 
     for (std::map<std::string, std::string>::iterator it = xattr.begin(); it != xattr.end(); ++it) {
