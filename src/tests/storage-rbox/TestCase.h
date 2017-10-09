@@ -52,6 +52,7 @@ class StorageTest : public ::testing::Test {
 
   void SetUp() override;
   void TearDown() override;
+
 };
 
 #endif  // SRC_TESTS_STORAGE_RBOX_TESTCASE_H_
