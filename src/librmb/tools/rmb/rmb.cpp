@@ -140,7 +140,7 @@ static void usage(std::ostream &out) {
          "                      <VALUE> e.g. R= %Y-%m-%d %H:%M (\"R=2017-08-22 14:30\")\n"
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
-         "    sort    uid, recv_date, save_date\n"
+         "    sort    uid, recv_date, save_date, phy_size\n"
          "MAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
          "\n";
@@ -296,6 +296,14 @@ bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return i_uid < j_uid;
 }
 
+bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
+  std::string::size_type sz;  // alias of size_t
+  std::string t = i->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE);
+  long i_uid = std::stol(t, &sz);
+  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE), &sz);
+  return i_uid < j_uid;
+}
+
 bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   return i->get_rados_save_date() < j->get_rados_save_date();
 }
@@ -321,6 +329,8 @@ void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMa
     std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
   } else if (sort_string.compare("recv_date") == 0) {
     std::sort(mail_objects.begin(), mail_objects.end(), sort_recv_date);
+  } else if (sort_string.compare("phy_size") == 0) {
+    std::sort(mail_objects.begin(), mail_objects.end(), sort_phy_size);
   } else {
     std::sort(mail_objects.begin(), mail_objects.end(), sort_save_date);
   }
