@@ -20,6 +20,7 @@ script:
   --enable-debug'
 - docker exec build sh -c 'cd repo; make clean all'
 - docker exec build sh -c 'cd repo; make check TESTS=test_\*'
+- docker exec build sh -c 'cd repo; cat src/tests/test-suite.log'
 notifications:
   slack:
     secure: CZ4/u+Hl2K2/YIsjwJoghhO3zm5XkJffiXk7voppIBFSLTUHPEgSSsZCdcBgNUSh/gjMI23geQb5PgTcfuVjuexDuX5RH43pRLHKJoFPK4UHkUEucebUY1O5K0Czvw0s1Y5YWWBWoJCsYf540kIA7hi4PoyPQ+dUC0bUItYs8APLrsz2BssEnbWR9W0mo7v4N43+KSDUObxnpNGTUVhepogrw4/cmcpUeqJU0c+lt9QpV4wMkoiRgBVfX696SCegPTOq/CtOhTzHJ5R65Bv+7zImA+/AYpRtIvkJMoHY5brRNm3bYz7an0QnFJq5B+K52Q/1CU7qhH6iED/Do35HvhW7DWJ3NBnV49vD4hR8Gam0nhHsqgd8zDpA4pIYHpC2GjXKnKk5GETIz+Ju0aepccheyLzxEK1wZKM4heMVdizA4KMyYDSGyAkElWuJhCQ0SXO8NVwH5onpQtU9rWWgGAXAV4qnHoxXzsqexw6bE7sik2h/SVUdXYmhKDT4gGUlFH+RN/5xGnMOaaYYduYi4z2ueMANw6PfROT64arsRKyFaCby9MT1YgOGtDyXee2o1RfyI1FbOTEzb+q/yOrUnk0eExBzSBi8dYjJwccY2A57bYfTNYtNLDXbsQmuVjeBiZuc1RujOsnfPpklgcWAj59OwcmkjlCzrU9uC7/vzKI=
