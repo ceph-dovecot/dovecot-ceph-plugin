@@ -282,7 +282,7 @@ Ceph contains git submodules that need to be checked out with
 ### User installation in ~/dovecot
 
     ./autogen.sh
-    ./configure --prefix=/home/user/dovecot
+    ./configure --prefix=/home/user/dovecot --bindir=/home/user/dovecot/bin
     make install
 
 ### Configured source tree in ~/workspace/core
