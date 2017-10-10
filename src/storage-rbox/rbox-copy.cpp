@@ -119,7 +119,7 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
     // struct rbox_mailbox *dest_mbox =ctx->dest_mail->box;
     // #endif
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
-    librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+    librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
                              guid_128_to_string(dest_mailbox->mailbox_guid));
     write_op->setxattr(xattr.key.c_str(), xattr.bl);
     std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
@@ -129,7 +129,7 @@ static void set_mailbox_xattr(struct mail_save_context *ctx, librados::ObjectWri
       update_immutable = setting_update_immutable;
     }
     if (update_immutable.compare("true") == 0) {
-      librmb::RadosXAttr xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
+      librmb::RadosMetadata xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
       write_op->setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
     }
   }
@@ -194,7 +194,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       {
         struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)dest_mbox;
-        librmb::RadosXAttr xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+        librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
                                  guid_128_to_string(dest_mailbox->mailbox_guid));
         write_op.setxattr(xattr.key.c_str(), xattr.bl);
 
@@ -206,7 +206,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         }
 
         if (update_immutable.compare("true") == 0) {
-          librmb::RadosXAttr xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
+          librmb::RadosMetadata xattr_mb(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
           write_op.setxattr(xattr_mb.key.c_str(), xattr_mb.bl);
         }
       }

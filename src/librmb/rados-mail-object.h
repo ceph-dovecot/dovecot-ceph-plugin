@@ -66,26 +66,26 @@ enum rbox_metadata_key {
   RBOX_METADATA_OLDV1_SPACE = ' '
 };
 
-class RadosXAttr {
+class RadosMetadata {
  public:
 
-  RadosXAttr(enum rbox_metadata_key _key, const std::string& val) {
+  RadosMetadata(enum rbox_metadata_key _key, const std::string& val) {
     convert(_key, val);
   }
 
-  RadosXAttr(enum rbox_metadata_key _key, const time_t& val) {
+  RadosMetadata(enum rbox_metadata_key _key, const time_t& val) {
     convert(_key, val);
   }
 
-  RadosXAttr(enum rbox_metadata_key _key, const char* val) {
+  RadosMetadata(enum rbox_metadata_key _key, const char* val) {
     convert(_key, val);
   }
 
-  RadosXAttr(enum rbox_metadata_key _key, const uint& val) {
+  RadosMetadata(enum rbox_metadata_key _key, const uint& val) {
     convert(_key, val);
   }
 
-  RadosXAttr(enum rbox_metadata_key _key, const size_t& val) {
+  RadosMetadata(enum rbox_metadata_key _key, const size_t& val) {
     convert(_key, val);
   }
  public:

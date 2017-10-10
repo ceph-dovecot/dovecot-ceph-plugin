@@ -432,7 +432,7 @@ int main(int argc, const char **argv) {
           value = librmb::RadosUtils::convert_string_to_date(value);
         }
       }
-      librmb::RadosXAttr attr(ke, value);
+      librmb::RadosMetadata attr(ke, value);
       storage.set_metadata(oid, attr);
     }
   }

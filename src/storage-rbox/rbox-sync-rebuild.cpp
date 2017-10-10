@@ -148,14 +148,14 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
 
   std::string guid(guid_128_to_string(rbox->mailbox_guid));
   i_debug("guid is empty, using mailbox name to detect mail objects");
-  librmb::RadosXAttr attr_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid);
+  librmb::RadosMetadata attr_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid);
   // rebuild index.
 
   librados::NObjectIterator iter_guid(r_storage->s->find_mails(&attr_guid));
   if (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
     ret = rbox_sync_index_rebuild(ctx, iter_guid);
   } else {
-    librmb::RadosXAttr attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
+    librmb::RadosMetadata attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
     // rebuild index.
     librados::NObjectIterator iter_name(r_storage->s->find_mails(&attr_name));
     ret = rbox_sync_index_rebuild(ctx, iter_name);

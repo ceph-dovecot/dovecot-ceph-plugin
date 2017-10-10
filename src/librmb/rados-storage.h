@@ -36,14 +36,14 @@ class RadosStorage {
                                        librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) = 0;
 
   virtual int load_metadata(RadosMailObject *mail) = 0;
-  virtual int set_metadata(const std::string &oid, const RadosXAttr &xattr) = 0;
+  virtual int set_metadata(const std::string &oid, const RadosMetadata &xattr) = 0;
 
   virtual int delete_mail(RadosMailObject *mail) = 0;
   virtual int delete_mail(std::string oid) = 0;
 
   virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                           librados::ObjectWriteOperation *op) = 0;
-  virtual librados::NObjectIterator find_mails(const RadosXAttr *attr) = 0;
+  virtual librados::NObjectIterator find_mails(const RadosMetadata *attr) = 0;
   virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
   virtual bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;

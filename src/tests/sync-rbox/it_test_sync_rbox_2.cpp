@@ -131,7 +131,7 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
 static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  librmb::RadosXAttr xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
+  librmb::RadosMetadata xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
   librados::NObjectIterator iter = r_storage->s->find_mails(&xattr);
 
   std::string oid;

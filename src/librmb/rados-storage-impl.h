@@ -40,14 +40,14 @@ class RadosStorageImpl : public RadosStorage {
                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 
   int load_metadata(RadosMailObject *mail);
-  int set_metadata(const std::string &oid, const RadosXAttr &xattr);
+  int set_metadata(const std::string &oid, const RadosMetadata &xattr);
 
   int delete_mail(RadosMailObject *mail);
   int delete_mail(std::string oid);
 
   int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                   librados::ObjectWriteOperation *op);
-  librados::NObjectIterator find_mails(const RadosXAttr *attr);
+  librados::NObjectIterator find_mails(const RadosMetadata *attr);
   int open_connection(const std::string &poolname, const std::string &ns);
 
   bool wait_for_write_operations_complete(
