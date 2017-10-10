@@ -18,6 +18,7 @@
 #include <ctime>
 #include <map>
 #include "rados-mail-object.h"
+#include "rados-util.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 256
@@ -77,21 +78,10 @@ class Predicate {
   }
 
   bool convert_str_to_time_t(const std::string &date, time_t *val) {
-    struct tm tm;
-    memset(&tm, 0, sizeof(struct tm));
-    if (strptime(date.c_str(), "%Y-%m-%d %H:%M", &tm)) {
-      tm.tm_isdst = -1;
-      time_t t = mktime(&tm);  // t is now your desired time_t
-      *val = t;
-      return true;
-    }
-
-    val = 0;
-    return false;
+    return librmb::RadosUtils::convert_str_to_time_t(date, val);
   }
   int convert_time_t_to_str(const time_t &t, std::string *ret_val) {
-    *ret_val = std::ctime(&t);
-    return 0;
+    return librmb::RadosUtils::convert_time_t_to_str(t, ret_val);
   }
 };
 

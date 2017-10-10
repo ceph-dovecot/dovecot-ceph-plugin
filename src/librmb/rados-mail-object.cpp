@@ -16,6 +16,7 @@
 #include <cstring>
 #include <sstream>
 #include <vector>
+#include "rados-util.h"
 
 using librmb::RadosMailObject;
 
@@ -54,9 +55,14 @@ std::string RadosMailObject::to_string(const std::string &padding) {
   ss << padding << "MAIL:   " << static_cast<char>(RBOX_METADATA_MAIL_UID) << "(uid)=" << uid << std::endl;
   ss << padding << "        "
      << "oid = " << oid << std::endl;
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)=" << std::ctime(&ts);
+  std::string recv_time;
+  RadosUtils::convert_time_t_to_str(ts, &recv_time);
+  ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)=" << recv_time
+     << "\n";
+  std::string save_time;
+  RadosUtils::convert_time_t_to_str(save_date_rados, &save_time);
   ss << padding << "        "
-     << "save_time=" << std::ctime(&save_date_rados);
+     << "save_time=" << save_time << "\n";
   ss << padding << "        " << static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE) << "(phy_size)=" << p_size << " "
      << static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE) << "(v_size) = " << v_size << " stat_size=" << object_size
      << std::endl;

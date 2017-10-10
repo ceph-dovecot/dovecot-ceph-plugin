@@ -31,6 +31,7 @@
 #include "rados-mail-object.h"
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
+#include "rados-util.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -224,35 +225,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
     delete it.second;
   }
 }
-static bool is_date_attribute(librmb::rbox_metadata_key &key) {
-  return (key == librmb::RBOX_METADATA_OLDV1_SAVE_TIME || key == librmb::RBOX_METADATA_RECEIVED_TIME);
-}
 
-static bool is_number(const std::string &s) {
-  std::string::const_iterator it = s.begin();
-  while (it != s.end() && std::isdigit(*it)) {
-    ++it;
-  }
-  return !s.empty() && it == s.end();
-}
-static bool convert_str_to_time_t(const std::string &date, time_t *val) {
-  struct tm tm;
-  memset(&tm, 0, sizeof(struct tm));
-  if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S", &tm)) {
-    tm.tm_isdst = -1;
-    time_t t = mktime(&tm);
-    *val = t;
-    return true;
-  }
-
-  val = 0;
-  return false;
-}
-static std::string convert_string_to_date(std::string &date) {
-  std::string ret;
-  time_t t;
-  return convert_str_to_time_t(date, &t) ? std::to_string(t) : "";
-}
 static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::RadosCluster *cluster,
                          bool show_usage) {
   for (auto mo : *mail_objects) {
@@ -307,10 +280,11 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
   while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     mail->set_oid(iter->get_oid());
-    storage.get_io_ctx().getxattrs(iter->get_oid(), *mail->get_xattr());
+    storage.load_metadata(mail);
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
-    storage.get_io_ctx().stat(iter->get_oid(), &object_size, &save_date_rados);
+    storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);
+
     mail->set_object_size(object_size);
     mail->set_rados_save_date(save_date_rados);
     ++iter;
@@ -453,9 +427,9 @@ int main(int argc, const char **argv) {
       std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
       librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
       std::string value = it->second;
-      if (is_date_attribute(ke)) {
-        if (!is_number(value)) {
-          value = convert_string_to_date(value);
+      if (librmb::RadosUtils::is_date_attribute(ke)) {
+        if (!librmb::RadosUtils::is_numeric(value)) {
+          value = librmb::RadosUtils::convert_string_to_date(value);
         }
       }
       librmb::RadosXAttr attr(ke, value);
