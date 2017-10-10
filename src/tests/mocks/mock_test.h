@@ -9,6 +9,7 @@
 #ifndef SRC_TESTS_MOCKS_MOCK_TEST_H_
 #define SRC_TESTS_MOCKS_MOCK_TEST_H_
 
+#include <map>
 #include <string>
 
 #include "../../librmb/rados-cluster.h"
@@ -40,7 +41,8 @@ class RadosStorageMock : public RadosStorage {
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
-  MOCK_METHOD1(wait_for_write_operations_complete,bool(std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map));
+  MOCK_METHOD1(wait_for_write_operations_complete,
+               bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD2(read_mail, int(librados::bufferlist *buffer, const std::string &oid));
 };
 

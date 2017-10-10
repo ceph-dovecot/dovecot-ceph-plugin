@@ -265,6 +265,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 static int get_mail_stream(struct rbox_mail *mail, char *buffer, uint64_t physical_size, struct istream **stream_r) {
   struct mail_private *pmail = &mail->imail.mail;
   struct istream *input;  // = *stream_r;
+  int ret = 0;
+
   input = i_stream_create_from_data(buffer, physical_size);
   i_stream_set_max_buffer_size(input, physical_size);
   i_stream_seek(input, 0);
@@ -273,9 +275,10 @@ static int get_mail_stream(struct rbox_mail *mail, char *buffer, uint64_t physic
 
   if (pmail->v.istream_opened != NULL) {
     if (pmail->v.istream_opened(&pmail->mail, stream_r) < 0)
-      return -1;
+      ret = -1;
   }
-  return 0;
+  i_stream_unref(&input);
+  return ret;
 }
 
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,

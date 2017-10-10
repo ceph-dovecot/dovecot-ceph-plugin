@@ -237,14 +237,13 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 }
 
 static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados::ObjectWriteOperation *write_op_xattr,
-                                         uoff_t &output_msg_size) {
+                                         const uoff_t &output_msg_size) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
 
   {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION,
-                            RadosMailObject::X_ATTR_VERSION_VALUE);
 
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
@@ -257,8 +256,7 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    RadosMetadata xattr(
-        rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, mdata->received_date);
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, mdata->received_date);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
@@ -289,7 +287,7 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
   {
-    i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", (long)ctx->input->v_offset, (long)output_msg_size);
+    i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", ctx->input->v_offset, output_msg_size);
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
     write_op_xattr->setxattr(xattr.key.c_str(), xattr.bl);
   }
@@ -316,9 +314,8 @@ static int rbox_save_mail_write_metadata(struct rbox_save_context *ctx, librados
   return 0;
 }
 
-static bool wait_for_rados_operations(
-    struct rbox_storage *r_storage,
-    const std::vector<librmb::RadosMailObject *> &object_list) {
+static bool wait_for_rados_operations(struct rbox_storage *r_storage,
+                                      const std::vector<librmb::RadosMailObject *> &object_list) {
   bool ctx_failed = false;
   // wait for all writes to finish!
   // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
@@ -327,9 +324,7 @@ static bool wait_for_rados_operations(
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
-
-      bool op_failed = r_storage->s->wait_for_write_operations_complete(
-          (*it_cur_obj)->get_completion_op_map());
+      bool op_failed = r_storage->s->wait_for_write_operations_complete((*it_cur_obj)->get_completion_op_map());
 
       ctx_failed = ctx_failed ? ctx_failed : op_failed;
 
@@ -413,23 +408,23 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
       i_debug("ERROR, cannot open rados connection (rbox_save_finish)");
       r_ctx->failed = true;
+    } else {
+      max_write_size = r_storage->s->get_max_write_size_bytes();
+      if (max_write_size <= 0) {
+        r_ctx->failed = true;
       } else {
-        max_write_size = r_storage->s->get_max_write_size_bytes();
-        if (max_write_size <= 0) {
-          r_ctx->failed = true;
-        } else {
-          ret = r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data),
-                                                       write_buffer_size, r_ctx->current_object, write_op_xattr,
-                                                       max_write_size);
-          r_ctx->current_object->set_active_op(true);
-          r_ctx->failed = ret < 0;
-        }
+        ret =
+            r_storage->s->split_buffer_and_exec_op(reinterpret_cast<const char *>(mail_buffer->data), write_buffer_size,
+                                                   r_ctx->current_object, write_op_xattr, max_write_size);
+        r_ctx->current_object->set_active_op(true);
+        r_ctx->failed = ret < 0;
       }
+    }
 
-      if (r_ctx->failed == true) {
-        write_op_xattr->remove();
-        delete write_op_xattr;
-      }
+    if (r_ctx->failed == true) {
+      write_op_xattr->remove();
+      delete write_op_xattr;
+    }
   }
 
   clean_up_write_finish(_ctx);
@@ -475,8 +470,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mailbox_transaction_context *_t = _ctx->transaction;
-  struct rbox_storage *r_storage = (struct rbox_storage *) &r_ctx->mbox->storage
-      ->storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
@@ -511,16 +505,16 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   if (rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids) < 0) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
-    }
-    // }
+  }
+  // }
 
-    if (_ctx->dest_mail != NULL) {
-      if (r_ctx->dest_mail_allocated == TRUE) {
-        mail_free(&_ctx->dest_mail);
-        r_ctx->dest_mail_allocated = FALSE;
-      } else {
-        _ctx->dest_mail = NULL;
-      }
+  if (_ctx->dest_mail != NULL) {
+    if (r_ctx->dest_mail_allocated == TRUE) {
+      mail_free(&_ctx->dest_mail);
+      r_ctx->dest_mail_allocated = FALSE;
+    } else {
+      _ctx->dest_mail = NULL;
+    }
   }
   _t->changes->uid_validity = hdr->uid_validity;
 

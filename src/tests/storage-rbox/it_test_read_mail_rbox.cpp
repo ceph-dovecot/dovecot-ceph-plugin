@@ -172,24 +172,25 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 
-  search_ctx = mailbox_search_init(desttrans, search_args, NULL, 0, NULL);
+  search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
 
   struct message_size hdr_size, body_size;
   struct istream *input = NULL;
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
+    EXPECT_NE(save_ctx, nullptr);
 
     int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
     EXPECT_EQ(ret2, 0);
-    EXPECT_NE(input, NULL);
-    EXPECT_NE(body_size.physical_size, 0);
-    EXPECT_NE(hdr_size.physical_size, 0);
+    EXPECT_NE(input, nullptr);
+    EXPECT_NE(body_size.physical_size, (uoff_t)0);
+    EXPECT_NE(hdr_size.physical_size, (uoff_t)0);
 
     size_t size = -1;
     int ret_size = i_stream_get_size(input, true, &size);
     EXPECT_EQ(ret_size, 1);
-    EXPECT_EQ(size, 133);
+    EXPECT_EQ(size, (size_t)133);
 
     break;
   }
@@ -201,12 +202,12 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   if (mailbox_transaction_commit(&desttrans) < 0) {
     FAIL() << "tnx commit failed";
   }
-  if (mailbox_sync(box, 0) < 0) {
+
+  if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
 
-
-  ASSERT_EQ(1, box->index->map->hdr.messages_count);
+  ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
 
   mailbox_free(&box);
 }

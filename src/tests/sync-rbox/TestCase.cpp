@@ -231,6 +231,12 @@ void SyncTest::SetUpTestCase() {
 }
 
 void SyncTest::TearDownTestCase() {
+  if (array_is_created(&s_test_mail_user->set->plugin_envs)) {
+    if (array_count(&s_test_mail_user->set->plugin_envs) > 0) {
+      array_delete(&s_test_mail_user->set->plugin_envs, array_count(&s_test_mail_user->set->plugin_envs) - 1, 1);
+    }
+    array_free(&s_test_mail_user->set->plugin_envs);
+  }
   mail_user_unref(&s_test_mail_user);
 #if DOVECOT_PREREQ(2, 3)
   mail_storage_service_user_unref(&test_service_user);
@@ -249,7 +255,6 @@ void SyncTest::TearDownTestCase() {
   pool_unref(&s_test_pool);
   destroy_one_pool(pool_name, &s_cluster);
   rados_ioctx_destroy(s_ioctx);
-
 
   master_service_deinit(&master_service);
 }
