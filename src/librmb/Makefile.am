@@ -20,7 +20,9 @@ headers = \
 	rados-storage-impl.h \
 	rados-dictionary-impl.h \
 	rados-mail-object.h \
-	rados-util.h
+	rados-util.h \
+	rados-metadata.h \
+	rados-types.h
 
 librmb_la_SOURCES = \
     $(headers) \

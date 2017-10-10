@@ -16,7 +16,7 @@
 #include <string>
 #include "time.h"
 #include <stdlib.h>
-#include "rados-mail-object.h"
+#include "rados-types.h"
 
 namespace librmb {
 
