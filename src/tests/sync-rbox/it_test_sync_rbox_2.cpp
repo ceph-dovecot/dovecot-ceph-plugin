@@ -186,7 +186,8 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     copy_object(ns, box);
     uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
 
-    if (mailbox_sync(box, MAILBOX_SYNC_FLAG_FORCE_RESYNC | MAILBOX_SYNC_FLAG_FIX_INCONSISTENT) < 0) {
+    if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
+                                                          MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }

@@ -13,11 +13,9 @@
 namespace librmb {
 
 RadosUtils::RadosUtils() {
-  // TODO Auto-generated constructor stub
 }
 
 RadosUtils::~RadosUtils() {
-  // TODO Auto-generated destructor stub
 }
 
 bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {

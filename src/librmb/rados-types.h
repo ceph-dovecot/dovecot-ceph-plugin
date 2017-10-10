@@ -14,6 +14,8 @@
 
 namespace librmb {
 
+#define GUID_128_SIZE 16
+
 enum rbox_metadata_key {
   /*
    * mailbox global unique id the mail currently is in.
