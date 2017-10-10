@@ -87,7 +87,7 @@ int rbox_get_index_record(struct mail *_mail) {
     i_free(rmail->mail_buffer);
     rmail->mail_buffer = NULL;
     // empty list
-    rmail->mail_object->get_xattr()->clear();
+    rmail->mail_object->get_metadata()->clear();
   }
   uint64_t obj_size = -1;
   rmail->mail_object->set_object_size(obj_size);
@@ -126,7 +126,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     return ret;
   }
 
-  std::string value = rmail->mail_object->get_xvalue(key);
+  std::string value = rmail->mail_object->get_metadata(key);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
   }

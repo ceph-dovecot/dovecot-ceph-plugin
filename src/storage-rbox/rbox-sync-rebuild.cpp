@@ -36,14 +36,14 @@ static uint32_t stoui32(const std::string &s) {
 int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMailObject *mail_obj) {
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
-  std::string xattr_mail_uid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
+  std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
   // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
   if (xattr_mail_uid.empty()) {
     i_debug("xattr_mail_uid.empty");
     return -1;
   }
 
-  std::string xattr_guid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_GUID);
+  std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
   if (xattr_guid.empty()) {
     i_debug("xattr_guid empty");
     return -1;

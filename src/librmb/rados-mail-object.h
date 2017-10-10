@@ -24,9 +24,6 @@
 
 namespace librmb {
 
-
-
-
 class RadosMailObject {
  public:
   RadosMailObject();
@@ -55,13 +52,13 @@ class RadosMailObject {
   void set_mail_buffer(char* _mail_buffer) { this->mail_buffer = _mail_buffer; }
   char* get_mail_buffer() { return this->mail_buffer; }
 
-  std::map<std::string, ceph::bufferlist>* get_xattr() { return &this->attrset; }
+  std::map<std::string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
-  std::string get_xvalue(rbox_metadata_key key) {
+  std::string get_metadata(rbox_metadata_key key) {
     std::string str_key(1, static_cast<char>(key));
-    return get_xvalue(str_key);
+    return get_metadata(str_key);
   }
-  const std::string get_xvalue(std::string key) {
+  const std::string get_metadata(std::string& key) {
     std::string value;
     if (attrset.find(key) != attrset.end()) {
       value = attrset[key].to_str();
@@ -76,7 +73,6 @@ class RadosMailObject {
  private:
   std::string oid;
 
-  // XATTR
   std::string state;
   std::string version;
 
@@ -92,12 +88,10 @@ class RadosMailObject {
   std::map<std::string, ceph::bufferlist> attrset;
 
  public:
-  // X_ATTRIBUTES
   static const char X_ATTR_VERSION_VALUE[];
-
-  // OTHER
   static const char DATA_BUFFER_NAME[];
 };
 
 }  // namespace librmb
+
 #endif  // SRC_LIBRMB_RADOS_MAIL_OBJECT_H_

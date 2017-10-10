@@ -34,15 +34,15 @@ RadosMailObject::RadosMailObject() {
 }
 
 std::string RadosMailObject::to_string(const std::string &padding) {
-  std::string uid = get_xvalue(RBOX_METADATA_MAIL_UID);
-  std::string recv_time_str = get_xvalue(RBOX_METADATA_RECEIVED_TIME);
-  std::string p_size = get_xvalue(RBOX_METADATA_PHYSICAL_SIZE);
-  std::string v_size = get_xvalue(RBOX_METADATA_VIRTUAL_SIZE);
+  std::string uid = get_metadata(RBOX_METADATA_MAIL_UID);
+  std::string recv_time_str = get_metadata(RBOX_METADATA_RECEIVED_TIME);
+  std::string p_size = get_metadata(RBOX_METADATA_PHYSICAL_SIZE);
+  std::string v_size = get_metadata(RBOX_METADATA_VIRTUAL_SIZE);
 
-  std::string rbox_version = get_xvalue(RBOX_METADATA_VERSION);
-  std::string mailbox_guid = get_xvalue(RBOX_METADATA_MAILBOX_GUID);
-  std::string mail_guid = get_xvalue(RBOX_METADATA_GUID);
-  std::string mb_orig_name = get_xvalue(RBOX_METADATA_ORIG_MAILBOX);
+  std::string rbox_version = get_metadata(RBOX_METADATA_VERSION);
+  std::string mailbox_guid = get_metadata(RBOX_METADATA_MAILBOX_GUID);
+  std::string mail_guid = get_metadata(RBOX_METADATA_GUID);
+  std::string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX);
 
   time_t ts = -1;
 

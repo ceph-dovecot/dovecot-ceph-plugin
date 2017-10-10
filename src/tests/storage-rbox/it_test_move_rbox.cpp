@@ -211,13 +211,13 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   ASSERT_EQ(1, objects.size());
   librmb::RadosMailObject mail1 = objects[0];
 
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_MAIL_UID), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_GUID), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_MAILBOX_GUID), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_VIRTUAL_SIZE), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME), "");
-  ASSERT_NE(mail1.get_xvalue(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAIL_UID), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_GUID), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), "");
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
 
   ASSERT_EQ(1, box->index->map->hdr.messages_count);
 

@@ -237,7 +237,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
   EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
-  EXPECT_EQ(2, (int)obj.get_xattr()->size());
+  EXPECT_EQ(2, (int)obj.get_metadata()->size());
 
   int i = storage.load_metadata(nullptr);
   EXPECT_EQ(-1, i);

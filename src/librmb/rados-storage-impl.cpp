@@ -80,8 +80,8 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   int ret = -1;
 
   if (mail != nullptr) {
-    if (mail->get_xattr()->size() == 0) {
-      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_xattr());
+    if (mail->get_metadata()->size() == 0) {
+      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_metadata());
     } else {
       ret = 0;
     }

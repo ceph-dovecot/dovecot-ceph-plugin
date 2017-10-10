@@ -158,9 +158,9 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
 
   for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects->begin(); it != mail_objects->end(); ++it) {
     std::string mailbox_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_MAILBOX_GUID));
-    std::string mailbox_guid = (*it)->get_xvalue(mailbox_key);
+    std::string mailbox_guid = (*it)->get_metadata(mailbox_key);
     std::string mailbox_orig_name_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_ORIG_MAILBOX));
-    std::string mailbox_orig_name = (*it)->get_xvalue(mailbox_orig_name_key);
+    std::string mailbox_orig_name = (*it)->get_metadata(mailbox_orig_name_key);
 
     if (parser->contains_key(mailbox_key)) {
       librmb::Predicate *p = parser->get_predicate(mailbox_key);
@@ -247,25 +247,25 @@ static bool check_connection_args(std::map<std::string, std::string> &opts) {
 }
 static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
-  std::string t = i->get_xvalue(librmb::RBOX_METADATA_MAIL_UID);
+  std::string t = i->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
   long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_MAIL_UID), &sz);
+  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_MAIL_UID), &sz);
   return i_uid < j_uid;
 }
 
 static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
-  std::string t = i->get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME);
+  std::string t = i->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME);
   long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_RECEIVED_TIME), &sz);
+  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), &sz);
   return i_uid < j_uid;
 }
 
 static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
-  std::string t = i->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE);
+  std::string t = i->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE);
   long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_xvalue(librmb::RBOX_METADATA_PHYSICAL_SIZE), &sz);
+  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), &sz);
   return i_uid < j_uid;
 }
 
