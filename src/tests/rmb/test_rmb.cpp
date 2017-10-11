@@ -28,7 +28,7 @@ TEST(rmb, test_cmd_parser) {
   librmb::CmdLineParser parser(ls);
   EXPECT_TRUE(parser.parse_ls_string());
 
-  EXPECT_EQ(3, parser.get_predicates().size());
+  EXPECT_EQ(3, (int)parser.get_predicates().size());
 
   EXPECT_TRUE(parser.contains_key(key));
   EXPECT_TRUE(parser.contains_key(key2));

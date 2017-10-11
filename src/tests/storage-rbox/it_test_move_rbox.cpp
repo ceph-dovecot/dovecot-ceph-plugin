@@ -207,7 +207,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   }
 
   // compare objects
-  ASSERT_EQ(1, objects.size());
+  ASSERT_EQ(1, (int)objects.size());
   librmb::RadosMailObject mail1 = objects[0];
 
   ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAIL_UID), "");
@@ -218,7 +218,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), "");
   ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
 
-  ASSERT_EQ(1, box->index->map->hdr.messages_count);
+  ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
 
   mailbox_free(&box);
 }
