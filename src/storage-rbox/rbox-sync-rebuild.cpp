@@ -36,14 +36,14 @@ static uint32_t stoui32(const std::string &s) {
 int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMailObject *mail_obj) {
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
-  std::string xattr_mail_uid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
+  std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
   // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
   if (xattr_mail_uid.empty()) {
     i_debug("xattr_mail_uid.empty");
     return -1;
   }
 
-  std::string xattr_guid = mail_obj->get_xvalue(rbox_metadata_key::RBOX_METADATA_GUID);
+  std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
   if (xattr_guid.empty()) {
     i_debug("xattr_guid empty");
     return -1;
@@ -148,14 +148,14 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
 
   std::string guid(guid_128_to_string(rbox->mailbox_guid));
   i_debug("guid is empty, using mailbox name to detect mail objects");
-  librmb::RadosXAttr attr_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid);
+  librmb::RadosMetadata attr_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid);
   // rebuild index.
 
   librados::NObjectIterator iter_guid(r_storage->s->find_mails(&attr_guid));
   if (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
     ret = rbox_sync_index_rebuild(ctx, iter_guid);
   } else {
-    librmb::RadosXAttr attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
+    librmb::RadosMetadata attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
     // rebuild index.
     librados::NObjectIterator iter_name(r_storage->s->find_mails(&attr_name));
     ret = rbox_sync_index_rebuild(ctx, iter_name);

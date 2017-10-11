@@ -88,7 +88,7 @@ TEST(rmb1, save_mail) {
   librmb::RadosMailObject mail;
   librados::bufferlist bl;
   bl.append("1");
-  (*mail.get_xattr())["U"] = bl;
+  (*mail.get_metadata())["U"] = bl;
   std::string mail_guid = "defg";
   std::string mail_content = "hallo welt\nbababababa\n";
   mail.set_oid(mail_guid);

@@ -131,7 +131,7 @@ static void add_mail(const char *message, const char *mailbox, struct mail_names
 static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  librmb::RadosXAttr xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
+  librmb::RadosMetadata xattr(librmb::rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, box->name);
   librados::NObjectIterator iter = r_storage->s->find_mails(&xattr);
 
   std::string oid;
@@ -186,7 +186,8 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     copy_object(ns, box);
     uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
 
-    if (mailbox_sync(box, MAILBOX_SYNC_FLAG_FORCE_RESYNC | MAILBOX_SYNC_FLAG_FIX_INCONSISTENT) < 0) {
+    if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
+                                                          MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }

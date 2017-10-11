@@ -80,8 +80,8 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   int ret = -1;
 
   if (mail != nullptr) {
-    if (mail->get_xattr()->size() == 0) {
-      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_xattr());
+    if (mail->get_metadata()->size() == 0) {
+      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_metadata());
     } else {
       ret = 0;
     }
@@ -89,7 +89,7 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   return ret;
 }
 
-int RadosStorageImpl::set_metadata(const std::string &oid, const RadosXAttr &xattr) {
+int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
   return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
 
@@ -125,7 +125,7 @@ void RadosStorageImpl::set_namespace(const std::string &_nspace) {
   this->nspace = _nspace;
 }
 
-librados::NObjectIterator RadosStorageImpl::find_mails(const RadosXAttr *attr) {
+librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr) {
   if (attr != nullptr) {
     std::string filter_name = PLAIN_FILTER_NAME;
     ceph::bufferlist filter_bl;

@@ -20,7 +20,7 @@
 namespace librmbtest {
 using librmb::RadosStorage;
 using librmb::RadosMailObject;
-using librmb::RadosXAttr;
+using librmb::RadosMetadata;
 
 class RadosStorageMock : public RadosStorage {
  public:
@@ -33,13 +33,13 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD5(split_buffer_and_exec_op, int(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
                                              librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write));
   MOCK_METHOD1(load_metadata, int(RadosMailObject *mail));
-  MOCK_METHOD2(set_metadata, int(const std::string &oid, const RadosXAttr &xattr));
+  MOCK_METHOD2(set_metadata, int(const std::string &oid, const RadosMetadata &xattr));
 
   MOCK_METHOD1(delete_mail, int(RadosMailObject *mail));
   MOCK_METHOD1(delete_mail, int(std::string oid));
   MOCK_METHOD4(aio_operate, int(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                                 librados::ObjectWriteOperation *op));
-  MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosXAttr *attr));
+  MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));

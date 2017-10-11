@@ -19,14 +19,18 @@ headers = \
 	rados-cluster-impl.h \
 	rados-storage-impl.h \
 	rados-dictionary-impl.h \
-	rados-mail-object.h
+	rados-mail-object.h \
+	rados-util.h \
+	rados-metadata.h \
+	rados-types.h
 
 librmb_la_SOURCES = \
     $(headers) \
 	rados-cluster-impl.cpp \
 	rados-storage-impl.cpp \
 	rados-dictionary-impl.cpp \
-	rados-mail-object.cpp
+	rados-mail-object.cpp \
+	rados-util.cpp
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)

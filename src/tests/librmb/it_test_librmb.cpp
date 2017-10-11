@@ -113,7 +113,7 @@ TEST(librmb1, split_write_operation_1) {
 
 TEST(librmb1, convert_types) {
   std::string value = "4441c5339f4c9d59523000009c60b9f7";
-  librmb::RadosXAttr attr(librmb::RBOX_METADATA_GUID, value);
+  librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, value);
 
   EXPECT_EQ(attr.key, "G");
   EXPECT_EQ(attr.bl.to_str(), value);
@@ -121,7 +121,7 @@ TEST(librmb1, convert_types) {
 
   attr.key = "";
   attr.bl.clear();
-  librmb::RadosXAttr attr2(librmb::RBOX_METADATA_RECEIVED_TIME, t);
+  librmb::RadosMetadata attr2(librmb::RBOX_METADATA_RECEIVED_TIME, t);
 
   EXPECT_EQ(attr2.key, "R");
   EXPECT_EQ(attr2.bl.to_str(), "1503488583");
@@ -131,7 +131,7 @@ TEST(librmb1, convert_types) {
   EXPECT_EQ(t, recv_date);
 
   size_t st = 100;
-  librmb::RadosXAttr attr4(librmb::RBOX_METADATA_VIRTUAL_SIZE, st);
+  librmb::RadosMetadata attr4(librmb::RBOX_METADATA_VIRTUAL_SIZE, st);
   EXPECT_EQ(attr4.key, "V");
   EXPECT_EQ(attr4.bl.to_str(), "100");
 
@@ -237,7 +237,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
   EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
-  EXPECT_EQ(2, (int)obj.get_xattr()->size());
+  EXPECT_EQ(2, (int)obj.get_metadata()->size());
 
   int i = storage.load_metadata(nullptr);
   EXPECT_EQ(-1, i);
