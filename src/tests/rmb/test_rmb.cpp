@@ -56,8 +56,8 @@ TEST(rmb, test_cmd_parser) {
 TEST(rmb1, date_arg) {
   librmb::Predicate *p = new librmb::Predicate();
 
-  std::string date = "2013-12-04 15:03";
-  time_t t;
+  std::string date = "2013-12-04 15:03:00";
+  time_t t = -1;
   p->convert_str_to_time_t(date, &t);
   std::cout << "time t " << t << std::endl;
   EXPECT_GT(t, -1);
