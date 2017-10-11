@@ -76,6 +76,14 @@ AS_HELP_STRING([--with-integration-tests[=ARG]], [Build with [ARG=yes] or withou
   want_integration_tests=no)
 AM_CONDITIONAL(BUILD_INTEGRATION_TESTS, test "$want_integration_tests" = "yes")
 
+AX_CODE_COVERAGE()
+
+
+AX_VALGRIND_DFLT([helgrind], [off])
+AX_VALGRIND_DFLT([drd], [off])
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_CHECK()
+
 AC_PROG_CC_C99
 AC_PROG_CXX
 AC_PROG_CPP

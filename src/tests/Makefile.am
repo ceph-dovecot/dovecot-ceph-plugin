@@ -6,17 +6,24 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/src/tests/mocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox \
- -I$(srcdir)/googletest/googletest/include \
- -I$(srcdir)/googletest/googlemock/include 
+AM_CPPFLAGS = \
+    -I$(top_srcdir) -I$(top_srcdir)/src/tests/mocks -I$(top_srcdir)/src/librmb -I$(top_srcdir)/src/dict-rados -I$(top_srcdir)/src/storage-rbox \
+    -I$(srcdir)/googletest/googletest/include \
+    -I$(srcdir)/googletest/googlemock/include \
+    $(LIBDOVECOT_INCLUDE) \
+    $(GTEST_CPPFLAGS) \
+    $(CODE_COVERAGE_CPPFLAGS) 
 
-AM_CXXFLAGS = $(GTEST_CXXFLAGS)
+AM_CXXFLAGS = \
+    $(GTEST_CXXFLAGS) \
+    $(CODE_COVERAGE_CXXFLAGS)
+    
 AM_LDFLAGS = $(GTEST_LDFLAGS)
 
 EXTRA_DIST = googletest mocks
 
 rmb_shlibs = \
-	$(top_builddir)/src/librmb/librmb.la
+	$(top_builddir)/src/librmb/librmb.la $(CODE_COVERAGE_LIBS)
 dict_shlibs = \
 	$(top_builddir)/src/dict-rados/libdict_rados_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 storage_shlibs = \
@@ -95,4 +102,8 @@ endif
 
 check_PROGRAMS = $(TESTS)
 noinst_PROGRAMS = $(TESTS)
+
+@CODE_COVERAGE_RULES@
+
+@VALGRIND_CHECK_RULES@
 
