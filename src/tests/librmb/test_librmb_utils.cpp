@@ -24,7 +24,7 @@ using ::testing::Return;
 
 TEST(librmb, utils_convert_str_to_time) {
   time_t test_time;
-  //%Y-%m-%d %H:%M:%S
+  // %Y-%m-%d %H:%M:%S
   const std::string test_string = "2017-10-10 12:12:12";
   EXPECT_TRUE(librmb::RadosUtils::convert_str_to_time_t(test_string, &test_time));
   // EXPECT_EQ(test_time, 1507630332);
