@@ -300,6 +300,14 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     return -1;
   }
 
+  if (ctx->saving) {
+    // LDA needs copy for saving the mail
+    if (mail_storage_copy(ctx, mail) < 0) {
+      FUNC_END_RET("ret == -1, mail_storage_copy failed");
+      return -1;
+    }
+  }
+
   ctx->unfinished = false;
 
   if (rbox_is_op_on_shared_folder(mail, dest_mbox) && ctx->moving) {
@@ -318,7 +326,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     dest_io_ctx.set_namespace(ns_dest_mail);
     i_debug("removed src_oid %s from ns %s ", src_oid.c_str(), ns_src_mail);
   }
-  FUNC_END();
 
+  FUNC_END();
   return 0;
 }
