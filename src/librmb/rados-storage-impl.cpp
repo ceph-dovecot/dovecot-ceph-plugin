@@ -177,3 +177,104 @@ bool RadosStorageImpl::wait_for_write_operations_complete(
   }
   return failed;
 }
+
+bool RadosStorageImpl::update_metadata(std::string oid, std::list<RadosMetadata> &to_update) {
+  librados::ObjectWriteOperation write_op;
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  // update metadata
+  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
+    write_op.setxattr((*it).key.c_str(), (*it).bl);
+  }
+  int ret = aio_operate(&io_ctx, oid, completion, &write_op);
+  completion->wait_for_complete();
+  completion->release();
+  return ret == 0;
+}
+
+// assumes that destination io ctx is current io_ctx;
+bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                            std::list<RadosMetadata> &to_update, bool delete_source) {
+  librados::ObjectWriteOperation write_op;
+  librados::IoCtx src_io_ctx, dest_io_ctx;
+
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+
+  // destination io_ctx is current io_ctx
+  dest_io_ctx = io_ctx;
+
+  if (strcmp(src_ns, dest_ns) != 0) {
+    src_io_ctx.dup(dest_io_ctx);
+    src_io_ctx.set_namespace(src_ns);
+    dest_io_ctx.set_namespace(dest_ns);
+    write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+
+  } else {
+    src_io_ctx = dest_io_ctx;
+  }
+
+  // because we create a copy, save date needs to be updated
+  // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+  // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+  // write_op.mtime(&ctx->data.save_date);
+  time_t save_time = time(NULL);
+  write_op.mtime(&save_time);
+
+  // update metadata
+  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
+    write_op.setxattr((*it).key.c_str(), (*it).bl);
+  }
+
+  int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  completion->wait_for_complete();
+  completion->release();
+
+  if (delete_source && strcmp(src_ns, dest_ns) != 0) {
+    src_io_ctx.remove(src_oid);
+  }
+  // reset io_ctx
+  dest_io_ctx.set_namespace(dest_ns);
+  return ret == 0;
+}
+
+// assumes that destination io ctx is current io_ctx;
+bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                            std::list<RadosMetadata> &to_update) {
+  librados::ObjectWriteOperation write_op;
+  librados::IoCtx src_io_ctx, dest_io_ctx;
+
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+
+  // destination io_ctx is current io_ctx
+  dest_io_ctx = io_ctx;
+
+  if (strcmp(src_ns, dest_ns) != 0) {
+    src_io_ctx.dup(dest_io_ctx);
+    src_io_ctx.set_namespace(src_ns);
+    dest_io_ctx.set_namespace(dest_ns);
+  } else {
+    src_io_ctx = dest_io_ctx;
+  }
+  write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+
+  // because we create a copy, save date needs to be updated
+  // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+  // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+  // write_op.mtime(&ctx->data.save_date);
+  time_t save_time = time(NULL);
+  write_op.mtime(&save_time);
+
+  // update metadata
+  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
+    write_op.setxattr((*it).key.c_str(), (*it).bl);
+  }
+
+  int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  completion->wait_for_complete();
+  completion->release();
+  // reset io_ctx
+  dest_io_ctx.set_namespace(dest_ns);
+  return ret == 0;
+}
+
+
+
