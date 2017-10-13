@@ -20,7 +20,7 @@ AM_CXXFLAGS = \
     
 AM_LDFLAGS = $(GTEST_LDFLAGS)
 
-EXTRA_DIST = googletest mocks
+EXTRA_DIST = googletest mocks dict_rados.supp storage_mock_rbox.supp
 
 rmb_shlibs = \
 	$(top_builddir)/src/librmb/librmb.la $(CODE_COVERAGE_LIBS)
@@ -83,6 +83,11 @@ it_test_move_rbox_SOURCES = storage-rbox/it_test_move_rbox.cpp storage-rbox/Test
 it_test_move_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 it_test_move_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
+TESTS += it_test_lda_rbox
+it_test_lda_rbox_SOURCES = storage-rbox/it_test_lda_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
+it_test_lda_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_lda_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
+
 TESTS += it_test_read_mail_rbox
 it_test_read_mail_rbox_SOURCES = storage-rbox/it_test_read_mail_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
 it_test_read_mail_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
@@ -106,4 +111,4 @@ noinst_PROGRAMS = $(TESTS)
 @CODE_COVERAGE_RULES@
 
 @VALGRIND_CHECK_RULES@
-
+VALGRIND_SUPPRESSIONS_FILES = dict_rados.supp storage_mock_rbox.supp
