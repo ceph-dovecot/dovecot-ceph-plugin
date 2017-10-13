@@ -36,12 +36,12 @@ extern "C" {
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
+#include "../test-utils/it_utils.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
 
 #pragma GCC diagnostic pop
-
 #if DOVECOT_PREREQ(2, 3)
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
 #else
@@ -52,80 +52,8 @@ using ::testing::Return;
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 
-
-
 TEST_F(SyncTest, init) {}
 
-
-static void add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns) {
-  struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
-  ASSERT_NE(ns, nullptr);
-  struct mailbox *box = mailbox_alloc(ns->list, mailbox, (mailbox_flags)0);
-  ASSERT_NE(box, nullptr);
-  ASSERT_GE(mailbox_open(box), 0);
-
-  /* const char *message =
-       "From: user@domain.org\n"
-       "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
-       "Mime-Version: 1.0\n"
-       "Content-Type: text/plain; charset=us-ascii\n"
-       "\n"
-       "body\n";*/
-
-  struct istream *input = i_stream_create_from_data(message, strlen(message));
-
-#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
-  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
-#else
-  char reason[256];
-  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
-#endif
-
-  struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
-  ssize_t ret;
-  bool save_failed = FALSE;
-
-  if (mailbox_save_begin(&save_ctx, input) < 0) {
-    i_error("Saving failed: %s", mailbox_get_last_internal_error(box, NULL));
-    mailbox_transaction_rollback(&trans);
-    FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
-  } else {
-    do {
-      if (mailbox_save_continue(save_ctx) < 0) {
-        save_failed = TRUE;
-        ret = -1;
-        FAIL() << "mailbox_save_continue() failed";
-        break;
-      }
-    } while ((ret = i_stream_read(input)) > 0);
-    EXPECT_EQ(ret, -1);
-
-    if (input->stream_errno != 0) {
-      FAIL() << "read(msg input) failed: " << i_stream_get_error(input);
-    } else if (save_failed) {
-      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
-    } else if (mailbox_save_finish(&save_ctx) < 0) {
-      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
-    } else if (mailbox_transaction_commit(&trans) < 0) {
-      FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
-    } else {
-      ret = 0;
-    }
-
-    EXPECT_EQ(save_ctx, nullptr);
-    if (save_ctx != nullptr)
-      mailbox_save_cancel(&save_ctx);
-
-    EXPECT_EQ(trans, nullptr);
-    if (trans != nullptr)
-      mailbox_transaction_rollback(&trans);
-
-    EXPECT_TRUE(input->eof);
-    EXPECT_GE(ret, 0);
-  }
-  i_stream_unref(&input);
-  mailbox_free(&box);
-}
 
 TEST_F(SyncTest, force_resync_missing_rados_object) {
   const char *message =
@@ -138,10 +66,9 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
 
   const char *mailbox = "INBOX";
 
-  add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
-  add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
-  add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
-
+  testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
+  testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
+  testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
 
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);

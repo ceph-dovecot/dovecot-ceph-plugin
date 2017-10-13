@@ -487,7 +487,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
-  // bool copying = true;
   int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
@@ -500,13 +499,11 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
   _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
 
-  // if (!copying) {
   seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
   if (rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids) < 0) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
-  // }
 
   if (_ctx->dest_mail != NULL) {
     if (r_ctx->dest_mail_allocated == TRUE) {
