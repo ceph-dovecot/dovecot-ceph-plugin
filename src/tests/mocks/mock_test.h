@@ -44,6 +44,11 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD2(read_mail, int(librados::bufferlist *buffer, const std::string &oid));
+  MOCK_METHOD2(update_metadata, bool(std::string oid, std::list<RadosMetadata> &to_update));
+  MOCK_METHOD6(move, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                          std::list<RadosMetadata> &to_update, bool delete_source));
+  MOCK_METHOD5(copy, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                          std::list<RadosMetadata> &to_update));
 };
 
 using librmb::RadosDictionary;
