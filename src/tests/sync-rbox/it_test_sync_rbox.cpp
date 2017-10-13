@@ -41,17 +41,6 @@ extern "C" {
 using ::testing::AtLeast;
 using ::testing::Return;
 
-#pragma GCC diagnostic pop
-#if DOVECOT_PREREQ(2, 3)
-#define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
-#else
-#define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_error(box, error_r)
-#endif
-
-#ifndef i_zero
-#define i_zero(p) memset(p, 0, sizeof(*(p)))
-#endif
-
 TEST_F(SyncTest, init) {}
 
 

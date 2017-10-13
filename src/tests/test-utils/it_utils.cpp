@@ -27,11 +27,9 @@
 namespace testutils {
 
 ItUtils::ItUtils() {
-  // TODO Auto-generated constructor stub
 }
 
 ItUtils::~ItUtils() {
-  // TODO Auto-generated destructor stub
 }
 
 void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns) {
