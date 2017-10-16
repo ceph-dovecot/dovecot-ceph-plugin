@@ -89,7 +89,7 @@ int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
   if (!myfile.is_open()) {
     return -1;
   }
-  myfile.write(mail_obj->get_mail_buffer(), mail_obj->get_object_size());
+  myfile.write(mail_obj->get_mail_buffer(), mail_obj->get_mail_size());
   myfile.close();
   return 0;
 }

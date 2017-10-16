@@ -170,12 +170,12 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
     }
     if (mailbox.count(mailbox_guid) > 0) {
       mailbox[mailbox_guid]->add_mail((*it));
-      mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
+      mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_mail_size());
     } else {
       mailbox[mailbox_guid] = new librmb::RadosMailBox(mailbox_guid, 1, mailbox_orig_name);
       mailbox[mailbox_guid]->set_xattr_filter(parser);
       mailbox[mailbox_guid]->add_mail((*it));
-      mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_object_size());
+      mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_mail_size());
     }
   }
   std::cout << "mailbox_count: " << mailbox.size() << std::endl;
@@ -207,7 +207,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           char *mail_buffer = new char[size_r + 1];
           (*it_mail)->set_mail_buffer(mail_buffer);
 
-          (*it_mail)->set_object_size(size_r);
+          (*it_mail)->set_mail_size(size_r);
           int read = storage->read_mail(&buffer, oid);
           if (read > 0) {
             memcpy(mail_buffer, buffer.to_str().c_str(), read + 1);
@@ -285,7 +285,7 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
     time_t save_date_rados = 0;
     storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);
 
-    mail->set_object_size(object_size);
+    mail->set_mail_size(object_size);
     mail->set_rados_save_date(save_date_rados);
     ++iter;
     mail_objects.push_back(mail);

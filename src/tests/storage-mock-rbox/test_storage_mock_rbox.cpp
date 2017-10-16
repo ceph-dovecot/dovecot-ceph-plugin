@@ -30,10 +30,12 @@ extern "C" {
 #include "mailbox-list.h"
 #include "ioloop.h"
 #include "istream.h"
+#include "mail-search-build.h"
 
 #include "libdict-rados-plugin.h"
 }
 #include "dovecot-ceph-plugin-config.h"
+#include "../test-utils/it_utils.h"
 
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
@@ -53,6 +55,7 @@ using ::testing::_;
 #ifndef i_zero
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
+
 
 TEST_F(StorageTest, init) {}
 
@@ -118,7 +121,6 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
       FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
     } else {
       ret = 0;
-      // FAIL() << "connection is not open: " << mailbox_get_last_internal_error(box, NULL);
     }
 
     EXPECT_EQ(save_ctx, nullptr);
@@ -165,11 +167,8 @@ TEST_F(StorageTest, exec_write_op_fails) {
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-  // first call to open_connection will fail!
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
-
-  EXPECT_CALL(*storage_mock, get_max_write_size_bytes()).Times(AtLeast(1)).WillOnce(Return(10));
-  EXPECT_CALL(*storage_mock, split_buffer_and_exec_op(_, _, _, _, _)).Times(AtLeast(1)).WillRepeatedly(Return(-1));
+  EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(false));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -201,7 +200,6 @@ TEST_F(StorageTest, exec_write_op_fails) {
       FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
     } else {
       ret = 0;
-      // FAIL() << "connection is not open: " << mailbox_get_last_internal_error(box, NULL);
     }
 
     EXPECT_EQ(save_ctx, nullptr);
@@ -248,12 +246,10 @@ TEST_F(StorageTest, write_op_fails) {
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-  // first call to open_connection will fail!
+
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
-
-  EXPECT_CALL(*storage_mock, get_max_write_size_bytes()).Times(AtLeast(1)).WillOnce(Return(10));
-
-  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_)).Times(AtLeast(1)).WillOnce(Return(true));
+  EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(true));
+  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillOnce(Return(false));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -285,7 +281,6 @@ TEST_F(StorageTest, write_op_fails) {
       SUCCEED() << "should fail here";
     } else {
       ret = 0;
-      // FAIL() << "connection is not open: " << mailbox_get_last_internal_error(box, NULL);
     }
 
     EXPECT_EQ(save_ctx, nullptr);
@@ -302,6 +297,7 @@ TEST_F(StorageTest, write_op_fails) {
   i_stream_unref(&input);
   mailbox_free(&box);
 }
+
 
 TEST_F(StorageTest, deinit) {}
 

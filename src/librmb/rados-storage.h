@@ -47,12 +47,15 @@ class RadosStorage {
   virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
   virtual bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
+  virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) = 0;
+
   virtual int read_mail(librados::bufferlist *buffer, const std::string &oid) = 0;
   virtual bool update_metadata(std::string oid, std::list<RadosMetadata> &to_update) = 0;
   virtual bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                     std::list<RadosMetadata> &to_update, bool delete_source) = 0;
   virtual bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                     std::list<RadosMetadata> &to_update) = 0;
+  virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
 };
 
 }  // namespace librmb

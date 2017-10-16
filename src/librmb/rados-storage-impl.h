@@ -53,12 +53,16 @@ class RadosStorageImpl : public RadosStorage {
   bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
 
+  bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list);
+
   int read_mail(librados::bufferlist *buffer, const std::string &oid);
   bool update_metadata(std::string oid, std::list<RadosMetadata> &to_update);
   bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update, bool delete_source);
   bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update);
+
+  bool save_mail(RadosMailObject *mail, bool &save_async);
 
  private:
   RadosCluster *cluster;

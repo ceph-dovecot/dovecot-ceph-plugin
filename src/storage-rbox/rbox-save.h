@@ -67,5 +67,7 @@ class rbox_save_context {
 
 void rbox_add_to_index(struct mail_save_context *_ctx);
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail);
+void init_output_stream(mail_save_context *_ctx);
+int allocate_mail_buffer(mail_save_context *_ctx, int &initial_mail_buffer_size);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_SAVE_H_

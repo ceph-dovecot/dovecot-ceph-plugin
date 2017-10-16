@@ -94,7 +94,7 @@ TEST(rmb1, save_mail) {
   mail.set_oid(mail_guid);
   mail.set_mail_buffer(&mail_content[0u]);
   uint64_t size = mail_content.length();
-  mail.set_object_size(size);
+  mail.set_mail_size(size);
   int save = tools.save_mail(&mail);
   EXPECT_EQ(0, save);
 

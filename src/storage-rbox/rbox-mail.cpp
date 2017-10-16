@@ -90,7 +90,7 @@ int rbox_get_index_record(struct mail *_mail) {
     rmail->mail_object->get_metadata()->clear();
   }
   uint64_t obj_size = -1;
-  rmail->mail_object->set_object_size(obj_size);
+  rmail->mail_object->set_mail_size(obj_size);
   FUNC_END();
   return 0;
 }

@@ -31,6 +31,7 @@ extern "C" {
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
 }
+#include "rbox-storage.hpp"
 
 #pragma GCC diagnostic pop
 #if DOVECOT_PREREQ(2, 3)
@@ -50,6 +51,10 @@ class ItUtils {
   ItUtils();
   virtual ~ItUtils();
   static void add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns);
+  static void add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns,
+                       librmb::RadosStorage *storage_impl);
+  static void add_mail(struct mail_save_context *save_ctx, struct istream *input, struct mailbox *box,
+                       struct mailbox_transaction_context *trans);
 };
 
 } /* namespace testutils */

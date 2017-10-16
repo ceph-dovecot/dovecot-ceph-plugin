@@ -31,7 +31,33 @@ ItUtils::ItUtils() {
 
 ItUtils::~ItUtils() {
 }
+void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns,
+                       librmb::RadosStorage *storage_impl) {
+  struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
+  ASSERT_NE(ns, nullptr);
+  struct mailbox *box = mailbox_alloc(ns->list, mailbox, (mailbox_flags)0);
+  ASSERT_NE(box, nullptr);
+  ASSERT_GE(mailbox_open(box), 0);
 
+  struct istream *input = i_stream_create_from_data(message, strlen(message));
+
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
+  struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
+
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  delete storage->s;
+  storage->s = storage_impl;
+
+  ItUtils::add_mail(save_ctx, input, box, trans);
+
+  i_stream_unref(&input);
+  mailbox_free(&box);
+}
 void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns) {
   struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
   ASSERT_NE(ns, nullptr);
@@ -48,6 +74,16 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
+
+
+  ItUtils::add_mail(save_ctx, input, box, trans);
+
+  i_stream_unref(&input);
+  mailbox_free(&box);
+}
+
+void ItUtils::add_mail(struct mail_save_context *save_ctx, struct istream *input, struct mailbox *box,
+                       struct mailbox_transaction_context *trans) {
   ssize_t ret;
   bool save_failed = FALSE;
 
@@ -88,9 +124,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
 
     EXPECT_TRUE(input->eof);
     EXPECT_GE(ret, 0);
-  }
-  i_stream_unref(&input);
-  mailbox_free(&box);
+    }
 }
 
 } /* namespace testutils */
