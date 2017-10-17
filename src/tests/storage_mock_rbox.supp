@@ -1,0 +1,20 @@
+{
+   <storage_mock_rbox_leak>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:_Z16rbox_save_finishP17mail_save_context
+   fun:mailbox_save_finish
+   fun:_ZN31StorageTest_write_op_fails_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
