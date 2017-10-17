@@ -56,6 +56,7 @@ class RadosStorage {
   virtual bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                     std::list<RadosMetadata> &to_update) = 0;
   virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
+  virtual librmb::RadosMailObject *create_mail_object() = 0;
 };
 
 }  // namespace librmb

@@ -83,14 +83,7 @@ int rbox_get_index_record(struct mail *_mail) {
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
-
-    i_free(rmail->mail_buffer);
-    rmail->mail_buffer = NULL;
-    // empty list
-    rmail->mail_object->get_metadata()->clear();
   }
-  uint64_t obj_size = -1;
-  rmail->mail_object->set_mail_size(obj_size);
   FUNC_END();
   return 0;
 }
@@ -237,7 +230,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct index_mail_data *data = &rmail->imail.data;
 
   char *value = NULL;
-  //  rbox_get_index_record(_mail);
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     i_debug("get_physical_size from index(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
             *size_r);
@@ -293,7 +285,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   int ret = 0;
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
-  rbox_get_index_record(_mail);
   uint64_t size_r = 0;
 
   if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
@@ -481,7 +472,8 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   index_mail_set_seq(_mail, seq, saving);
 
   if (rmail_->mail_object == NULL) {
-    rmail_->mail_object = new RadosMailObject();
+    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+    rmail_->mail_object = r_storage->s->create_mail_object();
     rbox_get_index_record(_mail);
   }
 }

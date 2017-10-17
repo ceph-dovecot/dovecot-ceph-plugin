@@ -87,9 +87,12 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   // set the Mock storage
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
+
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   // first call to open_connection will fail!
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(-1));
+  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
+  EXPECT_CALL(*storage_mock, create_mail_object()).WillRepeatedly(Return(test_obj));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -169,6 +172,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(false));
+  EXPECT_CALL(*storage_mock, create_mail_object()).WillOnce(Return(new librmb::RadosMailObject()));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -250,6 +254,7 @@ TEST_F(StorageTest, write_op_fails) {
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillOnce(Return(false));
+  EXPECT_CALL(*storage_mock, create_mail_object()).WillOnce(Return(new librmb::RadosMailObject()));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -298,6 +303,90 @@ TEST_F(StorageTest, write_op_fails) {
   mailbox_free(&box);
 }
 
+TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
+  struct mailbox_transaction_context *desttrans;
+  struct mail_save_context *save_ctx;
+  struct mail *mail;
+  struct mail_search_context *search_ctx;
+  struct mail_search_args *search_args;
+  struct mail_search_arg *sarg;
+
+  const char *message =
+      "From: user@domain.org\n"
+      "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
+      "Mime-Version: 1.0\n"
+      "Content-Type: text/plain; charset=us-ascii\n"
+      "\n"
+      "body\n";
+
+  const char *mailbox = "INBOX";
+
+  librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
+  EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(true));
+  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
+  EXPECT_CALL(*storage_mock, create_mail_object()).WillRepeatedly(Return(new librmb::RadosMailObject()));
+
+  // testdata
+  testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces, storage_mock);
+
+  search_args = mail_search_build_init();
+  sarg = mail_search_build_add(search_args, SEARCH_ALL);
+  ASSERT_NE(sarg, nullptr);
+
+  struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
+  ASSERT_NE(ns, nullptr);
+
+  struct mailbox *box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_SAVEONLY);
+
+  // set the Mock storage
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  delete storage->s;
+
+  librmbtest::RadosStorageMock *storage_mock_copy = new librmbtest::RadosStorageMock();
+  librmb::RadosMailObject *test_object = new librmb::RadosMailObject();
+  librmb::RadosMetadata recv_date = librmb::RadosMetadata(librmb::RBOX_METADATA_RECEIVED_TIME, time(NULL));
+  test_object->add_metadata(recv_date);
+  librmb::RadosMetadata guid = librmb::RadosMetadata(librmb::RBOX_METADATA_GUID, "67ffff24efc0e559194f00009c60b9f7");
+  test_object->add_metadata(guid);
+
+  EXPECT_CALL(*storage_mock_copy, create_mail_object()).WillRepeatedly(Return(test_object));
+  EXPECT_CALL(*storage_mock_copy, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
+
+  storage->s = storage_mock_copy;
+
+  if (mailbox_open(box) < 0) {
+    i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
+    FAIL() << " Forcing a resync on mailbox INBOX Failed";
+  }
+
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
+  desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
+
+  search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
+  mail_search_args_unref(&search_args);
+
+  while (mailbox_search_next(search_ctx, &mail)) {
+    save_ctx = mailbox_save_alloc(desttrans);  // src save context
+    mailbox_save_copy_flags(save_ctx, mail);
+
+    int ret2 = mailbox_copy(&save_ctx, mail);
+    EXPECT_EQ(ret2, -1);
+    break;  // only move one mail.
+  }
+
+  if (mailbox_search_deinit(&search_ctx) < 0) {
+    FAIL() << "search deinit failed";
+  }
+
+  if (mailbox_transaction_commit(&desttrans) < 0) {
+    SUCCEED() << "tnx commit failed";
+  }
+  mailbox_free(&box);
+}
 
 TEST_F(StorageTest, deinit) {}
 

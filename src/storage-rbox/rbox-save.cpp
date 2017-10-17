@@ -73,6 +73,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   int save_flags;
 
@@ -89,7 +90,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   }
   guid_128_generate(r_ctx->mail_oid);
 
-  r_ctx->current_object = new RadosMailObject();
+  r_ctx->current_object = new librmb::RadosMailObject();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
 
@@ -111,7 +112,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   int save_flags;
 
   /* add to index */
@@ -134,7 +135,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 #endif
   guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
 
-  r_ctx->current_object = new RadosMailObject();
+  r_ctx->current_object = r_storage->s->create_mail_object();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
 
@@ -341,6 +342,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   // clean up index
   mail_index_expunge(r_ctx->trans, r_ctx->seq);
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
+  r_ctx->objects.clear();
   r_ctx->mail_count--;
 }
 
@@ -414,6 +416,7 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
 
   r_ctx->failed = TRUE;
   (void)rbox_save_finish(_ctx);
+  clean_up_failed(r_ctx);
   FUNC_END();
 }
 

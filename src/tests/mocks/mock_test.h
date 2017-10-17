@@ -52,6 +52,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD5(copy, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                           std::list<RadosMetadata> &to_update));
   MOCK_METHOD2(save_mail, bool(RadosMailObject *mail, bool &save_async));
+  MOCK_METHOD0(create_mail_object, librmb::RadosMailObject *());
 };
 
 using librmb::RadosDictionary;
