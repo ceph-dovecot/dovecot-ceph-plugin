@@ -35,16 +35,11 @@ extern "C" {
 #include "libdict-rados-plugin.h"
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
-
-/*
-#include "master-service-settings.h"
-#include "raw-storage.h"
-#include "mail-deliver.h"
-*/
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
 #include "dovecot-ceph-plugin-config.h"
+#include "../test-utils/it_utils.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -69,45 +64,116 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   mailbox_free(&box);
 }
 
-/*
-static struct mail *lda_raw_mail_open(struct mail_deliver_context *ctx, const char *path) {
-  struct mail_user *raw_mail_user;
-  struct mailbox *box;
-  struct mailbox_transaction_context *t;
+TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
+  struct mailbox_transaction_context *desttrans;
+  struct mail_save_context *save_ctx;
   struct mail *mail;
-  struct mailbox_header_lookup_ctx *headers_ctx;
-  struct istream *input;
-  void **sets;
-  const char *envelope_sender;
-  time_t mtime;
-  int ret;
+  struct mail_search_context *search_ctx;
+  struct mail_search_args *search_args;
+  struct mail_search_arg *sarg;
 
-  sets = master_service_settings_get_others(master_service);
-  raw_mail_user = raw_storage_create_from_set(ctx->dest_user->set_info, sets[0]);
+  const char *message =
+      "From: user@domain.org\n"
+      "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
+      "Mime-Version: 1.0\n"
+      "Content-Type: text/plain; charset=us-ascii\n"
+      "\n"
+      "body\n";
 
-  envelope_sender = ctx->src_envelope_sender != NULL ? ctx->src_envelope_sender : DEFAULT_ENVELOPE_SENDER;
-  if (path == NULL) {
-    i_fatal("No path to mail set: %s", mailbox_get_last_error(box, NULL));
-  } else {
-    ret = raw_mailbox_alloc_path(raw_mail_user, path, (time_t)-1, envelope_sender, &box);
-  }
-  if (ret < 0) {
-    i_fatal("Can't open delivery mail as raw: %s", mailbox_get_last_error(box, NULL));
-  }
-  mail_user_unref(&raw_mail_user);
-
-  t = mailbox_transaction_begin(box, 0);
-  headers_ctx = mailbox_header_lookup_init(box, wanted_headers);
-  mail = mail_alloc(t, 0, headers_ctx);
-  mailbox_header_lookup_unref(&headers_ctx);
-  mail_set_seq(mail, 1);
-  return mail;
-}
-*/
-
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   const char *mailbox = "INBOX";
-  ASSERT_GE(strlen(mailbox), (size_t)0);
+
+  // testdata
+  testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces);
+
+  search_args = mail_search_build_init();
+  sarg = mail_search_build_add(search_args, SEARCH_ALL);
+  ASSERT_NE(sarg, nullptr);
+
+  struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
+  ASSERT_NE(ns, nullptr);
+
+  struct mailbox *box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_SAVEONLY);
+
+  if (mailbox_open(box) < 0) {
+    i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
+    FAIL() << " Forcing a resync on mailbox INBOX Failed";
+  }
+
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
+  desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
+
+  search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
+  mail_search_args_unref(&search_args);
+
+  while (mailbox_search_next(search_ctx, &mail)) {
+    save_ctx = mailbox_save_alloc(desttrans);  // src save context
+    mailbox_save_copy_flags(save_ctx, mail);
+    save_ctx->saving = TRUE;  // simulated LDA
+
+    int ret2 = mailbox_copy(&save_ctx, mail);
+    EXPECT_EQ(ret2, 0);
+    break;  // only deliver one mail.
+  }
+
+  if (mailbox_search_deinit(&search_ctx) < 0) {
+    FAIL() << "search deinit failed";
+  }
+  if (mailbox_transaction_commit(&desttrans) < 0) {
+    FAIL() << "transaction commit failed";
+  }
+  if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
+    FAIL() << "sync failed";
+  }
+
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+  librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
+  std::vector<librmb::RadosMailObject> objects;
+  while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
+    librmb::RadosMailObject obj;
+    obj.set_oid((*iter).get_oid());
+    r_storage->s->load_metadata(&obj);
+    objects.push_back(obj);
+    iter++;
+  }
+
+  // compare objects
+  ASSERT_EQ(2, (int)objects.size());
+
+  librmb::RadosMailObject mail1 = objects[0];
+  librmb::RadosMailObject mail2 = objects[1];
+
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS),
+            mail2.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_EXT_REF), mail2.get_metadata(librmb::RBOX_METADATA_EXT_REF));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE),
+            mail2.get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_GUID), mail2.get_metadata(librmb::RBOX_METADATA_GUID));
+
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID),
+            mail2.get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX),
+            mail2.get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE),
+            mail2.get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_POP3_ORDER), mail2.get_metadata(librmb::RBOX_METADATA_POP3_ORDER));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_POP3_UIDL), mail2.get_metadata(librmb::RBOX_METADATA_POP3_UIDL));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_PVT_FLAGS), mail2.get_metadata(librmb::RBOX_METADATA_PVT_FLAGS));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME),
+            mail2.get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_VERSION), mail2.get_metadata(librmb::RBOX_METADATA_VERSION));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE),
+            mail2.get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE));
+  ASSERT_EQ(mail1.get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME),
+            mail2.get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME));
+
+  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAIL_UID), mail2.get_metadata(librmb::RBOX_METADATA_MAIL_UID));
+
+  ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);
+  mailbox_free(&box);
 }
 
 TEST_F(StorageTest, deinit) {}
