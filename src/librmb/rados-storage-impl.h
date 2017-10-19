@@ -63,7 +63,8 @@ class RadosStorageImpl : public RadosStorage {
             std::list<RadosMetadata> &to_update);
 
   bool save_mail(RadosMailObject *mail, bool &save_async);
-  librmb::RadosMailObject *create_mail_object();
+  librmb::RadosMailObject *alloc_mail_object();
+  void free_mail_object(librmb::RadosMailObject *mail);
 
  private:
   RadosCluster *cluster;

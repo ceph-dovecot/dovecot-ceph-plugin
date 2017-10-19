@@ -83,6 +83,9 @@ int rbox_get_index_record(struct mail *_mail) {
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
+
+    i_free(rmail->mail_buffer);
+    rmail->mail_buffer = NULL;
   }
   FUNC_END();
   return 0;
@@ -454,13 +457,21 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
 
 static void rbox_mail_close(struct mail *_mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
+  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+
   if (rmail_->mail_buffer != NULL) {
     i_free(rmail_->mail_buffer);
     rmail_->mail_buffer = NULL;
   }
-  if (rmail_->mail_object != NULL) {
-    delete rmail_->mail_object;
-    rmail_->mail_object = NULL;
+  if (rmail_->mail_object != nullptr) {
+    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(rmail_->mail_object->get_mail_buffer());
+    if (mail_buffer != NULL) {
+      buffer_free(&mail_buffer);
+      mail_buffer = NULL;
+      rmail_->mail_object->set_mail_buffer(NULL);
+    }
+    r_storage->s->free_mail_object(rmail_->mail_object);
+    rmail_->mail_object = nullptr;
   }
 
   index_mail_close(_mail);
@@ -471,9 +482,9 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
 
-  if (rmail_->mail_object == NULL) {
+  if (rmail_->mail_object == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-    rmail_->mail_object = r_storage->s->create_mail_object();
+    rmail_->mail_object = r_storage->s->alloc_mail_object();
     rbox_get_index_record(_mail);
   }
 }

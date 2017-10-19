@@ -29,6 +29,7 @@ RadosMailObject::RadosMailObject() {
   this->active_op = false;
   this->mail_buffer = NULL;
   this->save_date_rados = -1;
+  this->mail_buffer_start = NULL;
 }
 
 void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }

@@ -89,8 +89,8 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
   guid_128_generate(r_ctx->mail_oid);
-
-  r_ctx->current_object = new librmb::RadosMailObject();
+  
+  r_ctx->current_object = r_storage->s->alloc_mail_object();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
 
@@ -135,7 +135,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 #endif
   guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
 
-  r_ctx->current_object = r_storage->s->create_mail_object();
+  r_ctx->current_object = r_storage->s->alloc_mail_object();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
 
@@ -342,7 +342,8 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   // clean up index
   mail_index_expunge(r_ctx->trans, r_ctx->seq);
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
-  r_ctx->objects.clear();
+
+  clean_up_mail_object_list(r_ctx, r_storage);
   r_ctx->mail_count--;
 }
 
@@ -423,8 +424,8 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
 static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TYPE(seq_range) * uids) {
   struct seq_range_iter iter;
   unsigned int n = 0;
-  uint32_t uid;
-  bool ret;
+  uint32_t uid = -1;
+  bool ret = false;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   seq_range_array_iter_init(&iter, uids);
@@ -513,10 +514,26 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   FUNC_END();
 }
 
+void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_storage *r_storage) {
+  for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
+    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
+    if (mail_buffer != NULL) {
+      buffer_free(&mail_buffer);
+      mail_buffer = NULL;
+      (*it)->set_mail_buffer(NULL);
+      i_debug("save_free_mail_object");
+    }
+    r_storage->s->free_mail_object(*it);
+    *it = nullptr;
+  }
+  r_ctx->objects.clear();
+}
+
 void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (!r_ctx->finished) {
     rbox_save_cancel(&r_ctx->ctx);
@@ -530,14 +547,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     clean_up_failed(r_ctx);
   }
 
-  for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
-    if (mail_buffer != NULL) {
-      buffer_free(&mail_buffer);
-    }
-    delete *it;
-  }
-  r_ctx->objects.clear();
+  clean_up_mail_object_list(r_ctx, r_storage);
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);
@@ -546,6 +556,5 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   }
   r_ctx->current_object = nullptr;
   delete r_ctx;
-
   FUNC_END();
 }

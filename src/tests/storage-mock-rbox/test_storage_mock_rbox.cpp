@@ -92,7 +92,9 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   // first call to open_connection will fail!
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(-1));
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
-  EXPECT_CALL(*storage_mock, create_mail_object()).WillRepeatedly(Return(test_obj));
+  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
+
+  EXPECT_CALL(*storage_mock, alloc_mail_object()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -139,6 +141,10 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
+  EXPECT_EQ(test_obj->get_mail_buffer(), nullptr);
+  EXPECT_EQ(test_obj2->get_mail_buffer(), nullptr);
+  delete test_obj;
+  delete test_obj2;
 }
 
 TEST_F(StorageTest, exec_write_op_fails) {
@@ -172,7 +178,12 @@ TEST_F(StorageTest, exec_write_op_fails) {
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(false));
-  EXPECT_CALL(*storage_mock, create_mail_object()).WillOnce(Return(new librmb::RadosMailObject()));
+  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
+  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
+  EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
+
+  EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -219,6 +230,11 @@ TEST_F(StorageTest, exec_write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
+  EXPECT_EQ(test_obj->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_obj2->get_mail_buffer(), NULL);
+
+  delete test_obj;
+  delete test_obj2;
 }
 
 TEST_F(StorageTest, write_op_fails) {
@@ -253,8 +269,11 @@ TEST_F(StorageTest, write_op_fails) {
 
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillOnce(Return(false));
-  EXPECT_CALL(*storage_mock, create_mail_object()).WillOnce(Return(new librmb::RadosMailObject()));
+  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(true));
+  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
+  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
+  EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
 
   storage->s = storage_mock;
   ssize_t ret;
@@ -301,7 +320,13 @@ TEST_F(StorageTest, write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
+  EXPECT_EQ(test_obj->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_obj2->get_mail_buffer(), NULL);
+
+  delete test_obj;
+  delete test_obj2;
 }
+
 
 TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   struct mailbox_transaction_context *desttrans;
@@ -324,10 +349,20 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(true));
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
-  EXPECT_CALL(*storage_mock, create_mail_object()).WillRepeatedly(Return(new librmb::RadosMailObject()));
+  EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
+
+  librmb::RadosMailObject *test_obj_save = new librmb::RadosMailObject();
+  librmb::RadosMailObject *test_obj_save2 = new librmb::RadosMailObject();
+  EXPECT_CALL(*storage_mock, alloc_mail_object())
+      .Times(2)
+      .WillOnce(Return(test_obj_save))
+      .WillOnce(Return(test_obj_save2));
 
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces, storage_mock);
+
+  delete test_obj_save;
+  delete test_obj_save2;
 
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
@@ -344,13 +379,20 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   librmbtest::RadosStorageMock *storage_mock_copy = new librmbtest::RadosStorageMock();
   librmb::RadosMailObject *test_object = new librmb::RadosMailObject();
+  librmb::RadosMailObject *test_object2 = new librmb::RadosMailObject();
+
   librmb::RadosMetadata recv_date = librmb::RadosMetadata(librmb::RBOX_METADATA_RECEIVED_TIME, time(NULL));
   test_object->add_metadata(recv_date);
   librmb::RadosMetadata guid = librmb::RadosMetadata(librmb::RBOX_METADATA_GUID, "67ffff24efc0e559194f00009c60b9f7");
   test_object->add_metadata(guid);
 
-  EXPECT_CALL(*storage_mock_copy, create_mail_object()).WillRepeatedly(Return(test_object));
+  EXPECT_CALL(*storage_mock_copy, alloc_mail_object())
+      .Times(2)
+      .WillOnce(Return(test_object))
+      .WillOnce(Return(test_object2));
   EXPECT_CALL(*storage_mock_copy, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
+  EXPECT_CALL(*storage_mock_copy, set_metadata(_, _)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(false));
 
   storage->s = storage_mock_copy;
 
@@ -386,7 +428,12 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
     SUCCEED() << "tnx commit failed";
   }
   mailbox_free(&box);
+  EXPECT_EQ(test_object->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_object2->get_mail_buffer(), NULL);
+  delete test_object;
+  delete test_object2;
 }
+
 
 TEST_F(StorageTest, deinit) {}
 

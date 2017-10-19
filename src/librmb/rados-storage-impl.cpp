@@ -324,4 +324,8 @@ bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
 
   return ret == 0;
 }
-librmb::RadosMailObject *RadosStorageImpl::create_mail_object() { return new librmb::RadosMailObject(); }
+librmb::RadosMailObject *RadosStorageImpl::alloc_mail_object() { return new librmb::RadosMailObject(); }
+void RadosStorageImpl::free_mail_object(librmb::RadosMailObject *mail) {
+  delete mail;
+  mail = nullptr;
+}

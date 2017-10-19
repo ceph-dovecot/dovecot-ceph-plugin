@@ -21,7 +21,8 @@
 namespace librmb {
 
 class RadosMetadata {
- public:  RadosMetadata(enum rbox_metadata_key _key, const std::string& val) { convert(_key, val); }
+ public:
+  RadosMetadata(enum rbox_metadata_key _key, const std::string& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const time_t& val) { convert(_key, val); }
 
@@ -36,8 +37,10 @@ class RadosMetadata {
   std::string& get_key();
 
   void convert(const char* value, time_t* t) {
-    std::istringstream stream(value);
-    stream >> *t;
+    if (t != NULL) {
+      std::istringstream stream(value);
+      stream >> *t;
+    }
   }
 
  public:
