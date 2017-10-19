@@ -90,7 +90,7 @@ it_test_move_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs) libtest_utils.a
 TESTS += it_test_lda_rbox
 it_test_lda_rbox_SOURCES = storage-rbox/it_test_lda_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h
 it_test_lda_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
-it_test_lda_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
+it_test_lda_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs) libtest_utils.a
 
 TESTS += it_test_read_mail_rbox
 it_test_read_mail_rbox_SOURCES = storage-rbox/it_test_read_mail_rbox.cpp storage-rbox/TestCase.cpp storage-rbox/TestCase.h test-utils/it_utils.cpp 
