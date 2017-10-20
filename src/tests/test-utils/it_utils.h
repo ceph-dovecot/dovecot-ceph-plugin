@@ -11,9 +11,14 @@
 #define SRC_TESTS_TEST_UTILS_IT_UTILS_H_
 
 extern "C" {
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"  // turn off warnings for Dovecot :-(
 #include "lib.h"
-#include "mail-user.h"
 #include "mail-storage.h"
+#pragma GCC diagnostic pop
+
+#include "mail-user.h"
 #include "mail-storage-service.h"
 #include "mail-namespace.h"
 #include "mailbox-list.h"
@@ -31,9 +36,9 @@ extern "C" {
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
 }
+
 #include "rbox-storage.hpp"
 
-#pragma GCC diagnostic pop
 #if DOVECOT_PREREQ(2, 3)
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
 #else
@@ -59,4 +64,4 @@ class ItUtils {
 
 } /* namespace testutils */
 
-#endif /* SRC_TESTS_TEST_UTILS_IT_UTILS_H_ */
+#endif  // SRC_TESTS_TEST_UTILS_IT_UTILS_H_
