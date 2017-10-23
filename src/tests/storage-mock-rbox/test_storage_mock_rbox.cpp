@@ -56,7 +56,6 @@ using ::testing::_;
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 
-
 TEST_F(StorageTest, init) {}
 
 TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
@@ -230,8 +229,8 @@ TEST_F(StorageTest, exec_write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
-  EXPECT_EQ(test_obj->get_mail_buffer(), NULL);
-  EXPECT_EQ(test_obj2->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_obj->get_mail_buffer(), nullptr);
+  EXPECT_EQ(test_obj2->get_mail_buffer(), nullptr);
 
   delete test_obj;
   delete test_obj2;
@@ -320,13 +319,12 @@ TEST_F(StorageTest, write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
-  EXPECT_EQ(test_obj->get_mail_buffer(), NULL);
-  EXPECT_EQ(test_obj2->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_obj->get_mail_buffer(), nullptr);
+  EXPECT_EQ(test_obj2->get_mail_buffer(), nullptr);
 
   delete test_obj;
   delete test_obj2;
 }
-
 
 TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   struct mailbox_transaction_context *desttrans;
@@ -428,12 +426,11 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
     SUCCEED() << "tnx commit failed";
   }
   mailbox_free(&box);
-  EXPECT_EQ(test_object->get_mail_buffer(), NULL);
-  EXPECT_EQ(test_object2->get_mail_buffer(), NULL);
+  EXPECT_EQ(test_object->get_mail_buffer(), nullptr);
+  EXPECT_EQ(test_object2->get_mail_buffer(), nullptr);
   delete test_object;
   delete test_object2;
 }
-
 
 TEST_F(StorageTest, deinit) {}
 
