@@ -8,9 +8,6 @@ env:
 - DOVECOT="master-2.2"
 - DOVECOT="master"
 before_install:
-- docker pull ceph/demo
-- docker pull cephdovecot/travis-build:$DOVECOT
-
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.2.0/24 --gateway=192.168.2.1 ceph_network
 - docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.2.2 -e CEPH_PUBLIC_NETWORK=192.168.2.0/24 ceph/demo
