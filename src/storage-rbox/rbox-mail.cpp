@@ -288,7 +288,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   int ret = 0;
 
   i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
-  uint64_t size_r = 0;
+  int size_r = 0;
 
   if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
@@ -305,11 +305,12 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     librados::bufferlist mail_data_bl;
     size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
     if (size_r <= 0) {
-      if (size_r == (uint64_t)-ENOENT) {
+      if (size_r == -ENOENT) {
+        i_debug("Mail not found. %s", rmail->mail_object->get_oid().c_str());
         rbox_mail_set_expunged(rmail);
         return -1;
       } else {
-        i_debug("error code: %lu", size_r);
+        i_debug("error code: %d", size_r);
         FUNC_END_RET("ret == -1");
         return -1;
       }
