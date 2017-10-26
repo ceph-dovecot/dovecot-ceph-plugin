@@ -112,9 +112,7 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     mailbox_save_copy_flags(save_ctx, mail);
-    save_ctx->saving = TRUE;  // simulated LDA
-
-    int ret2 = mailbox_copy(&save_ctx, mail);
+    int ret2 = mailbox_save_using_mail(&save_ctx, mail);
     EXPECT_EQ(ret2, 0);
     break;  // only deliver one mail.
   }
