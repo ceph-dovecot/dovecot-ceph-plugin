@@ -43,7 +43,6 @@ using ::testing::Return;
 
 TEST_F(SyncTest, init) {}
 
-
 TEST_F(SyncTest, force_resync_missing_rados_object) {
   const char *message =
       "From: user@domain.org\n"
@@ -66,20 +65,22 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
-  } else{
+  } else {
     // removing one mail from rados!!
     struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
     librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
     std::string oid_to_delete;
     while (iter != librados::NObjectIterator::__EndObjectIterator) {
       oid_to_delete = (*iter).get_oid();
-      i_debug("oid: %s", oid_to_delete.c_str());
+      i_debug("oid to delete: %s", oid_to_delete.c_str());
       break;
     }
     r_storage->s->delete_mail(oid_to_delete);
 
     // check index still has 3 entries
     uint32_t msg_count_before = mail_index_view_get_messages_count(box->view);
+    i_debug("Message count before = %u", msg_count_before);
+    EXPECT_EQ((uint32_t)3, msg_count_before);
 
     i_debug("ok starting rsync.");
 
@@ -89,14 +90,15 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
+    i_debug("Message count now = %u", msg_count);
+    EXPECT_EQ((uint32_t)2, msg_count);
     // check index only has 2 entries
-    EXPECT_EQ(msg_count, (msg_count_before - 1));
+    uint32_t msg_count_new = msg_count_before - (uint32_t)1;
+    EXPECT_EQ(msg_count, msg_count_new);
   }
 
   mailbox_free(&box);
-
 }
-
 
 TEST_F(SyncTest, deinit) {}
 

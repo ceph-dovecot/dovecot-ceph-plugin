@@ -209,6 +209,12 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   char *value = NULL;
   *size_r = -1;
 
+  if (rmail->mail_object == nullptr) {
+    // Mail already deleted
+    FUNC_END_RET("ret == -1; mail_object == nullptr ");
+    return -1;
+  }
+
   bool ret = index_mail_get_cached_virtual_size(&rmail->imail, size_r);
   if (ret && *size_r > 0) {
     return 0;
@@ -231,6 +237,12 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
+
+  if (rmail->mail_object == nullptr) {
+    // Mail already deleted
+    FUNC_END_RET("ret == -1; mail_object == nullptr ");
+    return -1;
+  }
 
   char *value = NULL;
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
