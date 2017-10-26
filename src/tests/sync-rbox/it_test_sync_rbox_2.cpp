@@ -43,8 +43,6 @@ using ::testing::Return;
 
 TEST_F(SyncTest, init) {}
 
-
-
 static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
@@ -61,7 +59,7 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   guid_128_t temp_oid_guid;
   guid_128_generate(temp_oid_guid);
 
-  std::string test_oid =  guid_128_to_string(temp_oid_guid);
+  std::string test_oid = guid_128_to_string(temp_oid_guid);
   librados::ObjectWriteOperation write_op;
   librados::bufferlist list;
   list.append("100");
@@ -102,6 +100,8 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   } else {
     copy_object(ns, box);
     uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
+    i_debug("Message count before = %u", msg_count_org);
+    EXPECT_EQ((uint32_t)3, msg_count_org);
 
     if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
                                                           MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
@@ -109,8 +109,10 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
       FAIL() << " Forcing a resync on mailbox INBOX Failed";
     }
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
-
-    EXPECT_EQ(msg_count, msg_count_org + 1);
+    i_debug("Message count now = %u", msg_count);
+    EXPECT_EQ((uint32_t)4, msg_count);
+    uint32_t msg_count_new = msg_count_org + (uint32_t)1;
+    EXPECT_EQ(msg_count, msg_count_new);
   }
 
   mailbox_free(&box);
