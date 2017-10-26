@@ -40,6 +40,7 @@ extern "C" {
 #include "../mocks/mock_test.h"
 #include "dovecot-ceph-plugin-config.h"
 #include "../test-utils/it_utils.h"
+#include "rbox-copy.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -52,7 +53,10 @@ using ::testing::Return;
    where to read the mail. */
 #define MAIL_MAX_MEMORY_BUFFER (1024 * 128)
 
-// static const char *wanted_headers[] = {"From", "To", "Message-ID", "Subject", "Return-Path", NULL};
+int test_rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
+  _ctx->saving = true;
+  rbox_mail_copy(_ctx, mail);
+}
 
 TEST_F(StorageTest, init) {}
 
@@ -106,13 +110,15 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 
+  box->v.copy = test_rbox_mail_copy;
+
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
 
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     mailbox_save_copy_flags(save_ctx, mail);
-    save_ctx->saving = TRUE;  // simulated LDA
+    //  save_ctx->saving = TRUE;  // simulated LDA
 
     int ret2 = mailbox_copy(&save_ctx, mail);
     EXPECT_EQ(ret2, 0);
