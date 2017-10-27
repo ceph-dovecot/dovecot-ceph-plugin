@@ -53,9 +53,9 @@ using ::testing::Return;
    where to read the mail. */
 #define MAIL_MAX_MEMORY_BUFFER (1024 * 128)
 
-int test_rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
+static int test_rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   _ctx->saving = true;
-  rbox_mail_copy(_ctx, mail);
+  return rbox_mail_copy(_ctx, mail);
 }
 
 TEST_F(StorageTest, init) {}
