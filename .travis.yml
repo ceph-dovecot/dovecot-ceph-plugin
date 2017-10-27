@@ -10,11 +10,11 @@ env:
 before_install:
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
-- docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 ceph/demo
+- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 ceph/demo
 - docker exec ceph_demo sh -c 'printf "[client]\nid=zorro\nosd max write size =5\nclient mount timeout=120\n[global]\nmon allow pool delete=true\n" >> /etc/ceph/ceph.conf'
 - docker restart ceph_demo
 
-- docker run -itd --name build --net=ceph_network -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
+- travis_wait 30 docker run -itd --name build --net=ceph_network -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'
 - docker exec build apt-get -qq update
 - docker exec build apt-get -qq upgrade
