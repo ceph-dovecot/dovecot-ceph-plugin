@@ -4,7 +4,7 @@ services:
 - docker
 env:
 - DOVECOT="release-2.2.21"
-- DOVECOT="release-2.2.33.1"
+- DOVECOT="2.2.33.1"
 - DOVECOT="master-2.2"
 - DOVECOT="master"
 before_install:
