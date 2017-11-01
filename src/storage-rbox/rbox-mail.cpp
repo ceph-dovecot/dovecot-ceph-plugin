@@ -160,7 +160,6 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   *date_r = data->received_date;
   i_free(value);
 
-  i_debug("received date = %s", ctime(date_r));
   FUNC_END();
   return 0;
 }
@@ -173,7 +172,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
   if (index_mail_get_save_date(_mail, date_r) == 0) {
-    i_debug("save date = %s", ctime(date_r));
     FUNC_END_RET("ret == 0");
     return 0;
   }
@@ -246,8 +244,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   char *value = NULL;
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
-    i_debug("get_physical_size from index(oid=%s, uid=%d, size=%lu", rmail->mail_object->get_oid().c_str(), _mail->uid,
-            *size_r);
     FUNC_END_RET("ret == 0");
     return 0;
   }
@@ -292,14 +288,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
                                 struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
-  struct istream *input;  // = *stream_r;
-
+  struct istream *input;
   struct index_mail_data *data = &rmail->imail.data;
-
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  int ret = 0;
-
-  i_debug("rbox_mail_get_stream(oid=%s, uid=%d)", rmail->mail_object->get_oid().c_str(), _mail->uid);
+  int ret = -1;
   int size_r = 0;
 
   if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {

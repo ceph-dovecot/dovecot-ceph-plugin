@@ -89,7 +89,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
   guid_128_generate(r_ctx->mail_oid);
-  
+
   r_ctx->current_object = r_storage->s->alloc_mail_object();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
@@ -294,7 +294,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   {
     uoff_t vsize = -1;
     if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
-      i_debug("failed, unable to determine virtual size, using physical size instead.");
+      i_debug("warning, unable to determine virtual size, using physical size instead.");
       vsize = ctx->input->v_offset;
     }
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
@@ -321,7 +321,6 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     mail_object->add_metadata(xattr);
   }
 
-  i_debug("save_date %s", std::ctime(&mdata->save_date));
   mail_object->set_rados_save_date(mdata->save_date);
 
   FUNC_END();
@@ -398,9 +397,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
       if (r_ctx->failed) {
         i_debug("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
-                r_ctx->current_object->get_metadata()->size());
-      } else {
-        i_debug("saved mail: %s successful metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());
       }
     }
@@ -521,7 +517,6 @@ void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_stor
       buffer_free(&mail_buffer);
       mail_buffer = NULL;
       (*it)->set_mail_buffer(NULL);
-      i_debug("save_free_mail_object");
     }
     r_storage->s->free_mail_object(*it);
     *it = nullptr;
