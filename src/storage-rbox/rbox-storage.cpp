@@ -99,7 +99,7 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
 struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
                                    enum mailbox_flags flags) {
   FUNC_START();
-  struct rbox_mailbox *mbox;
+  struct rbox_mailbox *rbox;
   struct index_mailbox_context *ibox;
   pool_t pool;
 
@@ -111,29 +111,29 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   }
 
   pool = pool_alloconly_create("rbox mailbox", 1024 * 3);
-  mbox = p_new(pool, struct rbox_mailbox, 1);
+  rbox = p_new(pool, struct rbox_mailbox, 1);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
-  mbox->box = rbox_mailbox;
-  mbox->box.pool = pool;
-  mbox->box.storage = storage;
-  mbox->box.list = list;
-  mbox->box.v = rbox_mailbox_vfuncs;
-  mbox->box.mail_vfuncs = &rbox_mail_vfuncs;
+  rbox->box = rbox_mailbox;
+  rbox->box.pool = pool;
+  rbox->box.storage = storage;
+  rbox->box.list = list;
+  rbox->box.v = rbox_mailbox_vfuncs;
+  rbox->box.mail_vfuncs = &rbox_mail_vfuncs;
 
   i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
           storage->set->mail_location);
 
-  index_storage_mailbox_alloc(&mbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
+  index_storage_mailbox_alloc(&rbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
 
-  ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&mbox->box));
+  ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&rbox->box));
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
-  mbox->storage = (struct rbox_storage *)storage;
+  rbox->storage = (struct rbox_storage *)storage;
 
   i_debug("list name = %s", list->name);
   FUNC_END();
-  return &mbox->box;
+  return &rbox->box;
 }
 
 static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {

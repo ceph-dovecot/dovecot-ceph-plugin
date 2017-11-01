@@ -143,6 +143,10 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
 librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
 
 int RadosStorageImpl::open_connection(const string &poolname, const string &ns) {
+  if (cluster->is_connected()) {
+    return 1;
+  }
+
   if (cluster->init() < 0) {
     return -1;
   }

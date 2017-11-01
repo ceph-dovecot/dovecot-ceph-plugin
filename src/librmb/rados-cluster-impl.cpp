@@ -76,6 +76,8 @@ int RadosClusterImpl::init() {
   return ret;
 }
 
+bool RadosClusterImpl::is_connected() { return connected; }
+
 int RadosClusterImpl::connect() {
   int ret = 0;
   if (cluster_ref_count > 0 && !connected) {

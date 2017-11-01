@@ -50,8 +50,8 @@ using std::vector;
 
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t) {
   FUNC_START();
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)t->box;
-  struct rbox_storage *r_storage = (struct rbox_storage *)mbox->storage;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)t->box;
+  struct rbox_storage *r_storage = (struct rbox_storage *)rbox->storage;
   rbox_save_context *r_ctx;
 
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
@@ -60,7 +60,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
     r_ctx = new rbox_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
-    r_ctx->mbox = mbox;
+    r_ctx->mbox = rbox;
     r_ctx->trans = t->itrans;
     r_ctx->current_object = nullptr;
     t->save_ctx = &r_ctx->ctx;

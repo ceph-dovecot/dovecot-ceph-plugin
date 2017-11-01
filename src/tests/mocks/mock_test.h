@@ -81,6 +81,7 @@ class RadosClusterMock : public RadosCluster {
   MOCK_METHOD1(pool_create, int(const std::string &pool));
   MOCK_METHOD2(io_ctx_create, int(const std::string &pool, librados::IoCtx *io_ctx));
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
+  MOCK_METHOD0(is_connected, bool());
 };
 
 }  // namespace librmbtest
