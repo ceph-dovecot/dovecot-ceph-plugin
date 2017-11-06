@@ -304,8 +304,10 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
   if (err == 0) {
     auto value = result_map.find(key);
     if (value != result_map.end()) {
-      *value_r = p_strdup(pool, value->second.to_str().c_str());
-      i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
+      if (pool != nullptr) {
+        *value_r = p_strdup(pool, value->second.to_str().c_str());
+        i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
+      }
       return RADOS_COMMIT_RET_OK;
     }
   } else if (err < 0 && err != -ENOENT) {
@@ -523,7 +525,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
 
-  i_debug("rados_dict_transaction_commit(): async=%d", async);
+  i_debug("rados_dict_transaction_commit(): async=%d, user=%s", async, d->get_username().c_str());
 
   bool failed = false;
   int ret = RADOS_COMMIT_RET_OK;
@@ -644,9 +646,11 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
 
 void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, const char *value) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
+  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
+  RadosDictionary *d = dict->d;
   const string key(_key);
 
-  i_debug("rados_dict_set(%s,%s)", _key, value);
+  i_debug("rados_dict_set(%s, %s, oid=%s)", _key, value, d->get_full_oid(key).c_str());
 
   _ctx->changed = TRUE;
 
@@ -661,17 +665,24 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
 
 void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
+  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
+  RadosDictionary *d = dict->d;
   const string key(_key);
 
-  i_debug("rados_dict_unset(%s)", _key);
+  const char *v_r;
+  int found = dict_lookup(&dict->dict, nullptr, _key, &v_r);
 
-  _ctx->changed = TRUE;
+  if (found > 0) {
+    i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
 
-  set<string> keys;
-  keys.insert(key);
-  ctx->get_op(key).omap_rm_keys(keys);
+    _ctx->changed = TRUE;
 
-  ctx->cache[key] = CACHE_DELETED;
+    set<string> keys;
+    keys.insert(key);
+    ctx->get_op(key).omap_rm_keys(keys);
+
+    ctx->cache[key] = CACHE_DELETED;
+  }
 }
 
 void rados_dict_atomic_inc(struct dict_transaction_context *_ctx, const char *_key, long long diff) {  // NOLINT
