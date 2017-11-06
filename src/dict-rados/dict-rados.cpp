@@ -56,6 +56,12 @@ extern "C" {
 #define FUNC_END_RET_INT(ret) i_debug("[END] %s: %s at line %d, ret==%d\n", __FILE__, __func__, __LINE__, ret)
 #endif
 
+#if DOVECOT_PREREQ(2, 3)
+#define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r, error_r)
+#else
+#define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r)
+#endif
+
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -670,7 +676,8 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   const string key(_key);
 
   const char *v_r;
-  int found = dict_lookup(&dict->dict, nullptr, _key, &v_r);
+  const char *error_r;
+  int found = dict_lookup(&dict->dict, nullptr, _key, &v_r, &error_r);
 
   if (found > 0) {
     i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
