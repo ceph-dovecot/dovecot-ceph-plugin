@@ -3,6 +3,7 @@
 /it_test_copy_rbox
 /it_test_dict_rados
 /it_test_lda_rbox
+/it_test_doveadm_backup_rbox
 /it_test_librmb
 /it_test_move_rbox
 /it_test_read_mail_rbox
