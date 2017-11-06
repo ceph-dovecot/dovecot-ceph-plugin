@@ -105,23 +105,20 @@ static int rbox_mail_save_copy_default_metadata(struct mail_save_context *ctx, s
 static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb::RadosMetadata> *metadata_update) {
   {
     struct mailbox *dest_mbox = ctx->transaction->box;
+    struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
+    struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
     librmb::RadosMetadata metadata_mailbox_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
                                                 guid_128_to_string(dest_mailbox->mailbox_guid));
-
     metadata_update->push_back(metadata_mailbox_guid);
 
-    std::string update_immutable = SETTINGS_DEF_UPDATE_IMMUTABLE;
-    const char *setting_update_immutable =
-        mail_user_plugin_getenv(dest_mailbox->storage->storage.user, SETTINGS_RBOX_UPDATE_IMMUTABLE);
-    if (setting_update_immutable != nullptr && strlen(setting_update_immutable) > 0) {
-      update_immutable = setting_update_immutable;
-    }
-    if (update_immutable.compare("true") == 0) {
-      // updates the plain text mailbox name
-      librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
-      metadata_update->push_back(metadata_mbn);
+    if (r_storage->s->get_rados_config()->is_update_immutable()) {
+      if (r_storage->s->get_rados_config()->is_immutable_metadata(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
+        // updates the plain text mailbox name
+        librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
+        metadata_update->push_back(metadata_mbn);
+      }
     }
   }
 }

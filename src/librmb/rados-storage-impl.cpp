@@ -27,9 +27,10 @@ const char *RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
 RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   cluster = _cluster;
   max_write_size = 10;
+  rados_config = new RadosConfig();
 }
 
-RadosStorageImpl::~RadosStorageImpl() {}
+RadosStorageImpl::~RadosStorageImpl() { delete rados_config; }
 
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,

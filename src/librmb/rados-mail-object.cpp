@@ -45,6 +45,11 @@ std::string RadosMailObject::to_string(const string &padding) {
   string mail_guid = get_metadata(RBOX_METADATA_GUID);
   string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX);
 
+  string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
+  string flags = get_metadata(RBOX_METADATA_OLDV1_FLAGS);
+  string pvt_flags = get_metadata(RBOX_METADATA_PVT_FLAGS);
+  string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE);
+
   time_t ts = -1;
 
   if (!recv_time_str.empty()) {
@@ -69,10 +74,34 @@ std::string RadosMailObject::to_string(const string &padding) {
      << endl;
   ss << padding << "        " << static_cast<char>(RBOX_METADATA_MAILBOX_GUID) << "(mailbox_guid)=" << mailbox_guid
      << endl;
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_ORIG_MAILBOX) << "(mailbox_orig_name)=" << mb_orig_name
-     << endl;
+
+  if (mb_orig_name.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)
+       << "(mailbox_orig_name)=" << mb_orig_name << endl;
+  }
   ss << padding << "        " << static_cast<char>(RBOX_METADATA_GUID) << "(mail_guid)=" << mail_guid << endl;
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_VERSION) << "(rbox_version): " << rbox_version << endl;
+
+  if (rbox_version.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_VERSION) << "(rbox_version): " << rbox_version
+       << endl;
+  }
+  if (keywords.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_KEYWORDS) << "(keywords): " << keywords
+       << endl;
+  }
+
+  if (flags.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): " << flags << endl;
+  }
+
+  if (pvt_flags.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_PVT_FLAGS) << "(private flags): " << pvt_flags
+       << endl;
+  }
+  if (from_envelope.length() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_FROM_ENVELOPE)
+       << "(from envelope): " << from_envelope << endl;
+  }
 
   return ss.str();
 }

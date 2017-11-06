@@ -18,6 +18,7 @@
 #include "rados-mail-object.h"
 #include <rados/librados.hpp>
 #include "rados-cluster.h"
+#include "rados-config.h"
 
 namespace librmb {
 
@@ -58,6 +59,7 @@ class RadosStorage {
   virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
   virtual librmb::RadosMailObject *alloc_mail_object() = 0;
   virtual void free_mail_object(librmb::RadosMailObject *mail) = 0;
+  virtual RadosConfig *get_rados_config() = 0;
 };
 
 }  // namespace librmb

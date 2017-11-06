@@ -15,6 +15,8 @@
 #include "../../librmb/rados-cluster.h"
 #include "../../librmb/rados-dictionary.h"
 #include "../../librmb/rados-storage.h"
+#include "../../librmb/rados-config.h"
+
 #include "gmock/gmock.h"
 
 namespace librmbtest {
@@ -54,6 +56,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD2(save_mail, bool(RadosMailObject *mail, bool &save_async));
   MOCK_METHOD0(alloc_mail_object, librmb::RadosMailObject *());
   MOCK_METHOD1(free_mail_object, void(librmb::RadosMailObject *mail));
+  MOCK_METHOD0(get_rados_config, librmb::RadosConfig *());
 };
 
 using librmb::RadosDictionary;

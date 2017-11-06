@@ -18,6 +18,8 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "rados-util.h"
+#include "rados-config.h"
+#include "rados-types.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -62,6 +64,21 @@ TEST(librmb, utils_convert_convert_time_t_to_str) {
   EXPECT_EQ(0, librmb::RadosUtils::convert_time_t_to_str(test_time, &test_str));
   // EXPECT_EQ(test_str, "2017-10-10 12:12:12");
   EXPECT_NE("", test_str);
+}
+
+TEST(librmb, config_mutable_metadata) {
+  librmb::RadosConfig config;
+  char* str = "MGP";
+  config.update_mutable_metadata(str);
+  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
+  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_GUID));
+  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
+  EXPECT_FALSE(config.is_mutable_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX));
+
+  // use defaults.
+  librmb::RadosConfig config2;
+  config2.update_mutable_metadata(NULL);
+  EXPECT_TRUE(config2.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
 }
 
 TEST(librmb, mock_obj) {}

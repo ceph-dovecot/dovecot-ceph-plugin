@@ -255,43 +255,45 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::RadosMailObject *mail_object) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-  uoff_t &output_msg_size = ctx->output_stream->offset;
 
-  {
+  struct rbox_storage *r_storage = (struct rbox_storage *)&ctx->mbox->storage->storage;
+
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_VERSION)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE);
-  mail_object->add_metadata(xattr);
+    mail_object->add_metadata(xattr);
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(ctx->mbox->mailbox_guid));
     mail_object->add_metadata(xattr);
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_GUID)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(ctx->mail_guid));
     mail_object->add_metadata(xattr);
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, mdata->received_date);
     mail_object->add_metadata(xattr);
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_POP3_UIDL)) {
     if (mdata->pop3_uidl != NULL) {
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
       mail_object->add_metadata(xattr);
     }
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_POP3_ORDER)) {
     if (mdata->pop3_order != 0) {
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER, mdata->pop3_order);
       mail_object->add_metadata(xattr);
     }
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE)) {
     if (mdata->from_envelope != NULL) {
+      i_debug("from envelope %s", mdata->from_envelope);
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope);
       mail_object->add_metadata(xattr);
     }
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE)) {
     uoff_t vsize = -1;
     if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
       i_debug("warning, unable to determine virtual size, using physical size instead.");
@@ -300,25 +302,55 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
     mail_object->add_metadata(xattr);
   }
-  {
-    i_debug("ctx->input->v_offset != output_msg_size %ld vs %ld ", ctx->input->v_offset, output_msg_size);
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE)) {
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
     mail_object->add_metadata(xattr);
   }
-  {
-    std::string flags = std::to_string(mdata->flags);
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
-    mail_object->add_metadata(xattr);
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS)) {
+    if (mdata->flags != 0) {
+      std::string flags;
+      std::stringstream sstream;
+      sstream << std::hex << mdata->flags;
+      sstream >> flags;
+      // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
+      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
+      mail_object->add_metadata(xattr);
+    }
   }
 
-  {
-    std::string pvt_flags = std::to_string(mdata->pvt_flags);
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
-    mail_object->add_metadata(xattr);
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS)) {
+    if (mdata->pvt_flags != 0) {
+      std::string pvt_flags;
+      std::stringstream sstream;
+      sstream << std::hex << mdata->pvt_flags;
+      sstream >> pvt_flags;
+      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
+      mail_object->add_metadata(xattr);
+    }
   }
-  {
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, ctx->mbox->box.name);
     mail_object->add_metadata(xattr);
+  }
+  if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS)) {
+    const char *const *keywords_list = mail_get_keywords(ctx->ctx.dest_mail);
+    struct mail_keywords *keywords;
+    keywords = str_array_length(keywords_list) == 0 ? NULL : mailbox_keywords_create_valid(ctx->ctx.transaction->box,
+                                                                                           keywords_list);
+    unsigned int keyword_count = keywords == NULL ? 0 : keywords->count;
+    std::string result = "";
+    for (unsigned int i = 0; i < keyword_count; i++) {
+      result += std::to_string(keywords->idx[i]);
+    }
+    if (keyword_count > 0) {
+      // i_debug("%s :keywords : count=%d, keywords: %s", mail_object->get_oid().c_str(), keyword_count,
+      // result.c_str());
+      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS, result);
+      mail_object->add_metadata(xattr);
+    }
+
+    if (keywords != NULL)
+      mailbox_keywords_unref(&keywords);
   }
 
   mail_object->set_rados_save_date(mdata->save_date);
