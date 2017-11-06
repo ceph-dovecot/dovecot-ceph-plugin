@@ -107,6 +107,8 @@ TEST_F(DictTest, lookup) {
   ASSERT_NE(target, nullptr);
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
+  dict_unset(ctx, OMAP_KEY_PRIVATE);
+  dict_unset(ctx, OMAP_KEY_SHARED);
   dict_set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE_PRIVATE);
   dict_set(ctx, OMAP_KEY_SHARED, OMAP_VALUE_SHARED);
   ASSERT_EQ(dict_transaction_commit(&ctx, &error_r), 1);
@@ -264,6 +266,8 @@ TEST_F(DictTest, transaction_commit_async) {
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
 
+  dict_unset(ctx, OMAP_KEY_PRIVATE);
+  dict_unset(ctx, OMAP_KEY_SHARED);
   dict_set(ctx, OMAP_KEY_PRIVATE, OMAP_VALUE_PRIVATE);
   dict_set(ctx, OMAP_KEY_SHARED, OMAP_VALUE_SHARED);
 
