@@ -67,6 +67,16 @@ class RadosMailObject {
   string to_string(const string& padding);
   void add_metadata(RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
 
+  map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
+  void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
+  const string get_extended_metadata(string& key) {
+    string value;
+    if (extended_attrset.find(key) != extended_attrset.end()) {
+      value = extended_attrset[key].to_str();
+    }
+    return value;
+  }
+
  private:
   string oid;
 
@@ -84,6 +94,7 @@ class RadosMailObject {
   time_t save_date_rados;
 
   map<string, ceph::bufferlist> attrset;
+  map<string, ceph::bufferlist> extended_attrset;
 
  public:
   static const char X_ATTR_VERSION_VALUE[];

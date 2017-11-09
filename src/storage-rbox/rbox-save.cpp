@@ -35,7 +35,7 @@ extern "C" {
 #include "rados-mail-object.h"
 #include "rbox-storage.hpp"
 #include "rbox-save.h"
-
+#include "rados-util.h"
 #include "rbox-mail.h"
 
 using ceph::bufferlist;
@@ -308,22 +308,17 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS)) {
     if (mdata->flags != 0) {
-      std::string flags;
-      std::stringstream sstream;
-      sstream << std::hex << mdata->flags;
-      sstream >> flags;
+      std::string flags = librmb::RadosUtils::flags_to_string(mdata->flags);
       // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
       mail_object->add_metadata(xattr);
+      i_debug("save_flags : %s,  %s", mail_object->get_oid().c_str(), flags.c_str());
     }
   }
 
   if (r_storage->s->get_rados_config()->is_mutable_metadata(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS)) {
     if (mdata->pvt_flags != 0) {
-      std::string pvt_flags;
-      std::stringstream sstream;
-      sstream << std::hex << mdata->pvt_flags;
-      sstream >> pvt_flags;
+      std::string pvt_flags = librmb::RadosUtils::flags_to_string(mdata->pvt_flags);
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
       mail_object->add_metadata(xattr);
     }
@@ -338,15 +333,14 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     keywords = str_array_length(keywords_list) == 0 ? NULL : mailbox_keywords_create_valid(ctx->ctx.transaction->box,
                                                                                            keywords_list);
     unsigned int keyword_count = keywords == NULL ? 0 : keywords->count;
-    std::string result = "";
-    for (unsigned int i = 0; i < keyword_count; i++) {
-      result += std::to_string(keywords->idx[i]);
-    }
     if (keyword_count > 0) {
-      // i_debug("%s :keywords : count=%d, keywords: %s", mail_object->get_oid().c_str(), keyword_count,
-      // result.c_str());
-      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS, result);
-      mail_object->add_metadata(xattr);
+      for (unsigned int i = 0; i < keyword_count; i++) {
+        std::string keyword = std::to_string(keywords->idx[i]);
+        std::string ext_key = "k_" + keyword;
+        RadosMetadata ext_metadata(ext_key, keyword);
+        mail_object->add_extended_metadata(ext_metadata);
+        i_debug("keyword_added %s, %d:  '%s' ", mail_object->get_oid().c_str(), i, keyword.c_str());
+      }
     }
 
     if (keywords != NULL)

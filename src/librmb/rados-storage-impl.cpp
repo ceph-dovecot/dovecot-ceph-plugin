@@ -89,7 +89,21 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   }
   return ret;
 }
+int RadosStorageImpl::update_extended_metadata(std::string &oid, RadosMetadata *metadata) {
+  int ret = -1;
 
+  if (metadata != nullptr) {
+    std::map<std::string, bufferlist> map;
+    map.insert(pair<string, bufferlist>(metadata->key, metadata->bl));
+    ret = get_io_ctx().omap_set(oid, map);
+  }
+  return ret;
+}
+int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &key) {
+  std::set<std::string> keys;
+  keys.insert(key);
+  get_io_ctx().omap_rm_keys(oid, keys);
+}
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
   return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
@@ -311,8 +325,12 @@ bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
        it != mail->get_metadata()->end(); ++it) {
     write_op_xattr->setxattr(it->first.c_str(), it->second);
   }
-  write_op_xattr->mtime(mail->get_rados_save_date());
 
+  if (mail->get_extended_metadata()->size() > 0) {
+    write_op_xattr->omap_set(*mail->get_extended_metadata());
+  }
+
+  write_op_xattr->mtime(mail->get_rados_save_date());
   ret = split_buffer_and_exec_op(reinterpret_cast<const char *>(mail->get_mail_buffer_content_ptr()),
                                  mail->get_mail_size(), mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);

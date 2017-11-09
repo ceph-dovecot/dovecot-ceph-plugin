@@ -60,6 +60,8 @@ class RadosStorage {
   virtual librmb::RadosMailObject *alloc_mail_object() = 0;
   virtual void free_mail_object(librmb::RadosMailObject *mail) = 0;
   virtual RadosConfig *get_rados_config() = 0;
+  virtual int update_extended_metadata(std::string &oid, RadosMetadata *metadata) = 0;
+  virtual int remove_extended_metadata(std::string &oid, std::string &key) = 0;
 };
 
 }  // namespace librmb

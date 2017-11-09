@@ -66,6 +66,8 @@ class RadosStorageImpl : public RadosStorage {
   librmb::RadosMailObject *alloc_mail_object();
   void free_mail_object(librmb::RadosMailObject *mail);
   RadosConfig *get_rados_config() { return rados_config; }
+  int update_extended_metadata(std::string &oid, RadosMetadata *metadata);
+  int remove_extended_metadata(std::string &oid, std::string &key);
 
  private:
   RadosCluster *cluster;

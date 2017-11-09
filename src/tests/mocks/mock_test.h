@@ -57,6 +57,9 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD0(alloc_mail_object, librmb::RadosMailObject *());
   MOCK_METHOD1(free_mail_object, void(librmb::RadosMailObject *mail));
   MOCK_METHOD0(get_rados_config, librmb::RadosConfig *());
+
+  MOCK_METHOD2(update_extended_metadata, int(std::string &oid, librmb::RadosMetadata *metadata));
+  MOCK_METHOD2(remove_extended_metadata, int(std::string &oid, std::string &key));
 };
 
 using librmb::RadosDictionary;
