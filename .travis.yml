@@ -4,7 +4,7 @@ services:
 - docker
 env:
 - DOVECOT="release-2.2.21"
-- DOVECOT="release-2.2.33"
+- DOVECOT="2.2.33.1"
 - DOVECOT="master-2.2"
 - DOVECOT="master"
 before_install:
@@ -14,12 +14,12 @@ before_install:
 - docker exec ceph_demo sh -c 'printf "[client]\nid=zorro\nosd max write size =5\nclient mount timeout=120\n[global]\nmon allow pool delete=true\n" >> /etc/ceph/ceph.conf'
 - docker restart ceph_demo
 
-- travis_wait 30 docker run -itd --name build --net=ceph_network -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
+- travis_wait 30 docker run -itd --name build --net=ceph_network -e SOURCE_VERSION=$DOVECOT -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'
 - docker exec build apt-get -qq update
 - docker exec build apt-get -qq upgrade
 before_script:
-- docker exec build sh -c 'cd /usr/local/src/dovecot; git pull'
+- docker exec build sh -c 'cd /usr/local/src/dovecot; git pull origin $SOURCE_VERSION'
 - docker exec build sh -c 'cd /usr/local/src/dovecot; make install'
 script:
 - docker exec build sh -c 'cd repo; ./autogen.sh'
