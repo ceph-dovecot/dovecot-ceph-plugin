@@ -33,7 +33,6 @@ std::string RadosConfig::set_default_mutable_attributes() {
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_RECEIVED_TIME)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_EXT_REF)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAIL_UID)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_VERSION)));
