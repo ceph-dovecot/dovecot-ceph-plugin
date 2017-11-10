@@ -43,14 +43,20 @@ struct dict dict_driver_rados = {.name = "rados",
 static int plugin_ref_count = 0;
 
 void dict_rados_plugin_init(struct module *module ATTR_UNUSED) {
-  i_debug("%s v%s dictionary starting up", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION);
-  if (plugin_ref_count++ > 0)
+  if (plugin_ref_count++ > 0) {
     return;
+  }
+
+  i_debug("%s v%s dictionary starting up '%d'", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION,
+          plugin_ref_count);
   dict_driver_register(&dict_driver_rados);
 }
 
 void dict_rados_plugin_deinit(void) {
-  if (--plugin_ref_count > 0)
+  if (--plugin_ref_count > 0) {
     return;
+  }
+  i_debug("%s v%s dictionary shuting down", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION);
+
   dict_driver_unregister(&dict_driver_rados);
 }

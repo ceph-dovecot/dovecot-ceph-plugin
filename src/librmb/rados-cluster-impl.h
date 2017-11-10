@@ -38,12 +38,12 @@ class RadosClusterImpl : public RadosCluster {
 
   bool is_connected();
 
-  static librados::Rados &get_cluster() { return cluster; }
+  librados::Rados &get_cluster() { return cluster; }
 
  private:
-  static librados::Rados cluster;
-  static int cluster_ref_count;
-  static bool connected;
+  librados::Rados cluster;
+  int cluster_ref_count;
+  bool connected;
 
   static const char *CLIENT_MOUNT_TIMEOUT;
   static const char *RADOS_MON_OP_TIMEOUT;

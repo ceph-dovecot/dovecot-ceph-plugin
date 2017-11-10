@@ -32,6 +32,7 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
 
 RadosStorageImpl::~RadosStorageImpl() { delete rados_config; }
 
+
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,
                                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) {
@@ -56,7 +57,6 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
     op->write(offset, tmp_buffer);
 
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    completion->set_complete_callback(current_object, nullptr);
 
     (*current_object->get_completion_op_map())[completion] = op;
 
