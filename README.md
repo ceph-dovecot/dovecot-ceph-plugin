@@ -42,6 +42,9 @@ A mail is immutable regarding its RFC5322 content and some attributes know at th
 * Physical Size = "Z", mails physical size
 * Virtual Size = "V", mails's virtual size
 * Mail UID = "U", uint32_t mail uid
+* From Envelope = "A", The From Envelope
+* Keywords = "K", The Keywords
+* Flags	="F", Mail flags 
 
 All writable attributes like flags or keywords are stored in Dovecot index files only.
 
@@ -90,6 +93,18 @@ Add for example to dovecot.conf:
     plugin {
       rbox_pool_name = mail_storage
     }
+
+It is possible to configure which mail metadata is stored in rados as Xattribute respectively as omap value, this 
+can be configured in the plugin section:
+
+    plugin {
+      rbox_update_immutable = false
+      rbox_mutable_metadata = MGPORZVBUIK
+      rbox_immutable_metadata = B 
+    }
+   
+The possible values for rbox_mutable_metadata and rbox_immutable_metadata can be found under Mail Object Format. 
+For immutable_metadata currently only RBOX_METADATA_ORIG_MAILBOX (B) is supported.
 
 See also [Common Configuration](#common-configuration) for more information.
 
