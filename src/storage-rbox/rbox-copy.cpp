@@ -227,13 +227,13 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     return -1;
   }
 
-  if (ctx->saving) {
-    // LDA needs copy for saving the mail
+  if (ctx->saving || !r_ctx->copying) {
+    // LDA or doveadm backup need copy for saving the mail
     if (mail_storage_copy(ctx, mail) < 0) {
       FUNC_END_RET("ret == -1, mail_storage_copy failed");
       return -1;
     } else {
-      i_debug("Mail saved by LDA, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
+      i_debug("Mail saved without ceph copy, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
     }
   }
 
