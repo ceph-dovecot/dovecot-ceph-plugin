@@ -34,12 +34,9 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
                                  guid_128_t *index_oid) {
   FUNC_START();
 
-  // if (guid_128_is_empty(*index_oid)) {
   const struct obox_mail_index_record *obox_rec;
   const void *rec_data;
-  i_debug("sync_:before index lookup for %d", seq);
   mail_index_lookup_ext(_sync_view, seq, ext_id, &rec_data, NULL);
-  i_debug("sync_:after inded lookup for %d", seq);
   obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
   if (obox_rec == nullptr) {
@@ -47,9 +44,7 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
     FUNC_END_RET("ret == -1");
     return -1;
   }
-  i_debug("sync_:before memcpy for %d", seq);
   memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
-  //}
 
   FUNC_END();
   return 0;
@@ -177,12 +172,6 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
         if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
-          if (sync_rec.add_flags != 0) {
-            i_debug("add_flags %d", sync_rec.add_flags);
-          }
-          if (sync_rec.remove_flags != 0) {
-            i_debug("remove_flags %d", sync_rec.remove_flags);
-          }
           update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
         }
         break;
