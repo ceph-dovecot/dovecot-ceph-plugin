@@ -52,9 +52,9 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   std::string oid;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     oid = iter->get_oid();
-    i_debug("copy : %s", oid.c_str());
-    break;
+    iter++;
   }
+  EXPECT_TRUE(oid.length() > 0);
 
   guid_128_t temp_oid_guid;
   guid_128_generate(temp_oid_guid);

@@ -676,7 +676,6 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   const string key(_key);
 
   const char *v_r;
-  const char *error_r;
   int found = dict_lookup(&dict->dict, nullptr, _key, &v_r, &error_r);
 
   if (found > 0) {

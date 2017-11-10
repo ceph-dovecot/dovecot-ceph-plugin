@@ -102,7 +102,7 @@ int RadosStorageImpl::update_extended_metadata(std::string &oid, RadosMetadata *
 int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &key) {
   std::set<std::string> keys;
   keys.insert(key);
-  get_io_ctx().omap_rm_keys(oid, keys);
+  return get_io_ctx().omap_rm_keys(oid, keys);
 }
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
   return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);

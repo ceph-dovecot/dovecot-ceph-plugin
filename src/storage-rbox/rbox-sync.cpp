@@ -72,11 +72,12 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   FUNC_END();
 }
 
-static void update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2,
-                                     const int &keyword_idx, bool remove) {
+static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, const int &keyword_idx,
+                                    bool remove) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
+  int ret = 0;
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;
@@ -87,22 +88,26 @@ static void update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq
       std::string key_oid(oid);
       std::string key_value = std::to_string(keyword_idx);
       std::string ext_key = "k_" + key_value;
-      int ret = -1;
       if (remove) {
         ret = r_storage->s->remove_extended_metadata(key_oid, ext_key);
       } else {
         librmb::RadosMetadata ext_metata(ext_key, key_value);
         ret = r_storage->s->update_extended_metadata(key_oid, &ext_metata);
       }
+      if (ret < 0) {
+        break;
+      }
     }
   }
   FUNC_END();
+  return ret;
 }
-static void update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, uint8_t &add_flags,
-                         uint8_t &remove_flags) {
+static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, uint8_t &add_flags,
+                        uint8_t &remove_flags) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
+  int ret = 0;
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;
@@ -116,7 +121,7 @@ static void update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t 
       std::string flags_metadata = mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
       uint8_t flags = librmb::RadosUtils::string_to_flags(flags_metadata);
 
-      if (flags >= 0) {
+      if (flags != 0) {
         if (add_flags != 0) {
           flags |= add_flags;
         }
@@ -126,11 +131,12 @@ static void update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t 
 
         flags_metadata = librmb::RadosUtils::flags_to_string(flags);
         librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
-        r_storage->s->set_metadata(mail_object.get_oid(), update);
+        ret = r_storage->s->set_metadata(mail_object.get_oid(), update);
       }
     }
   }
   FUNC_END();
+  return ret;
 }
 static int rbox_sync_index(struct rbox_sync_context *ctx) {
   FUNC_START();
@@ -178,14 +184,18 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
         if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           // sync_rec.keyword_idx;
-          update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false);
+          if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false) < 0) {
+            return -1;
+          }
         }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
         if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           /* FIXME: should be bother calling sync_notify()? */
           // sync_rec.keyword_idx
-          update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true);
+          if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true) < 0) {
+            return -1;
+          }
         }
         break;
       default:

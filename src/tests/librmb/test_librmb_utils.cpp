@@ -68,8 +68,8 @@ TEST(librmb, utils_convert_convert_time_t_to_str) {
 
 TEST(librmb, config_mutable_metadata) {
   librmb::RadosConfig config;
-  char* str = "MGP";
-  config.update_mutable_metadata(str);
+  std::string str = "MGP";
+  config.update_mutable_metadata(str.c_str());
   EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
   EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_GUID));
   EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
