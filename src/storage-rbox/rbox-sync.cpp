@@ -169,31 +169,35 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       /* already expunged, nothing to do. */
       continue;
     }
+    struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
     switch (sync_rec.type) {
       case MAIL_INDEX_SYNC_TYPE_EXPUNGE:
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
-
-        if (sync_rec.add_flags != 0) {
-          i_debug("add_flags %d", sync_rec.add_flags);
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
+          if (sync_rec.add_flags != 0) {
+            i_debug("add_flags %d", sync_rec.add_flags);
+          }
+          if (sync_rec.remove_flags != 0) {
+            i_debug("remove_flags %d", sync_rec.remove_flags);
+          }
+          update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
         }
-        if (sync_rec.remove_flags != 0) {
-          i_debug("remove_flags %d", sync_rec.remove_flags);
-        }
-        update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
-        // rec->add_flags = update->add_flags;
-        // rec->remove_flags = update->remove_flags;
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
-        // sync_rec.keyword_idx;
-        update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false);
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+          // sync_rec.keyword_idx;
+          update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false);
+        }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
-        /* FIXME: should be bother calling sync_notify()? */
-        // sync_rec.keyword_idx
-        update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true);
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+          /* FIXME: should be bother calling sync_notify()? */
+          // sync_rec.keyword_idx
+          update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true);
+        }
         break;
       default:
         break;
