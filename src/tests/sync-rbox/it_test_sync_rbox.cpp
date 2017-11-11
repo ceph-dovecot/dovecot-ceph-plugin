@@ -73,7 +73,7 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
     while (iter != librados::NObjectIterator::__EndObjectIterator) {
       oid_to_delete = (*iter).get_oid();
       i_debug("oid to delete: %s", oid_to_delete.c_str());
-      break;
+      iter++;
     }
     r_storage->s->delete_mail(oid_to_delete);
 
