@@ -22,6 +22,10 @@ namespace librmb {
 
 class RadosMetadata {
  public:
+  RadosMetadata(std::string& key_, std::string& value_) {
+    key = key_;
+    bl.append(value_);
+  }
   RadosMetadata(enum rbox_metadata_key _key, const std::string& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const time_t& val) { convert(_key, val); }

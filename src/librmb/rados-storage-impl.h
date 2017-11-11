@@ -65,12 +65,16 @@ class RadosStorageImpl : public RadosStorage {
   bool save_mail(RadosMailObject *mail, bool &save_async);
   librmb::RadosMailObject *alloc_mail_object();
   void free_mail_object(librmb::RadosMailObject *mail);
+  RadosConfig *get_rados_config() { return rados_config; }
+  int update_extended_metadata(std::string &oid, RadosMetadata *metadata);
+  int remove_extended_metadata(std::string &oid, std::string &key);
 
  private:
   RadosCluster *cluster;
   int max_write_size;
   std::string nspace;
   librados::IoCtx io_ctx;
+  RadosConfig *rados_config;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };

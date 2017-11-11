@@ -9,6 +9,8 @@
  * Foundation.  See file COPYING.
  */
 #include "rados-util.h"
+#include <string>
+#include <sstream>
 
 namespace librmb {
 
@@ -55,10 +57,21 @@ int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   timeinfo = localtime(&t);
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
   *ret_val = std::string(buffer);
-  // std::stringstream buffer;
-  // buffer << std::put_time(t, "%a %b %d %H:%M:%S %Y");
-  //*ret_val = std::ctime(&t);
-  //*ret_val = buffer.str();
   return 0;
+}
+std::string RadosUtils::flags_to_string(const uint8_t &flags_) {
+  std::string flags;
+  std::stringstream sstream;
+  sstream << std::hex << flags_;
+  sstream >> flags;
+  return flags;
+}
+uint8_t RadosUtils::string_to_flags(std::string &flags_) {
+  std::istringstream in(flags_);
+  uint8_t flags;
+  if (in >> std::hex >> flags) {
+    return flags;
+  }
+  return -1;
 }
 } /* namespace tallence */

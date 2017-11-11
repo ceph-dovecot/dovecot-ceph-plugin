@@ -19,24 +19,13 @@ extern "C" {
 #include "rbox-sync.h"
 #include "debug-helper.h"
 }
-
+#include "rados-util.h"
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-sync-rebuild.h"
 
 #define RBOX_REBUILD_COUNT 3
 
-/*
-static void rbox_sync_set_uidvalidity(struct rbox_sync_context *ctx) {
-  FUNC_START();
-  uint32_t uid_validity = ioloop_time;
-
-  mail_index_update_header(ctx->trans, offsetof(struct mail_index_header, uid_validity), &uid_validity,
-                           sizeof(uid_validity), TRUE);
-  ctx->uid_validity = uid_validity;
-  FUNC_END();
-}
-*/
 
 // TODO(jrse) nearly a copy of
 //            static int rbox_get_index_record(struct mail *_mail)
@@ -45,7 +34,6 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
                                  guid_128_t *index_oid) {
   FUNC_START();
 
-  // if (guid_128_is_empty(*index_oid)) {
   const struct obox_mail_index_record *obox_rec;
   const void *rec_data;
   mail_index_lookup_ext(_sync_view, seq, ext_id, &rec_data, NULL);
@@ -57,7 +45,6 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
     return -1;
   }
   memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
-  //}
 
   FUNC_END();
   return 0;
@@ -85,6 +72,72 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   FUNC_END();
 }
 
+static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, const int &keyword_idx,
+                                    bool remove) {
+  FUNC_START();
+  struct mailbox *box = &ctx->mbox->box;
+  uint32_t uid;
+  int ret = 0;
+  for (; seq1 <= seq2; seq1++) {
+    mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
+    guid_128_t index_oid;
+    if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
+      const char *oid = guid_128_to_string(index_oid);
+
+      struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+      std::string key_oid(oid);
+      std::string key_value = std::to_string(keyword_idx);
+      std::string ext_key = "k_" + key_value;
+      if (remove) {
+        ret = r_storage->s->remove_extended_metadata(key_oid, ext_key);
+      } else {
+        librmb::RadosMetadata ext_metata(ext_key, key_value);
+        ret = r_storage->s->update_extended_metadata(key_oid, &ext_metata);
+      }
+      if (ret < 0) {
+        break;
+      }
+    }
+  }
+  FUNC_END();
+  return ret;
+}
+static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, uint8_t &add_flags,
+                        uint8_t &remove_flags) {
+  FUNC_START();
+  struct mailbox *box = &ctx->mbox->box;
+  uint32_t uid;
+  int ret = 0;
+  for (; seq1 <= seq2; seq1++) {
+    mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
+    guid_128_t index_oid;
+    if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
+      const char *oid = guid_128_to_string(index_oid);
+
+      struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+      librmb::RadosMailObject mail_object;
+      mail_object.set_oid(oid);
+      r_storage->s->load_metadata(&mail_object);
+      std::string flags_metadata = mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
+      uint8_t flags = librmb::RadosUtils::string_to_flags(flags_metadata);
+
+      if (flags != 0) {
+        if (add_flags != 0) {
+          flags |= add_flags;
+        }
+        if (remove_flags != 0) {
+          flags &= ~remove_flags;
+        }
+
+        flags_metadata = librmb::RadosUtils::flags_to_string(flags);
+        librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
+        ret = r_storage->s->set_metadata(mail_object.get_oid(), update);
+      }
+    }
+  }
+  FUNC_END();
+  return ret;
+}
 static int rbox_sync_index(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
@@ -103,7 +156,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         return -1;
       return 1;
     }
-    mail_storage_set_critical(box->storage, "sdbox %s: Broken index: missing UIDVALIDITY", mailbox_get_path(box));
+    mail_storage_set_critical(box->storage, "rbox %s: Broken index: missing UIDVALIDITY", mailbox_get_path(box));
     rbox_set_mailbox_corrupted(box);
     return 0;
   }
@@ -117,15 +170,33 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       /* already expunged, nothing to do. */
       continue;
     }
+    struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
     switch (sync_rec.type) {
       case MAIL_INDEX_SYNC_TYPE_EXPUNGE:
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
+          update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
+        }
+        break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+          // sync_rec.keyword_idx;
+          if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false) < 0) {
+            return -1;
+          }
+        }
+        break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
-        /* FIXME: should be bother calling sync_notify()? */
+        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+          /* FIXME: should be bother calling sync_notify()? */
+          // sync_rec.keyword_idx
+          if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true) < 0) {
+            return -1;
+          }
+        }
         break;
       default:
         break;
@@ -186,6 +257,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   sync_flags |= MAIL_INDEX_SYNC_FLAG_AVOID_FLAG_UPDATES;
 
   for (i = 0;; i++) {
+    // sync_ctx->flags werden gesetzt.
     ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<mail_index_sync_flags>(sync_flags));
 

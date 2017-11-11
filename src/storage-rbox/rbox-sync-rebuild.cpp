@@ -71,7 +71,6 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   memcpy(rec.guid, guid, sizeof(guid));
   memcpy(rec.oid, oid, sizeof(oid));
 
-  i_debug("rebuilding....");
   mail_index_update_ext(ctx->trans, seq, rbox_mailbox->ext_id, &rec, NULL);
 
   T_BEGIN { index_rebuild_index_metadata(ctx, seq, uid); }

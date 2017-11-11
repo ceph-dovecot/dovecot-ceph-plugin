@@ -24,10 +24,6 @@ using std::string;
 
 using librmb::RadosClusterImpl;
 
-librados::Rados RadosClusterImpl::cluster;
-int RadosClusterImpl::cluster_ref_count = 0;
-bool RadosClusterImpl::connected = false;
-
 const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT = "client_mount_timeout";
 const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT = "rados_mon_op_timeout";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT = "rados_osd_op_timeout";
@@ -36,7 +32,11 @@ const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
 
-RadosClusterImpl::RadosClusterImpl() {}
+RadosClusterImpl::RadosClusterImpl() {
+  // librados::Rados RadosClusterImpl::cluster;
+  cluster_ref_count = 0;
+  connected = false;
+}
 
 RadosClusterImpl::~RadosClusterImpl() {}
 
@@ -75,6 +75,8 @@ int RadosClusterImpl::init() {
   }
   return ret;
 }
+
+bool RadosClusterImpl::is_connected() { return connected; }
 
 int RadosClusterImpl::connect() {
   int ret = 0;

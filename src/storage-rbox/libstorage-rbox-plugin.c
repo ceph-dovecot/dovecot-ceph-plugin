@@ -43,4 +43,5 @@ void storage_rbox_plugin_deinit(void) {
   if (--refcount > 0)
     return;
   mail_storage_class_unregister(&rbox_storage);
+  i_debug("%s v%s storage stopping", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION);
 }

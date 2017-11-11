@@ -27,9 +27,11 @@ const char *RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
 RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   cluster = _cluster;
   max_write_size = 10;
+  rados_config = new RadosConfig();
 }
 
-RadosStorageImpl::~RadosStorageImpl() {}
+RadosStorageImpl::~RadosStorageImpl() { delete rados_config; }
+
 
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,
@@ -55,7 +57,6 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
     op->write(offset, tmp_buffer);
 
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    completion->set_complete_callback(current_object, nullptr);
 
     (*current_object->get_completion_op_map())[completion] = op;
 
@@ -88,7 +89,21 @@ int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   }
   return ret;
 }
+int RadosStorageImpl::update_extended_metadata(std::string &oid, RadosMetadata *metadata) {
+  int ret = -1;
 
+  if (metadata != nullptr) {
+    std::map<std::string, bufferlist> map;
+    map.insert(pair<string, bufferlist>(metadata->key, metadata->bl));
+    ret = get_io_ctx().omap_set(oid, map);
+  }
+  return ret;
+}
+int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &key) {
+  std::set<std::string> keys;
+  keys.insert(key);
+  return get_io_ctx().omap_rm_keys(oid, keys);
+}
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
   return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
 }
@@ -143,6 +158,10 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
 librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
 
 int RadosStorageImpl::open_connection(const string &poolname, const string &ns) {
+  if (cluster->is_connected()) {
+    return 1;
+  }
+
   if (cluster->init() < 0) {
     return -1;
   }
@@ -306,8 +325,12 @@ bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
        it != mail->get_metadata()->end(); ++it) {
     write_op_xattr->setxattr(it->first.c_str(), it->second);
   }
-  write_op_xattr->mtime(mail->get_rados_save_date());
 
+  if (mail->get_extended_metadata()->size() > 0) {
+    write_op_xattr->omap_set(*mail->get_extended_metadata());
+  }
+
+  write_op_xattr->mtime(mail->get_rados_save_date());
   ret = split_buffer_and_exec_op(reinterpret_cast<const char *>(mail->get_mail_buffer_content_ptr()),
                                  mail->get_mail_size(), mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);

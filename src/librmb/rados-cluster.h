@@ -29,6 +29,7 @@ class RadosCluster {
 
   virtual int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) = 0;
   virtual int get_config_option(const char *option, std::string *value) = 0;
+  virtual bool is_connected() = 0;
 };
 
 }  // namespace librmb

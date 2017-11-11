@@ -366,7 +366,11 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  if (opts.find("pool") == opts.end() || opts.find("namespace") == opts.end()) {
+  if (opts.find("pool") == opts.end()) {
+    opts["pool"] = "mail_storage";
+  }
+
+  if (opts.find("namespace") == opts.end()) {
     usage_exit();
   }
 

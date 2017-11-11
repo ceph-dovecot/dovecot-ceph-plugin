@@ -245,6 +245,63 @@ TEST(librmb, load_metadata) {
   i = storage.load_metadata(&obj);
   EXPECT_EQ(0, i);
 }
+
+TEST(librmb, AttributeVersions) {
+  const char *buffer = "abcdefghijklmn";
+  size_t buffer_length = 14;
+  uint64_t max_size = 3;
+  librmb::RadosMailObject obj;
+  obj.set_oid("test_oid2");
+  librados::IoCtx io_ctx;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("test");
+  std::string ns("t");
+
+  int open_connection = storage.open_connection(pool_name, ns);
+  EXPECT_EQ(0, open_connection);
+
+  ceph::bufferlist bl;
+  bl.append("xyz");
+  op->setxattr("A", bl);
+
+  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  EXPECT_EQ(ret_storage, 0);
+  // wait for op to finish.
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+
+  // stat the object
+  uint64_t size;
+  time_t save_date;
+  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  EXPECT_EQ(ret_stat, 0);
+  uint64_t version = storage.get_io_ctx().get_last_version();
+
+  // update metadata
+  librmb::RadosMetadata metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS, "abc");
+  storage.set_metadata(obj.get_oid(), metadata);
+
+  uint64_t version_after_xattr_update = storage.get_io_ctx().get_last_version();
+  EXPECT_NE(version, version_after_xattr_update);
+
+  std::map<std::string, librados::bufferlist> map;
+  librados::bufferlist omap_bl;
+  omap_bl.append("xxx");
+  map.insert(std::pair<std::string, librados::bufferlist>(obj.get_oid(), omap_bl));
+  storage.get_io_ctx().omap_set(obj.get_oid(), map);
+
+  uint64_t version_after_omap_set = storage.get_io_ctx().get_last_version();
+  EXPECT_NE(version_after_xattr_update, version_after_omap_set);
+
+  // remove it
+  storage.delete_mail(obj.get_oid());
+  // tear down
+  cluster.deinit();
+}
+
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

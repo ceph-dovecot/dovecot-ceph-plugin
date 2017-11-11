@@ -99,7 +99,7 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
 struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
                                    enum mailbox_flags flags) {
   FUNC_START();
-  struct rbox_mailbox *mbox;
+  struct rbox_mailbox *rbox;
   struct index_mailbox_context *ibox;
   pool_t pool;
 
@@ -111,29 +111,29 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   }
 
   pool = pool_alloconly_create("rbox mailbox", 1024 * 3);
-  mbox = p_new(pool, struct rbox_mailbox, 1);
+  rbox = p_new(pool, struct rbox_mailbox, 1);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
-  mbox->box = rbox_mailbox;
-  mbox->box.pool = pool;
-  mbox->box.storage = storage;
-  mbox->box.list = list;
-  mbox->box.v = rbox_mailbox_vfuncs;
-  mbox->box.mail_vfuncs = &rbox_mail_vfuncs;
+  rbox->box = rbox_mailbox;
+  rbox->box.pool = pool;
+  rbox->box.storage = storage;
+  rbox->box.list = list;
+  rbox->box.v = rbox_mailbox_vfuncs;
+  rbox->box.mail_vfuncs = &rbox_mail_vfuncs;
 
   i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
           storage->set->mail_location);
 
-  index_storage_mailbox_alloc(&mbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
+  index_storage_mailbox_alloc(&rbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
 
-  ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&mbox->box));
+  ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&rbox->box));
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
-  mbox->storage = (struct rbox_storage *)storage;
+  rbox->storage = (struct rbox_storage *)storage;
 
   i_debug("list name = %s", list->name);
   FUNC_END();
-  return &mbox->box;
+  return &rbox->box;
 }
 
 static int rbox_mailbox_alloc_index(struct rbox_mailbox *mbox) {
@@ -225,32 +225,45 @@ static int rbox_open_mailbox(struct mailbox *box) {
 
   return 0;
 }
+int read_plugin_configuration(struct mailbox *box) {
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  if (!storage->s->get_rados_config()->is_config_valid()) {
+    std::map<std::string, std::string> *map = storage->s->get_rados_config()->get_config();
+    for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); it++) {
+      std::string setting = it->first;
+      storage->s->get_rados_config()->update_metadata(
+          setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
+    }
+    storage->s->get_rados_config()->set_config_valid(true);
+  }
+
+  return 0;
+}
 
 int rbox_open_rados_connection(struct mailbox *box) {
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  librmb::RadosStorage *rados_storage = mbox->storage->s;
   std::string ns(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
-  std::string poolname = SETTINGS_DEF_RADOS_POOL;
-  const char *settings_poolname = mail_user_plugin_getenv(mbox->storage->storage.user, SETTINGS_RBOX_POOL_NAME);
-  if (settings_poolname != nullptr && strlen(settings_poolname) > 0) {
-    poolname = settings_poolname;
-  }
-  return mbox->storage->s->open_connection(poolname, ns);
+  // initialize storage with plugin conifguration
+  read_plugin_configuration(box);
+  return rados_storage->open_connection(rados_storage->get_rados_config()->get_pool_name(), ns);
 }
 
 void rbox_sync_update_header(struct index_rebuild_context *ctx) {
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)ctx->box;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
   struct sdbox_index_header hdr;
   bool need_resize;
 
-  if (rbox_read_header(mbox, &hdr, FALSE, &need_resize) < 0)
+  if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0)
     i_zero(&hdr);
   if (guid_128_is_empty(hdr.mailbox_guid))
     guid_128_generate(hdr.mailbox_guid);
   if (++hdr.rebuild_count == 0)
     hdr.rebuild_count = 1;
   /* mailbox is being reset. this gets written directly there */
-  mail_index_set_ext_init_data(ctx->box->index, mbox->hdr_ext_id, &hdr, sizeof(hdr));
+  mail_index_set_ext_init_data(ctx->box->index, rbox->hdr_ext_id, &hdr, sizeof(hdr));
 }
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
