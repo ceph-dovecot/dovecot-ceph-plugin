@@ -20,7 +20,6 @@
 #include <map>
 #include <set>
 #include <vector>
-#include <list>
 #include <algorithm>
 
 #include <utility>
@@ -65,7 +64,6 @@ extern "C" {
 using std::string;
 using std::stringstream;
 using std::vector;
-using std::list;
 using std::map;
 using std::pair;
 using std::set;
@@ -310,10 +308,8 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
   if (err == 0) {
     auto value = result_map.find(key);
     if (value != result_map.end()) {
-      if (pool != nullptr) {
-        *value_r = p_strdup(pool, value->second.to_str().c_str());
-        i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
-      }
+      *value_r = p_strdup(pool, value->second.to_str().c_str());
+      i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
       return RADOS_COMMIT_RET_OK;
     }
   } else if (err < 0 && err != -ENOENT) {
@@ -341,7 +337,11 @@ class rados_dict_transaction_context {
   void *context = nullptr;
   dict_transaction_commit_callback_t *callback;
 
-  std::map<std::string, string> cache;
+  map<string, string> cache;
+
+  map<string, string> set_map;
+  set<string> unset_set;
+  map<string, int64_t> atomic_inc_map;
 
   ObjectWriteOperation write_op_private;
   AioCompletion *completion_private;
@@ -381,7 +381,7 @@ class rados_dict_transaction_context {
   }
   ~rados_dict_transaction_context() {}
 
-  ObjectWriteOperation &get_op(const std::string &key) {
+  ObjectWriteOperation &get_op(const string &key) {
     if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
       dirty_private = true;
       return write_op_private;
@@ -392,7 +392,7 @@ class rados_dict_transaction_context {
     i_unreached();
   }
 
-  void set_locked(const std::string &key) {
+  void set_locked(const string &key) {
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       locked_shared = true;
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -400,7 +400,7 @@ class rados_dict_transaction_context {
     }
   }
 
-  bool is_locked(const std::string &key) {
+  bool is_locked(const string &key) {
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       return locked_shared;
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -408,8 +408,111 @@ class rados_dict_transaction_context {
     }
     i_unreached();
   }
+
   int get_result(int result) {
     return result < 0 && result != -ENORESULT ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK;
+  }
+
+  void add_set_item(string key, string value) {
+    set<string>::iterator it = unset_set.find(key);
+    if (it != unset_set.end()) {
+      unset_set.erase(it);
+    }
+    set_map[key] = value;
+  }
+
+  void add_unset_item(string key) { unset_set.insert(key); }
+
+  void add_atomic_inc_item(string key, int64_t diff) {
+    auto it = atomic_inc_map.find(key);
+    if (it != atomic_inc_map.end()) {
+      diff += it->second;
+    }
+    atomic_inc_map[key] = diff;
+  }
+
+  void deploy_set_map() {
+    if (set_map.size() > 0) {
+      i_debug("deploy_set_map: set_map size = %lu", set_map.size());
+      for (auto it = set_map.begin(); it != set_map.end(); it++) {
+        i_debug("deploy_set_map: set(%s, %s)", it->first.c_str(), it->second.c_str());
+        map<string, bufferlist> map;
+        bufferlist bl;
+        bl.append(it->second);
+        const string key = it->first;
+        map.insert(pair<string, bufferlist>(key, bl));
+        get_op(key).omap_set(map);
+      }
+      set_map.clear();
+    }
+  }
+
+  void deploy_atomic_inc_map() {
+    if (atomic_inc_map.size() > 0) {
+      struct rados_dict *dict = (struct rados_dict *)ctx.dict;
+      RadosDictionary *d = dict->d;
+      string old_value = "0";
+      i_debug("deploy_atomic_inc_map: atomic_inc_map size = %lu", atomic_inc_map.size());
+      for (auto it = atomic_inc_map.begin(); it != atomic_inc_map.end() && !atomic_inc_not_found; it++) {
+        i_debug("deploy_atomic_inc_map: set_atomic_inc(%s, %ld)", it->first.c_str(), it->second);
+        const string key = it->first;
+
+        auto cache_it = cache.find(key);
+        if (cache_it == cache.end()) {
+          if (d->get(key, &old_value) == -ENOENT) {
+            old_value = CACHE_DELETED;
+            atomic_inc_not_found = true;
+            i_debug("deploy_atomic_inc_map(%s, %ld) key not found!", key.c_str(), it->second);
+          } else {
+            if (!is_locked(key)) {
+              struct timeval tv = {30, 0};  // TODO(peter): config?
+              int err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_128_to_string(guid),
+                                                          "rados_atomic_inc(" + key + ")", &tv, 0);
+              if (err == 0) {
+                i_debug("deploy_atomic_inc_map(%s, %ld) lock acquired", key.c_str(), it->second);
+                set_locked(key);
+              } else {
+                i_error("deploy_atomic_inc_map(%s, %ld) lock not acquired err=%d, %s", key.c_str(), it->second, err,
+                        strerror(-err));
+                atomic_inc_not_found = true;
+              }
+            }
+          }
+        } else {
+          cache[key] = old_value = cache_it->second;
+        }
+
+        if (old_value.compare(CACHE_DELETED) == 0) {
+          atomic_inc_not_found = true;
+        } else {
+          long long value;  // NOLINT
+          if (str_to_llong(old_value.c_str(), &value) < 0)
+            i_unreached();
+
+          value += it->second;
+          string str_val = std::to_string(value);
+          map<string, bufferlist> map;
+          bufferlist bl;
+          bl.append(str_val);
+          map.insert(pair<string, bufferlist>(key, bl));
+          get_op(key).omap_set(map);
+        }
+      }
+      atomic_inc_map.clear();
+    }
+  }
+
+  void deploy_unset_set() {
+    if (unset_set.size() > 0) {
+      i_debug("deploy_unset_set: unset_set size = %lu", unset_set.size());
+      for (auto it = unset_set.begin(); it != unset_set.end(); it++) {
+        set<string> keys;
+        const string key = *it;
+        keys.insert(key);
+        get_op(key).omap_rm_keys(keys);
+      }
+      unset_set.clear();
+    }
   }
 };
 
@@ -530,8 +633,13 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(_ctx);
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
+  string old_value = "0";
 
   i_debug("rados_dict_transaction_commit(): async=%d, user=%s", async, d->get_username().c_str());
+
+  ctx->deploy_set_map();
+  ctx->deploy_atomic_inc_map();
+  ctx->deploy_unset_set();
 
   bool failed = false;
   int ret = RADOS_COMMIT_RET_OK;
@@ -659,13 +767,7 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
   i_debug("rados_dict_set(%s, %s, oid=%s)", _key, value, d->get_full_oid(key).c_str());
 
   _ctx->changed = TRUE;
-
-  std::map<std::string, bufferlist> map;
-  bufferlist bl;
-  bl.append(value);
-  map.insert(pair<string, bufferlist>(key, bl));
-  ctx->get_op(key).omap_set(map);
-
+  ctx->add_set_item(key, value);
   ctx->cache[key] = value;
 }
 
@@ -675,82 +777,28 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   RadosDictionary *d = dict->d;
   const string key(_key);
 
-  const char *v_r;
-  const char *error_r;
-  int found = dict_lookup(&dict->dict, nullptr, _key, &v_r, &error_r);
+  i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
 
-  if (found > 0) {
-    i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
-
-    _ctx->changed = TRUE;
-
-    set<string> keys;
-    keys.insert(key);
-    ctx->get_op(key).omap_rm_keys(keys);
-
-    ctx->cache[key] = CACHE_DELETED;
-  }
+  ctx->add_unset_item(key);
+  _ctx->changed = TRUE;
+  ctx->cache[key] = CACHE_DELETED;
 }
 
 void rados_dict_atomic_inc(struct dict_transaction_context *_ctx, const char *_key, long long diff) {  // NOLINT
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  RadosDictionary *d = ((struct rados_dict *)_ctx->dict)->d;
   const string key(_key);
-  string old_value = "0";
 
-  i_debug("rados_atomic_inc(%s,%lld)", _key, diff);
+  i_debug("rados_atomic_inc(%s, %lld)", _key, diff);
 
-  auto it = ctx->cache.find(key);
-  if (it == ctx->cache.end()) {
-    if (d->get(key, &old_value) == -ENOENT) {
-      ctx->cache[key] = old_value = CACHE_DELETED;
-      ctx->atomic_inc_not_found = true;
-      i_debug("rados_dict_atomic_inc(%s,%lld) key not found!", _key, diff);
-
-      return;
-    } else {
-      if (!ctx->is_locked(key)) {
-        struct timeval tv = {30, 0};  // TODO(peter): config?
-        int err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_128_to_string(ctx->guid),
-                                                    "rados_atomic_inc(" + key + ")", &tv, 0);
-        if (err == 0) {
-          i_debug("rados_dict_atomic_inc(%s,%lld) lock acquired", _key, diff);
-          ctx->set_locked(key);
-        } else {
-          i_error("rados_dict_atomic_inc(%s,%lld) lock not acquired err=%d", _key, diff, err);
-          ctx->atomic_inc_not_found = true;
-
-          return;
-        }
-      }
-    }
-  } else {
-    ctx->cache[key] = old_value = it->second;
-  }
-
-  i_debug("rados_dict_atomic_inc(%s,%lld) old_value=%s", _key, diff, old_value.c_str());
-
-  if (old_value.compare(CACHE_DELETED) == 0) {
-    ctx->atomic_inc_not_found = true;
-
-    return;
-  }
-
-  long long value;  // NOLINT
-  if (str_to_llong(old_value.c_str(), &value) < 0)
-    i_unreached();
-
-  value += diff;
-  string new_string_value = std::to_string(value);
-  rados_dict_set(_ctx, _key, new_string_value.c_str());
+  ctx->add_atomic_inc_item(key, diff);
 }
 
 class kv_map {
  public:
   int rval = -1;
-  std::string key;
-  std::map<std::string, bufferlist> map;
-  typename std::map<std::string, bufferlist>::iterator map_iter;
+  string key;
+  std::map<string, bufferlist> map;
+  typename map<string, bufferlist>::iterator map_iter;
 };
 
 class rados_dict_iterate_context {
@@ -760,8 +808,8 @@ class rados_dict_iterate_context {
   bool failed;
   pool_t result_pool;
 
-  std::vector<kv_map> results;
-  typename std::vector<kv_map>::iterator results_iter;
+  vector<kv_map> results;
+  typename vector<kv_map>::iterator results_iter;
 
   guid_128_t guid;
 
