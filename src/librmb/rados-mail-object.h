@@ -22,8 +22,11 @@
 
 namespace librmb {
 
-using namespace std;
-using namespace librados;
+using std::string;
+using std::map;
+
+using librados::AioCompletion;
+using librados::ObjectWriteOperation;
 
 class RadosMailObject {
  public:
@@ -40,12 +43,12 @@ class RadosMailObject {
   void set_active_op(bool _active) { this->active_op = _active; }
   void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
 
-  const string get_oid() { return this->oid; }
-  const string get_version() { return this->version; }
+  const string& get_oid() { return this->oid; }
+  const string& get_version() { return this->version; }
   const uint64_t& get_mail_size() { return this->object_size; }
 
   time_t* get_rados_save_date() { return &this->save_date_rados; }
-  uint8_t* get_guid_ref() { return guid; }
+  uint8_t* get_guid_ref() { return this->guid; }
   char* get_mail_buffer() { return this->mail_buffer; }
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
   void set_mail_buffer_content_ptr(const void* start) { mail_buffer_start = start; }
@@ -55,7 +58,7 @@ class RadosMailObject {
     string str_key(1, static_cast<char>(key));
     return get_metadata(str_key);
   }
-  const string get_metadata(string& key) {
+  string get_metadata(const string& key) {
     string value;
     if (attrset.find(key) != attrset.end()) {
       value = attrset[key].to_str();
@@ -65,7 +68,7 @@ class RadosMailObject {
 
   bool has_active_op() { return active_op; }
   string to_string(const string& padding);
-  void add_metadata(RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
+  void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
 
  private:
   string oid;

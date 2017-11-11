@@ -18,6 +18,9 @@
 #include <vector>
 #include "rados-util.h"
 
+using std::endl;
+using std::ostringstream;
+
 using librmb::RadosMailObject;
 
 const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
