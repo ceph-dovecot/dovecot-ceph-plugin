@@ -60,17 +60,20 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   guid_128_generate(temp_oid_guid);
 
   std::string test_oid = guid_128_to_string(temp_oid_guid);
+
   librados::ObjectWriteOperation write_op;
-  librados::bufferlist list;
-  list.append("100");
+  // last version is always version of object with oid.
   uint64_t last_version = r_storage->s->get_io_ctx().get_last_version();
   i_debug("Last Version = %lu", last_version);
+
   write_op.copy_from(oid, r_storage->s->get_io_ctx(), last_version);
   int ret = r_storage->s->get_io_ctx().operate(test_oid, &write_op);
 
   i_debug("copy operate: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
   const char *metadata_name = "U";
+  librados::bufferlist list;
+  list.append("100");
   ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
   i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
@@ -87,8 +90,7 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
 
   const char *mailbox = "INBOX";
 
-  testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
-  testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
+  // create only one mail.
   testutils::ItUtils::add_mail(message, mailbox, SyncTest::s_test_mail_user->namespaces);
 
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
@@ -103,7 +105,7 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     copy_object(ns, box);
     uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
     i_debug("Message count before = %u", msg_count_org);
-    EXPECT_EQ((uint32_t)3, msg_count_org);
+    EXPECT_EQ((uint32_t)1, msg_count_org);
 
     if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
                                                           MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
@@ -112,7 +114,7 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     }
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
     i_debug("Message count now = %u", msg_count);
-    EXPECT_EQ((uint32_t)4, msg_count);
+    EXPECT_EQ((uint32_t)2, msg_count);
     uint32_t msg_count_new = msg_count_org + (uint32_t)1;
     EXPECT_EQ(msg_count, msg_count_new);
   }
