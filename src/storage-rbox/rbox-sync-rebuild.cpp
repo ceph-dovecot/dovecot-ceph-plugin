@@ -39,13 +39,13 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
   // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
   if (xattr_mail_uid.empty()) {
-    i_debug("xattr_mail_uid.empty");
+    i_error("xattr_mail_uid.empty");
     return -1;
   }
 
   std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
   if (xattr_guid.empty()) {
-    i_debug("xattr_guid empty");
+    i_error("xattr_guid empty");
     return -1;
   }
 
@@ -59,12 +59,12 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   // convert oid and guid to
   guid_128_t oid;
   if (guid_128_from_string(oi.c_str(), oid) < 0) {
-    i_debug("guid_128 oi.c_str() string %s", oi.c_str());
+    i_error("guid_128 oi.c_str() string %s", oi.c_str());
     return -1;
   }
   guid_128_t guid;
   if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
-    i_debug("guid_128 xattr_guid string %s", xattr_guid.c_str());
+    i_error("guid_128 xattr_guid string %s", xattr_guid.c_str());
 
     return -1;
   }
@@ -106,7 +106,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObject
     ++found;
   }
   if (ret < 0) {
-    i_debug("error rbox_sync_add_objects for mbox %s", ctx->box->name);
+    i_error("error rbox_sync_add_objects for mbox %s", ctx->box->name);
     mailbox_set_deleted(ctx->box);
     mail_storage_set_critical(storage, "find mailbox(%s) failed: %m", ctx->box->name);
     return -1;
@@ -141,7 +141,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   rbox_sync_set_uidvalidity(ctx);
 
   if (rbox_open_rados_connection(ctx->box) < 0) {
-    i_debug("connection not valid");
+    i_error("cannot open rados connection");
     return -1;
   }
 
