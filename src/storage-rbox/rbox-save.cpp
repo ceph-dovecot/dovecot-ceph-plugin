@@ -356,14 +356,12 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
 static void clean_up_failed(struct rbox_save_context *r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  if (r_storage->cluster->is_connected()) {
-    r_storage->s->wait_for_rados_operations(r_ctx->objects);
+  r_storage->s->wait_for_rados_operations(r_ctx->objects);
 
-    for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin();
-         it_cur_obj != r_ctx->objects.end(); ++it_cur_obj) {
-      if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
-        i_debug("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
-      }
+  for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin(); it_cur_obj != r_ctx->objects.end();
+       ++it_cur_obj) {
+    if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
+      i_debug("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
     }
   }
   // clean up index
@@ -420,11 +418,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->current_object->set_mail_size(buffer_get_used_size(mail_buffer));
 
       rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
-      // save mail
-      i_debug("before save_mail %lu", r_storage->s);
-      i_debug("before save_mail io_ctx %lu", r_storage->s->get_io_ctx());
-      i_debug("before save_mail obj %s", r_ctx->current_object->get_oid().c_str());
-
       r_ctx->failed = !r_storage->s->save_mail(r_ctx->current_object, async_write);
       i_debug("save_mail succeeded!");
       if (r_ctx->failed) {

@@ -110,7 +110,7 @@ int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
   int ret = -1;
-  if (mail != nullptr) {
+  if (cluster->is_connected() && mail != nullptr) {
     ret = delete_mail(mail->get_oid());
   }
   return ret;
@@ -199,18 +199,23 @@ bool RadosStorageImpl::wait_for_write_operations_complete(
 
 bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) {
   bool ctx_failed = false;
-  // wait for all writes to finish!
-  // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
-  // rbox_transaction_save_commit_pre is called.
-  for (std::vector<librmb::RadosMailObject *>::const_iterator it_cur_obj = object_list.begin();
-       it_cur_obj != object_list.end(); ++it_cur_obj) {
-    // if we come from copy mail, there is no operation to wait for.
-    if ((*it_cur_obj)->has_active_op()) {
-      bool op_failed = wait_for_write_operations_complete((*it_cur_obj)->get_completion_op_map());
 
-      ctx_failed = ctx_failed ? ctx_failed : op_failed;
-      (*it_cur_obj)->get_completion_op_map()->clear();
-      (*it_cur_obj)->set_active_op(false);
+  if (!cluster->is_connected()) {
+    ctx_failed = true;
+  } else {
+    // wait for all writes to finish!
+    // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
+    // rbox_transaction_save_commit_pre is called.
+    for (std::vector<librmb::RadosMailObject *>::const_iterator it_cur_obj = object_list.begin();
+         it_cur_obj != object_list.end(); ++it_cur_obj) {
+      // if we come from copy mail, there is no operation to wait for.
+      if ((*it_cur_obj)->has_active_op()) {
+        bool op_failed = wait_for_write_operations_complete((*it_cur_obj)->get_completion_op_map());
+
+        ctx_failed = ctx_failed ? ctx_failed : op_failed;
+        (*it_cur_obj)->get_completion_op_map()->clear();
+        (*it_cur_obj)->set_active_op(false);
+      }
     }
   }
   return ctx_failed;
