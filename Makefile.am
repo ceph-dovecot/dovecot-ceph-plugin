@@ -17,7 +17,7 @@ EXTRA_DIST = \
 	autogen.sh \
 	COPYING-LGPL2.1 \
 	README.md \
-	packaging \
+	rpm \
 	ChangeLog
 
 ChangeLog:

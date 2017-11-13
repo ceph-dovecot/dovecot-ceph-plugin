@@ -25,3 +25,7 @@ rmb_SOURCES = \
 rmb_LDADD = $(shlibs)
 
 man1_MANS = rmb.man
+
+EXTRA_DIST = \
+	$(man1_MANS)
+
