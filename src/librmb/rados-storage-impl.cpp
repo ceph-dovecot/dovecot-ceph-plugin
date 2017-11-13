@@ -11,13 +11,21 @@
 
 #include "rados-storage-impl.h"
 
+#include <algorithm>
+#include <list>
+#include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <rados/librados.hpp>
 #include "encoding.h"
 #include "limits.h"
 
+using std::pair;
 using std::string;
+
+using ceph::bufferlist;
 
 using librmb::RadosStorageImpl;
 
@@ -31,7 +39,6 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
 }
 
 RadosStorageImpl::~RadosStorageImpl() { delete rados_config; }
-
 
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,
@@ -75,7 +82,6 @@ int RadosStorageImpl::read_mail(librados::bufferlist *buffer, const std::string 
   ret = get_io_ctx().read(oid, *buffer, max, 0);
   return ret;
 }
-
 
 int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
   int ret = -1;
@@ -181,12 +187,12 @@ int RadosStorageImpl::open_connection(const string &poolname, const string &ns) 
 }
 
 bool RadosStorageImpl::wait_for_write_operations_complete(
-    std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) {
+    std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) {
   bool failed = false;
 
   for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
-      completion_op_map->begin(); map_it != completion_op_map->end();
-      ++map_it) {
+           completion_op_map->begin();
+       map_it != completion_op_map->end(); ++map_it) {
     map_it->first->wait_for_complete_and_cb();
     failed = map_it->first->get_return_value() < 0 || failed ? true : false;
     // clean up
