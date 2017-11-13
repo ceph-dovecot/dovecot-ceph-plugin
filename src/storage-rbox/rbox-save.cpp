@@ -408,7 +408,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
 
     if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
-      i_debug("ERROR, cannot open rados connection (rbox_save_finish)");
+      i_error("ERROR, cannot open rados connection (rbox_save_finish)");
       r_ctx->failed = true;
     } else {
       bool async_write = true;
@@ -418,11 +418,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->current_object->set_mail_size(buffer_get_used_size(mail_buffer));
 
       rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
-      // save mail
       r_ctx->failed = !r_storage->s->save_mail(r_ctx->current_object, async_write);
-
+      i_debug("save_mail succeeded!");
       if (r_ctx->failed) {
-        i_debug("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
+        i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());
       }
     }

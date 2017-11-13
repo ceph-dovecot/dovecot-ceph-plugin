@@ -71,7 +71,7 @@ int rbox_get_index_record(struct mail *_mail) {
     obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
-      i_debug("no index entry for %d, ext_id=%d ,mail_object->oid='%s'", _mail->seq, rbox->ext_id,
+      i_error("no index entry for %d, ext_id=%d ,mail_object->oid='%s'", _mail->seq, rbox->ext_id,
               rmail->mail_object->get_oid().c_str());
       /* lost for some reason, give up */
       FUNC_END_RET("ret == -1");
@@ -112,13 +112,13 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
   int ret = -1;
   if (rbox_open_rados_connection(mail->box) < 0) {
-    i_debug("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
+    i_error("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
     return -1;
   }
 
   ret = r_storage->s->load_metadata(rmail->mail_object);
   if (ret < 0) {
-    i_debug("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
+    i_error("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
     return ret;
   }
 
@@ -310,11 +310,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
-        i_debug("Mail not found. %s", rmail->mail_object->get_oid().c_str());
+        i_error("Mail not found. %s", rmail->mail_object->get_oid().c_str());
         rbox_mail_set_expunged(rmail);
         return -1;
       } else {
-        i_debug("error code: %d", size_r);
+        i_error("error code: %d", size_r);
         FUNC_END_RET("ret == -1");
         return -1;
       }
