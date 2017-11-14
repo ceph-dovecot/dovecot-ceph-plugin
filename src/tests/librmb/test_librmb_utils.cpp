@@ -81,6 +81,14 @@ TEST(librmb, config_mutable_metadata) {
   EXPECT_TRUE(config2.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
 }
 
+TEST(librmb, convert_flags) {
+  uint8_t flags = 0x3f;
+  std::string s = librmb::RadosUtils::flags_to_string(flags);
+
+  uint8_t flags_ = librmb::RadosUtils::string_to_flags(s);
+  EXPECT_EQ(flags, flags_);
+}
+
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
