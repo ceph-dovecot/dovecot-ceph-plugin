@@ -21,9 +21,9 @@
 #define FUNC_END_RET_INT(ignore) ((void)0)
 #else
 #define FUNC_START() i_debug("[START] %s: %s at line %d", __FILE__, __func__, __LINE__)
-#define FUNC_END() i_debug("[END] %s: %s at line %d\n", __FILE__, __func__, __LINE__)
-#define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s\n", __FILE__, __func__, __LINE__, ret)
-#define FUNC_END_RET_INT(ret) i_debug("[END] %s: %s at line %d, ret==%d\n", __FILE__, __func__, __LINE__, ret)
+#define FUNC_END() i_debug("[END] %s: %s at line %d", __FILE__, __func__, __LINE__)
+#define FUNC_END_RET(ret) i_debug("[END] %s: %s at line %d, %s", __FILE__, __func__, __LINE__, ret)
+#define FUNC_END_RET_INT(ret) i_debug("[END] %s: %s at line %d, ret==%d", __FILE__, __func__, __LINE__, ret)
 #endif
 
 // Can be used to output a stacktrace
