@@ -30,11 +30,12 @@ extern "C" {
 #include "mailbox-list.h"
 #include "ioloop.h"
 #include "istream.h"
-
 #include "libdict-rados-plugin.h"
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
+#include "rbox-save.h"
+#include "rados-util.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -129,6 +130,101 @@ TEST_F(StorageTest, mail_save_to_inbox) {
   mailbox_free(&box);
 }
 
+TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
+  struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
+  ASSERT_NE(ns, nullptr);
+  struct mailbox *box = mailbox_alloc(ns->list, "INBOX", (mailbox_flags)0);
+  ASSERT_NE(box, nullptr);
+  ASSERT_GE(mailbox_open(box), 0);
+
+  const char *message =
+      "From: user@domain.org\n"
+      "Date: Sat, 24 Mar 2017 23:00:00 +0200\n"
+      "Mime-Version: 1.0\n"
+      "Content-Type: text/plain; charset=us-ascii\n"
+      "\n"
+      "body\n";
+
+  struct istream *input = i_stream_create_from_data(message, strlen(message));
+
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#else
+  char reason[256];
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#endif
+  struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)save_ctx;
+
+  ssize_t ret;
+  bool save_failed = FALSE;
+  std::string test_oid;
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
+  if (mailbox_save_begin(&save_ctx, input) < 0) {
+    i_error("Saving failed: %s", mailbox_get_last_internal_error(box, NULL));
+    mailbox_transaction_rollback(&trans);
+    FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
+  } else {
+    struct mail_save_data *mdata = &r_ctx->ctx.data;
+
+    test_oid = r_ctx->current_object->get_oid();
+
+    do {
+      if (mailbox_save_continue(save_ctx) < 0) {
+        save_failed = TRUE;
+        ret = -1;
+        FAIL() << "mailbox_save_continue() failed";
+        break;
+      }
+    } while ((ret = i_stream_read(input)) > 0);
+
+    std::string config_flags = "F";
+    std::string key = "rbox_mutable_metadata";
+    r_storage->s->get_rados_config()->update_metadata(key, config_flags.c_str());
+
+    EXPECT_EQ(ret, -1);
+    mdata->flags = MAIL_ANSWERED;
+    if (input->stream_errno != 0) {
+      FAIL() << "read(msg input) failed: " << i_stream_get_error(input);
+    } else if (save_failed) {
+      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
+    } else if (mailbox_save_finish(&save_ctx) < 0) {
+      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
+    } else if (mailbox_transaction_commit(&trans) < 0) {
+      FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
+    } else {
+      ret = 0;
+    }
+
+    EXPECT_EQ(save_ctx, nullptr);
+    if (save_ctx != nullptr)
+      mailbox_save_cancel(&save_ctx);
+
+    EXPECT_EQ(trans, nullptr);
+    if (trans != nullptr)
+      mailbox_transaction_rollback(&trans);
+
+    EXPECT_TRUE(input->eof);
+    EXPECT_GE(ret, 0);
+  }
+  i_stream_unref(&input);
+
+  librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
+  while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
+    if (test_oid.compare((*iter).get_oid()) == 0) {
+      librmb::RadosMailObject obj;
+      obj.set_oid((*iter).get_oid());
+      r_storage->s->load_metadata(&obj);
+      std::string str = obj.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
+      uint8_t flags = librmb::RadosUtils::string_to_flags(str);
+      EXPECT_EQ(0x01, flags);
+    }
+    iter++;
+  }
+
+  mailbox_free(&box);
+}
 TEST_F(StorageTest, deinit) {}
 
 int main(int argc, char **argv) {
