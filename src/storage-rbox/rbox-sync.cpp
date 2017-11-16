@@ -78,6 +78,10 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
   int ret = 0;
+  if (rbox_open_rados_connection(box) < 0) {
+    i_error("rbox_sync_object_expunge: connection to rados failed");
+    return -1;
+  }
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;
@@ -108,6 +112,10 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
   int ret = 0;
+  if (rbox_open_rados_connection(box) < 0) {
+    i_error("rbox_sync_object_expunge: connection to rados failed");
+    return -1;
+  }
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;

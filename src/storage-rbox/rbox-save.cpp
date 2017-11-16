@@ -71,6 +71,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 }
 
 void rbox_add_to_index(struct mail_save_context *_ctx) {
+  FUNC_START();
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
@@ -107,6 +108,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
 
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
+  FUNC_END();
 }
 
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
@@ -158,6 +160,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   }
 }
 void init_output_stream(mail_save_context *_ctx) {
+  FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   if (_ctx->data.output != NULL) {
     o_stream_unref(&_ctx->data.output);
@@ -166,9 +169,11 @@ void init_output_stream(mail_save_context *_ctx) {
   r_ctx->output_stream = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
+  FUNC_END();
 }
 
 int allocate_mail_buffer(mail_save_context *_ctx, int &initial_mail_buffer_size) {
+  FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   librmb::RadosMailObject *mail = r_ctx->current_object;
   char *current_mail_buffer = mail->get_mail_buffer();
@@ -181,8 +186,10 @@ int allocate_mail_buffer(mail_save_context *_ctx, int &initial_mail_buffer_size)
   mail->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, initial_mail_buffer_size)));
 
   if (mail->get_mail_buffer() == NULL) {
+    FUNC_END_RET("ret == -1");
     return -1;
   }
+  FUNC_END();
   return 0;
 }
 
@@ -312,7 +319,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
       // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
       mail_object->add_metadata(xattr);
-      i_debug("save_flags : %s,  %s", mail_object->get_oid().c_str(), flags.c_str());
+      // i_debug("save_flags : %s,  %s", mail_object->get_oid().c_str(), flags.c_str());
     }
   }
 
@@ -339,7 +346,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
         std::string ext_key = "k_" + keyword;
         RadosMetadata ext_metadata(ext_key, keyword);
         mail_object->add_extended_metadata(ext_metadata);
-        i_debug("keyword_added %s, %d:  '%s' ", mail_object->get_oid().c_str(), i, keyword.c_str());
+        //  i_debug("keyword_added %s, %d:  '%s' ", mail_object->get_oid().c_str(), i, keyword.c_str());
       }
     }
 
@@ -419,7 +426,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
       rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
       r_ctx->failed = !r_storage->s->save_mail(r_ctx->current_object, async_write);
-      i_debug("save_mail succeeded!");
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());

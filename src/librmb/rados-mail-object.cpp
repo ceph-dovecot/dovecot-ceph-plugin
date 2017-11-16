@@ -94,7 +94,8 @@ std::string RadosMailObject::to_string(const string &padding) {
   }
 
   if (flags.length() > 0) {
-    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): " << flags << endl;
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS)
+       << "(flags): " << RadosUtils::string_to_flags(flags) << endl;
   }
 
   if (pvt_flags.length() > 0) {

@@ -118,7 +118,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   ret = r_storage->s->load_metadata(rmail->mail_object);
   if (ret < 0) {
-    i_error("ret == -1; cannot get x_attr from object %s", rmail->mail_object->get_oid().c_str());
+    i_error("ret == -1; Errorcode: %d cannot get x_attr from object %s", ret, rmail->mail_object->get_oid().c_str());
     return ret;
   }
 
@@ -236,16 +236,16 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
 
-  if (rmail->mail_object == nullptr) {
-    // Mail already deleted
-    FUNC_END_RET("ret == -1; mail_object == nullptr ");
-    return -1;
-  }
-
   char *value = NULL;
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     FUNC_END_RET("ret == 0");
     return 0;
+  }
+
+  if (rmail->mail_object == nullptr) {
+    // Mail already deleted
+    FUNC_END_RET("ret == -1; mail_object == nullptr ");
+    return -1;
   }
 
   if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value) < 0) {
@@ -310,8 +310,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
-        i_error("Mail not found. %s", rmail->mail_object->get_oid().c_str());
+        i_debug("Mail not found. %s", rmail->mail_object->get_oid().c_str());
         rbox_mail_set_expunged(rmail);
+        FUNC_END_RET("ret == -1");
         return -1;
       } else {
         i_error("error code: %d", size_r);

@@ -111,7 +111,8 @@ int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &ke
   return get_io_ctx().omap_rm_keys(oid, keys);
 }
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
-  return get_io_ctx().setxattr(oid, xattr.key.c_str(), (ceph::bufferlist &)xattr.bl);
+  ceph::bufferlist bl = xattr.bl;
+  return get_io_ctx().setxattr(oid, xattr.key.c_str(), bl);
 }
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
