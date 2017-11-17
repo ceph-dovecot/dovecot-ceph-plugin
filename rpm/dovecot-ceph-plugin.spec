@@ -18,7 +18,7 @@ Release:	0%{?dist}
 URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
 Group:		Productivity/Networking/Email/Servers
 License:	LGPL-2.1
-Source:		%{name}-%{version}.tar.gz
+Source:		%{name}_%{version}-%{release}.tar.gz
 
 Provides:	dovecot-ceph-plugin = %{version}-%{release}
 Requires:	librmb0 >= %{version}-%{release}
