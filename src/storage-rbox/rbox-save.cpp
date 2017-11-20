@@ -372,7 +372,9 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
     }
   }
   // clean up index
-  mail_index_expunge(r_ctx->trans, r_ctx->seq);
+  if (r_ctx->seq > 0) {
+    mail_index_expunge(r_ctx->trans, r_ctx->seq);
+  }
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
 
   clean_up_mail_object_list(r_ctx, r_storage);
