@@ -32,6 +32,7 @@
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
 #include "rados-util.h"
+#include "rados-namespace-manager.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -378,12 +379,31 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
   std::string pool_name(opts["pool"]);
-  std::string ns(opts["namespace"]);
+  std::string uid(opts["namespace"]);
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
+  }
+
+  librmb::RadosNamespaceManager mgr(&storage);
+  storage.get_rados_config()->set_generated_namespace(true);
+  storage.get_rados_config()->set_config_valid(true);
+
+  std::string ns;
+  if (mgr.lookup_key(uid, &ns)) {
+    std::cout << " generated ns _ " << ns << std::endl;
+    storage.set_namespace(ns);
+  } else {
+    // use
+    storage.get_rados_config()->set_generated_namespace(false);
+    if (!mgr.lookup_key(uid, &ns)) {
+      std::cout << " error unable to determine namespace" << std::endl;
+      return -1;
+    }
+    std::cout << " uid : " << ns << std::endl;
+    storage.set_namespace(ns);
   }
 
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";

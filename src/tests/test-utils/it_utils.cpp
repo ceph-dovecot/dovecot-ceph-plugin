@@ -52,6 +52,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   storage->s = storage_impl;
+  storage->ns_mgr->set_storage(storage_impl);
 
   ItUtils::add_mail(save_ctx, input, box, trans);
 

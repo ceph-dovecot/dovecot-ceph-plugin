@@ -44,7 +44,8 @@ TEST(librmb, split_write_operation) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -85,7 +86,8 @@ TEST(librmb1, split_write_operation_1) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -154,7 +156,8 @@ TEST(librmb1, read_mail) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -206,7 +209,8 @@ TEST(librmb, load_metadata) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   ceph::bufferlist bl;
@@ -243,7 +247,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(-1, i);
 
   i = storage.load_metadata(&obj);
-  EXPECT_EQ(0, i);
+  EXPECT_EQ(-1, i);
 }
 
 TEST(librmb, AttributeVersions) {
@@ -261,7 +265,8 @@ TEST(librmb, AttributeVersions) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   ceph::bufferlist bl;

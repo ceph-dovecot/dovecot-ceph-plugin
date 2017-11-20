@@ -25,12 +25,13 @@
 #ifdef __cplusplus
 #include "../librmb/rados-cluster-impl.h"
 #include "../librmb/rados-storage-impl.h"
-
+#include "../librmb/rados-namespace-manager.h"
 struct rbox_storage {
   struct mail_storage storage;
 
   librmb::RadosCluster *cluster;
   librmb::RadosStorage *s;
+  librmb::RadosNamespaceManager *ns_mgr;
 };
 
 #endif

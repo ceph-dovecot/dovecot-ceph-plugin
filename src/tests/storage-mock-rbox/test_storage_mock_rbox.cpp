@@ -89,14 +89,14 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   // first call to open_connection will fail!
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(-1));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillOnce(Return(-1));
   librmb::RadosConfig default_config;
   EXPECT_CALL(*storage_mock, get_rados_config()).WillRepeatedly(Return(&default_config));
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
 
   EXPECT_CALL(*storage_mock, alloc_mail_object()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
-
+  storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -177,7 +177,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(false));
   librmb::RadosConfig default_config;
   EXPECT_CALL(*storage_mock, get_rados_config()).WillRepeatedly(Return(&default_config));
@@ -188,7 +188,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
 
   EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
-
+  storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -271,7 +271,7 @@ TEST_F(StorageTest, write_op_fails) {
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(true));
   librmb::RadosConfig default_config;
@@ -281,7 +281,7 @@ TEST_F(StorageTest, write_op_fails) {
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
   EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
   EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
-
+  storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -403,6 +403,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   EXPECT_CALL(*storage_mock_copy, get_rados_config()).WillRepeatedly(Return(&default_config));
   storage->s = storage_mock_copy;
+  storage->ns_mgr->set_storage(storage_mock_copy);
 
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));

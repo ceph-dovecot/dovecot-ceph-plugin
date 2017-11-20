@@ -33,6 +33,7 @@ extern "C" {
 
 #include "../librmb/rados-cluster-impl.h"
 #include "../librmb/rados-storage-impl.h"
+#include "../librmb/rados-namespace-manager.h"
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
@@ -52,6 +53,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->storage.pool = pool;
   storage->cluster = new librmb::RadosClusterImpl();
   storage->s = new librmb::RadosStorageImpl(storage->cluster);
+  storage->ns_mgr = new librmb::RadosNamespaceManager(storage->s);
 
   FUNC_END();
   return &storage->storage;
@@ -90,6 +92,9 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
   storage->cluster->deinit();
   delete storage->cluster;
   storage->cluster = nullptr;
+
+  delete storage->ns_mgr;
+  storage->ns_mgr = nullptr;
 
   index_storage_destroy(_storage);
 
@@ -250,16 +255,32 @@ int read_plugin_configuration(struct mailbox *box) {
 
 int rbox_open_rados_connection(struct mailbox *box) {
   FUNC_START();
+  int ret = -1;
 
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   librmb::RadosStorage *rados_storage = mbox->storage->s;
-  std::string ns(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
+  std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
+
   // initialize storage with plugin conifguration
   read_plugin_configuration(box);
-  int ret = rados_storage->open_connection(rados_storage->get_rados_config()->get_pool_name(), ns);
-  FUNC_END();
+  std::string ns;
+  ret = rados_storage->open_connection(rados_storage->get_rados_config()->get_pool_name());
+  if (ret == -1) {
+    return ret;
+  }
 
+  if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
+    // create new unique namespace
+    guid_128_t namespace_guid;
+    guid_128_generate(namespace_guid);
+    ns = guid_128_to_string(namespace_guid);
+    ret = mbox->storage->ns_mgr->add_namespace_entry(uid, ns) ? 0 : -1;
+  }
+  if (ret >= 0) {
+    rados_storage->set_namespace(ns);
+  }
+  FUNC_END();
   return ret;
 }
 

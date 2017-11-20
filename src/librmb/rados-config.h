@@ -35,9 +35,14 @@ class RadosConfig {
   std::string get_pool_name() { return config[pool_name]; }
   bool is_update_immutable() { return config[update_immutable].compare("true") == 0; }
 
+  bool is_generated_namespace() { return config[generate_namespace].compare("true") == 0; }
+
   void update_metadata(std::string &key, const char *value_);
   bool is_config_valid() { return is_valid; }
   void set_config_valid(bool is_valid_) { this->is_valid = is_valid_; }
+
+  std::string get_key_prefix_keywords() { return "k"; }
+  void set_generated_namespace(bool value_) { config[generate_namespace] = value_ ? "true" : "false"; }
 
  private:
   bool string_contains_key(std::string &str, enum rbox_metadata_key key);
@@ -48,6 +53,7 @@ class RadosConfig {
   std::string pool_name;
   std::string update_immutable;
   std::string immutable_metadata;
+  std::string generate_namespace;
   bool is_valid;
 };
 

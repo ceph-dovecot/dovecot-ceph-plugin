@@ -23,7 +23,8 @@ headers = \
 	rados-util.h \
 	rados-metadata.h \
 	rados-types.h \
-	rados-config.h
+	rados-config.h \
+	rados-namespace-manager.h
 
 librmb_la_SOURCES = \
     $(headers) \
@@ -32,7 +33,8 @@ librmb_la_SOURCES = \
 	rados-dictionary-impl.cpp \
 	rados-mail-object.cpp \
 	rados-util.cpp \
-	rados-config.cpp
+	rados-config.cpp \
+	rados-namespace-manager.cpp
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)

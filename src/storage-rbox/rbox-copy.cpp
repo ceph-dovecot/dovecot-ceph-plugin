@@ -133,8 +133,20 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   struct mailbox *dest_mbox = ctx->transaction->box;
 
-  const char *ns_src_mail = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
-  const char *ns_dest_mail = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
+  const char *ns_src_mail1 = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username : "";
+  const char *ns_dest_mail1 = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username : "";
+
+  std::string ns_src;
+  if (!r_storage->ns_mgr->lookup_key(ns_src_mail1, &ns_src)) {
+    i_error("not initialized : ns_src");
+    return -1;
+  }
+
+  std::string ns_dest;
+  if (!r_storage->ns_mgr->lookup_key(ns_dest_mail1, &ns_dest)) {
+    i_error("not_initialized : ns_dest");
+    return -1;
+  }
 
   int ret_val = 0;
 
@@ -160,7 +172,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       set_mailbox_metadata(ctx, &metadata_update);
 
-      if (!r_storage->s->copy(src_oid, ns_src_mail, dest_oid, ns_dest_mail, metadata_update)) {
+      if (!r_storage->s->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update)) {
         FUNC_END_RET("ret == -1, rados_storage->copy failed");
         return -1;
       }
@@ -180,13 +192,13 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       array_append(&rmailbox->moved_items, &item, 1);
 
       bool delete_source = true;
-      if (!r_storage->s->move(src_oid, ns_src_mail, dest_oid, ns_dest_mail, metadata_update, delete_source)) {
+      if (!r_storage->s->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source)) {
         FUNC_END_RET("ret == -1, rados_storage->move failed");
         return -1;
       }
 
-      i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src_mail, src_oid.c_str(),
-              ns_dest_mail);
+      i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(),
+              src_oid.c_str(), ns_dest.c_str());
     }
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     if (ctx->dest_mail != NULL) {

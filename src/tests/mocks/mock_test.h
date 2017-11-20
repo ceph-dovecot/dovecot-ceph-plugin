@@ -42,7 +42,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD4(aio_operate, int(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
-  MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
+  MOCK_METHOD1(open_connection, int(const std::string &poolname));
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMailObject *> &object_list));

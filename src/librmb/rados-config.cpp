@@ -15,12 +15,13 @@ RadosConfig::RadosConfig() {
   mutable_metadata = "rbox_mutable_metadata";
   immutable_metadata = "rbox_immutable_metadata";
   update_immutable = "rbox_update_immutable";
+  generate_namespace = "rbox_generate_namespace";
 
   config[pool_name] = "mail_storage";
   config[update_immutable] = "false";
   config[mutable_metadata] = set_default_mutable_attributes();
   config[immutable_metadata] = set_default_immutable_attributes();
-
+  config[generate_namespace] = "false";
   is_valid = false;
 }
 
