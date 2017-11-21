@@ -316,7 +316,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         FUNC_END_RET("ret == -1");
         return -1;
       } else {
-        i_error("error code: %d", size_r);
+        i_error("reading mail return code: %d, oid: %s", size_r, rmail->mail_object->get_oid().c_str());
         FUNC_END_RET("ret == -1");
         return -1;
       }
