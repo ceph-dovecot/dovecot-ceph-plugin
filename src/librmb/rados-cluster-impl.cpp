@@ -33,7 +33,6 @@ const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
 
 RadosClusterImpl::RadosClusterImpl() {
-  // librados::Rados RadosClusterImpl::cluster;
   cluster_ref_count = 0;
   connected = false;
 }
@@ -44,6 +43,8 @@ int RadosClusterImpl::init() {
   int ret = 0;
   if (cluster_ref_count == 0) {
     ret = cluster.init(nullptr);
+
+    cluster.conf_set("dovecot generate namespace", "false");
 
     if (ret == 0) {
       ret = cluster.conf_parse_env(nullptr);
@@ -76,7 +77,7 @@ int RadosClusterImpl::init() {
   return ret;
 }
 
-bool RadosClusterImpl::is_connected() { return connected; }
+bool RadosClusterImpl::is_connected() { return this->connected; }
 
 int RadosClusterImpl::connect() {
   int ret = 0;

@@ -1,24 +1,28 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-namespace-manager.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 17, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
-
 #ifndef SRC_LIBRMB_RADOS_NAMESPACE_MANAGER_H_
 #define SRC_LIBRMB_RADOS_NAMESPACE_MANAGER_H_
 
 #include <map>
 #include <string>
 #include "rados-storage.h"
-
+#include "rados-dovecot-ceph-cfg.h"
 namespace librmb {
 
 class RadosNamespaceManager {
  public:
-  RadosNamespaceManager(RadosStorage *storage_) {
+  RadosNamespaceManager(RadosStorage *storage_, RadosDovecotCephCfg *config_) {
     this->storage = storage_;
     this->oid_suffix = "_namespace";
+    this->config = config_;
   }
   virtual ~RadosNamespaceManager();
   void set_storage(RadosStorage *storage_) { this->storage = storage_; }
@@ -30,6 +34,7 @@ class RadosNamespaceManager {
   std::map<std::string, std::string> cache;
   RadosStorage *storage;
   std::string oid_suffix;
+  RadosDovecotCephCfg *config;
 };
 
 } /* namespace librmb */

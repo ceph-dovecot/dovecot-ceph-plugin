@@ -55,26 +55,29 @@ class RadosStorageImpl : public RadosStorage {
 
   bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list);
 
-  int read_mail(librados::bufferlist *buffer, const std::string &oid);
+  int read_mail(const std::string &oid, librados::bufferlist *buffer);
   bool update_metadata(std::string oid, std::list<RadosMetadata> &to_update);
   bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update, bool delete_source);
   bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update);
 
+  int save_mail(const std::string &oid, librados::bufferlist &bufferlist);
   bool save_mail(RadosMailObject *mail, bool &save_async);
   librmb::RadosMailObject *alloc_mail_object();
   void free_mail_object(librmb::RadosMailObject *mail);
-  RadosConfig *get_rados_config() { return rados_config; }
+  //  RadosConfig *get_rados_config() { return rados_config; }
   int update_extended_metadata(std::string &oid, RadosMetadata *metadata);
   int remove_extended_metadata(std::string &oid, std::string &key);
+  int load_extended_metadata(std::string &oid, std::set<std::string> &keys,
+                             std::map<std::string, ceph::bufferlist> *metadata);
 
  private:
   RadosCluster *cluster;
   int max_write_size;
   std::string nspace;
   librados::IoCtx io_ctx;
-  RadosConfig *rados_config;
+  // RadosConfig *rados_config;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };

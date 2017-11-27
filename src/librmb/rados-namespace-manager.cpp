@@ -1,10 +1,13 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-namespace-manager.cpp
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 17, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
-
 #include "rados-namespace-manager.h"
 
 #include <rados/librados.hpp>
@@ -15,16 +18,18 @@ RadosNamespaceManager::~RadosNamespaceManager() {
 }
 
 bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
+  std::string mail_namespace;
+
   if (uid.empty()) {
     *value = uid;
     return true;
   }
 
-  if (!storage->get_rados_config()->is_config_valid()) {
+  if (!config->is_config_valid()) {
     return false;
   }
 
-  if (!storage->get_rados_config()->is_generated_namespace()) {
+  if (!config->is_generated_namespace()) {
     *value = uid;
     return true;
   }
@@ -34,38 +39,46 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
     return true;
   }
 
-  std::set<string> keys;
-  keys.insert(uid);
+  oid_suffix = config->get_ns_suffix();
+
   ceph::bufferlist bl;
   std::string oid = uid + oid_suffix;
-  int read_len = 4194304;
+  bool retval = false;
 
-  int err = storage->get_io_ctx().read(oid, bl, read_len, 0);
-  if (err < 0) {
-    return false;
+  // temporarily set storage namespace to config namespace
+  mail_namespace = storage->get_namespace();
+  storage->set_namespace(config->get_ns_cfg());
+  int err = storage->read_mail(oid, &bl);
+  if (err >= 0 && !bl.to_str().empty()) {
+    *value = bl.to_str();
+    cache[uid] = *value;
+    retval = true;
   }
-  if (bl.to_str().empty()) {
-    return false;
-  }
-
-  *value = bl.to_str();
-  cache[uid] = *value;
-  return true;
+  // reset namespace
+  storage->set_namespace(mail_namespace);
+  return retval;
 }
 
 bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string value) {
-  if (!storage->get_rados_config()->is_config_valid()) {
+  std::string mail_namespace;
+  if (!config->is_config_valid()) {
     return false;
   }
+  // temporarily set storage namespace to config namespace
+  mail_namespace = storage->get_namespace();
+  storage->set_namespace(config->get_ns_cfg());
 
   std::string oid = uid + oid_suffix;
   ceph::bufferlist bl;
   bl.append(value);
-  if (storage->get_io_ctx().write_full(oid, bl) != 0) {
-    return false;
+  bool retval = false;
+  if (storage->save_mail(oid, bl) >= 0) {
+    cache[uid] = value;
+    retval = true;
   }
-  cache[uid] = value;
-  return true;
+  // reset namespace
+  storage->set_namespace(mail_namespace);
+  return retval;
 }
 
 } /* namespace librmb */

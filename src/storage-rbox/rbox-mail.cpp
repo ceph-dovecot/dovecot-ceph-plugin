@@ -307,7 +307,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     _mail->transaction->stats.open_lookup_count++;
 
     librados::bufferlist mail_data_bl;
-    size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
+    size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), &mail_data_bl);
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
         i_debug("Mail not found. %s, ns='%s'", rmail->mail_object->get_oid().c_str(),

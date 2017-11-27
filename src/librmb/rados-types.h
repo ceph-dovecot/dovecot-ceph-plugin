@@ -13,7 +13,6 @@
 #define SRC_LIBRMB_RADOS_TYPES_H_
 
 namespace librmb {
-
 #define GUID_128_SIZE 16
 
 enum rbox_metadata_key {

@@ -13,12 +13,12 @@
 #include <rados/librados.hpp>
 
 #include "../../librmb/rados-cluster-impl.h"
+#include "../../librmb/rados-dovecot-config.h"
 #include "../../librmb/rados-storage-impl.h"
 #include "mock_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "rados-util.h"
-#include "rados-config.h"
 #include "rados-types.h"
 
 using ::testing::AtLeast;

@@ -18,7 +18,6 @@
 #include <rados/librados.hpp>
 
 #include "rados-cluster.h"
-
 namespace librmb {
 
 class RadosClusterImpl : public RadosCluster {

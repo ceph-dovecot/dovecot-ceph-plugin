@@ -5,7 +5,7 @@
  *      Author: jan
  */
 
-#include "rados-config.h"
+#include "rados-dovecot-config.h"
 
 namespace librmb {
 
@@ -16,12 +16,14 @@ RadosConfig::RadosConfig() {
   immutable_metadata = "rbox_immutable_metadata";
   update_immutable = "rbox_update_immutable";
   generate_namespace = "rbox_generate_namespace";
+  rbox_cfg_object_name = "rbox_cfg_object_name";
 
   config[pool_name] = "mail_storage";
   config[update_immutable] = "false";
   config[mutable_metadata] = set_default_mutable_attributes();
   config[immutable_metadata] = set_default_immutable_attributes();
   config[generate_namespace] = "false";
+  config[rbox_cfg_object_name] = "rbox_cfg";
   is_valid = false;
 }
 

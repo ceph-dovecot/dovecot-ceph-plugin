@@ -113,8 +113,8 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
                                                 guid_128_to_string(dest_mailbox->mailbox_guid));
     metadata_update->push_back(metadata_mailbox_guid);
 
-    if (r_storage->s->get_rados_config()->is_update_immutable()) {
-      if (r_storage->s->get_rados_config()->is_immutable_metadata(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
+    if (r_storage->config->is_update_immutable()) {
+      if (r_storage->config->is_immutable_metadata(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
         // updates the plain text mailbox name
         librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
         metadata_update->push_back(metadata_mbn);
@@ -141,12 +141,13 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     i_error("not initialized : ns_src");
     return -1;
   }
-
   std::string ns_dest;
   if (!r_storage->ns_mgr->lookup_key(ns_dest_mail1, &ns_dest)) {
     i_error("not_initialized : ns_dest");
     return -1;
   }
+
+  i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 
   int ret_val = 0;
 

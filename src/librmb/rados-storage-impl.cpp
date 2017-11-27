@@ -35,10 +35,9 @@ const char *RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
 RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   cluster = _cluster;
   max_write_size = 10;
-  rados_config = new RadosConfig();
 }
 
-RadosStorageImpl::~RadosStorageImpl() { delete rados_config; }
+RadosStorageImpl::~RadosStorageImpl() {}
 
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,
@@ -79,16 +78,17 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
 
   return ret_val;
 }
+int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &bufferlist) {
+  return get_io_ctx().write_full(oid, bufferlist);
+}
 
-int RadosStorageImpl::read_mail(librados::bufferlist *buffer, const std::string &oid) {
+int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *buffer) {
   int ret = 0;
   if (!cluster->is_connected()) {
     return -1;
   }
-
   size_t max = INT_MAX;
-  ret = get_io_ctx().read(oid, *buffer, max, 0);
-  return ret;
+  return get_io_ctx().read(oid, *buffer, max, 0);
 }
 
 int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
@@ -128,6 +128,14 @@ int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &ke
   keys.insert(key);
   return get_io_ctx().omap_rm_keys(oid, keys);
 }
+int RadosStorageImpl::load_extended_metadata(std::string &oid, std::set<std::string> &keys,
+                                             std::map<std::string, ceph::bufferlist> *metadata) {
+  if (!cluster->is_connected()) {
+    return -1;
+  }
+  return get_io_ctx().omap_get_vals_by_keys(oid, keys, metadata);
+}
+
 int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
   if (!cluster->is_connected()) {
     return -1;

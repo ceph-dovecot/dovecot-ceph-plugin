@@ -23,8 +23,11 @@ headers = \
 	rados-util.h \
 	rados-metadata.h \
 	rados-types.h \
-	rados-config.h \
-	rados-namespace-manager.h
+	rados-dovecot-config.h \
+	rados-namespace-manager.h \
+	rados-dovecot-ceph-cfg.h \
+	rados-dovecot-ceph-cfg-impl.h \
+	rados-ceph-config.h 
 
 librmb_la_SOURCES = \
     $(headers) \
@@ -33,8 +36,11 @@ librmb_la_SOURCES = \
 	rados-dictionary-impl.cpp \
 	rados-mail-object.cpp \
 	rados-util.cpp \
-	rados-config.cpp \
-	rados-namespace-manager.cpp
+	rados-dovecot-config.cpp \
+	rados-namespace-manager.cpp\
+	rados-ceph-config.cpp \
+	rados-dovecot-ceph-cfg-impl.cpp
+	
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)

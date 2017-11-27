@@ -56,7 +56,7 @@ void dict_rados_plugin_deinit(void) {
   if (--plugin_ref_count > 0) {
     return;
   }
-  i_debug("%s v%s dictionary shuting down", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION);
+  //  i_debug("%s v%s dictionary shuting down", DOVECOT_CEPH_PLUGIN_PACKAGE_NAME, DOVECOT_CEPH_PLUGIN_PACKAGE_VERSION);
 
   dict_driver_unregister(&dict_driver_rados);
 }

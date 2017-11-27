@@ -5,8 +5,8 @@
  *      Author: jan
  */
 
-#ifndef SRC_LIBRMB_RADOS_CONFIG_H_
-#define SRC_LIBRMB_RADOS_CONFIG_H_
+#ifndef SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_
+#define SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_
 
 #include <map>
 #include "rados-types.h"
@@ -44,6 +44,8 @@ class RadosConfig {
   std::string get_key_prefix_keywords() { return "k"; }
   void set_generated_namespace(bool value_) { config[generate_namespace] = value_ ? "true" : "false"; }
 
+  std::string get_rbox_cfg_object_name() { return config[rbox_cfg_object_name]; }
+
  private:
   bool string_contains_key(std::string &str, enum rbox_metadata_key key);
 
@@ -54,9 +56,10 @@ class RadosConfig {
   std::string update_immutable;
   std::string immutable_metadata;
   std::string generate_namespace;
+  std::string rbox_cfg_object_name;
   bool is_valid;
 };
 
 } /* namespace librmb */
 
-#endif /* SRC_LIBRMB_RADOS_CONFIG_H_ */
+#endif /* SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_ */

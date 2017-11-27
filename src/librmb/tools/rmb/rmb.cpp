@@ -33,6 +33,8 @@
 #include "mailbox_tools.h"
 #include "rados-util.h"
 #include "rados-namespace-manager.h"
+#include "rados-dovecot-ceph-cfg.h"
+#include "rados-dovecot-ceph-cfg-impl.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -209,7 +211,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           (*it_mail)->set_mail_buffer(mail_buffer);
 
           (*it_mail)->set_mail_size(size_r);
-          int read = storage->read_mail(&buffer, oid);
+          int read = storage->read_mail(oid, &buffer);
           if (read > 0) {
             memcpy(mail_buffer, buffer.to_str().c_str(), read + 1);
             if (tools.save_mail((*it_mail)) < 0) {
@@ -386,10 +388,10 @@ int main(int argc, const char **argv) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
   }
-
-  librmb::RadosNamespaceManager mgr(&storage);
-  storage.get_rados_config()->set_generated_namespace(true);
-  storage.get_rados_config()->set_config_valid(true);
+  librmb::RadosDovecotCephCfgImpl cfg(&storage);
+  librmb::RadosNamespaceManager mgr(&storage, &cfg);
+  cfg.set_generated_namespace(true);
+  cfg.set_config_valid(true);
 
   std::string ns;
   if (mgr.lookup_key(uid, &ns)) {
@@ -397,7 +399,7 @@ int main(int argc, const char **argv) {
     storage.set_namespace(ns);
   } else {
     // use
-    storage.get_rados_config()->set_generated_namespace(false);
+    cfg.set_generated_namespace(false);
     if (!mgr.lookup_key(uid, &ns)) {
       std::cout << " error unable to determine namespace" << std::endl;
       return -1;

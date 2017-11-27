@@ -185,12 +185,12 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
-        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
+        if (r_storage->config->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
           update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
         }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
-        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+        if (r_storage->config->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           // sync_rec.keyword_idx;
           if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false) < 0) {
             return -1;
@@ -198,7 +198,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
-        if (r_storage->s->get_rados_config()->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+        if (r_storage->config->is_mutable_metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           /* FIXME: should be bother calling sync_notify()? */
           // sync_rec.keyword_idx
           if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true) < 0) {

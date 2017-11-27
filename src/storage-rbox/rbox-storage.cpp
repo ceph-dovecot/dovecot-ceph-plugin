@@ -34,6 +34,7 @@ extern "C" {
 #include "../librmb/rados-cluster-impl.h"
 #include "../librmb/rados-storage-impl.h"
 #include "../librmb/rados-namespace-manager.h"
+#include "../librmb/rados-dovecot-ceph-cfg-impl.h"
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
@@ -53,7 +54,8 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->storage.pool = pool;
   storage->cluster = new librmb::RadosClusterImpl();
   storage->s = new librmb::RadosStorageImpl(storage->cluster);
-  storage->ns_mgr = new librmb::RadosNamespaceManager(storage->s);
+  storage->config = new librmb::RadosDovecotCephCfgImpl(storage->s);
+  storage->ns_mgr = new librmb::RadosNamespaceManager(storage->s, storage->config);
 
   FUNC_END();
   return &storage->storage;
@@ -95,6 +97,9 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
 
   delete storage->ns_mgr;
   storage->ns_mgr = nullptr;
+
+  delete storage->config;
+  storage->config = nullptr;
 
   index_storage_destroy(_storage);
 
@@ -240,14 +245,14 @@ int read_plugin_configuration(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
-  if (!storage->s->get_rados_config()->is_config_valid()) {
-    std::map<std::string, std::string> *map = storage->s->get_rados_config()->get_config();
+
+  if (!storage->config->is_config_valid()) {
+    std::map<std::string, std::string> *map = storage->config->get_config();
     for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); it++) {
       std::string setting = it->first;
-      storage->s->get_rados_config()->update_metadata(
-          setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
+      storage->config->update_metadata(setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
     }
-    storage->s->get_rados_config()->set_config_valid(true);
+    storage->config->set_config_valid(true);
   }
   FUNC_END();
   return 0;
@@ -260,16 +265,25 @@ int rbox_open_rados_connection(struct mailbox *box) {
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   librmb::RadosStorage *rados_storage = mbox->storage->s;
+
   std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
 
-  // initialize storage with plugin conifguration
+  // initialize storage with plugin configuration
   read_plugin_configuration(box);
-  std::string ns;
-  ret = rados_storage->open_connection(rados_storage->get_rados_config()->get_pool_name());
+  ret = rados_storage->open_connection(mbox->storage->config->get_pool_name());
   if (ret == -1) {
     return ret;
   }
+  i_debug("connection open, loading rados %lu", mbox->storage->config);
+  // load rados configuration
+  ret = mbox->storage->config->load_rados_config();
+  if (ret < 0) {
+    i_error("unable to read rados_config return value : %d", ret);
+    return ret;
+  }
+  i_debug("ok, config loaded");
 
+  std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
     // create new unique namespace
     guid_128_t namespace_guid;
@@ -277,8 +291,12 @@ int rbox_open_rados_connection(struct mailbox *box) {
     ns = guid_128_to_string(namespace_guid);
     ret = mbox->storage->ns_mgr->add_namespace_entry(uid, ns) ? 0 : -1;
   }
+  i_debug("ns_mgr->lookup_key for %s:%s ret=%d", uid.c_str(), ns.c_str(), ret);
+
   if (ret >= 0) {
     rados_storage->set_namespace(ns);
+  } else {
+    i_error("error namespace not set: for uid %s error code is: %d", uid.c_str(), ret);
   }
   FUNC_END();
   return ret;
