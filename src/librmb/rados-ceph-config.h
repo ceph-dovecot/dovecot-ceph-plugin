@@ -12,6 +12,7 @@
 #define SRC_LIBRMB_RADOS_CEPH_CONFIG_H_
 
 #include "rados-storage.h"
+#include "rados-ceph-json-config.h"
 
 namespace librmb {
 
@@ -22,28 +23,23 @@ class RadosCephConfig {
 
   // load settings from rados cfg_object
   int load_cfg();
+  int save_cfg();
 
   void set_storage(RadosStorage *storage_) { storage = storage_; }
+  bool is_config_valid() { return config.is_valid(); }
+  void set_config_valid(bool valid_) { config.set_valid(valid_); }
+  bool is_generated_namespace() { return !config.get_generated_namespace().compare("true"); }
+  void set_generated_namespace(bool value_) { config.set_generated_namespace(value_ ? "true" : "false"); }
+  void set_ns_cfg(std::string &ns_) { config.set_ns_cfg(ns_); }
+  std::string get_ns_cfg() { return config.get_ns_cfg(); }
+  void set_ns_suffix(std::string &ns_suffix_) { config.set_ns_suffix(ns_suffix_); }
+  std::string get_ns_suffix() { return config.get_ns_suffix(); }
+  void set_cfg_object_name(std::string cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
 
-  bool is_config_valid() { return is_valid; }
-  void set_config_valid(bool valid_) { is_valid = valid_; }
-  bool is_generated_namespace() { return !generated_namespace.compare("true"); }
-  void set_generated_namespace(bool value_) { generated_namespace = value_ ? "true" : "false"; }
-  void set_ns_cfg(std::string &ns_) { ns_cfg = ns_; }
-  std::string get_ns_cfg() { return ns_cfg; }
-  void set_ns_suffix(std::string &ns_suffix_) { ns_suffix = ns_suffix_; }
-  std::string get_ns_suffix() { return ns_suffix; }
-  void set_cfg_object_name(std::string cfg_object_name_) { cfg_object_name = cfg_object_name_; }
-  void create_json(ceph::bufferlist *buffer);
-  bool load_json(ceph::bufferlist *buffer);
+  RadosCephJsonConfig *get_config() { return &config; }
 
  private:
-  std::string cfg_object_name;
-  bool is_valid;
-  std::string generated_namespace;
-  std::string ns_cfg;
-  std::string ns_suffix;
-
+  RadosCephJsonConfig config;
   RadosStorage *storage;
 };
 

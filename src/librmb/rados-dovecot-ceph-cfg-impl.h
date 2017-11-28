@@ -57,7 +57,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   int load_rados_config() {
     return dovecot_cfg->is_config_valid() ? rados_cfg->load_cfg() : -1;
   }
-
+  int save_default_rados_config();
   void set_generated_namespace(bool value_) { rados_cfg->set_generated_namespace(value_); }
   void set_ns_cfg(std::string &ns) { rados_cfg->set_ns_cfg(ns); }
   std::string get_ns_cfg() { return rados_cfg->get_ns_cfg(); }

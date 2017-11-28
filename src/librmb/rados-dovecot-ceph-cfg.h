@@ -47,6 +47,7 @@ class RadosDovecotCephCfg {
   // ceph configuration
   virtual void set_storage(RadosStorage *storage) = 0;
   virtual int load_rados_config() = 0;
+  virtual int save_default_rados_config() = 0;
   virtual void set_generated_namespace(bool value_) = 0;
   virtual bool is_generated_namespace() = 0;
   virtual void set_ns_cfg(std::string &ns) = 0;

@@ -23,4 +23,10 @@ RadosDovecotCephCfgImpl::~RadosDovecotCephCfgImpl() {
   delete rados_cfg;
 }
 
+int RadosDovecotCephCfgImpl::save_default_rados_config() {
+  bool valid = rados_cfg->save_cfg() == 0 ? true : false;
+  rados_cfg->set_config_valid(valid);
+  return valid ? 0 : -1;
+}
+
 } /* namespace librmb */

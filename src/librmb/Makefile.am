@@ -27,7 +27,8 @@ headers = \
 	rados-namespace-manager.h \
 	rados-dovecot-ceph-cfg.h \
 	rados-dovecot-ceph-cfg-impl.h \
-	rados-ceph-config.h 
+	rados-ceph-config.h \
+	rados-ceph-json-config.h
 
 librmb_la_SOURCES = \
     $(headers) \
@@ -39,7 +40,8 @@ librmb_la_SOURCES = \
 	rados-dovecot-config.cpp \
 	rados-namespace-manager.cpp\
 	rados-ceph-config.cpp \
-	rados-dovecot-ceph-cfg-impl.cpp
+	rados-dovecot-ceph-cfg-impl.cpp \
+	rados-ceph-json-config.cpp
 	
 AM_LDFLAGS = -ljansson
 

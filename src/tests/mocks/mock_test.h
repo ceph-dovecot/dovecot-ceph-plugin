@@ -120,6 +120,8 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   // ceph configuration
   MOCK_METHOD1(set_storage, void(RadosStorage *storage));
   MOCK_METHOD0(load_rados_config, int());
+  MOCK_METHOD0(save_default_rados_config, int());
+
   MOCK_METHOD1(set_generated_namespace, void(bool value_));
   MOCK_METHOD0(is_generated_namespace, bool());
   MOCK_METHOD1(set_ns_cfg, void(std::string &ns));

@@ -276,6 +276,9 @@ int rbox_open_rados_connection(struct mailbox *box) {
   }
   // load rados configuration
   ret = mbox->storage->config->load_rados_config();
+  if (ret == -ENOENT) {  // config does not exist.
+    ret = mbox->storage->config->save_default_rados_config();
+  }
   if (ret < 0) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
