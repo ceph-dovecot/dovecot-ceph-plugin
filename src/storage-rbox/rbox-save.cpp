@@ -493,6 +493,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     // delete index entry and delete object if it exist
     // remove entry from index is not successful in rbox_transaction_commit_post
     // clean up will wait for object operation to complete
+    i_error("rados wait_for_rados_operation failed: ");
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }

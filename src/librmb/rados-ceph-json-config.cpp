@@ -39,8 +39,8 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
     json_t *ns_suffix_ = json_object_get(root, key_ns_suffix.c_str());
     ns_suffix = json_string_value(ns_suffix_);
     ret = valid = true;
+    json_decref(root);
   }
-  json_decref(root);
 
   return ret;
 }
