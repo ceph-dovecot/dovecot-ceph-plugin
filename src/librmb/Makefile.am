@@ -9,7 +9,7 @@
 SUBDIRS = . tools
 
 lib_LTLIBRARIES = \
-	librmb.la
+	librmb.la 
 
 headers = \
 	rados-cluster.h \
@@ -41,6 +41,7 @@ librmb_la_SOURCES = \
 	rados-ceph-config.cpp \
 	rados-dovecot-ceph-cfg-impl.cpp
 	
+AM_LDFLAGS = -ljansson
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)

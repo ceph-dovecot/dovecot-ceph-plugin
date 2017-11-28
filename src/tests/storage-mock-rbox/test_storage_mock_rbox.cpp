@@ -192,7 +192,16 @@ TEST_F(StorageTest, exec_write_op_fails) {
 
   EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
   storage->ns_mgr->set_storage(storage_mock);
-  storage->config->set_storage(storage_mock);
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return("mail_storage"));
+  EXPECT_CALL(*cfg_mock, load_rados_config()).WillRepeatedly(Return(0));
+  EXPECT_CALL(*cfg_mock, is_generated_namespace()).WillRepeatedly(Return(false));
+
+  storage->config = cfg_mock;
+  storage->ns_mgr->set_config(storage->config);
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -285,9 +294,18 @@ TEST_F(StorageTest, write_op_fails) {
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
   EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+
   EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
   storage->ns_mgr->set_storage(storage_mock);
-  storage->config->set_storage(storage_mock);
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return("mail_storage"));
+  EXPECT_CALL(*cfg_mock, load_rados_config()).WillRepeatedly(Return(0));
+
+  storage->config = cfg_mock;
+  // storage->config->set_storage(storage_mock);
 
   storage->s = storage_mock;
   ssize_t ret;

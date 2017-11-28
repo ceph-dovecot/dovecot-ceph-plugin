@@ -26,6 +26,7 @@ class RadosNamespaceManager {
   }
   virtual ~RadosNamespaceManager();
   void set_storage(RadosStorage *storage_) { this->storage = storage_; }
+  void set_config(RadosDovecotCephCfg *config_) { config = config_; }
   void set_namespace_oid(std::string namespace_oid_) { this->oid_suffix = oid_suffix; }
   bool lookup_key(std::string uid, std::string *value);
   bool add_namespace_entry(std::string uid, std::string value);

@@ -62,7 +62,7 @@ class RadosStorageImpl : public RadosStorage {
   bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update);
 
-  int save_mail(const std::string &oid, librados::bufferlist &bufferlist);
+  int save_mail(const std::string &oid, librados::bufferlist &buffer);
   bool save_mail(RadosMailObject *mail, bool &save_async);
   librmb::RadosMailObject *alloc_mail_object();
   void free_mail_object(librmb::RadosMailObject *mail);

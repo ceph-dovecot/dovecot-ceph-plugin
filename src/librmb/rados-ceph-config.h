@@ -34,6 +34,8 @@ class RadosCephConfig {
   void set_ns_suffix(std::string &ns_suffix_) { ns_suffix = ns_suffix_; }
   std::string get_ns_suffix() { return ns_suffix; }
   void set_cfg_object_name(std::string cfg_object_name_) { cfg_object_name = cfg_object_name_; }
+  void create_json(ceph::bufferlist *buffer);
+  bool load_json(ceph::bufferlist *buffer);
 
  private:
   std::string cfg_object_name;

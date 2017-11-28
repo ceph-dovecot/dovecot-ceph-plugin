@@ -274,15 +274,12 @@ int rbox_open_rados_connection(struct mailbox *box) {
   if (ret == -1) {
     return ret;
   }
-  i_debug("connection open, loading rados %lu", mbox->storage->config);
   // load rados configuration
   ret = mbox->storage->config->load_rados_config();
   if (ret < 0) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
   }
-  i_debug("ok, config loaded");
-
   std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
     // create new unique namespace
@@ -291,8 +288,6 @@ int rbox_open_rados_connection(struct mailbox *box) {
     ns = guid_128_to_string(namespace_guid);
     ret = mbox->storage->ns_mgr->add_namespace_entry(uid, ns) ? 0 : -1;
   }
-  i_debug("ns_mgr->lookup_key for %s:%s ret=%d", uid.c_str(), ns.c_str(), ret);
-
   if (ret >= 0) {
     rados_storage->set_namespace(ns);
   } else {

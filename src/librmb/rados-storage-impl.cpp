@@ -78,12 +78,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer
 
   return ret_val;
 }
-int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &bufferlist) {
-  return get_io_ctx().write_full(oid, bufferlist);
+int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &buffer) {
+  return get_io_ctx().write_full(oid, buffer);
 }
 
 int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *buffer) {
-  int ret = 0;
   if (!cluster->is_connected()) {
     return -1;
   }
