@@ -50,7 +50,7 @@ extern "C" {
 #ifndef i_zero
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
-static const char *rbox_pool_name = "rbox_pool_name";
+static const char *rbox_pool_name = "rbox_pool_name@domain";
 
 static int set_user_env(struct mail_user *user, const char *val) {
   const char *const *envs;

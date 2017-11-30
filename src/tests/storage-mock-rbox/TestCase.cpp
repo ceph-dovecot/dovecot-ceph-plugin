@@ -57,7 +57,7 @@ std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
 pool_t StorageTest::s_test_pool = nullptr;
 
-static const char *username = "user-rbox-test";
+static const char *username = "user-rbox-test@domain";
 
 void StorageTest::SetUpTestCase() {
   // prepare Dovecot
