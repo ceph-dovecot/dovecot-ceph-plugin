@@ -346,7 +346,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   struct index_mail *imail = &mail->imail;
   struct index_mailbox_context *ibox =
       reinterpret_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
-  char *value;
+  char *value = NULL;
   string_t *str;
   uint32_t order;
 
