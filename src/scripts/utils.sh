@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # This script includes several utility functions.
 
 set -o errexit
@@ -192,9 +193,9 @@ copy_files() {
 		output=${output//\/\//\/}
 		if [ -f $file ] ; then
 			if ! is_excluded ${file##*/} ; then
-				echo "mkdir ${output%/*}"
+				#echo "mkdir ${output%/*}"
 				mkdir -p ${output%/*} || error_exit "could not create directory ${output%/*}"
-				echo "cp: $file -> $output"
+				#echo "cp: $file -> $output"
 				cp $file $output || error_exit "copy $file to $output failed"
 			fi
 		fi	
