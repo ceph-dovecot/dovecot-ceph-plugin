@@ -159,7 +159,7 @@ std::string SyncTest::uri;        // NOLINT
 struct ioloop *SyncTest::s_test_ioloop = nullptr;
 pool_t SyncTest::s_test_pool = nullptr;
 char *SyncTest::mail_home = NULL;
-static const char *username = "user-rbox-test";
+static const char *username = "user-rbox-test@domain";
 
 void SyncTest::SetUpTestCase() {
   // prepare Ceph
