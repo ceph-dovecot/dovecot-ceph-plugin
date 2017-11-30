@@ -2,14 +2,14 @@
 # This script includes several utility functions.
 
 set -o errexit
-set -o nounset
+#set -o nounset
 
 # globals
 
 # Lists of excluded files and directories
 declare -a excluded_files=("dovecot-acl-list" "subscriptions")
 declare -a excluded_file_wildcards=("dovecot-uidvalidity")
-declare -a excluded_directories=("storage" "alt-storage" "dbox-Mails")
+declare -a excluded_directories=("storage" "alt-storage" "dbox-Mails" "rbox-Mails")
 
 prog_name=$(basename $0)
 
@@ -23,6 +23,25 @@ error_exit()
 {
 	echo "${prog_name}: Error: ${1:-"Unknown Error"}" 1>&2
 	exit 1
+}
+
+# Tests if required environment variable exist
+#
+test_environment() {
+	if [ -n "$DOVECOT_HOME" ] && [ -d "$DOVECOT_HOME" ] ; then
+		echo "DOVECOT_HOME is set: $DOVECOT_HOME"
+	else 
+		error_exit "DOVECOT_HOME not set"
+	fi		
+}
+
+# Tests if string1 contains string2
+#
+# Parameter $1 string
+# Parameter $2 substring
+#
+string_contains() {
+	[ -z "${1##*$2*}" ]; 
 }
 
 # Returns true if the exclude lists contain the given name
@@ -78,30 +97,35 @@ is_excluded() {
 # 0  Selected command was executed successful.
 # >0 Command failed in some way
 #
-# Parameter $1 path to doveadm binary
-# Parameter $2 destination path
-# Parameter $3 user id
+# Parameter $1 destination path
+# Parameter $2 user id
+# Parameter $3 mail format
 #
 doveadm_sync() {
-	local bin_path="$1"
-	local dest_path="$2"
+	local bin_path="$DOVECOT_HOME/bin"
+	local dest_path="$1"
+	local user="$2"
+	local mail_format="$3"
 	
 	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
 	fi
 	
-	$bin_path/doveadm sync -u $3 rbox:$dest_path/$3:LAYOUT=fs
+	if [ "$mail_format" = "rbox" ] ; then
+		$bin_path/doveadm sync -u $user $mail_format:$dest_path/$user:LAYOUT=fs
+	else
+		$bin_path/doveadm sync -u $user $mail_format:$dest_path/$user
+	fi
 	echo $?	
 }
 
 # Calls doveadm user and returns the user's mail location
 #
-# Parameter $1 path to doveadm binary
-# Parameter $2 user id
+# Parameter $1 user id
 #
 get_user_mail_location() {
-	local bin_path="$1"
-	local user="$2"
+	local bin_path="$DOVECOT_HOME/bin"
+	local user="$1"
 	
 	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
@@ -113,6 +137,39 @@ get_user_mail_location() {
 	local path=${mail#*:}
 	#path=${path%/*}
 	echo "$path"
+}
+
+# Returns a list of all mailboxes of the given user
+#
+# Parameter $1 user id
+#
+get_mailbox_list() {
+	local bin_path="$DOVECOT_HOME/bin"
+	local user="$1"
+	
+	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+		error_exit "program path is empty or doesn't exist: $bin_path"								
+	fi
+	
+	local list=$($bin_path/doveadm mailbox list -u $user)
+	echo "$list"
+}
+
+# Deletes the given mailbox of the given user
+#
+# Parameter $1 user id
+# Parameter $2 mailbox
+#
+delete_mailbox() {
+	local bin_path="$DOVECOT_HOME/bin"
+	local user="$1"
+	local mailbox="$2"
+	
+	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+		error_exit "program path is empty or doesn't exist: $bin_path"								
+	fi
+	
+	$bin_path/doveadm mailbox delete -rsZ -u $user $mailbox &> /dev/null
 }
 
 # Copies files from one directory to another one
