@@ -266,7 +266,6 @@ int rbox_open_rados_connection(struct mailbox *box) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   librmb::RadosStorage *rados_storage = mbox->storage->s;
 
-  std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "");
 
   // initialize storage with plugin configuration
   read_plugin_configuration(box);
@@ -274,6 +273,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
   if (ret == -1) {
     return ret;
   }
+
   // load rados configuration
   ret = mbox->storage->config->load_rados_config();
   if (ret == -ENOENT) {  // config does not exist.
@@ -283,6 +283,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
   }
+  std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "public");
   std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
     // create new unique namespace

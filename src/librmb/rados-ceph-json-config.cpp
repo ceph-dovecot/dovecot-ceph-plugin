@@ -8,17 +8,18 @@
 #include "rados-ceph-json-config.h"
 #include <jansson.h>
 #include <string>
+#include <sstream>
 namespace librmb {
 RadosCephJsonConfig::RadosCephJsonConfig() {
   // set defaults.
-  cfg_object_name = "rbox_ns_cfg";
+  cfg_object_name = "rbox_cfg";
 
   key_generated_namespace = "generated_namespace";
   key_ns_cfg = "ns_cfg";
   key_ns_suffix = "ns_suffix";
 
   generated_namespace = "false";
-  ns_cfg = "rbox_cfg";
+  ns_cfg = "rbox_ns_cfg";
   ns_suffix = "_namespace";
   valid = false;
 }
@@ -56,5 +57,14 @@ bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
   buffer->append(s);
   json_decref(root);
   return true;
+}
+
+std::string RadosCephJsonConfig::to_string() {
+  std::ostringstream ss;
+  ss << "Configuration : " << cfg_object_name << std::endl;
+  ss << "  " << key_generated_namespace << "=" << generated_namespace << std::endl;
+  ss << "  " << key_ns_cfg << "=" << ns_cfg << std::endl;
+  ss << "  " << key_ns_suffix << "=" << ns_suffix << std::endl;
+  return ss.str();
 }
 } /* namespace librmb */

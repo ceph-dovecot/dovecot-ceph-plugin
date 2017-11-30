@@ -17,6 +17,7 @@ class RadosCephJsonConfig {
 
   bool from_json(librados::bufferlist* buffer);
   bool to_json(librados::bufferlist* buffer);
+  std::string to_string();
 
   const std::string& get_cfg_object_name() const { return cfg_object_name; }
 
@@ -37,6 +38,10 @@ class RadosCephJsonConfig {
   const std::string& get_ns_suffix() const { return ns_suffix; }
 
   void set_ns_suffix(const std::string& nsSuffix) { ns_suffix = nsSuffix; }
+
+  const std::string& get_key_generated_namespace() const { return key_generated_namespace; }
+  const std::string& get_key_ns_cfg() const { return key_ns_cfg; }
+  const std::string& get_key_ns_suffix() const { return key_ns_suffix; }
 
  private:
   std::string cfg_object_name;

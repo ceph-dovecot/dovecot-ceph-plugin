@@ -33,6 +33,7 @@ int RadosCephConfig::load_cfg() {
   if (ret < 0) {
     return ret;
   }
+
   return config.from_json(&buffer) ? 0 : -1;
 }
 

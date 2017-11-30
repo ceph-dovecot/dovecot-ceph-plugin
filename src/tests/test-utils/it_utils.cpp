@@ -11,7 +11,12 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "../mocks/mock_test.h"
 
+using ::testing::AtLeast;
+using ::testing::Return;
+using ::testing::_;
+using ::testing::Matcher;
 #pragma GCC diagnostic pop
 
 #if DOVECOT_PREREQ(2, 3)
@@ -54,6 +59,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   storage->s = storage_impl;
   storage->ns_mgr->set_storage(storage_impl);
   storage->config->set_storage(storage_impl);
+  storage->ns_mgr->set_config(storage->config);
   ItUtils::add_mail(save_ctx, input, box, trans);
 
   i_stream_unref(&input);

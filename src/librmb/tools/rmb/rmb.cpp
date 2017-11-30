@@ -63,7 +63,29 @@ static void dashes_to_underscores(const char *input, char *output) {
   }
   *o++ = '\0';
 }
+bool ceph_argparse_flag(std::vector<const char *> &args, std::vector<const char *>::iterator &i, ...) {
+  const char *first = *i;
+  char tmp[strlen(first) + 1];
+  dashes_to_underscores(first, tmp);
+  first = tmp;
+  va_list ap;
 
+  va_start(ap, i);
+  while (1) {
+    const char *a = va_arg(ap, char *);
+    if (a == NULL) {
+      va_end(ap);
+      return false;
+    }
+    char a2[strlen(a) + 1];
+    dashes_to_underscores(a, a2);
+    if (strcmp(a2, first) == 0) {
+      i = args.erase(i);
+      va_end(ap);
+      return true;
+    }
+  }
+}
 static int va_ceph_argparse_witharg(std::vector<const char *> *args, std::vector<const char *>::iterator *i,
                                     std::string *ret, std::ostream &oss, va_list ap) {
   const char *first = *(*i);
@@ -243,9 +265,7 @@ static bool check_connection_args(std::map<std::string, std::string> &opts) {
   if (opts.find("pool") == opts.end()) {
     return false;
   }
-  if (opts.find("namespace") == opts.end()) {
-    return false;
-  }
+
   return true;
 }
 static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
@@ -315,7 +335,8 @@ int main(int argc, const char **argv) {
   std::string sort_type;
   unsigned int idx = 0;
   std::vector<const char *>::iterator i;
-
+  bool is_config = false;
+  bool create_config = false;
   argv_to_vec(argc, argv, &args);
 
   for (i = args.begin(); i != args.end();) {
@@ -335,6 +356,14 @@ int main(int argc, const char **argv) {
       opts["set"] = val;
     } else if (ceph_argparse_witharg(&args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
       opts["sort"] = val;
+    } else if (ceph_argparse_flag(args, i, "-cfg", "--config", (char *)NULL)) {
+      is_config = true;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
+      opts["cfg_obj"] = val;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
+      opts["update"] = val;
+    } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)NULL)) {
+      create_config = true;
     } else {
       if (idx + 1 < args.size()) {
         xattr[args[idx]] = args[idx + 1];
@@ -345,9 +374,9 @@ int main(int argc, const char **argv) {
     }
   }
 
-  if (args.size() <= 0 && opts.size() <= 0) {
-    usage_exit();
-  }
+  //  if (args.size() <= 0 && opts.size() <= 0) {
+  //    usage_exit();
+  //  }
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -373,26 +402,83 @@ int main(int argc, const char **argv) {
     opts["pool"] = "mail_storage";
   }
 
-  if (opts.find("namespace") == opts.end()) {
-    usage_exit();
-  }
-
   if (!check_connection_args(opts)) {
     usage_exit();
   }
   std::string pool_name(opts["pool"]);
-  std::string uid(opts["namespace"]);
 
   int open_connection = storage.open_connection(pool_name);
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
     return -1;
   }
+
+  if (is_config) {
+    //   std::cout << "found cfg: " << opts["cfg_obj"] << " " << opts["update"] << " " << opts["ls"] << "\n";
+    bool has_update = opts.find("update") != opts.end();
+    bool has_ls = opts.find("ls") != opts.end();
+    if (has_update && has_ls) {
+      usage_exit();
+    }
+
+    librmb::RadosCephConfig ceph_cfg(&storage);
+    std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
+
+
+    ceph_cfg.set_cfg_object_name(obj_);
+    if (ceph_cfg.load_cfg() < 0) {
+      int ret = 0;
+      if (create_config) {
+        ceph_cfg.save_cfg();
+        std::cout << "config has been created" << std::endl;
+
+      } else {
+        std::cout << "loading config object failed " << std::endl;
+        ret = -1;
+      }
+      cluster.deinit();
+      return ret;
+    }
+    if (create_config) {
+      std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
+      cluster.deinit();
+      return -1;
+    }
+
+    if (has_ls) {
+      std::cout << ceph_cfg.get_config()->to_string() << std::endl;
+    } else if (has_update) {
+      std::cout << "updating value " << opts["update"] << std::endl;
+
+      int key_val_separator_idx = opts["update"].find("=");
+
+      if (key_val_separator_idx != std::string::npos) {
+        std::string key = opts["update"].substr(0, key_val_separator_idx);
+        std::string key_val = opts["update"].substr(key_val_separator_idx + 1, opts["update"].length() - 1);
+
+        std::cout << "updating key=" << key << " value=" << key_val << std::endl;
+        if (ceph_cfg.get_config()->get_key_generated_namespace().compare(key) == 0) {
+        } else if (ceph_cfg.get_config()->get_key_ns_cfg().compare(key) == 0) {
+        } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
+        } else {
+          std::cout << "ERROR: not a valid key: " << key << std::endl;
+          std::cout << ceph_cfg.get_config()->to_string() << std::endl;
+        }
+      }
+    }
+    cluster.deinit();
+    return 0;
+  }
+
   librmb::RadosDovecotCephCfgImpl cfg(&storage);
   librmb::RadosNamespaceManager mgr(&storage, &cfg);
   cfg.set_generated_namespace(true);
   cfg.set_config_valid(true);
-
+  if (opts.find("namespace") == opts.end()) {
+    cluster.deinit();
+    usage_exit();
+  }
+  std::string uid(opts["namespace"]);
   std::string ns;
   if (mgr.lookup_key(uid, &ns)) {
     std::cout << " generated ns _ " << ns << std::endl;
