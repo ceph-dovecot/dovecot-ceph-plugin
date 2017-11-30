@@ -58,7 +58,7 @@ std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
 pool_t StorageTest::s_test_pool = nullptr;
 
-static const char *username = "user-rbox-test";
+static const char *username = "user-rbox-test@localhost";
 
 void StorageTest::SetUpTestCase() {
   // prepare Dovecot
@@ -119,13 +119,13 @@ void StorageTest::SetUpTestCase() {
 
   settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home));
 
-#if DOVECOT_PREREQ(2, 3)
+/*#if DOVECOT_PREREQ(2, 3)
   // WORKAROUND: settings-parser.c settings_var_expand_info fails due to default value in postmaster_address
   const char *add = "0postmaster@1%d";
   struct mail_storage_settings *settings =
       const_cast<struct mail_storage_settings *>(mail_storage_service_user_get_mail_set(test_service_user));
   settings->postmaster_address = add;
-#endif
+#endif*/
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
 }
 
