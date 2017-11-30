@@ -51,7 +51,7 @@ extern "C" {
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 
-static const char *rbox_pool_name = "rbox_pool_name@domain";
+static const char *rbox_pool_name = "rbox_pool_name";
 
 static int set_user_env(struct mail_user *user, const char *val) {
   const char *const *envs;
@@ -159,7 +159,7 @@ std::string SyncTest::uri;        // NOLINT
 struct ioloop *SyncTest::s_test_ioloop = nullptr;
 pool_t SyncTest::s_test_pool = nullptr;
 char *SyncTest::mail_home = NULL;
-static const char *username = "user-rbox-test";
+static const char *username = "user-rbox-test@domain";
 
 void SyncTest::SetUpTestCase() {
   // prepare Ceph

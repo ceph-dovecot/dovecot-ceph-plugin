@@ -89,7 +89,9 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   // first call to open_connection will fail!
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(-1));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test@domain"))
+      .Times(AtLeast(1))
+      .WillOnce(Return(-1));
   librmb::RadosConfig default_config;
   EXPECT_CALL(*storage_mock, get_rados_config()).WillRepeatedly(Return(&default_config));
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
@@ -177,7 +179,9 @@ TEST_F(StorageTest, exec_write_op_fails) {
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test@domain"))
+      .Times(AtLeast(1))
+      .WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(false));
   librmb::RadosConfig default_config;
   EXPECT_CALL(*storage_mock, get_rados_config()).WillRepeatedly(Return(&default_config));
@@ -271,7 +275,9 @@ TEST_F(StorageTest, write_op_fails) {
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test")).Times(AtLeast(1)).WillOnce(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "user-rbox-test@domain"))
+      .Times(AtLeast(1))
+      .WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _)).Times(1).WillOnce(Return(true));
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(true));
   librmb::RadosConfig default_config;

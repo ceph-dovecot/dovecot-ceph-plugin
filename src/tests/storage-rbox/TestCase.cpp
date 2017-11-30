@@ -50,7 +50,7 @@ extern "C" {
 #ifndef i_zero
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
-static const char *rbox_pool_name = "rbox_pool_name@domain";
+static const char *rbox_pool_name = "rbox_pool_name";
 
 static int set_user_env(struct mail_user *user, const char *val) {
   const char *const *envs;
@@ -166,7 +166,7 @@ std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
 pool_t StorageTest::s_test_pool = nullptr;
 
-static const char *username = "user-rbox-test";
+static const char *username = "user-rbox-test@domain";
 
 void StorageTest::SetUpTestCase() {
   // prepare Ceph
