@@ -155,7 +155,7 @@ static void usage(std::ostream &out) {
          "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
          "   lspools  list pools\n "
          "\n"
-         "MAIL COMMANDS\n"
+         "\nMAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
          "           all list all mails and mailbox statistic\n"
          "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
@@ -167,8 +167,15 @@ static void usage(std::ostream &out) {
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "    sort    uid, recv_date, save_date, phy_size\n"
-         "MAILBOX COMMANDS\n"
+         "\nMAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
+         "\nCONFIGURATION COMMANDS\n"
+         "    -cfg -U key=value [-obj <objectname>] -yes-i-really-really-mean-it \n"
+         "                                          sets the configuration value\n"
+         "                                          e.g. generated_namespace=true|false\n"
+         "    -cfg -C [-obj <objectnam>]            create the default configuration\n"
+         "    -cfg ls - [-obj <objectname>]         print the current configuation"
+
          "\n";
 }
 
@@ -337,6 +344,7 @@ int main(int argc, const char **argv) {
   std::vector<const char *>::iterator i;
   bool is_config = false;
   bool create_config = false;
+  bool update_confirmed = false;
   argv_to_vec(argc, argv, &args);
 
   for (i = args.begin(); i != args.end();) {
@@ -364,6 +372,10 @@ int main(int argc, const char **argv) {
       opts["update"] = val;
     } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)NULL)) {
       create_config = true;
+    } else if (ceph_argparse_flag(args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
+                                  (char *)NULL)) {
+      update_confirmed = true;
+
     } else {
       if (idx + 1 < args.size()) {
         xattr[args[idx]] = args[idx + 1];
@@ -374,9 +386,9 @@ int main(int argc, const char **argv) {
     }
   }
 
-  //  if (args.size() <= 0 && opts.size() <= 0) {
-  //    usage_exit();
-  //  }
+  if (args.size() <= 0 && opts.size() <= 0 && !is_config) {
+    usage_exit();
+  }
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -448,29 +460,36 @@ int main(int argc, const char **argv) {
     if (has_ls) {
       std::cout << ceph_cfg.get_config()->to_string() << std::endl;
     } else if (has_update) {
-      std::cout << "updating value " << opts["update"] << std::endl;
-
       int key_val_separator_idx = opts["update"].find("=");
 
       if (key_val_separator_idx != std::string::npos) {
         std::string key = opts["update"].substr(0, key_val_separator_idx);
         std::string key_val = opts["update"].substr(key_val_separator_idx + 1, opts["update"].length() - 1);
 
-        std::cout << "updating key=" << key << " value=" << key_val << std::endl;
         bool failed = false;
-        if (ceph_cfg.get_config()->get_key_generated_namespace().compare(key) == 0) {
-          ceph_cfg.get_config()->set_generated_namespace(key_val);
-        } else if (ceph_cfg.get_config()->get_key_ns_cfg().compare(key) == 0) {
-          ceph_cfg.set_ns_cfg(key_val);
-        } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
-          ceph_cfg.set_ns_suffix(key_val);
+
+        if (!update_confirmed) {
+          std::cout << "WARNING:" << std::endl;
+          std::cout
+              << "Changing this setting, after e-mails have been stored, could lead to a situation in which users "
+                 "can no longer access their e-mail!!!"
+              << std::endl;
+          std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
         } else {
-          std::cout << "ERROR: not a valid key: " << key << std::endl;
-          std::cout << ceph_cfg.get_config()->to_string() << std::endl;
-          failed = true;
-        }
-        if (!failed) {
-          ceph_cfg.save_cfg();
+          if (ceph_cfg.get_config()->get_key_generated_namespace().compare(key) == 0) {
+            ceph_cfg.get_config()->set_generated_namespace(key_val);
+          } else if (ceph_cfg.get_config()->get_key_ns_cfg().compare(key) == 0) {
+            ceph_cfg.set_ns_cfg(key_val);
+          } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
+            ceph_cfg.set_ns_suffix(key_val);
+          } else {
+            std::cout << "ERROR: not a valid key: " << key << std::endl;
+            std::cout << ceph_cfg.get_config()->to_string() << std::endl;
+            failed = true;
+          }
+          if (!failed) {
+            ceph_cfg.save_cfg();
+          }
         }
       }
     }
