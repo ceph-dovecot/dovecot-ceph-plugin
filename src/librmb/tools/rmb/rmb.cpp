@@ -457,12 +457,20 @@ int main(int argc, const char **argv) {
         std::string key_val = opts["update"].substr(key_val_separator_idx + 1, opts["update"].length() - 1);
 
         std::cout << "updating key=" << key << " value=" << key_val << std::endl;
+        bool failed = false;
         if (ceph_cfg.get_config()->get_key_generated_namespace().compare(key) == 0) {
+          ceph_cfg.get_config()->set_generated_namespace(key_val);
         } else if (ceph_cfg.get_config()->get_key_ns_cfg().compare(key) == 0) {
+          ceph_cfg.set_ns_cfg(key_val);
         } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
+          ceph_cfg.set_ns_suffix(key_val);
         } else {
           std::cout << "ERROR: not a valid key: " << key << std::endl;
           std::cout << ceph_cfg.get_config()->to_string() << std::endl;
+          failed = true;
+        }
+        if (!failed) {
+          ceph_cfg.save_cfg();
         }
       }
     }
