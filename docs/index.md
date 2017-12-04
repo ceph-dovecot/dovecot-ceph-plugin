@@ -20,11 +20,11 @@ The mails are saved directly as RADOS objects. All other data are stored as befo
 
 Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get stored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by Dvovecot's lib-index and ends up in CephFS volumes.
 
-![Overview](docs/images/librmb-dovecot.png)
+![Overview](images/librmb-dovecot.png)
 
 Because of the way MUAs access mails, it may be necessary to provide a local cache for mails objects. The cache can be located in the main memory or on local (SSD) storage. However, this optimization is optional and will be implemented only if necessary.
 
-![Overview](docs/images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
+![Overview](images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
 
 The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/docs/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
 
