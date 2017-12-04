@@ -35,6 +35,8 @@ class RadosCephConfig {
   void set_ns_suffix(std::string &ns_suffix_) { config.set_ns_suffix(ns_suffix_); }
   std::string get_ns_suffix() { return config.get_ns_suffix(); }
   const std::string &get_public_namespace() const { return config.get_public_namespace(); }
+  void set_public_namespace(std::string &public_namespace_) { config.set_public_namespace(public_namespace_); }
+
   void set_cfg_object_name(std::string cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
   std::string get_cfg_object_name() { return config.get_cfg_object_name(); }
   RadosCephJsonConfig *get_config() { return &config; }

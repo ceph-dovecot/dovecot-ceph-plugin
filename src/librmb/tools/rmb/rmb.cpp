@@ -497,6 +497,8 @@ int main(int argc, const char **argv) {
             ceph_cfg.set_ns_cfg(key_val);
           } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
             ceph_cfg.set_ns_suffix(key_val);
+          } else if (ceph_cfg.get_config()->get_key_public_namespace().compare(key) == 0) {
+            ceph_cfg.set_public_namespace(key_val);
           } else {
             std::cout << "ERROR: not a valid key: " << key << std::endl;
             std::cout << ceph_cfg.get_config()->to_string() << std::endl;
