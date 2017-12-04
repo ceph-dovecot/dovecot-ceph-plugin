@@ -154,6 +154,7 @@ static void usage(std::ostream &out) {
          "        specify the namespace/user to use for the mails\n"
          "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
          "   lspools  list pools\n "
+         "   -help print this information\n"
          "\n"
          "\nMAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
@@ -345,6 +346,7 @@ int main(int argc, const char **argv) {
   bool is_config = false;
   bool create_config = false;
   bool update_confirmed = false;
+  bool show_usage = false;
   argv_to_vec(argc, argv, &args);
 
   for (i = args.begin(); i != args.end();) {
@@ -372,6 +374,8 @@ int main(int argc, const char **argv) {
       opts["update"] = val;
     } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)NULL)) {
       create_config = true;
+    } else if (ceph_argparse_flag(args, i, "-help", "--help", (char *)NULL)) {
+      show_usage = true;
     } else if (ceph_argparse_flag(args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
                                   (char *)NULL)) {
       update_confirmed = true;
@@ -384,6 +388,10 @@ int main(int argc, const char **argv) {
       ++idx;
       ++i;
     }
+  }
+
+  if (show_usage) {
+    usage_exit();
   }
 
   if (args.size() <= 0 && opts.size() <= 0 && !is_config) {
@@ -425,6 +433,11 @@ int main(int argc, const char **argv) {
     return -1;
   }
 
+  librmb::RadosCephConfig ceph_cfg(&storage);
+  std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
+  ceph_cfg.set_cfg_object_name(obj_);
+  ceph_cfg.set_config_valid(true);
+
   if (is_config) {
     //   std::cout << "found cfg: " << opts["cfg_obj"] << " " << opts["update"] << " " << opts["ls"] << "\n";
     bool has_update = opts.find("update") != opts.end();
@@ -433,11 +446,7 @@ int main(int argc, const char **argv) {
       usage_exit();
     }
 
-    librmb::RadosCephConfig ceph_cfg(&storage);
-    std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
 
-
-    ceph_cfg.set_cfg_object_name(obj_);
     if (ceph_cfg.load_cfg() < 0) {
       int ret = 0;
       if (create_config) {
@@ -496,11 +505,10 @@ int main(int argc, const char **argv) {
     cluster.deinit();
     return 0;
   }
-
-  librmb::RadosDovecotCephCfgImpl cfg(&storage);
+  librmb::RadosConfig dovecot_cfg;
+  dovecot_cfg.set_config_valid(true);
+  librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
   librmb::RadosNamespaceManager mgr(&storage, &cfg);
-  cfg.set_generated_namespace(true);
-  cfg.set_config_valid(true);
   if (opts.find("namespace") == opts.end()) {
     cluster.deinit();
     usage_exit();
@@ -512,7 +520,6 @@ int main(int argc, const char **argv) {
     storage.set_namespace(ns);
   } else {
     // use
-    cfg.set_generated_namespace(false);
     if (!mgr.lookup_key(uid, &ns)) {
       std::cout << " error unable to determine namespace" << std::endl;
       return -1;

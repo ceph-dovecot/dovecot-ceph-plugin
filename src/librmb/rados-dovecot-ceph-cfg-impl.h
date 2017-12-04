@@ -24,6 +24,7 @@ namespace librmb {
 class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  public:
   RadosDovecotCephCfgImpl(RadosStorage *storage);
+  RadosDovecotCephCfgImpl(RadosConfig *dovecot_cfg_, RadosCephConfig *rados_cfg_);
   virtual ~RadosDovecotCephCfgImpl();
 
   // dovecot config
@@ -69,6 +70,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  private:
   RadosConfig *dovecot_cfg;
   RadosCephConfig *rados_cfg;
+  bool delete_cfg;
 };
 
 } /* namespace librmb */
