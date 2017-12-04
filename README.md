@@ -20,13 +20,13 @@ The mails are saved directly as RADOS objects. All other data are stored as befo
 
 Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get stored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by Dvovecot's lib-index and ends up in CephFS volumes.
 
-![Overview](docs/images/librmb-dovecot.png)
+![Overview](doc/images/librmb-dovecot.png)
 
 Because of the way MUAs access mails, it may be necessary to provide a local cache for mails objects. The cache can be located in the main memory or on local (SSD) storage. However, this optimization is optional and will be implemented only if necessary.
 
-![Overview](docs/images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
+![Overview](doc/images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
 
-The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/docs/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
+The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/doc/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
 
 ### Mail Object Format
 
@@ -142,7 +142,7 @@ We use [ImapTest](https://imapwiki.org/ImapTest) for testing the plugin. The Cep
 
 For librmb we use [googletest](https://github.com/google/googletest) C++ Framework. Googletest library is added as git submodule you can clone googletest with: git submodule update --init --recursive
 
-The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/doc/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
 
     ../src/vstart.sh -X -n -l
 
@@ -213,7 +213,7 @@ service lmtp {
 ````
 
 #### ImapTest
-To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/docs/profile-pop3.conf)
+To run ImapTest with POP3 you have to use a profile file which sets POP3 as the client protocol. [Profile example](https://github.com/tallence/dovecot-ceph-plugin/blob/master/doc/profile-pop3.conf)
 
 ## RADOS Dictionary Plugin
 
@@ -246,7 +246,7 @@ See also [Common Configuration](#common-configuration) for more information.
 
 The source directory src/dict-rados contains a test application named test-*. They use the configuration in the same directory.
 
-The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/docs/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
+The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/doc/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
 
     ../src/vstart.sh -X -n -l
 
@@ -263,7 +263,7 @@ See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%
     mail_plugins = $mail_plugins storage_rbox dict_rados
 
 ### Ceph
-The plugin uses the default way for Ceph configuration described in [Step 2: Configuring a Cluster Handle](http://docs.ceph.com/docs/master/rados/api/librados-intro/#step-2-configuring-a-cluster-handle):
+The plugin uses the default way for Ceph configuration described in [Step 2: Configuring a Cluster Handle](http://docs.ceph.com/doc/master/rados/api/librados-intro/#step-2-configuring-a-cluster-handle):
 
 1. `rados_conf_parse_env()`: Evaluate the CEPH_ARGS environment variable.
 2. `rados_conf_read_file()`: Search the default locations, and the first found is used. The locations are:
