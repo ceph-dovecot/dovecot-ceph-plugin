@@ -155,6 +155,8 @@ static void usage(std::ostream &out) {
          "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
          "   lspools  list pools\n "
          "   -help print this information\n"
+         "   -obj <objectname> \n"
+         "    defines the dovecot-ceph configuration object\n"
          "\n"
          "\nMAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
@@ -269,13 +271,7 @@ static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, l
     usage_exit();
   }
 }
-static bool check_connection_args(std::map<std::string, std::string> &opts) {
-  if (opts.find("pool") == opts.end()) {
-    return false;
-  }
 
-  return true;
-}
 static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
@@ -333,21 +329,12 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
   }
 }
 
-int main(int argc, const char **argv) {
-  std::vector<librmb::RadosMailObject *> mail_objects;
-  std::vector<const char *> args;
-
-  std::string val;
-  std::map<std::string, std::string> opts;
-  std::map<std::string, std::string> xattr;
-  std::string sort_type;
-  unsigned int idx = 0;
+void parse_cmd_line_args(const std::map<std::string, std::string> &opts, bool &is_config,
+                         const std::map<std::string, std::string> &metadata, std::vector<const char *> &args,
+                         bool &create_config, bool &show_usage, bool &update_confirmed) {
   std::vector<const char *>::iterator i;
-  bool is_config = false;
-  bool create_config = false;
-  bool update_confirmed = false;
-  bool show_usage = false;
-  argv_to_vec(argc, argv, &args);
+  std::string val;
+  unsigned int idx = 0;
 
   for (i = args.begin(); i != args.end();) {
     if (ceph_argparse_double_dash(&args, &i)) {
@@ -366,29 +353,66 @@ int main(int argc, const char **argv) {
       opts["set"] = val;
     } else if (ceph_argparse_witharg(&args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
       opts["sort"] = val;
-    } else if (ceph_argparse_flag(args, i, "-cfg", "--config", (char *)NULL)) {
+    } else if (ceph_argparse_flag(args, i, "-cfg", "--config", (char *)(NULL))) {
       is_config = true;
     } else if (ceph_argparse_witharg(&args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
       opts["cfg_obj"] = val;
     } else if (ceph_argparse_witharg(&args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
       opts["update"] = val;
-    } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)NULL)) {
+    } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)(NULL))) {
       create_config = true;
-    } else if (ceph_argparse_flag(args, i, "-help", "--help", (char *)NULL)) {
+    } else if (ceph_argparse_flag(args, i, "-help", "--help", (char *)(NULL))) {
       show_usage = true;
     } else if (ceph_argparse_flag(args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
-                                  (char *)NULL)) {
+                                  (char *)(NULL))) {
       update_confirmed = true;
-
     } else {
       if (idx + 1 < args.size()) {
-        xattr[args[idx]] = args[idx + 1];
+        metadata[args[idx]] = args[idx + 1];
         idx++;
       }
       ++idx;
       ++i;
     }
   }
+}
+
+int handle_lspools_cmd() {
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+  cluster.init();
+  if (cluster.connect() < 0) {
+    std::cout << " error opening rados connection" << std::endl;
+  } else {
+    std::list<std::string> vec;
+    int ret = cluster.get_cluster().pool_list(vec);
+    if (ret == 0) {
+      for (std::list<std::string>::iterator it = vec.begin(); it != vec.end(); ++it) {
+        std::cout << ' ' << *it << std::endl;
+      }
+    }
+  }
+  cluster.deinit();
+  return 0;
+}
+
+int main(int argc, const char **argv) {
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<const char *> args;
+
+  std::map<std::string, std::string> opts;
+  std::map<std::string, std::string> metadata;
+  std::string sort_type;
+
+  bool is_config = false;
+  bool create_config = false;
+  bool update_confirmed = false;
+  bool show_usage = false;
+  bool is_lspools_cmd = false;
+  argv_to_vec(argc, argv, &args);
+
+  parse_cmd_line_args(opts, is_config, metadata, args, create_config, show_usage, update_confirmed);
+  is_lspools_cmd = strcmp(args[0], "lspools") == 0;
 
   if (show_usage) {
     usage_exit();
@@ -398,57 +422,38 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
+  if (is_lspools_cmd) {
+    std::cout << "is ls pools _cmd" << std::endl;
+    return handle_lspools_cmd();
+  }
+
+  // set pool to default or given pool name
+  std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
+
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
-
-  if (strcmp(args[0], "lspools") == 0) {
-    cluster.init();
-    if (cluster.connect() < 0) {
-      std::cout << " error opening rados connection" << std::endl;
-      return 0;
-    }
-    std::list<std::string> vec;
-    int ret = cluster.get_cluster().pool_list(vec);
-    if (ret == 0) {
-      for (std::list<std::string>::iterator it = vec.begin(); it != vec.end(); ++it) {
-        std::cout << ' ' << *it << std::endl;
-      }
-    }
-    cluster.deinit();
-    return 0;
-  }
-
-  if (opts.find("pool") == opts.end()) {
-    opts["pool"] = "mail_storage";
-  }
-
-  if (!check_connection_args(opts)) {
-    usage_exit();
-  }
-  std::string pool_name(opts["pool"]);
-
   int open_connection = storage.open_connection(pool_name);
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
+    cluster.deinit();
     return -1;
   }
 
+  // initialize configuration
   librmb::RadosCephConfig ceph_cfg(&storage);
   std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
   ceph_cfg.set_cfg_object_name(obj_);
-  ceph_cfg.set_config_valid(true);
 
   if (is_config) {
-    //   std::cout << "found cfg: " << opts["cfg_obj"] << " " << opts["update"] << " " << opts["ls"] << "\n";
     bool has_update = opts.find("update") != opts.end();
     bool has_ls = opts.find("ls") != opts.end();
     if (has_update && has_ls) {
       usage_exit();
     }
 
-
     if (ceph_cfg.load_cfg() < 0) {
       int ret = 0;
+
       if (create_config) {
         ceph_cfg.save_cfg();
         std::cout << "config has been created" << std::endl;
@@ -460,6 +465,7 @@ int main(int argc, const char **argv) {
       cluster.deinit();
       return ret;
     }
+
     if (create_config) {
       std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
       cluster.deinit();
@@ -565,11 +571,11 @@ int main(int argc, const char **argv) {
     }
   } else if (opts.find("set") != opts.end()) {
     std::string oid = opts["set"];
-    if (oid.empty() || xattr.size() < 1) {
+    if (oid.empty() || metadata.size() < 1) {
       release_exit(&mail_objects, &cluster, true);
     }
 
-    for (std::map<std::string, std::string>::iterator it = xattr.begin(); it != xattr.end(); ++it) {
+    for (std::map<std::string, std::string>::iterator it = metadata.begin(); it != metadata.end(); ++it) {
       std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
       librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
       std::string value = it->second;

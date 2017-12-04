@@ -39,9 +39,14 @@ class RadosCephJsonConfig {
 
   void set_ns_suffix(const std::string& nsSuffix) { ns_suffix = nsSuffix; }
 
+  const std::string& get_public_namespace() const { return public_namespace; }
+
+  void set_public_namespace(const std::string& public_namespace_) { public_namespace = public_namespace_; }
+
   const std::string& get_key_generated_namespace() const { return key_generated_namespace; }
   const std::string& get_key_ns_cfg() const { return key_ns_cfg; }
   const std::string& get_key_ns_suffix() const { return key_ns_suffix; }
+  const std::string& get_key_public_namespace() const { return key_public_namespace; }
 
  private:
   std::string cfg_object_name;
@@ -49,10 +54,12 @@ class RadosCephJsonConfig {
   std::string generated_namespace;
   std::string ns_cfg;
   std::string ns_suffix;
+  std::string public_namespace;
 
   std::string key_generated_namespace;
   std::string key_ns_cfg;
   std::string key_ns_suffix;
+  std::string key_public_namespace;
 };
 
 } /* namespace librmb */

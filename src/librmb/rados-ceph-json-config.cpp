@@ -17,10 +17,12 @@ RadosCephJsonConfig::RadosCephJsonConfig() {
   key_generated_namespace = "generated_namespace";
   key_ns_cfg = "ns_cfg";
   key_ns_suffix = "ns_suffix";
+  key_public_namespace = "public_namespace";
 
   generated_namespace = "false";
   ns_cfg = "rbox_ns_cfg";
   ns_suffix = "_namespace";
+  public_namespace = "public";
   valid = false;
 }
 
@@ -39,6 +41,10 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
 
     json_t *ns_suffix_ = json_object_get(root, key_ns_suffix.c_str());
     ns_suffix = json_string_value(ns_suffix_);
+
+    json_t *public_namespace_ = json_object_get(root, key_public_namespace.c_str());
+    public_namespace = json_string_value(public_namespace_);
+
     ret = valid = true;
     json_decref(root);
   }
@@ -52,7 +58,7 @@ bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
   json_object_set_new(root, key_generated_namespace.c_str(), json_string(generated_namespace.c_str()));
   json_object_set_new(root, key_ns_cfg.c_str(), json_string(ns_cfg.c_str()));
   json_object_set_new(root, key_ns_suffix.c_str(), json_string(ns_suffix.c_str()));
-
+  json_object_set_new(root, key_public_namespace.c_str(), json_string(public_namespace.c_str()));
   s = json_dumps(root, 0);
   buffer->append(s);
   json_decref(root);
@@ -65,6 +71,7 @@ std::string RadosCephJsonConfig::to_string() {
   ss << "  " << key_generated_namespace << "=" << generated_namespace << std::endl;
   ss << "  " << key_ns_cfg << "=" << ns_cfg << std::endl;
   ss << "  " << key_ns_suffix << "=" << ns_suffix << std::endl;
+  ss << "  " << key_public_namespace << "=" << public_namespace << std::endl;
   return ss.str();
 }
 } /* namespace librmb */

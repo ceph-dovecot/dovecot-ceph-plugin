@@ -128,6 +128,8 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_ns_cfg, std::string());
   MOCK_METHOD1(set_ns_suffix, void(std::string &ns_suffix));
   MOCK_METHOD0(get_ns_suffix, std::string());
+
+  MOCK_METHOD0(get_public_namespace, const std::string &());
 };
 
 }  // namespace librmbtest

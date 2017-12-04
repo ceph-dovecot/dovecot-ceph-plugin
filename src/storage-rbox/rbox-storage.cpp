@@ -283,7 +283,8 @@ int rbox_open_rados_connection(struct mailbox *box) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
   }
-  std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username : "public");
+  std::string uid(box->list->ns->owner != nullptr ? box->list->ns->owner->username
+                                                  : mbox->storage->config->get_public_namespace());
   std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
     // create new unique namespace

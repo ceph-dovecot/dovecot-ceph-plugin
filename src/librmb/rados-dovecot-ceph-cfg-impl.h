@@ -66,6 +66,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   std::string get_ns_suffix() { return rados_cfg->get_ns_suffix(); }
 
   bool is_config_valid() { return dovecot_cfg->is_config_valid() && rados_cfg->is_config_valid(); }
+  const std::string &get_public_namespace() { return rados_cfg->get_public_namespace(); }
 
  private:
   RadosConfig *dovecot_cfg;
