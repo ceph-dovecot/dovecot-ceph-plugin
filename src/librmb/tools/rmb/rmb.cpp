@@ -366,6 +366,9 @@ void parse_cmd_line_args(const std::map<std::string, std::string> &opts, bool &i
     } else if (ceph_argparse_flag(args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
                                   (char *)(NULL))) {
       update_confirmed = true;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
+      // delete oid
+      opts["to_delete"] = val;
     } else {
       if (idx + 1 < args.size()) {
         metadata[args[idx]] = args[idx + 1];
@@ -406,12 +409,12 @@ int main(int argc, const char **argv) {
 
   bool is_config = false;
   bool create_config = false;
-  bool update_confirmed = false;
+  bool confirmed = false;
   bool show_usage = false;
   bool is_lspools_cmd = false;
   argv_to_vec(argc, argv, &args);
 
-  parse_cmd_line_args(opts, is_config, metadata, args, create_config, show_usage, update_confirmed);
+  parse_cmd_line_args(opts, is_config, metadata, args, create_config, show_usage, confirmed);
   is_lspools_cmd = strcmp(args[0], "lspools") == 0;
 
   if (show_usage) {
@@ -443,6 +446,16 @@ int main(int argc, const char **argv) {
   librmb::RadosCephConfig ceph_cfg(&storage);
   std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
   ceph_cfg.set_cfg_object_name(obj_);
+  if (ceph_cfg.load_cfg() < 0) {
+    int ret = 0;
+
+    if (create_config) {
+      std::cout << "loading config object failed " << std::endl;
+      ret = -1;
+    }
+    cluster.deinit();
+    return ret;
+  }
 
   if (is_config) {
     bool has_update = opts.find("update") != opts.end();
@@ -450,22 +463,6 @@ int main(int argc, const char **argv) {
     if (has_update && has_ls) {
       usage_exit();
     }
-
-    if (ceph_cfg.load_cfg() < 0) {
-      int ret = 0;
-
-      if (create_config) {
-        ceph_cfg.save_cfg();
-        std::cout << "config has been created" << std::endl;
-
-      } else {
-        std::cout << "loading config object failed " << std::endl;
-        ret = -1;
-      }
-      cluster.deinit();
-      return ret;
-    }
-
     if (create_config) {
       std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
       cluster.deinit();
@@ -483,7 +480,7 @@ int main(int argc, const char **argv) {
 
         bool failed = false;
 
-        if (!update_confirmed) {
+        if (!confirmed) {
           std::cout << "WARNING:" << std::endl;
           std::cout
               << "Changing this setting, after e-mails have been stored, could lead to a situation in which users "
@@ -492,7 +489,8 @@ int main(int argc, const char **argv) {
           std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
         } else {
           if (ceph_cfg.is_valid_key_value(key, key_val)) {
-            failed = ceph_cfg.update_valid_key_value(key, key_val);
+            failed = !ceph_cfg.update_valid_key_value(key, key_val);
+            std::cout << " saving : " << failed << std::endl;
           } else {
             failed = true;
             std::cout << "Error: key : " << key << " value: " << key_val << " is not valid !" << std::endl;
@@ -501,6 +499,7 @@ int main(int argc, const char **argv) {
             }
           }
           if (!failed) {
+            std::cout << " saving cfg" << std::endl;
             ceph_cfg.save_cfg();
           }
         }
@@ -519,6 +518,7 @@ int main(int argc, const char **argv) {
   }
   std::string uid(opts["namespace"]);
   std::string ns;
+  std::cout << " looking for  namespace user : " << uid << std::endl;
   if (mgr.lookup_key(uid, &ns)) {
     std::cout << " generated ns _ " << ns << std::endl;
     storage.set_namespace(ns);
@@ -533,6 +533,23 @@ int main(int argc, const char **argv) {
   }
 
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
+
+  bool delete_mail = opts.find("to_delete") != opts.end();
+  if (delete_mail) {
+    if (!confirmed) {
+      std::cout << "WARNING: Deleting a mail object will remove the object from ceph, but not from dovecot index, this "
+                   "may lead to corrupt mailbox\n"
+                << " add --yes-i-really-really-mean-it to confirm the delete " << std::endl;
+    } else {
+      if (storage.delete_mail(opts["to_delete"]) == 0) {
+        std::cout << "unable to delete e-mail object with oid: " << opts["to_delete"] << std::endl;
+      } else {
+        std::cout << "Success: email objekt with oid: " << opts["to_delete"] << " deleted" << std::endl;
+      }
+    }
+    cluster.deinit();
+    exit(0);
+  }
 
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
