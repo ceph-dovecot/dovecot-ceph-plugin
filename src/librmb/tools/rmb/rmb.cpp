@@ -369,6 +369,9 @@ void parse_cmd_line_args(const std::map<std::string, std::string> &opts, bool &i
     } else if (ceph_argparse_witharg(&args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
       // delete oid
       opts["to_delete"] = val;
+    } else if (ceph_argparse_witharg(&args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
+      // rename
+      opts["to_rename"] = val;
     } else {
       if (idx + 1 < args.size()) {
         metadata[args[idx]] = args[idx + 1];
@@ -407,21 +410,23 @@ int main(int argc, const char **argv) {
   std::map<std::string, std::string> metadata;
   std::string sort_type;
 
-  bool is_config = false;
+  bool is_config_option = false;
   bool create_config = false;
   bool confirmed = false;
   bool show_usage = false;
   bool is_lspools_cmd = false;
+  bool delete_mail_option = false;
   argv_to_vec(argc, argv, &args);
 
-  parse_cmd_line_args(opts, is_config, metadata, args, create_config, show_usage, confirmed);
+  parse_cmd_line_args(opts, is_config_option, metadata, args, create_config, show_usage, confirmed);
   is_lspools_cmd = strcmp(args[0], "lspools") == 0;
+  delete_mail_option = opts.find("to_delete") != opts.end();
 
   if (show_usage) {
     usage_exit();
   }
 
-  if (args.size() <= 0 && opts.size() <= 0 && !is_config) {
+  if (args.size() <= 0 && opts.size() <= 0 && !is_config_option) {
     usage_exit();
   }
 
@@ -450,14 +455,17 @@ int main(int argc, const char **argv) {
     int ret = 0;
 
     if (create_config) {
-      std::cout << "loading config object failed " << std::endl;
-      ret = -1;
+      if (ceph_cfg.save_cfg() < 0) {
+        std::cout << "loading config object failed " << std::endl;
+        ret = -1;
+      } else {
+        cluster.deinit();
+        exit(0);
+      }
     }
-    cluster.deinit();
-    return ret;
   }
 
-  if (is_config) {
+  if (is_config_option) {
     bool has_update = opts.find("update") != opts.end();
     bool has_ls = opts.find("ls") != opts.end();
     if (has_update && has_ls) {
@@ -518,9 +526,7 @@ int main(int argc, const char **argv) {
   }
   std::string uid(opts["namespace"]);
   std::string ns;
-  std::cout << " looking for  namespace user : " << uid << std::endl;
   if (mgr.lookup_key(uid, &ns)) {
-    std::cout << " generated ns _ " << ns << std::endl;
     storage.set_namespace(ns);
   } else {
     // use
@@ -533,9 +539,7 @@ int main(int argc, const char **argv) {
   }
 
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
-
-  bool delete_mail = opts.find("to_delete") != opts.end();
-  if (delete_mail) {
+  if (delete_mail_option) {
     if (!confirmed) {
       std::cout << "WARNING: Deleting a mail object will remove the object from ceph, but not from dovecot index, this "
                    "may lead to corrupt mailbox\n"
@@ -546,6 +550,61 @@ int main(int argc, const char **argv) {
       } else {
         std::cout << "Success: email objekt with oid: " << opts["to_delete"] << " deleted" << std::endl;
       }
+    }
+    cluster.deinit();
+    exit(0);
+  }
+  bool rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
+  if (rename_user_option) {
+    if (!cfg.is_generated_namespace()) {
+      std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
+                << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    if (!confirmed) {
+      std::cout << "WARNING: renaming a user may lead to data loss! Do you really really want to do this? \n add "
+                   "--yes-i-really-really-mean-it to confirm "
+                << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+
+    std::string src_ = uid + cfg.get_ns_suffix();
+    std::string dest_ = opts["to_rename"] + cfg.get_ns_suffix();
+
+    if (src_.compare(dest_) == 0) {
+      std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+
+    std::list<librmb::RadosMetadata> list;
+    std::cout << " copy namespace configuration src " << src_ << " to dest " << dest_ << " in namespace "
+              << cfg.get_ns_cfg() << std::endl;
+
+    storage.set_namespace(cfg.get_ns_cfg());
+    uint64_t size;
+    time_t save_time;
+
+    int exist = storage.stat_mail(src_, &size, &save_time);
+    if (exist < 0) {
+      std::cout << "Error there does not exist a configuration file for " << src_ << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    exist = storage.stat_mail(dest_, &size, &save_time);
+    if (exist >= 0) {
+      std::cout << "Error: there already exists a configuration file: " << dest_ << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    if (storage.copy(src_, cfg.get_ns_cfg().c_str(), dest_, cfg.get_ns_cfg().c_str(), list)) {
+      if (storage.delete_mail(src_) != 0) {
+        std::cout << "Error removing " << src_ << std::endl;
+      }
+    } else {
+      std::cout << "Error renaming " << src_ << std::endl;
     }
     cluster.deinit();
     exit(0);
