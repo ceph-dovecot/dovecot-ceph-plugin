@@ -346,29 +346,29 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
     src_io_ctx.dup(dest_io_ctx);
     src_io_ctx.set_namespace(src_ns);
     dest_io_ctx.set_namespace(dest_ns);
-    } else {
-      src_io_ctx = dest_io_ctx;
-    }
-    write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+  } else {
+    src_io_ctx = dest_io_ctx;
+  }
+  write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
 
-    // because we create a copy, save date needs to be updated
-    // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
-    // and restore it in read_metadata function. => save_date of copy/move will be same as source.
-    // write_op.mtime(&ctx->data.save_date);
-    time_t save_time = time(NULL);
-    write_op.mtime(&save_time);
+  // because we create a copy, save date needs to be updated
+  // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+  // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+  // write_op.mtime(&ctx->data.save_date);
+  time_t save_time = time(NULL);
+  write_op.mtime(&save_time);
 
-    // update metadata
-    for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
-      write_op.setxattr((*it).key.c_str(), (*it).bl);
-    }
+  // update metadata
+  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
+    write_op.setxattr((*it).key.c_str(), (*it).bl);
+  }
 
-    int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-    ret = completion->wait_for_complete();
-    completion->release();
-    // reset io_ctx
-    dest_io_ctx.set_namespace(dest_ns);
-    return ret == 0;
+  int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  ret = completion->wait_for_complete();
+  completion->release();
+  // reset io_ctx
+  dest_io_ctx.set_namespace(dest_ns);
+  return ret == 0;
 }
 
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
