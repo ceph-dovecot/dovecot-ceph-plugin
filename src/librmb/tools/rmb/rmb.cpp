@@ -491,18 +491,14 @@ int main(int argc, const char **argv) {
               << std::endl;
           std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
         } else {
-          if (ceph_cfg.get_config()->get_key_generated_namespace().compare(key) == 0) {
-            ceph_cfg.get_config()->set_generated_namespace(key_val);
-          } else if (ceph_cfg.get_config()->get_key_ns_cfg().compare(key) == 0) {
-            ceph_cfg.set_ns_cfg(key_val);
-          } else if (ceph_cfg.get_config()->get_key_ns_suffix().compare(key) == 0) {
-            ceph_cfg.set_ns_suffix(key_val);
-          } else if (ceph_cfg.get_config()->get_key_public_namespace().compare(key) == 0) {
-            ceph_cfg.set_public_namespace(key_val);
+          if (ceph_cfg.is_valid_key_value(key, key_val)) {
+            failed = ceph_cfg.update_valid_key_value(key, key_val);
           } else {
-            std::cout << "ERROR: not a valid key: " << key << std::endl;
-            std::cout << ceph_cfg.get_config()->to_string() << std::endl;
             failed = true;
+            std::cout << "Error: key : " << key << " value: " << key_val << " is not valid !" << std::endl;
+            if (key_val.compare("TRUE") == 0 || key_val.compare("FALSE") == 0) {
+              std::cout << "Error: value: TRUE|FALSE not supported use lower case! " << std::endl;
+            }
           }
           if (!failed) {
             ceph_cfg.save_cfg();

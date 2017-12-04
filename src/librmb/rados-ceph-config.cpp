@@ -37,4 +37,46 @@ int RadosCephConfig::load_cfg() {
   return config.from_json(&buffer) ? 0 : -1;
 }
 
+bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
+  bool success = false;
+  if (value.empty() || key.empty()) {
+    return false;
+  }
+
+  if (get_config()->get_key_generated_namespace().compare(key) == 0) {
+    if (key.compare("true") == 0 || key.compare("false") == 0) {
+      success = true;
+    }
+  } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {
+    success = true;
+  } else if (get_config()->get_key_ns_suffix().compare(key) == 0) {
+    success = true;
+  } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
+    success = true;
+  }
+  return success;
+}
+
+bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &value) {
+  bool success = false;
+  if (value.empty() || key.empty()) {
+    return false;
+  }
+  if (get_config()->get_key_generated_namespace().compare(key) == 0) {
+    get_config()->set_generated_namespace(value);
+    success = true;
+
+  } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {
+    get_config()->set_ns_cfg(value);
+    success = true;
+  } else if (get_config()->get_key_ns_suffix().compare(key) == 0) {
+    get_config()->set_ns_suffix(value);
+    success = true;
+  } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
+    get_config()->set_public_namespace(value);
+    success = true;
+  }
+  return success;
+}
+
 } /* namespace librmb */

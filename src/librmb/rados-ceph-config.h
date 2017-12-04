@@ -41,6 +41,9 @@ class RadosCephConfig {
   std::string get_cfg_object_name() { return config.get_cfg_object_name(); }
   RadosCephJsonConfig *get_config() { return &config; }
 
+  bool is_valid_key_value(std::string &key, std::string &value);
+  bool update_valid_key_value(std::string &key, std::string &value);
+
  private:
   RadosCephJsonConfig config;
   RadosStorage *storage;
