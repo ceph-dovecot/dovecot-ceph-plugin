@@ -157,6 +157,8 @@ static void usage(std::ostream &out) {
          "   -help                  print this information\n"
          "   -obj <objectname>      defines the dovecot-ceph configuration object\n"
          "   -R dovecot_user_name   renames a username\n "
+         "   -cluster <name>        rados cluster name\n"
+         "   -rados_user <user>     rados user name\n"
          "\n"
          "\nMAIL COMMANDS\n"
          "    ls     -              list all mails and mailbox statistic\n"
@@ -376,6 +378,10 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
     } else if (ceph_argparse_witharg(args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
       // rename
       (*opts)["to_rename"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-cluster", "--cluster", static_cast<char>(NULL))) {
+      (*opts)["clustername"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-rados_user", "--rados_user", static_cast<char>(NULL))) {
+      (*opts)["rados_user"] = val;
     } else {
       if (idx + 1 < (*args).size()) {
         std::string m_idx((*args)[idx]);
@@ -549,6 +555,9 @@ int main(int argc, const char **argv) {
   bool delete_mail_option = false;
   bool rename_user_option = false;
   std::string config_obj = "obj";
+  std::string rados_user = "client.admin";
+  std::string rados_cluster;
+
   argv_to_vec(argc, argv, &args);
 
   parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);
@@ -565,6 +574,8 @@ int main(int argc, const char **argv) {
   delete_mail_option = opts.find("to_delete") != opts.end();
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
   rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
+  rados_cluster = (opts.find("clustername") != opts.end()) ? opts["clustername"] : "ceph";
+  rados_user = (opts.find("rados_user") != opts.end()) ? opts["rados_user"] : "client.admin";
   // set pool to default or given pool name
   std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
 
@@ -574,7 +585,7 @@ int main(int argc, const char **argv) {
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
-  int open_connection = storage.open_connection(pool_name);
+  int open_connection = storage.open_connection(pool_name, rados_cluster, rados_user);
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
     cluster.deinit();
