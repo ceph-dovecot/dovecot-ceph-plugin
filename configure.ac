@@ -125,7 +125,11 @@ AC_SUBST(LIBDOVECOT_INCLUDE)
 AC_DEFINE([PACKAGE_VERSION_MAJOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\1]), [Dovecot Ceph plugins major version])
 AC_DEFINE([PACKAGE_VERSION_MINOR], regexp(AC_PACKAGE_VERSION, [^\([0-9]+\)\.\([0-9]+\)], [\2]), [Dovecot Ceph plugins minor version])
 
+AC_CHECK_HEADERS([jansson.h],[found_jansson_header=yes; break;])
 
+AS_IF([test "x$found_jansson_header" != "xyes"],
+        [AC_MSG_ERROR([Unable to find the jansson headers])])
+        
 AC_MSG_CHECKING([for dict_vfuncs.switch_ioloop])
 AS_IF([$GREP switch_ioloop $dovecot_pkgincludedir/dict-private.h], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_DICT_SWITCH_IOLOOP],,[dict_vfuncs.switch_ioloop supported])],[AC_MSG_RESULT(no)])
 

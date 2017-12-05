@@ -307,15 +307,16 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     _mail->transaction->stats.open_lookup_count++;
 
     librados::bufferlist mail_data_bl;
-    size_r = r_storage->s->read_mail(&mail_data_bl, rmail->mail_object->get_oid());
+    size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), &mail_data_bl);
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
-        i_debug("Mail not found. %s", rmail->mail_object->get_oid().c_str());
+        i_debug("Mail not found. %s, ns='%s'", rmail->mail_object->get_oid().c_str(),
+                r_storage->s->get_namespace().c_str());
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;
       } else {
-        i_error("error code: %d", size_r);
+        i_error("reading mail return code: %d, oid: %s", size_r, rmail->mail_object->get_oid().c_str());
         FUNC_END_RET("ret == -1");
         return -1;
       }

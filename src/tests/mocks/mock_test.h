@@ -14,9 +14,9 @@
 
 #include "../../librmb/rados-cluster.h"
 #include "../../librmb/rados-dictionary.h"
+#include "../../librmb/rados-dovecot-config.h"
 #include "../../librmb/rados-storage.h"
-#include "../../librmb/rados-config.h"
-
+#include "../../librmb/rados-dovecot-ceph-cfg.h"
 #include "gmock/gmock.h"
 
 namespace librmbtest {
@@ -42,24 +42,29 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD4(aio_operate, int(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
-  MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &ns));
+  MOCK_METHOD1(open_connection, int(const std::string &poolname));
+  MOCK_METHOD3(open_connection,
+               int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
+
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMailObject *> &object_list));
 
-  MOCK_METHOD2(read_mail, int(librados::bufferlist *buffer, const std::string &oid));
+  MOCK_METHOD2(read_mail, int(const std::string &oid, librados::bufferlist *buffer));
   MOCK_METHOD2(update_metadata, bool(std::string oid, std::list<RadosMetadata> &to_update));
   MOCK_METHOD6(move, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                           std::list<RadosMetadata> &to_update, bool delete_source));
   MOCK_METHOD5(copy, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                           std::list<RadosMetadata> &to_update));
+  MOCK_METHOD2(save_mail, int(const std::string &oid, librados::bufferlist &bufferlist));
   MOCK_METHOD2(save_mail, bool(RadosMailObject *mail, bool &save_async));
   MOCK_METHOD0(alloc_mail_object, librmb::RadosMailObject *());
   MOCK_METHOD1(free_mail_object, void(librmb::RadosMailObject *mail));
-  MOCK_METHOD0(get_rados_config, librmb::RadosConfig *());
 
   MOCK_METHOD2(update_extended_metadata, int(std::string &oid, librmb::RadosMetadata *metadata));
   MOCK_METHOD2(remove_extended_metadata, int(std::string &oid, std::string &key));
+  MOCK_METHOD3(load_extended_metadata,
+               int(std::string &oid, std::set<std::string> &keys, std::map<std::string, ceph::bufferlist> *metadata));
 };
 
 using librmb::RadosDictionary;
@@ -83,11 +88,53 @@ using librmb::RadosCluster;
 class RadosClusterMock : public RadosCluster {
  public:
   MOCK_METHOD0(init, int());
+  MOCK_METHOD2(init, int(const std::string &clustername, const std::string &rados_username));
+
   MOCK_METHOD0(deinit, void());
   MOCK_METHOD1(pool_create, int(const std::string &pool));
   MOCK_METHOD2(io_ctx_create, int(const std::string &pool, librados::IoCtx *io_ctx));
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
   MOCK_METHOD0(is_connected, bool());
+};
+
+using librmb::RadosDovecotCephCfg;
+class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
+ public:
+  // dovecot configuration
+  MOCK_METHOD1(is_mutable_metadata, bool(enum librmb::rbox_metadata_key key));
+  MOCK_METHOD1(is_immutable_metadata, bool(enum librmb::rbox_metadata_key key));
+
+  MOCK_METHOD1(update_mutable_metadata, void(const char *value));
+  MOCK_METHOD1(update_immutable_metadata, void(const char *value));
+  MOCK_METHOD1(update_pool_name_metadata, void(const char *value));
+
+  MOCK_METHOD0(get_mutable_metadata_key, const std::string &());
+  MOCK_METHOD0(get_immutable_metadata_key, const std::string &());
+  MOCK_METHOD0(get_pool_name_metadata_key, const std::string &());
+  MOCK_METHOD0(get_update_immutable_key, const std::string &());
+  MOCK_METHOD0(get_config, std::map<std::string, std::string> *());
+
+  MOCK_METHOD0(get_pool_name, std::string());
+  MOCK_METHOD0(is_update_immutable, bool());
+
+  MOCK_METHOD2(update_metadata, void(std::string &key, const char *value_));
+  MOCK_METHOD0(is_config_valid, bool());
+  MOCK_METHOD1(set_config_valid, void(bool is_valid_));
+  MOCK_METHOD0(get_key_prefix_keywords, std::string());
+
+  // ceph configuration
+  MOCK_METHOD1(set_storage, void(RadosStorage *storage));
+  MOCK_METHOD0(load_rados_config, int());
+  MOCK_METHOD0(save_default_rados_config, int());
+
+  MOCK_METHOD1(set_generated_namespace, void(bool value_));
+  MOCK_METHOD0(is_generated_namespace, bool());
+  MOCK_METHOD1(set_ns_cfg, void(std::string &ns));
+  MOCK_METHOD0(get_ns_cfg, std::string());
+  MOCK_METHOD1(set_ns_suffix, void(std::string &ns_suffix));
+  MOCK_METHOD0(get_ns_suffix, std::string());
+
+  MOCK_METHOD0(get_public_namespace, const std::string &());
 };
 
 }  // namespace librmbtest

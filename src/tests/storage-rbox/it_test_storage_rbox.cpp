@@ -181,7 +181,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
 
     std::string config_flags = "F";
     std::string key = "rbox_mutable_metadata";
-    r_storage->s->get_rados_config()->update_metadata(key, config_flags.c_str());
+    r_storage->config->update_metadata(key, config_flags.c_str());
 
     EXPECT_EQ(ret, -1);
     mdata->flags = MAIL_ANSWERED;

@@ -166,7 +166,8 @@ std::string StorageTest::uri;        // NOLINT
 struct ioloop *StorageTest::s_test_ioloop = nullptr;
 pool_t StorageTest::s_test_pool = nullptr;
 
-static const char *username = "user-rbox-test@domain";
+
+static const char *username = "user-rbox-test@localhost";
 
 void StorageTest::SetUpTestCase() {
   // prepare Ceph

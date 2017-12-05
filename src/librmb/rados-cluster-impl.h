@@ -18,7 +18,6 @@
 #include <rados/librados.hpp>
 
 #include "rados-cluster.h"
-
 namespace librmb {
 
 class RadosClusterImpl : public RadosCluster {
@@ -27,6 +26,8 @@ class RadosClusterImpl : public RadosCluster {
   virtual ~RadosClusterImpl();
 
   int init();
+  int init(const std::string &clustername, const std::string &rados_username);
+
   int connect();
   void deinit();
 
@@ -39,6 +40,9 @@ class RadosClusterImpl : public RadosCluster {
   bool is_connected();
 
   librados::Rados &get_cluster() { return cluster; }
+
+ private:
+  int initialize();
 
  private:
   librados::Rados cluster;

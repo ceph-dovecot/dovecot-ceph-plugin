@@ -14,12 +14,16 @@
 
 #include "../librmb/rados-cluster-impl.h"
 #include "../librmb/rados-storage-impl.h"
+#include "../librmb/rados-namespace-manager.h"
+#include "../librmb/rados-dovecot-ceph-cfg.h"
 
 struct rbox_storage {
   struct mail_storage storage;
 
   librmb::RadosCluster* cluster;
   librmb::RadosStorage *s;
+  librmb::RadosDovecotCephCfg *config;
+  librmb::RadosNamespaceManager *ns_mgr;
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_

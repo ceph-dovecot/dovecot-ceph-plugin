@@ -33,7 +33,6 @@ const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
 
 RadosClusterImpl::RadosClusterImpl() {
-  // librados::Rados RadosClusterImpl::cluster;
   cluster_ref_count = 0;
   connected = false;
 }
@@ -44,6 +43,27 @@ int RadosClusterImpl::init() {
   int ret = 0;
   if (cluster_ref_count == 0) {
     ret = cluster.init(nullptr);
+    if (ret == 0) {
+      ret = initialize();
+    }
+  }
+  return ret;
+}
+
+int RadosClusterImpl::init(const std::string &clustername, const std::string &rados_username) {
+  int ret = 0;
+  if (cluster_ref_count == 0) {
+    ret = cluster.init2(rados_username.c_str(), clustername.c_str(), 0);
+    if (ret == 0) {
+      ret = initialize();
+    }
+  }
+  return ret;
+}
+
+int RadosClusterImpl::initialize() {
+  int ret = 0;
+  if (cluster_ref_count == 0) {
 
     if (ret == 0) {
       ret = cluster.conf_parse_env(nullptr);
@@ -76,7 +96,7 @@ int RadosClusterImpl::init() {
   return ret;
 }
 
-bool RadosClusterImpl::is_connected() { return connected; }
+bool RadosClusterImpl::is_connected() { return this->connected; }
 
 int RadosClusterImpl::connect() {
   int ret = 0;

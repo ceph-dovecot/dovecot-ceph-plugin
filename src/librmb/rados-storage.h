@@ -18,7 +18,7 @@
 #include "rados-mail-object.h"
 #include <rados/librados.hpp>
 #include "rados-cluster.h"
-#include "rados-config.h"
+//#include "rados-config.h"
 
 namespace librmb {
 
@@ -45,12 +45,16 @@ class RadosStorage {
   virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                           librados::ObjectWriteOperation *op) = 0;
   virtual librados::NObjectIterator find_mails(const RadosMetadata *attr) = 0;
-  virtual int open_connection(const std::string &poolname, const std::string &ns) = 0;
+  virtual int open_connection(const std::string &poolname) = 0;
+  virtual int open_connection(const std::string &poolname, const std::string &clustername,
+                              const std::string &rados_username) = 0;
+
   virtual bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
   virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) = 0;
 
-  virtual int read_mail(librados::bufferlist *buffer, const std::string &oid) = 0;
+  virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
+  virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
   virtual bool update_metadata(std::string oid, std::list<RadosMetadata> &to_update) = 0;
   virtual bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                     std::list<RadosMetadata> &to_update, bool delete_source) = 0;
@@ -59,9 +63,11 @@ class RadosStorage {
   virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
   virtual librmb::RadosMailObject *alloc_mail_object() = 0;
   virtual void free_mail_object(librmb::RadosMailObject *mail) = 0;
-  virtual RadosConfig *get_rados_config() = 0;
+  // virtual RadosConfig *get_rados_config() = 0;
   virtual int update_extended_metadata(std::string &oid, RadosMetadata *metadata) = 0;
   virtual int remove_extended_metadata(std::string &oid, std::string &key) = 0;
+  virtual int load_extended_metadata(std::string &oid, std::set<std::string> &keys,
+                                     std::map<std::string, ceph::bufferlist> *metadata) = 0;
 };
 
 }  // namespace librmb

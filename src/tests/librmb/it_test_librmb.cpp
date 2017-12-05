@@ -18,8 +18,12 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
+//#include "common/Formatter.h"
+//#include "common/ceph_json.h"
+
 using ::testing::AtLeast;
 using ::testing::Return;
+
 
 TEST(librmb, mock_test) {
   librmbtest::RadosClusterMock cluster;
@@ -44,7 +48,8 @@ TEST(librmb, split_write_operation) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -85,7 +90,8 @@ TEST(librmb1, split_write_operation_1) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -154,7 +160,8 @@ TEST(librmb1, read_mail) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
@@ -168,7 +175,7 @@ TEST(librmb1, read_mail) {
   int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
   librados::bufferlist bl;
-  int copy_mail_ret = storage.read_mail(&bl, obj.get_oid());
+  int copy_mail_ret = storage.read_mail(obj.get_oid(), &bl);
   char *buff = new char[copy_mail_ret + 1];
   memset(buff, 1, size + 1);
   memcpy(buff, bl.to_str().c_str(), copy_mail_ret + 1);
@@ -206,7 +213,8 @@ TEST(librmb, load_metadata) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   ceph::bufferlist bl;
@@ -243,7 +251,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(-1, i);
 
   i = storage.load_metadata(&obj);
-  EXPECT_EQ(0, i);
+  EXPECT_EQ(-1, i);
 }
 
 TEST(librmb, AttributeVersions) {
@@ -261,7 +269,8 @@ TEST(librmb, AttributeVersions) {
   std::string pool_name("test");
   std::string ns("t");
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
   ceph::bufferlist bl;

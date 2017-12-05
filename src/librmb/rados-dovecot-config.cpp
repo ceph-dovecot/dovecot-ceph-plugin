@@ -5,22 +5,30 @@
  *      Author: jan
  */
 
-#include "rados-config.h"
+#include "rados-dovecot-config.h"
 
 namespace librmb {
 
 RadosConfig::RadosConfig() {
   // set defaults
+  rbox_cluster_name = "rbox_cluster_name";
+  rados_username = "rados_user_name";
+
   pool_name = "rbox_pool_name";
   mutable_metadata = "rbox_mutable_metadata";
   immutable_metadata = "rbox_immutable_metadata";
   update_immutable = "rbox_update_immutable";
+  generate_namespace = "rbox_generate_namespace";
+  rbox_cfg_object_name = "rbox_cfg_object_name";
 
   config[pool_name] = "mail_storage";
   config[update_immutable] = "false";
   config[mutable_metadata] = set_default_mutable_attributes();
   config[immutable_metadata] = set_default_immutable_attributes();
-
+  config[generate_namespace] = "false";
+  config[rbox_cfg_object_name] = "rbox_cfg";
+  config[rbox_cluster_name] = "ceph";
+  config[rados_username] = "client.admin";
   is_valid = false;
 }
 

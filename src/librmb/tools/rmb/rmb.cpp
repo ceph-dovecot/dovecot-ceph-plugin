@@ -32,6 +32,9 @@
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
 #include "rados-util.h"
+#include "rados-namespace-manager.h"
+#include "rados-dovecot-ceph-cfg.h"
+#include "rados-dovecot-ceph-cfg-impl.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -60,7 +63,29 @@ static void dashes_to_underscores(const char *input, char *output) {
   }
   *o++ = '\0';
 }
+static bool ceph_argparse_flag(std::vector<const char *> &args, std::vector<const char *>::iterator &i, ...) {
+  const char *first = *i;
+  char tmp[strlen(first) + 1];
+  dashes_to_underscores(first, tmp);
+  first = tmp;
+  va_list ap;
 
+  va_start(ap, i);
+  while (1) {
+    const char *a = va_arg(ap, char *);
+    if (a == NULL) {
+      va_end(ap);
+      return false;
+    }
+    char a2[strlen(a) + 1];
+    dashes_to_underscores(a, a2);
+    if (strcmp(a2, first) == 0) {
+      i = args.erase(i);
+      va_end(ap);
+      return true;
+    }
+  }
+}
 static int va_ceph_argparse_witharg(std::vector<const char *> *args, std::vector<const char *>::iterator *i,
                                     std::string *ret, std::ostream &oss, va_list ap) {
   const char *first = *(*i);
@@ -129,8 +154,11 @@ static void usage(std::ostream &out) {
          "        specify the namespace/user to use for the mails\n"
          "   -O path to store the boxes. If not given, $HOME/rmb is used\n"
          "   lspools  list pools\n "
+         "   -help print this information\n"
+         "   -obj <objectname> \n"
+         "    defines the dovecot-ceph configuration object\n"
          "\n"
-         "MAIL COMMANDS\n"
+         "\nMAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
          "           all list all mails and mailbox statistic\n"
          "           <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
@@ -142,8 +170,15 @@ static void usage(std::ostream &out) {
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "    sort    uid, recv_date, save_date, phy_size\n"
-         "MAILBOX COMMANDS\n"
+         "\nMAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
+         "\nCONFIGURATION COMMANDS\n"
+         "    -cfg -U key=value [-obj <objectname>] -yes-i-really-really-mean-it \n"
+         "                                          sets the configuration value\n"
+         "                                          e.g. generated_namespace=true|false\n"
+         "    -cfg -C [-obj <objectnam>]            create the default configuration\n"
+         "    -cfg ls - [-obj <objectname>]         print the current configuation"
+
          "\n";
 }
 
@@ -208,7 +243,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           (*it_mail)->set_mail_buffer(mail_buffer);
 
           (*it_mail)->set_mail_size(size_r);
-          int read = storage->read_mail(&buffer, oid);
+          int read = storage->read_mail(oid, &buffer);
           if (read > 0) {
             memcpy(mail_buffer, buffer.to_str().c_str(), read + 1);
             if (tools.save_mail((*it_mail)) < 0) {
@@ -236,15 +271,7 @@ static void release_exit(std::vector<librmb::RadosMailObject *> *mail_objects, l
     usage_exit();
   }
 }
-static bool check_connection_args(std::map<std::string, std::string> &opts) {
-  if (opts.find("pool") == opts.end()) {
-    return false;
-  }
-  if (opts.find("namespace") == opts.end()) {
-    return false;
-  }
-  return true;
-}
+
 static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
@@ -302,59 +329,68 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
   }
 }
 
-int main(int argc, const char **argv) {
-  std::vector<librmb::RadosMailObject *> mail_objects;
-  std::vector<const char *> args;
-
-  std::string val;
-  std::map<std::string, std::string> opts;
-  std::map<std::string, std::string> xattr;
-  std::string sort_type;
-  unsigned int idx = 0;
+static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &is_config,
+                                std::map<std::string, std::string> *metadata, std::vector<const char *> *args,
+                                bool &create_config, bool &show_usage, bool &update_confirmed) {
   std::vector<const char *>::iterator i;
+  std::string val;
+  unsigned int idx = 0;
 
-  argv_to_vec(argc, argv, &args);
-
-  for (i = args.begin(); i != args.end();) {
-    if (ceph_argparse_double_dash(&args, &i)) {
+  for (i = (*args).begin(); i != (*args).end();) {
+    if (ceph_argparse_double_dash(args, &i)) {
       break;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
-      opts["pool"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
-      opts["namespace"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
-      opts["ls"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
-      opts["get"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
-      opts["out"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
-      opts["set"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
-      opts["sort"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
+      (*opts)["pool"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
+      (*opts)["namespace"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
+      (*opts)["ls"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
+      (*opts)["get"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
+      (*opts)["out"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
+      (*opts)["set"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
+      (*opts)["sort"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-cfg", "--config", (char *)(NULL))) {
+      is_config = true;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
+      (*opts)["cfg_obj"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
+      (*opts)["update"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-C", "--create", (char *)(NULL))) {
+      create_config = true;
+    } else if (ceph_argparse_flag(*args, i, "-help", "--help", (char *)(NULL))) {
+      show_usage = true;
+    } else if (ceph_argparse_flag(*args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
+                                  (char *)(NULL))) {
+      update_confirmed = true;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
+      // delete oid
+      (*opts)["to_delete"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
+      // rename
+      (*opts)["to_rename"] = val;
     } else {
-      if (idx + 1 < args.size()) {
-        xattr[args[idx]] = args[idx + 1];
+      if (idx + 1 < (*args).size()) {
+        std::string m_idx((*args)[idx]);
+        (*metadata)[m_idx] = std::string((*args)[idx + 1]);
         idx++;
       }
       ++idx;
       ++i;
     }
   }
+}
 
-  if (args.size() <= 0 && opts.size() <= 0) {
-    usage_exit();
-  }
-
+int handle_lspools_cmd() {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
-
-  if (strcmp(args[0], "lspools") == 0) {
-    cluster.init();
-    if (cluster.connect() < 0) {
-      std::cout << " error opening rados connection" << std::endl;
-      return 0;
-    }
+  cluster.init();
+  if (cluster.connect() < 0) {
+    std::cout << " error opening rados connection" << std::endl;
+  } else {
     std::list<std::string> vec;
     int ret = cluster.get_cluster().pool_list(vec);
     if (ret == 0) {
@@ -362,31 +398,215 @@ int main(int argc, const char **argv) {
         std::cout << ' ' << *it << std::endl;
       }
     }
-    cluster.deinit();
-    return 0;
   }
+  cluster.deinit();
+  return 0;
+}
 
-  if (opts.find("pool") == opts.end()) {
-    opts["pool"] = "mail_storage";
-  }
+int main(int argc, const char **argv) {
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<const char *> args;
 
-  if (opts.find("namespace") == opts.end()) {
+  std::map<std::string, std::string> opts;
+  std::map<std::string, std::string> metadata;
+  std::string sort_type;
+
+  bool is_config_option = false;
+  bool create_config = false;
+  bool confirmed = false;
+  bool show_usage = false;
+  bool is_lspools_cmd = false;
+  bool delete_mail_option = false;
+  argv_to_vec(argc, argv, &args);
+
+  parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);
+  is_lspools_cmd = strcmp(args[0], "lspools") == 0;
+  delete_mail_option = opts.find("to_delete") != opts.end();
+
+  if (show_usage) {
     usage_exit();
   }
 
-  if (!check_connection_args(opts)) {
+  if (args.size() <= 0 && opts.size() <= 0 && !is_config_option) {
     usage_exit();
   }
-  std::string pool_name(opts["pool"]);
-  std::string ns(opts["namespace"]);
 
-  int open_connection = storage.open_connection(pool_name, ns);
+  if (is_lspools_cmd) {
+    std::cout << "is ls pools _cmd" << std::endl;
+    return handle_lspools_cmd();
+  }
+
+  // set pool to default or given pool name
+  std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+  int open_connection = storage.open_connection(pool_name);
   if (open_connection < 0) {
     std::cout << " error opening rados connection" << std::endl;
+    cluster.deinit();
     return -1;
   }
 
+  // initialize configuration
+  librmb::RadosCephConfig ceph_cfg(&storage);
+  std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
+  ceph_cfg.set_cfg_object_name(obj_);
+  if (ceph_cfg.load_cfg() < 0) {
+
+    if (create_config) {
+      if (ceph_cfg.save_cfg() < 0) {
+        std::cout << "loading config object failed " << std::endl;
+      }
+      cluster.deinit();
+      exit(0);
+    }
+  }
+
+  if (is_config_option) {
+    bool has_update = opts.find("update") != opts.end();
+    bool has_ls = opts.find("ls") != opts.end();
+    if (has_update && has_ls) {
+      usage_exit();
+    }
+    if (create_config) {
+      std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
+      cluster.deinit();
+      return -1;
+    }
+
+    if (has_ls) {
+      std::cout << ceph_cfg.get_config()->to_string() << std::endl;
+    } else if (has_update) {
+      std::size_t key_val_separator_idx = opts["update"].find("=");
+
+      if (key_val_separator_idx != std::string::npos) {
+        std::string key = opts["update"].substr(0, key_val_separator_idx);
+        std::string key_val = opts["update"].substr(key_val_separator_idx + 1, opts["update"].length() - 1);
+
+        bool failed = false;
+
+        if (!confirmed) {
+          std::cout << "WARNING:" << std::endl;
+          std::cout
+              << "Changing this setting, after e-mails have been stored, could lead to a situation in which users "
+                 "can no longer access their e-mail!!!"
+              << std::endl;
+          std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
+        } else {
+          if (ceph_cfg.is_valid_key_value(key, key_val)) {
+            failed = !ceph_cfg.update_valid_key_value(key, key_val);
+            std::cout << " saving : " << failed << std::endl;
+          } else {
+            failed = true;
+            std::cout << "Error: key : " << key << " value: " << key_val << " is not valid !" << std::endl;
+            if (key_val.compare("TRUE") == 0 || key_val.compare("FALSE") == 0) {
+              std::cout << "Error: value: TRUE|FALSE not supported use lower case! " << std::endl;
+            }
+          }
+          if (!failed) {
+            std::cout << " saving cfg" << std::endl;
+            ceph_cfg.save_cfg();
+          }
+        }
+      }
+    }
+    cluster.deinit();
+    return 0;
+  }
+  librmb::RadosConfig dovecot_cfg;
+  dovecot_cfg.set_config_valid(true);
+  librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
+  librmb::RadosNamespaceManager mgr(&storage, &cfg);
+  if (opts.find("namespace") == opts.end()) {
+    cluster.deinit();
+    usage_exit();
+  }
+  std::string uid(opts["namespace"]);
+  std::string ns;
+  if (mgr.lookup_key(uid, &ns)) {
+    storage.set_namespace(ns);
+  } else {
+    // use
+    if (!mgr.lookup_key(uid, &ns)) {
+      std::cout << " error unable to determine namespace" << std::endl;
+      return -1;
+    }
+    std::cout << " uid : " << ns << std::endl;
+    storage.set_namespace(ns);
+  }
+
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
+  if (delete_mail_option) {
+    if (!confirmed) {
+      std::cout << "WARNING: Deleting a mail object will remove the object from ceph, but not from dovecot index, this "
+                   "may lead to corrupt mailbox\n"
+                << " add --yes-i-really-really-mean-it to confirm the delete " << std::endl;
+    } else {
+      if (storage.delete_mail(opts["to_delete"]) == 0) {
+        std::cout << "unable to delete e-mail object with oid: " << opts["to_delete"] << std::endl;
+      } else {
+        std::cout << "Success: email objekt with oid: " << opts["to_delete"] << " deleted" << std::endl;
+      }
+    }
+    cluster.deinit();
+    exit(0);
+  }
+  bool rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
+  if (rename_user_option) {
+    if (!cfg.is_generated_namespace()) {
+      std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
+                << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    if (!confirmed) {
+      std::cout << "WARNING: renaming a user may lead to data loss! Do you really really want to do this? \n add "
+                   "--yes-i-really-really-mean-it to confirm "
+                << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+
+    std::string src_ = uid + cfg.get_ns_suffix();
+    std::string dest_ = opts["to_rename"] + cfg.get_ns_suffix();
+
+    if (src_.compare(dest_) == 0) {
+      std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+
+    std::list<librmb::RadosMetadata> list;
+    std::cout << " copy namespace configuration src " << src_ << " to dest " << dest_ << " in namespace "
+              << cfg.get_ns_cfg() << std::endl;
+
+    storage.set_namespace(cfg.get_ns_cfg());
+    uint64_t size;
+    time_t save_time;
+
+    int exist = storage.stat_mail(src_, &size, &save_time);
+    if (exist < 0) {
+      std::cout << "Error there does not exist a configuration file for " << src_ << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    exist = storage.stat_mail(dest_, &size, &save_time);
+    if (exist >= 0) {
+      std::cout << "Error: there already exists a configuration file: " << dest_ << std::endl;
+      cluster.deinit();
+      exit(0);
+    }
+    if (storage.copy(src_, cfg.get_ns_cfg().c_str(), dest_, cfg.get_ns_cfg().c_str(), list)) {
+      if (storage.delete_mail(src_) != 0) {
+        std::cout << "Error removing " << src_ << std::endl;
+      }
+    } else {
+      std::cout << "Error renaming " << src_ << std::endl;
+    }
+    cluster.deinit();
+    exit(0);
+  }
 
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
@@ -423,11 +643,11 @@ int main(int argc, const char **argv) {
     }
   } else if (opts.find("set") != opts.end()) {
     std::string oid = opts["set"];
-    if (oid.empty() || xattr.size() < 1) {
+    if (oid.empty() || metadata.size() < 1) {
       release_exit(&mail_objects, &cluster, true);
     }
 
-    for (std::map<std::string, std::string>::iterator it = xattr.begin(); it != xattr.end(); ++it) {
+    for (std::map<std::string, std::string>::iterator it = metadata.begin(); it != metadata.end(); ++it) {
       std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
       librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
       std::string value = it->second;
