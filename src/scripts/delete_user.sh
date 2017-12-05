@@ -10,35 +10,35 @@ result=$2
 
 # Load utility script
 script_path=${0%/*}
-source $script_path/utils.sh
+source "$script_path/utils.sh"
 
 if [ ! $# -eq 2 ] ; then
 	 error_exit "Wrong number of arguments. Usage: $0 <user id> <result>"
 fi
 	  
-if [ ! "$2" = "0" ] ; then
+if [ ! "$result" = "0" ] ; then
 	 error_exit "Result of move process not 0"
 fi
 
-# Reads mail_location of user
-mail_location=$(get_user_mail_location $user)
-
 # Get all mailboxes
-list=$(get_mailbox_list $user)
+list=$(get_mailbox_list "$user")
 		
 # Delete all mailboxes (exclude sub-boxes)
 sep='/'
 IFS=$'\n'; mbox_array=($list); unset IFS;
 for mbox in "${mbox_array[@]}"; do
-	if ! string_contains $mbox $sep; then
-		delete_mailbox $user $mbox || { echo "Delete $mbox failed" ; exit 1 ; } 
+	if ! string_contains "$mbox" "$sep" ; then
+		delete_mailbox "$user" "$mbox" || { echo "Delete $mbox failed" ; exit 1 ; } 
 	fi
 done
 
+# Reads mail_location of user
+mail_location=$(get_user_mail_location "$user")
+
 # Delete mail_location
-if [ -z $mail_location ] || [ ! -d $mail_location ] ; then
+if [[ -z "$mail_location" ]] || [[ ! -d "$mail_location" ]] ; then
 	error_exit "user path is empty or doesn't exist: $mail_location"								
 fi
+rm -Rf "$mail_location"
 
-rm -Rf $mail_location
 echo $?

@@ -12,7 +12,7 @@ declare -a excluded_files=("dovecot-acl-list" "subscriptions")
 declare -a excluded_file_wildcards=("dovecot-uidvalidity")
 declare -a excluded_directories=("storage" "alt-storage" "dbox-Mails" "rbox-Mails")
 
-prog_name=$(basename $0)
+prog_name=$(basename "$0")
 
 # functions
 
@@ -108,14 +108,14 @@ doveadm_sync() {
 	local user="$2"
 	local mail_format="$3"
 	
-	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
 	fi
 	
 	if [ "$mail_format" = "rbox" ] ; then
-		$bin_path/doveadm sync -u $user $mail_format:$dest_path/$user:LAYOUT=fs
+		"$bin_path"/doveadm sync -u "$user" "$mail_format":"$dest_path"/"$user":LAYOUT=fs
 	else
-		$bin_path/doveadm sync -u $user $mail_format:$dest_path/$user
+		"$bin_path"/doveadm sync -u "$user" "$mail_format":"$dest_path"/"$user"
 	fi
 	echo $?	
 }
@@ -127,15 +127,17 @@ doveadm_sync() {
 get_user_mail_location() {
 	local bin_path="$DOVECOT_HOME/bin"
 	local user="$1"
+	local mail
+	local path
 	
-	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
 	fi
 	
-	local mail=$($bin_path/doveadm user -f mail $user)
+	mail=$("$bin_path"/doveadm user -f mail "$user")
 	#echo "mail = $mail"
 	
-	local path=${mail#*:}
+	path=${mail#*:}
 	#path=${path%/*}
 	echo "$path"
 }
@@ -147,12 +149,13 @@ get_user_mail_location() {
 get_mailbox_list() {
 	local bin_path="$DOVECOT_HOME/bin"
 	local user="$1"
+	local list
 	
-	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
 	fi
 	
-	local list=$($bin_path/doveadm mailbox list -u $user)
+	list=$("$bin_path"/doveadm mailbox list -u "$user")
 	echo "$list"
 }
 
@@ -166,11 +169,11 @@ delete_mailbox() {
 	local user="$1"
 	local mailbox="$2"
 	
-	if [ -z $bin_path ] || [ ! -d $bin_path ] ; then
+	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ] ; then
 		error_exit "program path is empty or doesn't exist: $bin_path"								
 	fi
 	
-	$bin_path/doveadm mailbox delete -rsZ -u $user $mailbox &> /dev/null
+	"$bin_path"/doveadm mailbox delete -rsZ -u "$user" "$mailbox" &> /dev/null
 }
 
 # Copies files from one directory to another one
@@ -191,19 +194,18 @@ copy_files() {
 	for file in "$src_path"/* ; do 
 		output=${file/$root_path/$dest_path\/$3}
 		output=${output//\/\//\/}
-		if [ -f $file ] ; then
-			if ! is_excluded ${file##*/} ; then
+		if [ -f "$file" ] ; then
+			if ! is_excluded "${file##*/}" ; then
 				#echo "mkdir ${output%/*}"
-				mkdir -p ${output%/*} || error_exit "could not create directory ${output%/*}"
+				mkdir -p "${output%/*}" || error_exit "could not create directory ${output%/*}"
 				#echo "cp: $file -> $output"
-				cp $file $output || error_exit "copy $file to $output failed"
+				cp "$file" "$output" || error_exit "copy $file to $output failed"
 			fi
 		fi	
-		if [ -d $file ] ; then
-			if ! is_excluded ${file##*/} ; then
-			copy_files $file $dest_path $3 || exit 1
+		if [ -d "$file" ] ; then
+			if ! is_excluded "${file##*/}" ; then
+				copy_files "$file" "$dest_path" "$3" || exit 1
 			fi
 		fi
 	done
 }
-
