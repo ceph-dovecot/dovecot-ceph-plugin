@@ -252,16 +252,6 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     } else {
       i_debug("Mail saved without ceph copy, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
 
-      if (r_ctx->output_stream->real_stream->finished) {
-        i_debug("real_stream is finished");
-      } else {
-        i_debug("real_stream is not finished");
-      }
-      if (r_ctx->output_stream->stream_errno == 0) {
-        i_debug("stream do not have a error");
-      }
-      r_ctx->output_stream->real_stream->finished = false;
-      r_ctx->output_stream->stream_errno = 0;
     }
   }
 
