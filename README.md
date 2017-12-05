@@ -7,7 +7,7 @@ As a bonus, a dictionary plugin is included, which allows the storage of Dovecot
 
 ### Disclaimer
 
-This project is under heavy development and not in any kind of release state. Be aware it is possible and very likely that APIs, interfaces and or the data format change at any time before a first release.
+This project is under active development and not in any kind of release state. Be aware it is possible and very likely that APIs, interfaces and or the data format change at any time before a first release.
 
 The code is in a tested state, but is NOT production ready. Although the code is still flagged as experimental, we encourage users to try it out for non-production clusters and non-critical data sets and report their experience, findings and issues.
 
