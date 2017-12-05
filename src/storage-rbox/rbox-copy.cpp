@@ -19,7 +19,8 @@ extern "C" {
 #include "dovecot-all.h"
 #include "istream.h"
 #include "mail-copy.h"
-
+#include "ostream.h"
+#include "ostream-private.h"
 #include "debug-helper.h"
 }
 #include "rados-mail-object.h"
@@ -113,8 +114,8 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
                                                 guid_128_to_string(dest_mailbox->mailbox_guid));
     metadata_update->push_back(metadata_mailbox_guid);
 
-    if (r_storage->config->is_update_immutable()) {
-      if (r_storage->config->is_immutable_metadata(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
+    if (r_storage->config->is_update_attributes()) {
+      if (r_storage->config->is_updateable_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
         // updates the plain text mailbox name
         librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
         metadata_update->push_back(metadata_mbn);
@@ -250,6 +251,17 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
       return -1;
     } else {
       i_debug("Mail saved without ceph copy, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
+
+      if (r_ctx->output_stream->real_stream->finished) {
+        i_debug("real_stream is finished");
+      } else {
+        i_debug("real_stream is not finished");
+      }
+      if (r_ctx->output_stream->stream_errno == 0) {
+        i_debug("stream do not have a error");
+      }
+      r_ctx->output_stream->real_stream->finished = false;
+      r_ctx->output_stream->stream_errno = 0;
     }
   }
 

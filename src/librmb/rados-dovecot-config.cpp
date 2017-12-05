@@ -15,24 +15,24 @@ RadosConfig::RadosConfig() {
   rados_username = "rados_user_name";
 
   pool_name = "rbox_pool_name";
-  mutable_metadata = "rbox_mutable_metadata";
-  immutable_metadata = "rbox_immutable_metadata";
-  update_immutable = "rbox_update_immutable";
-  generate_namespace = "rbox_generate_namespace";
+
+  mail_attributes = "rbox_mail_attributes";
+  updateable_attributes = "rbox_updateable_attributes";
+  update_attributes = "rbox_update_attributes";
   rbox_cfg_object_name = "rbox_cfg_object_name";
 
   config[pool_name] = "mail_storage";
-  config[update_immutable] = "false";
-  config[mutable_metadata] = set_default_mutable_attributes();
-  config[immutable_metadata] = set_default_immutable_attributes();
-  config[generate_namespace] = "false";
+  config[update_attributes] = "false";
+  config[mail_attributes] = set_default_mail_attributes();
+  config[updateable_attributes] = set_default_updateable_attributes();
+
   config[rbox_cfg_object_name] = "rbox_cfg";
   config[rbox_cluster_name] = "ceph";
   config[rados_username] = "client.admin";
   is_valid = false;
 }
 
-std::string RadosConfig::set_default_mutable_attributes() {
+std::string RadosConfig::set_default_mail_attributes() {
   std::string mutable_attributes;
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_GUID)));
@@ -48,7 +48,7 @@ std::string RadosConfig::set_default_mutable_attributes() {
   return mutable_attributes;
 }
 
-std::string RadosConfig::set_default_immutable_attributes() {
+std::string RadosConfig::set_default_updateable_attributes() {
   std::string mutable_attributes;
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
@@ -56,12 +56,12 @@ std::string RadosConfig::set_default_immutable_attributes() {
   return mutable_attributes;
 }
 
-bool RadosConfig::is_mutable_metadata(enum rbox_metadata_key key) {
-  return string_contains_key(config[mutable_metadata], key);
+bool RadosConfig::is_mail_attribute(enum rbox_metadata_key key) {
+  return string_contains_key(config[mail_attributes], key);
 }
 
-bool RadosConfig::is_immutable_metadata(enum rbox_metadata_key key) {
-  return string_contains_key(config[immutable_metadata], key);
+bool RadosConfig::is_updateable_attribute(enum rbox_metadata_key key) {
+  return string_contains_key(config[updateable_attributes], key);
 }
 
 bool RadosConfig::string_contains_key(std::string &str, enum rbox_metadata_key key) {
@@ -69,17 +69,17 @@ bool RadosConfig::string_contains_key(std::string &str, enum rbox_metadata_key k
   return str.find(value) != std::string::npos;
 }
 
-void RadosConfig::update_mutable_metadata(const char *value) {
+void RadosConfig::update_mail_attribute(const char *value) {
   if (value == NULL) {
     return;
   }
-  config[mutable_metadata] = value;
+  config[mail_attributes] = value;
 }
-void RadosConfig::update_immutable_metadata(const char *value) {
+void RadosConfig::update_updateable_attribute(const char *value) {
   if (value == NULL) {
     return;
   }
-  config[immutable_metadata] = value;
+  config[updateable_attributes] = value;
 }
 
 void RadosConfig::update_pool_name_metadata(const char *value) {

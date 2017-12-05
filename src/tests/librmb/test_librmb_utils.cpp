@@ -69,16 +69,16 @@ TEST(librmb, utils_convert_convert_time_t_to_str) {
 TEST(librmb, config_mutable_metadata) {
   librmb::RadosConfig config;
   std::string str = "MGP";
-  config.update_mutable_metadata(str.c_str());
-  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
-  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_GUID));
-  EXPECT_TRUE(config.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
-  EXPECT_FALSE(config.is_mutable_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX));
+  config.update_mail_attribute(str.c_str());
+  EXPECT_TRUE(config.is_mail_attribute(librmb::RBOX_METADATA_MAILBOX_GUID));
+  EXPECT_TRUE(config.is_mail_attribute(librmb::RBOX_METADATA_GUID));
+  EXPECT_TRUE(config.is_mail_attribute(librmb::RBOX_METADATA_POP3_UIDL));
+  EXPECT_FALSE(config.is_mail_attribute(librmb::RBOX_METADATA_ORIG_MAILBOX));
 
   // use defaults.
   librmb::RadosConfig config2;
-  config2.update_mutable_metadata(NULL);
-  EXPECT_TRUE(config2.is_mutable_metadata(librmb::RBOX_METADATA_POP3_UIDL));
+  config2.update_mail_attribute(NULL);
+  EXPECT_TRUE(config2.is_mail_attribute(librmb::RBOX_METADATA_POP3_UIDL));
 }
 
 TEST(librmb, convert_flags) {

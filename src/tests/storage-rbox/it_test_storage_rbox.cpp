@@ -180,7 +180,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
     } while ((ret = i_stream_read(input)) > 0);
 
     std::string config_flags = "F";
-    std::string key = "rbox_mutable_metadata";
+    std::string key = "rbox_mail_attributes";
     r_storage->config->update_metadata(key, config_flags.c_str());
 
     EXPECT_EQ(ret, -1);

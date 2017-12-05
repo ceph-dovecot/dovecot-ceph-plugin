@@ -24,20 +24,21 @@ class RadosDovecotCephCfg {
   // dovecot configuration
   virtual const std::string &get_rados_cluster_name() = 0;
   virtual const std::string &get_rados_username() = 0;
-  virtual bool is_mutable_metadata(enum rbox_metadata_key key) = 0;
-  virtual bool is_immutable_metadata(enum rbox_metadata_key key) = 0;
-  virtual void update_mutable_metadata(const char *value) = 0;
-  virtual void update_immutable_metadata(const char *value) = 0;
+  virtual bool is_mail_attribute(enum rbox_metadata_key key) = 0;
+  virtual bool is_updateable_attribute(enum rbox_metadata_key key) = 0;
+  virtual void update_mail_attributes(const char *value) = 0;
+  virtual void update_updatable_attributes(const char *value) = 0;
   virtual void update_pool_name_metadata(const char *value) = 0;
 
-  virtual const std::string &get_mutable_metadata_key() = 0;
-  virtual const std::string &get_immutable_metadata_key() = 0;
   virtual const std::string &get_pool_name_metadata_key() = 0;
-  virtual const std::string &get_update_immutable_key() = 0;
+  virtual const std::string &get_update_attributes_key() = 0;
+  virtual const std::string &get_mail_attributes_key() = 0;
+  virtual const std::string &get_updateable_attributes_key() = 0;
+
   virtual std::map<std::string, std::string> *get_config() = 0;
 
   virtual std::string get_pool_name() = 0;
-  virtual bool is_update_immutable() = 0;
+  virtual bool is_update_attributes() = 0;
 
 
   virtual void update_metadata(std::string &key, const char *value_) = 0;
