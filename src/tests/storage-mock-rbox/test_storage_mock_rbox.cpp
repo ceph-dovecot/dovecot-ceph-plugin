@@ -89,7 +89,9 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   // first call to open_connection will fail!
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillOnce(Return(-1));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+      .Times(AtLeast(1))
+      .WillOnce(Return(-1));
 
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
@@ -176,7 +178,9 @@ TEST_F(StorageTest, exec_write_op_fails) {
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, Matcher<bool &>(_))).Times(1).WillOnce(Return(false));
   EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
   EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
@@ -277,7 +281,9 @@ TEST_F(StorageTest, write_op_fails) {
   i_debug("after delete");
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage")).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, Matcher<bool &>(_))).Times(1).WillOnce(Return(true));
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(true));
   EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillRepeatedly(Return(0));

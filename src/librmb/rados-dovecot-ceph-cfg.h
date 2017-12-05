@@ -22,6 +22,8 @@ class RadosDovecotCephCfg {
   virtual ~RadosDovecotCephCfg(){};
 
   // dovecot configuration
+  virtual const std::string &get_rados_cluster_name() = 0;
+  virtual const std::string &get_rados_username() = 0;
   virtual bool is_mutable_metadata(enum rbox_metadata_key key) = 0;
   virtual bool is_immutable_metadata(enum rbox_metadata_key key) = 0;
   virtual void update_mutable_metadata(const char *value) = 0;

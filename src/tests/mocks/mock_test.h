@@ -43,6 +43,9 @@ class RadosStorageMock : public RadosStorage {
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD1(open_connection, int(const std::string &poolname));
+  MOCK_METHOD3(open_connection,
+               int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
+
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMailObject *> &object_list));
@@ -85,6 +88,8 @@ using librmb::RadosCluster;
 class RadosClusterMock : public RadosCluster {
  public:
   MOCK_METHOD0(init, int());
+  MOCK_METHOD2(init, int(const std::string &clustername, const std::string &rados_username));
+
   MOCK_METHOD0(deinit, void());
   MOCK_METHOD1(pool_create, int(const std::string &pool));
   MOCK_METHOD2(io_ctx_create, int(const std::string &pool, librados::IoCtx *io_ctx));

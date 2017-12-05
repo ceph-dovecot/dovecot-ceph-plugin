@@ -49,6 +49,7 @@ class RadosStorageImpl : public RadosStorage {
                   librados::ObjectWriteOperation *op);
   librados::NObjectIterator find_mails(const RadosMetadata *attr);
   int open_connection(const std::string &poolname);
+  int open_connection(const std::string &poolname, const std::string &clustername, const std::string &rados_username);
 
   bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
@@ -66,18 +67,19 @@ class RadosStorageImpl : public RadosStorage {
   bool save_mail(RadosMailObject *mail, bool &save_async);
   librmb::RadosMailObject *alloc_mail_object();
   void free_mail_object(librmb::RadosMailObject *mail);
-  //  RadosConfig *get_rados_config() { return rados_config; }
   int update_extended_metadata(std::string &oid, RadosMetadata *metadata);
   int remove_extended_metadata(std::string &oid, std::string &key);
   int load_extended_metadata(std::string &oid, std::set<std::string> &keys,
                              std::map<std::string, ceph::bufferlist> *metadata);
 
  private:
+  int create_connection(const std::string &poolname);
+
+ private:
   RadosCluster *cluster;
   int max_write_size;
   std::string nspace;
   librados::IoCtx io_ctx;
-  // RadosConfig *rados_config;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };

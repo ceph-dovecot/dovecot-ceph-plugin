@@ -46,6 +46,9 @@ class RadosStorage {
                           librados::ObjectWriteOperation *op) = 0;
   virtual librados::NObjectIterator find_mails(const RadosMetadata *attr) = 0;
   virtual int open_connection(const std::string &poolname) = 0;
+  virtual int open_connection(const std::string &poolname, const std::string &clustername,
+                              const std::string &rados_username) = 0;
+
   virtual bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
   virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) = 0;

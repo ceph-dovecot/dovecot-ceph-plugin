@@ -23,6 +23,8 @@ class RadosCluster {
  public:
   virtual ~RadosCluster() {}
   virtual int init() = 0;
+  virtual int init(const std::string &clustername, const std::string &rados_username) = 0;
+
   virtual void deinit() = 0;
 
   virtual int pool_create(const std::string &pool) = 0;

@@ -208,10 +208,22 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
 
 librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
 
+int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &clustername,
+                                      const std::string &rados_username) {
+  if (cluster->init(clustername, rados_username) < 0) {
+    return -1;
+  }
+  return create_connection(poolname);
+}
+
 int RadosStorageImpl::open_connection(const string &poolname) {
   if (cluster->init() < 0) {
     return -1;
   }
+  return create_connection(poolname);
+}
+
+int RadosStorageImpl::create_connection(const std::string &poolname) {
   // pool exists? else create
   int err = cluster->io_ctx_create(poolname, &io_ctx);
   if (err < 0) {
@@ -223,7 +235,6 @@ int RadosStorageImpl::open_connection(const string &poolname) {
     return err;
   }
   max_write_size = std::stoi(max_write_size_str);
-
   return 0;
 }
 

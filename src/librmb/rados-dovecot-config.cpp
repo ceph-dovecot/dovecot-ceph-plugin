@@ -11,6 +11,9 @@ namespace librmb {
 
 RadosConfig::RadosConfig() {
   // set defaults
+  rbox_cluster_name = "rbox_cluster_name";
+  rados_username = "rados_user_name";
+
   pool_name = "rbox_pool_name";
   mutable_metadata = "rbox_mutable_metadata";
   immutable_metadata = "rbox_immutable_metadata";
@@ -24,6 +27,8 @@ RadosConfig::RadosConfig() {
   config[immutable_metadata] = set_default_immutable_attributes();
   config[generate_namespace] = "false";
   config[rbox_cfg_object_name] = "rbox_cfg";
+  config[rbox_cluster_name] = "ceph";
+  config[rados_username] = "client.admin";
   is_valid = false;
 }
 

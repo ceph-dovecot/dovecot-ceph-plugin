@@ -28,6 +28,9 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   virtual ~RadosDovecotCephCfgImpl();
 
   // dovecot config
+
+  const std::string &get_rados_cluster_name() { return dovecot_cfg->get_rbox_cluster_name(); }
+  const std::string &get_rados_username() { return dovecot_cfg->get_rados_username(); }
   bool is_mutable_metadata(enum rbox_metadata_key key) { return dovecot_cfg->is_mutable_metadata(key); }
   bool is_immutable_metadata(enum rbox_metadata_key key) { return dovecot_cfg->is_immutable_metadata(key); }
   void update_mutable_metadata(const char *value) { dovecot_cfg->update_mutable_metadata(value); }

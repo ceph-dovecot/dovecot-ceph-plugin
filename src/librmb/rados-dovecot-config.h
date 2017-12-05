@@ -46,6 +46,9 @@ class RadosConfig {
 
   std::string get_rbox_cfg_object_name() { return config[rbox_cfg_object_name]; }
 
+  const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
+  const std::string &get_rados_username() { return config[rados_username]; }
+
  private:
   bool string_contains_key(std::string &str, enum rbox_metadata_key key);
 
@@ -57,6 +60,8 @@ class RadosConfig {
   std::string immutable_metadata;
   std::string generate_namespace;
   std::string rbox_cfg_object_name;
+  std::string rbox_cluster_name;
+  std::string rados_username;
   bool is_valid;
 };
 
