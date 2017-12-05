@@ -157,6 +157,7 @@ static void usage(std::ostream &out) {
          "   -help print this information\n"
          "   -obj <objectname> \n"
          "    defines the dovecot-ceph configuration object\n"
+         "   -R dovecot_user_name renames a username\n "
          "\n"
          "\nMAIL COMMANDS\n"
          "    ls     -   list all mails and mailbox statistic\n"
@@ -170,10 +171,11 @@ static void usage(std::ostream &out) {
          "                      <OP> =,>,< for strings only = is supported.\n"
          "    set     oid XATTR value e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "    sort    uid, recv_date, save_date, phy_size\n"
+         "    -D      oid --yes-i-really-really-mean-it deletes the ceph object with oid\n"
          "\nMAILBOX COMMANDS\n"
          "    ls     mb  list all mailboxes\n"
          "\nCONFIGURATION COMMANDS\n"
-         "    -cfg -U key=value [-obj <objectname>] -yes-i-really-really-mean-it \n"
+         "    -cfg -U key=value [-obj <objectname>] --yes-i-really-really-mean-it \n"
          "                                          sets the configuration value\n"
          "                                          e.g. generated_namespace=true|false\n"
          "    -cfg -C [-obj <objectnam>]            create the default configuration\n"
@@ -403,66 +405,9 @@ int handle_lspools_cmd() {
   return 0;
 }
 
-int main(int argc, const char **argv) {
-  std::vector<librmb::RadosMailObject *> mail_objects;
-  std::vector<const char *> args;
-
-  std::map<std::string, std::string> opts;
-  std::map<std::string, std::string> metadata;
-  std::string sort_type;
-
-  bool is_config_option = false;
-  bool create_config = false;
-  bool confirmed = false;
-  bool show_usage = false;
-  bool is_lspools_cmd = false;
-  bool delete_mail_option = false;
-  argv_to_vec(argc, argv, &args);
-
-  parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);
-  is_lspools_cmd = strcmp(args[0], "lspools") == 0;
-  delete_mail_option = opts.find("to_delete") != opts.end();
-
-  if (show_usage) {
-    usage_exit();
-  }
-
-  if (args.size() <= 0 && opts.size() <= 0 && !is_config_option) {
-    usage_exit();
-  }
-
-  if (is_lspools_cmd) {
-    std::cout << "is ls pools _cmd" << std::endl;
-    return handle_lspools_cmd();
-  }
-
-  // set pool to default or given pool name
-  std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
-
-  librmb::RadosClusterImpl cluster;
-  librmb::RadosStorageImpl storage(&cluster);
-  int open_connection = storage.open_connection(pool_name);
-  if (open_connection < 0) {
-    std::cout << " error opening rados connection" << std::endl;
-    cluster.deinit();
-    return -1;
-  }
-
-  // initialize configuration
-  librmb::RadosCephConfig ceph_cfg(&storage);
-  std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
-  ceph_cfg.set_cfg_object_name(obj_);
-  if (ceph_cfg.load_cfg() < 0) {
-
-    if (create_config) {
-      if (ceph_cfg.save_cfg() < 0) {
-        std::cout << "loading config object failed " << std::endl;
-      }
-      cluster.deinit();
-      exit(0);
-    }
-  }
-
+static void handle_config_option(bool is_config_option, bool create_config, const std::string &obj_, bool confirmed,
+                                 std::map<std::string, std::string> &opts, librmb::RadosClusterImpl &cluster,
+                                 librmb::RadosCephConfig &ceph_cfg) {
   if (is_config_option) {
     bool has_update = opts.find("update") != opts.end();
     bool has_ls = opts.find("ls") != opts.end();
@@ -472,26 +417,22 @@ int main(int argc, const char **argv) {
     if (create_config) {
       std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
       cluster.deinit();
-      return -1;
+      // return -1;
+      exit(-1);
     }
-
     if (has_ls) {
       std::cout << ceph_cfg.get_config()->to_string() << std::endl;
     } else if (has_update) {
       std::size_t key_val_separator_idx = opts["update"].find("=");
-
       if (key_val_separator_idx != std::string::npos) {
         std::string key = opts["update"].substr(0, key_val_separator_idx);
         std::string key_val = opts["update"].substr(key_val_separator_idx + 1, opts["update"].length() - 1);
-
         bool failed = false;
-
         if (!confirmed) {
           std::cout << "WARNING:" << std::endl;
-          std::cout
-              << "Changing this setting, after e-mails have been stored, could lead to a situation in which users "
-                 "can no longer access their e-mail!!!"
-              << std::endl;
+          std::cout << "Changing this setting, after e-mails have been stored, could lead to a situation in which "
+                       "users can no longer access their e-mail!!!"
+                    << std::endl;
           std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
         } else {
           if (ceph_cfg.is_valid_key_value(key, key_val)) {
@@ -511,32 +452,14 @@ int main(int argc, const char **argv) {
         }
       }
     }
-    cluster.deinit();
-    return 0;
-  }
-  librmb::RadosConfig dovecot_cfg;
-  dovecot_cfg.set_config_valid(true);
-  librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
-  librmb::RadosNamespaceManager mgr(&storage, &cfg);
-  if (opts.find("namespace") == opts.end()) {
-    cluster.deinit();
-    usage_exit();
-  }
-  std::string uid(opts["namespace"]);
-  std::string ns;
-  if (mgr.lookup_key(uid, &ns)) {
-    storage.set_namespace(ns);
-  } else {
-    // use
-    if (!mgr.lookup_key(uid, &ns)) {
-      std::cout << " error unable to determine namespace" << std::endl;
-      return -1;
-    }
-    std::cout << " uid : " << ns << std::endl;
-    storage.set_namespace(ns);
-  }
 
-  sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
+    cluster.deinit();
+    exit(0);
+  }
+}
+
+static void handle_delete_mail(bool delete_mail_option, bool confirmed, const std::map<std::string, std::string> &opts,
+                               librmb::RadosStorageImpl &storage, librmb::RadosClusterImpl &cluster) {
   if (delete_mail_option) {
     if (!confirmed) {
       std::cout << "WARNING: Deleting a mail object will remove the object from ceph, but not from dovecot index, this "
@@ -552,7 +475,11 @@ int main(int argc, const char **argv) {
     cluster.deinit();
     exit(0);
   }
-  bool rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
+}
+
+void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
+                        const std::string &uid, const std::map<std::string, std::string> &opts,
+                        librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
     if (!cfg.is_generated_namespace()) {
       std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
@@ -567,24 +494,19 @@ int main(int argc, const char **argv) {
       cluster.deinit();
       exit(0);
     }
-
     std::string src_ = uid + cfg.get_ns_suffix();
     std::string dest_ = opts["to_rename"] + cfg.get_ns_suffix();
-
     if (src_.compare(dest_) == 0) {
       std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;
       cluster.deinit();
       exit(0);
     }
-
     std::list<librmb::RadosMetadata> list;
     std::cout << " copy namespace configuration src " << src_ << " to dest " << dest_ << " in namespace "
               << cfg.get_ns_cfg() << std::endl;
-
     storage.set_namespace(cfg.get_ns_cfg());
     uint64_t size;
     time_t save_time;
-
     int exist = storage.stat_mail(src_, &size, &save_time);
     if (exist < 0) {
       std::cout << "Error there does not exist a configuration file for " << src_ << std::endl;
@@ -607,7 +529,100 @@ int main(int argc, const char **argv) {
     cluster.deinit();
     exit(0);
   }
+}
 
+int main(int argc, const char **argv) {
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<const char *> args;
+
+  std::map<std::string, std::string> opts;
+  std::map<std::string, std::string> metadata;
+  std::string sort_type;
+
+  bool is_config_option = false;
+  bool create_config = false;
+  bool confirmed = false;
+  bool show_usage = false;
+  bool is_lspools_cmd = false;
+  bool delete_mail_option = false;
+  bool rename_user_option = false;
+  std::string config_obj = "obj";
+  argv_to_vec(argc, argv, &args);
+
+  parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);
+
+  if (show_usage) {
+    usage_exit();
+  }
+
+  if (args.size() <= 0 && opts.size() <= 0 && !is_config_option) {
+    usage_exit();
+  }
+
+  is_lspools_cmd = strcmp(args[0], "lspools") == 0;
+  delete_mail_option = opts.find("to_delete") != opts.end();
+  sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";
+  rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
+  // set pool to default or given pool name
+  std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
+
+  if (is_lspools_cmd) {
+    return handle_lspools_cmd();
+  }
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+  int open_connection = storage.open_connection(pool_name);
+  if (open_connection < 0) {
+    std::cout << " error opening rados connection" << std::endl;
+    cluster.deinit();
+    return -1;
+  }
+
+  // initialize configuration
+  librmb::RadosCephConfig ceph_cfg(&storage);
+  // set config object
+  config_obj = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
+  ceph_cfg.set_cfg_object_name(config_obj);
+
+  if (ceph_cfg.load_cfg() < 0) {
+    if (create_config) {
+      if (ceph_cfg.save_cfg() < 0) {
+        std::cout << "loading config object failed " << std::endl;
+      }
+      cluster.deinit();
+      exit(0);
+    }
+  }
+
+  handle_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
+
+  librmb::RadosConfig dovecot_cfg;
+  dovecot_cfg.set_config_valid(true);
+  librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
+  librmb::RadosNamespaceManager mgr(&storage, &cfg);
+
+  // namespace (user) needs to be set
+  if (opts.find("namespace") == opts.end()) {
+    std::cout << "xist hier" << std::endl;
+    usage_exit();
+  }
+  std::string uid(opts["namespace"]);
+  std::string ns;
+  if (mgr.lookup_key(uid, &ns)) {
+    storage.set_namespace(ns);
+  } else {
+    // use
+    if (!mgr.lookup_key(uid, &ns)) {
+      std::cout << " error unable to determine namespace" << std::endl;
+      return -1;
+    }
+    storage.set_namespace(ns);
+  }
+
+  handle_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
+
+  handle_reanme_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
