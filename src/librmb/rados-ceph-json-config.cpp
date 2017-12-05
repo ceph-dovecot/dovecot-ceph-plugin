@@ -35,25 +35,25 @@ RadosCephJsonConfig::RadosCephJsonConfig() {
 }
 
 std::string RadosCephJsonConfig::set_default_mail_attributes() {
-  std::string mutable_attributes;
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_GUID)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_POP3_UIDL)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_POP3_ORDER)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_RECEIVED_TIME)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAIL_UID)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_VERSION)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_OLDV1_KEYWORDS)));
-  return mutable_attributes;
+  std::string mail_attributes_;
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_GUID)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_POP3_UIDL)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_POP3_ORDER)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_RECEIVED_TIME)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_MAIL_UID)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_VERSION)));
+  mail_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_OLDV1_KEYWORDS)));
+  return mail_attributes_;
 }
 
 std::string RadosCephJsonConfig::set_default_updateable_attributes() {
-  std::string mutable_attributes;
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
-  return mutable_attributes;
+  std::string updateable_attributes_;
+  updateable_attributes_.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
+  return updateable_attributes_;
 }
 
 bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
