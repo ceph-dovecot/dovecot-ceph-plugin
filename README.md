@@ -32,60 +32,7 @@ A more detailed description of the mail storeage format and the configuration of
 
 ## RADOS Dictionary Plugin
 
-The Dovecot dictionaries are a good candidate to be implemented using the Ceph omap key/value store. They are a building block to enable a Dovecot, which runs exclusively on Ceph.
-
-Dovecot uses two namespaces for dictionary keys.
-
-* `shared/<key>`: These are shared entries. These keys will be stored in a RADOS object named _<oid>/shared_. <key> will be used as omap key as given.
-* `priv/<key>`: These are private entries for a user. These keys will be stored in a RADOS object named _<oid>/<username>_. <key> will be used as omap key as given.
-
-### Configuration
-
-To load the plugin, add _dict_rados_ to the list of mail plugins.
-The name of the dict driver is `rados`.
-Add the plugin for example to `10-mail.conf` as _mail\_attribute\_dict_.
-See [Dovecot Dictionaries](http://wiki.dovecot.org/Dictionary) for details.
-
-    mail_attribute_dict = rados:oid=metadata:pool=mail_dictionary
-    mail_plugins = $mail_plugins dict_rados
-
-The configuration parameters are:
-* **oid**: The RADOS object id to use.
-* **pool**: The RADOS pool to use for the dictionary objects. The pool name ist optional and defaults to _mail_dictionary_. If the pool is missing, it will be created.
-
-All key/values are be stored in OMAP key/values of the object <oid>.
-
-See also [Common Configuration](#common-configuration) for more information.
-
-### Testing
-
-The source directory src/dict-rados contains a test application named test-*. They use the configuration in the same directory.
-
-The configuration assumes a Ceph cluster running locally without _cephx_, that has for example been created using _vstart.sh_ as decribed in [Developer Guide (quick)](http://docs.ceph.com/doc/master/dev/quick_guide/) or [ceph/README.md](https://github.com/ceph/ceph/blob/master/README.md).
-
-    ../src/vstart.sh -X -n -l
-
-Any other way to get a Ceph cluster is valid, too.
-
-## Common Configuration
-
-### Dovecot
-To load the plugins, add _dict_rados_ or _storage_rbox_ to the list of mail plugins to load.
-There are several ways to do this.
-Add the plugin for example to `10-mail.conf` to _mail\_plugins_.
-See [Dovecot Configuration File](https://wiki.dovecot.org/ConfigFile?highlight=%28mail_plugins%29) for details.
-
-    mail_plugins = $mail_plugins storage_rbox dict_rados
-
-### Ceph
-The plugin uses the default way for Ceph configuration described in [Step 2: Configuring a Cluster Handle](http://docs.ceph.com/doc/master/rados/api/librados-intro/#step-2-configuring-a-cluster-handle):
-
-1. `rados_conf_parse_env()`: Evaluate the CEPH_ARGS environment variable.
-2. `rados_conf_read_file()`: Search the default locations, and the first found is used. The locations are:
-   * `$CEPH_CONF` (environment variable)
-   * `/etc/ceph/ceph.conf`
-   * `~/.ceph/config`
-   * `ceph.conf` (in the current working directory)
+The Dovecot dictionaries are a good candidate to be implemented using the Ceph omap key/value store. They are a building block to enable a Dovecot, which runs exclusively on Ceph. A dictionary implementation based on RADOS omap key/values is part of the project. A  detailed description of the dictionary plugin can be found on the [corresponding Wiki page](https://github.com/ceph-dovecot/dovecot-ceph-plugin/wiki/RADOS-Dictionary-Plugin).  
 
 
 ## Compile and install the Plugins
