@@ -52,9 +52,7 @@ std::string RadosCephJsonConfig::set_default_mail_attributes() {
 
 std::string RadosCephJsonConfig::set_default_updateable_attributes() {
   std::string mutable_attributes;
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_MAILBOX_GUID)));
   mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)));
-  mutable_attributes.append(std::string(1, static_cast<char>(RBOX_METADATA_OLDV1_SAVE_TIME)));
   return mutable_attributes;
 }
 
