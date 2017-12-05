@@ -44,15 +44,19 @@ bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
   }
 
   if (get_config()->get_key_generated_namespace().compare(key) == 0) {
-    if (value.compare("true") == 0 || value.compare("false") == 0) {
-      success = true;
-    }
+    success = value.compare("true") == 0 || value.compare("false") == 0;
   } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {
     success = true;
   } else if (get_config()->get_key_ns_suffix().compare(key) == 0) {
     success = true;
   } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
     success = true;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    success = true;
+  } else if (get_config()->get_updateable_attribute_key().compare(key) == 0) {
+    success = true;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    success = value.compare("true") == 0 || value.compare("false") == 0;
   }
   return success;
 }
@@ -73,6 +77,15 @@ bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &valu
     success = true;
   } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
     get_config()->set_public_namespace(value);
+    success = true;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    get_config()->set_update_attributes(value);
+    success = true;
+  } else if (get_config()->get_updateable_attribute_key().compare(key) == 0) {
+    get_config()->set_updateable_attributes(value);
+    success = true;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    get_config()->set_update_attributes(value);
     success = true;
   }
   return success;

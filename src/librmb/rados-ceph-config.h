@@ -13,7 +13,7 @@
 
 #include "rados-storage.h"
 #include "rados-ceph-json-config.h"
-
+#include "rados-types.h"
 namespace librmb {
 
 class RadosCephConfig {
@@ -43,6 +43,17 @@ class RadosCephConfig {
 
   bool is_valid_key_value(std::string &key, std::string &value);
   bool update_valid_key_value(std::string &key, std::string &value);
+
+  bool is_mail_attribute(enum rbox_metadata_key key) { return config.is_mail_attribute(key); }
+  bool is_updateable_attribute(enum rbox_metadata_key key) { return config.is_updateable_attribute(key); }
+  bool is_update_attributes() { return config.is_update_attributes(); }
+
+  void update_mail_attribute(const char *value) { config.update_mail_attribute(value); }
+  void update_updateable_attribute(const char *value) { config.update_updateable_attribute(value); }
+
+  const std::string &get_mail_attribute_key() { return config.get_mail_attribute_key(); }
+  const std::string &get_updateable_attribute_key() { return config.get_updateable_attribute_key(); }
+  const std::string &get_update_attributes_key() { return config.get_update_attributes_key(); }
 
  private:
   RadosCephJsonConfig config;

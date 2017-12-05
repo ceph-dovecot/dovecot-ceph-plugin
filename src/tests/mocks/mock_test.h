@@ -135,6 +135,9 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_ns_suffix, std::string());
 
   MOCK_METHOD0(get_public_namespace, const std::string &());
+  MOCK_METHOD1(update_mail_attributes, void(const std::string &mail_attributes));
+
+  MOCK_METHOD1(update_updatable_attributes, void(const std::string &updateable_attributes));
 };
 
 }  // namespace librmbtest

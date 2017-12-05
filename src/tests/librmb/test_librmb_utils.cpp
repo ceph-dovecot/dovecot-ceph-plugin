@@ -13,7 +13,7 @@
 #include <rados/librados.hpp>
 
 #include "../../librmb/rados-cluster-impl.h"
-#include "../../librmb/rados-dovecot-config.h"
+#include "../../librmb/rados-ceph-json-config.h"
 #include "../../librmb/rados-storage-impl.h"
 #include "mock_test.h"
 #include "gtest/gtest.h"
@@ -67,7 +67,7 @@ TEST(librmb, utils_convert_convert_time_t_to_str) {
 }
 
 TEST(librmb, config_mutable_metadata) {
-  librmb::RadosConfig config;
+  librmb::RadosCephJsonConfig config;
   std::string str = "MGP";
   config.update_mail_attribute(str.c_str());
   EXPECT_TRUE(config.is_mail_attribute(librmb::RBOX_METADATA_MAILBOX_GUID));
@@ -76,7 +76,7 @@ TEST(librmb, config_mutable_metadata) {
   EXPECT_FALSE(config.is_mail_attribute(librmb::RBOX_METADATA_ORIG_MAILBOX));
 
   // use defaults.
-  librmb::RadosConfig config2;
+  librmb::RadosCephJsonConfig config2;
   config2.update_mail_attribute(NULL);
   EXPECT_TRUE(config2.is_mail_attribute(librmb::RBOX_METADATA_POP3_UIDL));
 }

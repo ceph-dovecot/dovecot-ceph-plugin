@@ -31,21 +31,14 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
 
   const std::string &get_rados_cluster_name() { return dovecot_cfg->get_rbox_cluster_name(); }
   const std::string &get_rados_username() { return dovecot_cfg->get_rados_username(); }
-  bool is_mail_attribute(enum rbox_metadata_key key) { return dovecot_cfg->is_mail_attribute(key); }
-  bool is_updateable_attribute(enum rbox_metadata_key key) { return dovecot_cfg->is_updateable_attribute(key); }
-  void update_mail_attributes(const char *value) { dovecot_cfg->update_mail_attribute(value); }
-  void update_updatable_attributes(const char *value) { dovecot_cfg->update_updateable_attribute(value); }
   void update_pool_name_metadata(const char *value) { dovecot_cfg->update_pool_name_metadata(value); }
 
-  const std::string &get_mail_attributes_key() { return dovecot_cfg->get_mail_attribute_key(); }
-  const std::string &get_updateable_attributes_key() { return dovecot_cfg->get_updateable_attribute_key(); }
   const std::string &get_pool_name_metadata_key() { return dovecot_cfg->get_pool_name_metadata_key(); }
-  const std::string &get_update_attributes_key() { return dovecot_cfg->get_update_attributes_key(); }
 
   std::string get_pool_name() { return dovecot_cfg->get_pool_name(); }
-  bool is_update_attributes() { return dovecot_cfg->is_update_attributes(); }
-  void update_metadata(std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
+
   std::string get_key_prefix_keywords() { return dovecot_cfg->get_key_prefix_keywords(); }
+  void update_metadata(std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
 
   // rados config
   bool is_generated_namespace() { return rados_cfg->is_generated_namespace(); }
@@ -68,8 +61,24 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   void set_ns_suffix(std::string &ns_suffix) { rados_cfg->set_ns_suffix(ns_suffix); }
   std::string get_ns_suffix() { return rados_cfg->get_ns_suffix(); }
 
+  bool is_mail_attribute(enum rbox_metadata_key key) { return rados_cfg->is_mail_attribute(key); }
+  bool is_updateable_attribute(enum rbox_metadata_key key) { return rados_cfg->is_updateable_attribute(key); }
+  void update_mail_attributes(const char *value) { rados_cfg->update_mail_attribute(value); }
+  void update_updatable_attributes(const char *value) { rados_cfg->update_updateable_attribute(value); }
+  bool is_update_attributes() { return rados_cfg->is_update_attributes(); }
+
+  const std::string &get_mail_attributes_key() { return rados_cfg->get_mail_attribute_key(); }
+  const std::string &get_updateable_attributes_key() { return rados_cfg->get_updateable_attribute_key(); }
+  const std::string &get_update_attributes_key() { return rados_cfg->get_update_attributes_key(); }
+
   bool is_config_valid() { return dovecot_cfg->is_config_valid() && rados_cfg->is_config_valid(); }
   const std::string &get_public_namespace() { return rados_cfg->get_public_namespace(); }
+  void update_mail_attributes(const std::string &mail_attributes) {
+    rados_cfg->update_mail_attribute(mail_attributes.c_str());
+  }
+  void update_updatable_attributes(const std::string &updateable_attributes) {
+    rados_cfg->update_updateable_attribute(updateable_attributes.c_str());
+  }
 
  private:
   RadosConfig *dovecot_cfg;
