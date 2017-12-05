@@ -63,7 +63,7 @@ static void dashes_to_underscores(const char *input, char *output) {
   }
   *o++ = '\0';
 }
-bool ceph_argparse_flag(std::vector<const char *> &args, std::vector<const char *>::iterator &i, ...) {
+static bool ceph_argparse_flag(std::vector<const char *> &args, std::vector<const char *>::iterator &i, ...) {
   const char *first = *i;
   char tmp[strlen(first) + 1];
   dashes_to_underscores(first, tmp);
@@ -329,52 +329,53 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
   }
 }
 
-void parse_cmd_line_args(const std::map<std::string, std::string> &opts, bool &is_config,
-                         const std::map<std::string, std::string> &metadata, std::vector<const char *> &args,
-                         bool &create_config, bool &show_usage, bool &update_confirmed) {
+static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &is_config,
+                                std::map<std::string, std::string> *metadata, std::vector<const char *> *args,
+                                bool &create_config, bool &show_usage, bool &update_confirmed) {
   std::vector<const char *>::iterator i;
   std::string val;
   unsigned int idx = 0;
 
-  for (i = args.begin(); i != args.end();) {
-    if (ceph_argparse_double_dash(&args, &i)) {
+  for (i = (*args).begin(); i != (*args).end();) {
+    if (ceph_argparse_double_dash(args, &i)) {
       break;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
-      opts["pool"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
-      opts["namespace"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
-      opts["ls"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
-      opts["get"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
-      opts["out"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
-      opts["set"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
-      opts["sort"] = val;
-    } else if (ceph_argparse_flag(args, i, "-cfg", "--config", (char *)(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
+      (*opts)["pool"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
+      (*opts)["namespace"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
+      (*opts)["ls"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
+      (*opts)["get"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
+      (*opts)["out"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
+      (*opts)["set"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
+      (*opts)["sort"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-cfg", "--config", (char *)(NULL))) {
       is_config = true;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
-      opts["cfg_obj"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
-      opts["update"] = val;
-    } else if (ceph_argparse_flag(args, i, "-C", "--create", (char *)(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
+      (*opts)["cfg_obj"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
+      (*opts)["update"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-C", "--create", (char *)(NULL))) {
       create_config = true;
-    } else if (ceph_argparse_flag(args, i, "-help", "--help", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "-help", "--help", (char *)(NULL))) {
       show_usage = true;
-    } else if (ceph_argparse_flag(args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
+    } else if (ceph_argparse_flag(*args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
                                   (char *)(NULL))) {
       update_confirmed = true;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
       // delete oid
-      opts["to_delete"] = val;
-    } else if (ceph_argparse_witharg(&args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
+      (*opts)["to_delete"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
       // rename
-      opts["to_rename"] = val;
+      (*opts)["to_rename"] = val;
     } else {
-      if (idx + 1 < args.size()) {
-        metadata[args[idx]] = args[idx + 1];
+      if (idx + 1 < (*args).size()) {
+        std::string m_idx((*args)[idx]);
+        (*metadata)[m_idx] = std::string((*args)[idx + 1]);
         idx++;
       }
       ++idx;
@@ -418,7 +419,7 @@ int main(int argc, const char **argv) {
   bool delete_mail_option = false;
   argv_to_vec(argc, argv, &args);
 
-  parse_cmd_line_args(opts, is_config_option, metadata, args, create_config, show_usage, confirmed);
+  parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);
   is_lspools_cmd = strcmp(args[0], "lspools") == 0;
   delete_mail_option = opts.find("to_delete") != opts.end();
 
@@ -452,16 +453,13 @@ int main(int argc, const char **argv) {
   std::string obj_ = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
   ceph_cfg.set_cfg_object_name(obj_);
   if (ceph_cfg.load_cfg() < 0) {
-    int ret = 0;
 
     if (create_config) {
       if (ceph_cfg.save_cfg() < 0) {
         std::cout << "loading config object failed " << std::endl;
-        ret = -1;
-      } else {
-        cluster.deinit();
-        exit(0);
       }
+      cluster.deinit();
+      exit(0);
     }
   }
 
@@ -480,7 +478,7 @@ int main(int argc, const char **argv) {
     if (has_ls) {
       std::cout << ceph_cfg.get_config()->to_string() << std::endl;
     } else if (has_update) {
-      int key_val_separator_idx = opts["update"].find("=");
+      std::size_t key_val_separator_idx = opts["update"].find("=");
 
       if (key_val_separator_idx != std::string::npos) {
         std::string key = opts["update"].substr(0, key_val_separator_idx);
