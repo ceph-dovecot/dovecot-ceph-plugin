@@ -22,6 +22,28 @@ The option\(aqs argument is the rados namespace where the user mails are stored.
 .BI \-O\  output\ path
 The option\(aqs argument is the path where mails are stored when using get command option. ~/ can be used 
 
+.TP
+.BI \-help\  
+ displays the usage information
+ 
+.TP
+.BI \-obj\ objectname  
+ defines the dovecot-ceph configuration object, if not given a object with oid rbox_cfg is used.
+ 
+.TP
+.BI \-R\ dovecot_user_name  
+ Renames a user
+ 
+ 
+.TP
+.BI \ -cluster\ cluster_name  
+ The rados cluster name, default is ceph.
+
+.TP
+.BI \ -rados_user\ rados_user  
+ The rados user to use, default is client.admin
+
+
 .SH COMMANDS
 .TP
 .BI ls\  list\ mails
@@ -57,6 +79,26 @@ Currently the following sort keywords are defined: uid, recv_date, save_date, ph
 .TP
 .BI lspools
 List all available pools
+
+.TP
+.BI \-D\ oid
+delete the e-mail object. It is required to use the -N option and to confirm the deletion with --yes-i-really-really-mean-it
+
+.SH CONFIGURATION
+
+	
+.TP
+.BI \-cfg\ \-U\ key=value
+Update configuration key with value. Changes to configuration need to be confirmed with  --yes-i-really-really-mean-it
+
+	
+.TP
+.BI \-cfg\ \-C\ 
+Create the default configuration.
+
+.TP
+.BI \-cfg\ ls\ \- 
+print the current configuation to screen.
 
 .SH METADATA
 

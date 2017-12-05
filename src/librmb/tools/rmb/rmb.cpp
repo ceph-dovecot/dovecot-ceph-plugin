@@ -173,6 +173,7 @@ static void usage(std::ostream &out) {
          "\n"
          "    set     oid XATTR value   e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
          "    sort    keyword           keywords = uid, recv_date, save_date, phy_size\n"
+         "    lspools                   list all available pools\n"
          "\n"
          "    -D      oid --yes-i-really-really-mean-it \n"
          "                              deletes the ceph object with oid\n"
@@ -183,7 +184,7 @@ static void usage(std::ostream &out) {
          "                                          sets the configuration value\n"
          "                                          e.g. generated_namespace=true|false\n"
          "    -cfg -C [-obj <objectnam>]            create the default configuration\n"
-         "    -cfg ls - [-obj <objectname>]         print the current configuation"
+         "    -cfg ls - [-obj <objectname>]         print the current configuation to screen"
 
          "\n";
 }
