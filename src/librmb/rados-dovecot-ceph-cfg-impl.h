@@ -41,7 +41,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   void update_metadata(std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
 
   // rados config
-  bool is_generated_namespace() { return rados_cfg->is_generated_namespace(); }
+  bool is_user_mapping() { return rados_cfg->is_user_mapping(); }
   void set_config_valid(bool is_valid_) {
     dovecot_cfg->set_config_valid(is_valid_);
     if (is_valid_) {
@@ -55,11 +55,11 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
     return dovecot_cfg->is_config_valid() ? rados_cfg->load_cfg() : -1;
   }
   int save_default_rados_config();
-  void set_generated_namespace(bool value_) { rados_cfg->set_generated_namespace(value_); }
-  void set_ns_cfg(std::string &ns) { rados_cfg->set_ns_cfg(ns); }
-  std::string get_ns_cfg() { return rados_cfg->get_ns_cfg(); }
-  void set_ns_suffix(std::string &ns_suffix) { rados_cfg->set_ns_suffix(ns_suffix); }
-  std::string get_ns_suffix() { return rados_cfg->get_ns_suffix(); }
+  void set_user_mapping(bool value_) { rados_cfg->set_user_mapping(value_); }
+  void set_user_ns(std::string &ns) { rados_cfg->set_user_ns(ns); }
+  std::string get_user_ns() { return rados_cfg->get_user_ns(); }
+  void set_user_suffix(std::string &ns_suffix) { rados_cfg->set_user_suffix(ns_suffix); }
+  std::string get_user_suffix() { return rados_cfg->get_user_suffix(); }
 
   bool is_mail_attribute(enum rbox_metadata_key key) { return rados_cfg->is_mail_attribute(key); }
   bool is_updateable_attribute(enum rbox_metadata_key key) { return rados_cfg->is_updateable_attribute(key); }

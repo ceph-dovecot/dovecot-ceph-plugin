@@ -67,13 +67,13 @@ bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &valu
     return false;
   }
   if (get_config()->get_key_generated_namespace().compare(key) == 0) {
-    get_config()->set_generated_namespace(value);
+    get_config()->set_user_mapping(value);
     success = true;
   } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {
-    get_config()->set_ns_cfg(value);
+    get_config()->set_user_ns(value);
     success = true;
   } else if (get_config()->get_key_ns_suffix().compare(key) == 0) {
-    get_config()->set_ns_suffix(value);
+    get_config()->set_user_suffix(value);
     success = true;
   } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
     get_config()->set_public_namespace(value);

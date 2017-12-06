@@ -51,12 +51,12 @@ class RadosDovecotCephCfg {
   virtual void set_storage(RadosStorage *storage) = 0;
   virtual int load_rados_config() = 0;
   virtual int save_default_rados_config() = 0;
-  virtual void set_generated_namespace(bool value_) = 0;
-  virtual bool is_generated_namespace() = 0;
-  virtual void set_ns_cfg(std::string &ns) = 0;
-  virtual std::string get_ns_cfg() = 0;
-  virtual void set_ns_suffix(std::string &ns_suffix) = 0;
-  virtual std::string get_ns_suffix() = 0;
+  virtual void set_user_mapping(bool value_) = 0;
+  virtual bool is_user_mapping() = 0;
+  virtual void set_user_ns(std::string &ns) = 0;
+  virtual std::string get_user_ns() = 0;
+  virtual void set_user_suffix(std::string &ns_suffix) = 0;
+  virtual std::string get_user_suffix() = 0;
   virtual const std::string &get_public_namespace() = 0;
 };
 

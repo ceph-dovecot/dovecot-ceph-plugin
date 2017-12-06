@@ -29,7 +29,7 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
     return false;
   }
 
-  if (!config->is_generated_namespace()) {
+  if (!config->is_user_mapping()) {
     *value = uid;
     return true;
   }
@@ -45,7 +45,7 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
 
   // temporarily set storage namespace to config namespace
   mail_namespace = storage->get_namespace();
-  storage->set_namespace(config->get_ns_cfg());
+  storage->set_namespace(config->get_user_ns());
   int err = storage->read_mail(oid, &bl);
   if (err >= 0 && !bl.to_str().empty()) {
     *value = bl.to_str();
@@ -64,7 +64,7 @@ bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string val
   }
   // temporarily set storage namespace to config namespace
   mail_namespace = storage->get_namespace();
-  storage->set_namespace(config->get_ns_cfg());
+  storage->set_namespace(config->get_user_ns());
 
   std::string oid = uid;
   ceph::bufferlist bl;

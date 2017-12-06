@@ -291,7 +291,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
   std::string uid;
   if (box->list->ns->owner != nullptr) {
     uid = box->list->ns->owner->username;
-    uid += mbox->storage->config->get_ns_suffix();
+    uid += mbox->storage->config->get_user_suffix();
   } else {
     uid = mbox->storage->config->get_public_namespace();
   }

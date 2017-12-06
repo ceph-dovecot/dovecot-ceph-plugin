@@ -127,12 +127,12 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(load_rados_config, int());
   MOCK_METHOD0(save_default_rados_config, int());
 
-  MOCK_METHOD1(set_generated_namespace, void(bool value_));
-  MOCK_METHOD0(is_generated_namespace, bool());
-  MOCK_METHOD1(set_ns_cfg, void(std::string &ns));
-  MOCK_METHOD0(get_ns_cfg, std::string());
-  MOCK_METHOD1(set_ns_suffix, void(std::string &ns_suffix));
-  MOCK_METHOD0(get_ns_suffix, std::string());
+  MOCK_METHOD1(set_user_mapping, void(bool value_));
+  MOCK_METHOD0(is_user_mapping, bool());
+  MOCK_METHOD1(set_user_ns, void(std::string &ns));
+  MOCK_METHOD0(get_user_ns, std::string());
+  MOCK_METHOD1(set_user_suffix, void(std::string &ns_suffix));
+  MOCK_METHOD0(get_user_suffix, std::string());
 
   MOCK_METHOD0(get_public_namespace, const std::string &());
   MOCK_METHOD1(update_mail_attributes, void(const std::string &mail_attributes));

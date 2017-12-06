@@ -24,21 +24,21 @@ class RadosCephJsonConfig {
 
   void set_cfg_object_name(const std::string& cfgObjectName) { cfg_object_name = cfgObjectName; }
 
-  const std::string& get_generated_namespace() const { return generated_namespace; }
+  const std::string& get_user_mapping() const { return user_mapping; }
 
-  void set_generated_namespace(const std::string& generatedNamespace) { generated_namespace = generatedNamespace; }
+  void set_user_mapping(const std::string& user_mapping_) { user_mapping = user_mapping_; }
 
   bool is_valid() const { return valid; }
 
   void set_valid(bool isValid) { valid = isValid; }
 
-  const std::string& get_ns_cfg() const { return ns_cfg; }
+  const std::string& get_user_ns() const { return user_ns; }
 
-  void set_ns_cfg(const std::string& nsCfg) { ns_cfg = nsCfg; }
+  void set_user_ns(const std::string& user_ns_) { user_ns = user_ns_; }
 
-  const std::string& get_ns_suffix() const { return ns_suffix; }
+  const std::string& get_user_suffix() const { return user_suffix; }
 
-  void set_ns_suffix(const std::string& nsSuffix) { ns_suffix = nsSuffix; }
+  void set_user_suffix(const std::string& user_suffix_) { user_suffix = user_suffix_; }
 
   const std::string& get_public_namespace() const { return public_namespace; }
 
@@ -57,9 +57,9 @@ class RadosCephJsonConfig {
   void update_mail_attribute(const char* value);
   void update_updateable_attribute(const char* value);
 
-  const std::string& get_key_generated_namespace() const { return key_generated_namespace; }
-  const std::string& get_key_ns_cfg() const { return key_ns_cfg; }
-  const std::string& get_key_ns_suffix() const { return key_ns_suffix; }
+  const std::string& get_key_generated_namespace() const { return key_user_mapping; }
+  const std::string& get_key_ns_cfg() const { return key_user_ns; }
+  const std::string& get_key_ns_suffix() const { return key_user_suffix; }
   const std::string& get_key_public_namespace() const { return key_public_namespace; }
 
   const std::string& get_mail_attribute_key() { return key_mail_attributes; }
@@ -74,18 +74,18 @@ class RadosCephJsonConfig {
  private:
   std::string cfg_object_name;
   bool valid;
-  std::string generated_namespace;
-  std::string ns_cfg;
-  std::string ns_suffix;
+  std::string user_mapping;
+  std::string user_ns;
+  std::string user_suffix;
   std::string public_namespace;
 
   std::string mail_attributes;
   std::string update_attributes;
   std::string updateable_attributes;
 
-  std::string key_generated_namespace;
-  std::string key_ns_cfg;
-  std::string key_ns_suffix;
+  std::string key_user_mapping;
+  std::string key_user_ns;
+  std::string key_user_suffix;
   std::string key_public_namespace;
 
   std::string key_mail_attributes;

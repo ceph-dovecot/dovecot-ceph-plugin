@@ -139,7 +139,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   if (mail->box->list->ns->owner != nullptr) {
     ns_src_mail1 = mail->box->list->ns->owner->username;
-    ns_src_mail1 += r_storage->config->get_ns_suffix();
+    ns_src_mail1 += r_storage->config->get_user_suffix();
   } else {
     ns_src_mail1 = r_storage->config->get_public_namespace();
   }
@@ -147,7 +147,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   std::string ns_dest_mail1;
   if (dest_mbox->list->ns->owner != nullptr) {
     ns_dest_mail1 = dest_mbox->list->ns->owner->username;
-    ns_dest_mail1 += r_storage->config->get_ns_suffix();
+    ns_dest_mail1 += r_storage->config->get_user_suffix();
   } else {
     ns_dest_mail1 = r_storage->config->get_public_namespace();
   }
