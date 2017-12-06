@@ -14,10 +14,10 @@ RadosCephJsonConfig::RadosCephJsonConfig() {
   // set defaults.
   cfg_object_name = "rbox_cfg";
 
-  key_generated_namespace = "generated_namespace";
-  key_ns_cfg = "ns_cfg";
-  key_ns_suffix = "ns_suffix";
-  key_public_namespace = "public_namespace";
+  key_generated_namespace = "rbox_generated_namespace";
+  key_ns_cfg = "rbox_ns_cfg";
+  key_ns_suffix = "rbox_ns_suffix";
+  key_public_namespace = "rbox_public_namespace";
 
   key_update_attributes = "rbox_update_attributes";
   key_mail_attributes = "rbox_mail_attributes";
