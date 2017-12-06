@@ -39,10 +39,8 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
     return true;
   }
 
-  oid_suffix = config->get_ns_suffix();
-
   ceph::bufferlist bl;
-  std::string oid = uid + oid_suffix;
+  std::string oid = uid;
   bool retval = false;
 
   // temporarily set storage namespace to config namespace
@@ -68,7 +66,7 @@ bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string val
   mail_namespace = storage->get_namespace();
   storage->set_namespace(config->get_ns_cfg());
 
-  std::string oid = uid + oid_suffix;
+  std::string oid = uid;
   ceph::bufferlist bl;
   bl.append(value);
   bool retval = false;
