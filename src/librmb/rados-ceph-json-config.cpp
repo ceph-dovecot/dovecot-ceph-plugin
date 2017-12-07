@@ -90,6 +90,7 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
 
   return ret;
 }
+
 bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
   char *s = NULL;
   json_t *root = json_object();
@@ -105,6 +106,7 @@ bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
 
   s = json_dumps(root, 0);
   buffer->append(s);
+  free(s);
   json_decref(root);
   return true;
 }
