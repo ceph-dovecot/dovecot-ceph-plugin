@@ -17,6 +17,7 @@ test_excluded_files() {
 script_path=${0%/*}
 echo "script_path = $script_path"
 source "$script_path/utils.sh"
+source "$script_path/doveadm.sh"
 
 test_environment
 
@@ -27,7 +28,13 @@ else
 	echo "mail_location = $mail_location"
 fi
 
-test_excluded_files
+#IFS=$':'; ml_array=($mail_location); unset IFS;
+#for ml in "${ml_array[@]}"; do
+	#echo "$ml"
+#done	
+
+
+#test_excluded_files
 
 #result=$(doveadm_sync $2 $1 $3)
 #[ $result -eq 0 ] && echo "success" || echo "fail: $result"
@@ -43,5 +50,5 @@ for mbox in "${mbox_array[@]}"; do
 	fi
 done
 
-result=$(delete_mailbox t34 dovecot)
-[ "$result" -eq 0 ] && echo "success" || echo "fail: $result"
+#result=$(delete_mailbox t34 dovecot)
+#[ "$result" -eq 0 ] && echo "success" || echo "fail: $result"
