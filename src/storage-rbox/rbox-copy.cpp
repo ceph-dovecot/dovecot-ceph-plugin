@@ -124,6 +124,7 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
   }
 }
 
+
 static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
@@ -134,10 +135,23 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   struct mailbox *dest_mbox = ctx->transaction->box;
 
-  std::string ns_src_mail1 = mail->box->list->ns->owner != nullptr ? mail->box->list->ns->owner->username
-                                                                   : r_storage->config->get_public_namespace();
-  std::string ns_dest_mail1 = dest_mbox->list->ns->owner != nullptr ? dest_mbox->list->ns->owner->username
-                                                                    : r_storage->config->get_public_namespace();
+  std::string ns_src_mail1;
+
+  if (mail->box->list->ns->owner != nullptr) {
+    ns_src_mail1 = mail->box->list->ns->owner->username;
+    ns_src_mail1 += r_storage->config->get_user_suffix();
+  } else {
+    ns_src_mail1 = r_storage->config->get_public_namespace();
+  }
+
+  std::string ns_dest_mail1;
+  if (dest_mbox->list->ns->owner != nullptr) {
+    ns_dest_mail1 = dest_mbox->list->ns->owner->username;
+    ns_dest_mail1 += r_storage->config->get_user_suffix();
+  } else {
+    ns_dest_mail1 = r_storage->config->get_public_namespace();
+  }
+
   i_debug("NAMESPACE: src: %s , dest=%s", ns_src_mail1.c_str(), ns_dest_mail1.c_str());
 
   std::string ns_src;

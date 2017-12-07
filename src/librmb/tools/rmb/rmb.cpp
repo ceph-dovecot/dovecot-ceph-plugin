@@ -490,7 +490,7 @@ void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl
                         const std::string &uid, const std::map<std::string, std::string> &opts,
                         librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
-    if (!cfg.is_generated_namespace()) {
+    if (!cfg.is_user_mapping()) {
       std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
                 << std::endl;
       cluster.deinit();
@@ -503,8 +503,8 @@ void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl
       cluster.deinit();
       exit(0);
     }
-    std::string src_ = uid + cfg.get_ns_suffix();
-    std::string dest_ = opts["to_rename"] + cfg.get_ns_suffix();
+    std::string src_ = uid + cfg.get_user_suffix();
+    std::string dest_ = opts["to_rename"] + cfg.get_user_suffix();
     if (src_.compare(dest_) == 0) {
       std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;
       cluster.deinit();
@@ -512,8 +512,8 @@ void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl
     }
     std::list<librmb::RadosMetadata> list;
     std::cout << " copy namespace configuration src " << src_ << " to dest " << dest_ << " in namespace "
-              << cfg.get_ns_cfg() << std::endl;
-    storage.set_namespace(cfg.get_ns_cfg());
+              << cfg.get_user_ns() << std::endl;
+    storage.set_namespace(cfg.get_user_ns());
     uint64_t size;
     time_t save_time;
     int exist = storage.stat_mail(src_, &size, &save_time);
@@ -528,7 +528,7 @@ void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl
       cluster.deinit();
       exit(0);
     }
-    if (storage.copy(src_, cfg.get_ns_cfg().c_str(), dest_, cfg.get_ns_cfg().c_str(), list)) {
+    if (storage.copy(src_, cfg.get_user_ns().c_str(), dest_, cfg.get_user_ns().c_str(), list)) {
       if (storage.delete_mail(src_) != 0) {
         std::cout << "Error removing " << src_ << std::endl;
       }

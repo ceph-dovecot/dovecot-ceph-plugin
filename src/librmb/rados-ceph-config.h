@@ -28,12 +28,12 @@ class RadosCephConfig {
   void set_storage(RadosStorage *storage_) { storage = storage_; }
   bool is_config_valid() { return config.is_valid(); }
   void set_config_valid(bool valid_) { config.set_valid(valid_); }
-  bool is_generated_namespace() { return !config.get_generated_namespace().compare("true"); }
-  void set_generated_namespace(bool value_) { config.set_generated_namespace(value_ ? "true" : "false"); }
-  void set_ns_cfg(std::string &ns_) { config.set_ns_cfg(ns_); }
-  std::string get_ns_cfg() { return config.get_ns_cfg(); }
-  void set_ns_suffix(std::string &ns_suffix_) { config.set_ns_suffix(ns_suffix_); }
-  std::string get_ns_suffix() { return config.get_ns_suffix(); }
+  bool is_user_mapping() { return !config.get_user_mapping().compare("true"); }
+  void set_user_mapping(bool value_) { config.set_user_mapping(value_ ? "true" : "false"); }
+  void set_user_ns(std::string &ns_) { config.set_user_ns(ns_); }
+  std::string get_user_ns() { return config.get_user_ns(); }
+  void set_user_suffix(std::string &ns_suffix_) { config.set_user_suffix(ns_suffix_); }
+  std::string get_user_suffix() { return config.get_user_suffix(); }
   const std::string &get_public_namespace() const { return config.get_public_namespace(); }
   void set_public_namespace(std::string &public_namespace_) { config.set_public_namespace(public_namespace_); }
 

@@ -29,11 +29,11 @@
 #include <rados/librados.hpp>
 
 extern "C" {
-
 #include "dovecot-dict.h"
 #include "macros.h"
 #include "dict.h"
 #include "guid.h"
+#include "mail-user.h"
 
 #include "dict-rados.h"
 }
@@ -101,9 +101,10 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   struct rados_dict *dict;
   string oid = "";
   string poolname = "mail_dictionaries";
-
+  string clustername = "ceph";
+  string rados_username = "client.admin";
+  string ceph_cfg = "rbox_cfg";
   if (uri != nullptr) {
-    // i_debug("rados_dict_init(uri=%s)", uri);
 
     vector<string> props(explode(uri, ':'));
 
@@ -112,6 +113,12 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
         oid = it->substr(4);
       } else if (it->compare(0, 5, "pool=") == 0) {
         poolname = it->substr(5);
+      } else if (it->compare(0, 18, "dict_cluster_name=") == 0) {
+        clustername = it->substr(18);
+      } else if (it->compare(0, 15, "dict_user_name=") == 0) {
+        rados_username = it->substr(16);
+      } else if (it->compare(0, 21, "dict_cfg_object_name=") == 0) {
+        ceph_cfg = it->substr(21);
       } else {
         *error_r = t_strdup_printf("Invalid URI!");
         return -1;
@@ -128,7 +135,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   dict = i_new(struct rados_dict, 1);
 
   dict->cluster = new librmb::RadosClusterImpl();
-  int ret = dict->cluster->init();
+  int ret = dict->cluster->init(clustername, rados_username);
   if (ret < 0) {
     i_free(dict);
     *error_r = t_strdup_printf("Error initializing RadosCluster! %s", strerror(-ret));
