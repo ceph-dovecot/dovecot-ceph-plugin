@@ -26,7 +26,7 @@ Because of the way MUAs access mails, it may be necessary to provide a local cac
 
 ![Overview](doc/images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
 
-The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/doc/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
+The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/docs/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
 
 A more detailed description of the mail storeage format and the configuration of the rbox plugin can be found on the [corresponding Wiki page](https://github.com/ceph-dovecot/dovecot-ceph-plugin/wiki/RADOS-Storage-Plugin).  
 
@@ -43,7 +43,7 @@ To compile the plugin you need a configured or installed Dovecot >= 2.2.21.
 
 You can clone from github with
 
-	git clone git@github.com:tallence/dovecot-ceph-plugin.git
+	git clone https://github.com/ceph-dovecot/dovecot-ceph-plugin.git
 
 Ceph contains git submodules that need to be checked out with
 
