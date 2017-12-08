@@ -18,7 +18,7 @@ It is planned to move all or parts of this code into other git repositories to m
 
 The mails are saved directly as RADOS objects. All other data are stored as before in the file system. This applies in particular to the data of the lib-index of Dovecot. We assume the file system is designed as shared storage based on CephFS.
 
-Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get stored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by Dvovecot's lib-index and ends up in CephFS volumes.
+Based on the code of the Dovecot storage format [Cydir](http://wiki.dovecot.org/MailboxFormat/Cydir) we developed a hybrid storage as Dovecot plugin. The hybrid storage directly uses the librados for storing mails in Ceph objects. The mail objects are immutable and get stored in one RADOS object.  Immutable metadata is stored in omap KV and xattr. The index data is completely managed by Dovecot's lib-index and ends up in CephFS volumes.
 
 ![Overview](doc/images/librmb-dovecot.png)
 
@@ -26,9 +26,9 @@ Because of the way MUAs access mails, it may be necessary to provide a local cac
 
 ![Overview](doc/images/dovecot-ceph-hybrid-libindex-rmb-cache.png)
 
-The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/doc/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
+The mail objects and CephFS should be placed in different RADOS pools. The mail objects are immutable and require a lot of storage. They would benefit a lot from [erasure coded pools](http://docs.ceph.com/docs/master/architecture/#erasure-coding). The index data required a lot of writing and are placed on an SSD based CephFS pool.
 
-A more detailed description of the mail storeage format and the configuration of the rbox plugin can be found on the [corresponding Wiki page](https://github.com/ceph-dovecot/dovecot-ceph-plugin/wiki/RADOS-Storage-Plugin).  
+A more detailed description of the mail storage format and the configuration of the rbox plugin can be found on the [corresponding Wiki page](https://github.com/ceph-dovecot/dovecot-ceph-plugin/wiki/RADOS-Storage-Plugin).  
 
 ## RADOS Dictionary Plugin
 
@@ -43,7 +43,7 @@ To compile the plugin you need a configured or installed Dovecot >= 2.2.21.
 
 You can clone from github with
 
-	git clone git@github.com:tallence/dovecot-ceph-plugin.git
+	git clone https://github.com/ceph-dovecot/dovecot-ceph-plugin.git
 
 Ceph contains git submodules that need to be checked out with
 
