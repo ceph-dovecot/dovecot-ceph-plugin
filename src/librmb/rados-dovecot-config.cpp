@@ -1,8 +1,12 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-config.cpp
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 1, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #include "rados-dovecot-config.h"
@@ -26,8 +30,7 @@ RadosConfig::RadosConfig() {
   is_valid = false;
 }
 
-
-bool RadosConfig::string_contains_key(std::string &str, enum rbox_metadata_key key) {
+bool RadosConfig::string_contains_key(const std::string &str, enum rbox_metadata_key key) {
   std::string value(1, static_cast<char>(key));
   return str.find(value) != std::string::npos;
 }
@@ -38,7 +41,7 @@ void RadosConfig::update_pool_name_metadata(const char *value) {
   }
   config[pool_name] = value;
 }
-void RadosConfig::update_metadata(std::string &key, const char *value_) {
+void RadosConfig::update_metadata(const std::string &key, const char *value_) {
   if (value_ == NULL) {
     return;
   }
@@ -48,8 +51,6 @@ void RadosConfig::update_metadata(std::string &key, const char *value_) {
   }
 }
 
-RadosConfig::~RadosConfig() {
-  // TODO Auto-generated destructor stub
-}
+RadosConfig::~RadosConfig() {}
 
 } /* namespace librmb */

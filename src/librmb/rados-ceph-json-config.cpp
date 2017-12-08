@@ -1,15 +1,21 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-ceph-Json-config.cpp
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 28, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #include "rados-ceph-json-config.h"
 #include <jansson.h>
 #include <string>
 #include <sstream>
+
 namespace librmb {
+
 RadosCephJsonConfig::RadosCephJsonConfig() {
   // set defaults.
   cfg_object_name = "rbox_cfg";
@@ -132,7 +138,7 @@ bool RadosCephJsonConfig::is_updateable_attribute(enum rbox_metadata_key key) {
   return string_contains_key(updateable_attributes, key);
 }
 
-bool RadosCephJsonConfig::string_contains_key(std::string &str, enum rbox_metadata_key key) {
+bool RadosCephJsonConfig::string_contains_key(const std::string &str, enum rbox_metadata_key key) {
   std::string value(1, static_cast<char>(key));
   return str.find(value) != std::string::npos;
 }

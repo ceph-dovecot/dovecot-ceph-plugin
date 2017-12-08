@@ -1,14 +1,22 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-ceph-Json-config.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 28, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #ifndef SRC_LIBRMB_RADOS_CEPH_JSON_CONFIG_H_
 #define SRC_LIBRMB_RADOS_CEPH_JSON_CONFIG_H_
+
+#include <string>
+
 #include <rados/librados.hpp>
 #include "rados-types.h"
+
 namespace librmb {
 
 class RadosCephJsonConfig {
@@ -67,7 +75,7 @@ class RadosCephJsonConfig {
   const std::string& get_update_attributes_key() { return key_update_attributes; }
 
  private:
-  bool string_contains_key(std::string& str, enum rbox_metadata_key key);
+  bool string_contains_key(const std::string& str, enum rbox_metadata_key key);
   std::string set_default_mail_attributes();
   std::string set_default_updateable_attributes();
 
@@ -95,4 +103,4 @@ class RadosCephJsonConfig {
 
 } /* namespace librmb */
 
-#endif /* SRC_LIBRMB_RADOS_CEPH_JSON_CONFIG_H_ */
+#endif  // SRC_LIBRMB_RADOS_CEPH_JSON_CONFIG_H_

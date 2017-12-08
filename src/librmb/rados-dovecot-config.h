@@ -1,14 +1,20 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * rados-config.h
+ * Copyright (c) 2017 Tallence AG and the authors
  *
- *  Created on: Nov 1, 2017
- *      Author: jan
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
  */
 
 #ifndef SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_
 #define SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_
 
 #include <map>
+#include <string>
+
 #include "rados-types.h"
 
 namespace librmb {
@@ -35,10 +41,10 @@ class RadosConfig {
 
   const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
   const std::string &get_rados_username() { return config[rados_username]; }
-  void update_metadata(std::string &key, const char *value_);
+  void update_metadata(const std::string &key, const char *value_);
 
  private:
-  bool string_contains_key(std::string &str, enum rbox_metadata_key key);
+  bool string_contains_key(const std::string &str, enum rbox_metadata_key key);
 
  private:
   std::map<std::string, std::string> config;
@@ -52,4 +58,4 @@ class RadosConfig {
 
 } /* namespace librmb */
 
-#endif /* SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_ */
+#endif  // SRC_LIBRMB_RADOS_DOVECOT_CONFIG_H_
