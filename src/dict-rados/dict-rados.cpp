@@ -34,7 +34,7 @@ extern "C" {
 #include "dict.h"
 #include "guid.h"
 #include "mail-user.h"
-
+#include "array.h"
 #include "dict-rados.h"
 }
 
@@ -49,6 +49,8 @@ extern "C" {
 #else
 #define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r)
 #endif
+
+#define typeof(x) __typeof__(x)
 
 using std::string;
 using std::stringstream;
@@ -109,6 +111,22 @@ static const vector<string> explode(const string &str, const char &sep) {
   return v;
 }
 
+static const char *dict_rados_plugin_getenv(const char *name) {
+  const char *const *envs;
+  unsigned int i, count;
+  ARRAY(const char *) plugin_envs;
+
+  if (!array_is_created(&plugin_envs))
+    return NULL;
+
+  envs = array_get(&plugin_envs, &count);
+  for (i = 0; i < count; i += 2) {
+    if (strcmp(envs[i], name) == 0)
+      return envs[i + 1];
+  }
+  return NULL;
+}
+
 int rados_dict_init(struct dict *driver, const char *uri, const struct dict_settings *set, struct dict **dict_r,
                     const char **error_r) {
   struct rados_dict *dict;
@@ -117,6 +135,11 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   string clustername = "ceph";
   string rados_username = "client.admin";
   string ceph_cfg = "rbox_cfg";
+
+  char *gest_ = dict_rados_plugin_getenv("rbox_mutable_metadata");
+
+  i_debug("rados pugin getenv %s", gest_);
+
   if (uri != nullptr) {
 
     vector<string> props(explode(uri, ':'));
@@ -157,7 +180,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   }
 
   dict->guid_generator = new DictGuidGeneraor();
-  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator);
+  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator, ceph_cfg);
   dict->dict = *driver;
   *dict_r = &dict->dict;
 

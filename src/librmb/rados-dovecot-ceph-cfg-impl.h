@@ -50,6 +50,8 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
     }
   }
 
+  void set_rbox_cfg_object_name(std::string &value) { dovecot_cfg->set_rbox_cfg_object_name(value); }
+
   std::map<std::string, std::string> *get_config() { return dovecot_cfg->get_config(); }
   void set_io_ctx(librados::IoCtx *io_ctx_) { rados_cfg->set_io_ctx(io_ctx_); }
   int load_rados_config() {
