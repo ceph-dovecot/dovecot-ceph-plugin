@@ -599,14 +599,20 @@ int main(int argc, const char **argv) {
   config_obj = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
   ceph_cfg.set_cfg_object_name(config_obj);
 
-  if (ceph_cfg.load_cfg() < 0) {
+  int ret_load_cfg = ceph_cfg.load_cfg();
+  if (ret_load_cfg < 0) {
     if (create_config) {
       if (ceph_cfg.save_cfg() < 0) {
         std::cout << "loading config object failed " << std::endl;
       }
-      cluster.deinit();
-      exit(0);
+
+    } else if (ret_load_cfg == -ENOENT) {
+      std::cout << "dovecot-ceph config does not exist, use -C option to create the default config" << std::endl;
+    } else {
+      std::cout << "unkown error, unable to read dovecot-ceph config errorcode : " << ret_load_cfg << std::endl;
     }
+    cluster.deinit();
+    exit(0);
   }
 
   handle_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
