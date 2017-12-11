@@ -1,17 +1,26 @@
-/* Copyright (c) 2017 Tallence AG and the authors, see the included COPYING file */
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
 /*
- * Encoding implementation is copy of ceph/src/include/encoding.h
+ * Copyright (c) 2017 Tallence AG and the authors
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
+ */
+
+/*
+ * Encoding implementation is a copy of ceph/src/include/encoding.h
  *
  * we only took the code to encode an decode ceph_string documented in:
  * http://docs.ceph.com/docs/jewel/dev/network-encoding/
  *
  * As byte encoding LITTLE_ENDIAN is set as it is defined for
  *
- struct ceph_string {
- u32le size;
- u8    data[size];
- }
-
+ * struct ceph_string {
+ *   u32le size;
+ *   u8    data[size];
+ * }
  *
  */
 
