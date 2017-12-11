@@ -28,6 +28,7 @@ Conflicts:	otherproviders(dovecot-ceph-plugin)
 BuildRoot:	%{_tmppath}/%{name}-%{version}-build
 BuildRequires:	%dovecot_devel
 BuildRequires:	librados-devel >= %librados_version
+BuildRequires:	libjansson-devel
 BuildRequires:	gcc-c++
 BuildRequires:	libtool
 
