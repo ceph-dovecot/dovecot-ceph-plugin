@@ -50,6 +50,8 @@ RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_
   shared_io_ctx_created = false;
   private_io_ctx_created = false;
   guid_generator = guid_generator_;
+  shared_oid = oid;
+  private_oid = oid;
 }
 
 RadosDictionaryImpl::~RadosDictionaryImpl() {
@@ -86,7 +88,6 @@ librados::IoCtx &RadosDictionaryImpl::get_shared_io_ctx() {
       std::string user = cfg->get_public_namespace();
       lookup_namespace(user, cfg, &ns);
       shared_io_ctx.set_namespace(ns);
-      shared_oid = oid + DICT_USERNAME_SEPARATOR + ns;
     }
   }
   return shared_io_ctx;
@@ -107,6 +108,10 @@ bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
   } else if (load_cfg < 0) {
     // error
     loaded = false;
+  }
+  
+  if (username.empty()) {
+    username = cfg->get_public_namespace();
   }
   return loaded;
 }
@@ -129,7 +134,6 @@ librados::IoCtx &RadosDictionaryImpl::get_private_io_ctx() {
       if (load_configuration(&private_io_ctx)) {
         std::string user = username + cfg->get_user_suffix();
         lookup_namespace(user, cfg, &ns);
-        private_oid = oid + DICT_USERNAME_SEPARATOR + ns;
         private_io_ctx_created = true;
         private_io_ctx.set_namespace(ns);
       }

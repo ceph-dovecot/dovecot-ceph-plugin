@@ -284,7 +284,6 @@ int rbox_open_rados_connection(struct mailbox *box) {
   ret = rados_storage->open_connection(mbox->storage->config->get_pool_name(),
                                        mbox->storage->config->get_rados_cluster_name(),
                                        mbox->storage->config->get_rados_username());
-  // ret = rados_storage->open_connection(mbox->storage->config->get_pool_name());
 
   if (ret < 0) {
     i_debug("Error = %d", ret);
