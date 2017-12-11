@@ -11,6 +11,7 @@
 
 #include "rados-dictionary-impl.h"
 
+#include <errno.h>
 #include <limits.h>
 
 #include <iostream>
@@ -22,7 +23,6 @@
 #include <utility>
 #include <cstdint>
 
-#include <errno.h>
 #include <rados/librados.hpp>
 
 using std::string;
@@ -49,6 +49,10 @@ RadosDictionaryImpl::~RadosDictionaryImpl() {
   if (namespace_mgr != nullptr) {
     delete namespace_mgr;
     namespace_mgr = nullptr;
+  }
+  if (cfg != nullptr) {
+    delete cfg;
+    cfg = nullptr;
   }
 }
 
@@ -121,7 +125,6 @@ librados::IoCtx &RadosDictionaryImpl::get_private_io_ctx() {
         private_io_ctx_created = true;
         private_io_ctx.set_namespace(ns);
       }
-
     }
   }
   return private_io_ctx;
