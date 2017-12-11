@@ -609,7 +609,7 @@ int main(int argc, const char **argv) {
     } else if (ret_load_cfg == -ENOENT) {
       std::cout << "dovecot-ceph config does not exist, use -C option to create the default config" << std::endl;
     } else {
-      std::cout << "unkown error, unable to read dovecot-ceph config errorcode : " << ret_load_cfg << std::endl;
+      std::cout << "unknown error, unable to read dovecot-ceph config errorcode : " << ret_load_cfg << std::endl;
     }
     cluster.deinit();
     exit(0);
