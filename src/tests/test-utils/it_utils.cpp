@@ -74,7 +74,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
   storage->ns_mgr->set_config(cfg_mock);
-
+  storage->config = cfg_mock;
   ItUtils::add_mail(save_ctx, input, box, trans);
 
   i_stream_unref(&input);
