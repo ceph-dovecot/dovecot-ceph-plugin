@@ -486,9 +486,9 @@ static void handle_delete_mail(bool delete_mail_option, bool confirmed, const st
   }
 }
 
-void handle_reanme_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
-                        const std::string &uid, const std::map<std::string, std::string> &opts,
-                        librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
+static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
+                               const std::string &uid, const std::map<std::string, std::string> &opts,
+                               librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
     if (!cfg.is_user_mapping()) {
       std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
@@ -594,7 +594,7 @@ int main(int argc, const char **argv) {
   }
 
   // initialize configuration
-  librmb::RadosCephConfig ceph_cfg(&storage);
+  librmb::RadosCephConfig ceph_cfg(&storage.get_io_ctx());
   // set config object
   config_obj = opts.find("cfg_obj") != opts.end() ? opts["cfg_obj"] : ceph_cfg.get_cfg_object_name();
   ceph_cfg.set_cfg_object_name(config_obj);
@@ -614,7 +614,7 @@ int main(int argc, const char **argv) {
   librmb::RadosConfig dovecot_cfg;
   dovecot_cfg.set_config_valid(true);
   librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
-  librmb::RadosNamespaceManager mgr(&storage, &cfg);
+  librmb::RadosNamespaceManager mgr(&cfg);
 
   // namespace (user) needs to be set
   if (opts.find("namespace") == opts.end()) {
@@ -636,7 +636,7 @@ int main(int argc, const char **argv) {
 
   handle_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
 
-  handle_reanme_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
+  handle_rename_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {

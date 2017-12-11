@@ -39,11 +39,13 @@ extern "C" {
 
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
+#include "rados-dovecot-ceph-cfg-impl.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;
 using ::testing::Matcher;
+using ::testing::ReturnRef;
 #pragma GCC diagnostic pop
 
 #if DOVECOT_PREREQ(2, 3)
@@ -97,7 +99,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
 
   EXPECT_CALL(*storage_mock, alloc_mail_object()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
-  storage->ns_mgr->set_storage(storage_mock);
+  // storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -183,8 +185,8 @@ TEST_F(StorageTest, exec_write_op_fails) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, Matcher<bool &>(_))).Times(1).WillOnce(Return(false));
-  EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
-  EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
+  // EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
+  // EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
 
   librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
   librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
@@ -192,9 +194,21 @@ TEST_F(StorageTest, exec_write_op_fails) {
   EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
 
   EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
-  storage->ns_mgr->set_storage(storage_mock);
-  storage->config->set_storage(storage_mock);
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  std::string user = "client.admin";
+  std::string cluster = "ceph";
+  std::string pool = "mail_storage";
+  std::string suffix = "_u";
 
+  EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
+  EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  storage->ns_mgr->set_config(cfg_mock);
+
+  storage->config = cfg_mock;
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -294,9 +308,21 @@ TEST_F(StorageTest, write_op_fails) {
   EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
 
   EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
-  storage->ns_mgr->set_storage(storage_mock);
-  storage->config->set_storage(storage_mock);
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  std::string user = "client.admin";
+  std::string cluster = "ceph";
+  std::string pool = "mail_storage";
+  std::string suffix = "_u";
 
+  EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
+  EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  storage->ns_mgr->set_config(cfg_mock);
+
+  storage->config = cfg_mock;
   storage->s = storage_mock;
   ssize_t ret;
 
@@ -418,8 +444,23 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(false));
 
   storage->s = storage_mock_copy;
-  storage->config->set_storage(storage->s);
-  storage->ns_mgr->set_storage(storage_mock_copy);
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  std::string user = "client.admin";
+  std::string cluster = "ceph";
+  std::string pool = "mail_storage";
+  std::string suffix = "_u";
+
+  EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
+  EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  storage->ns_mgr->set_config(cfg_mock);
+
+  storage->config = cfg_mock;
+  // storage->config->set_io_ctx(&storage->s->get_io_ctx());
+  // storage->ns_mgr->set_storage(storage_mock_copy);
 
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));

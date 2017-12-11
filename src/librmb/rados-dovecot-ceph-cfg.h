@@ -48,7 +48,7 @@ class RadosDovecotCephCfg {
   virtual std::string get_key_prefix_keywords() = 0;
 
   // ceph configuration
-  virtual void set_storage(RadosStorage *storage) = 0;
+  virtual void set_io_ctx(librados::IoCtx *io_ctx) = 0;
   virtual int load_rados_config() = 0;
   virtual int save_default_rados_config() = 0;
   virtual void set_user_mapping(bool value_) = 0;
@@ -58,6 +58,9 @@ class RadosDovecotCephCfg {
   virtual void set_user_suffix(std::string &ns_suffix) = 0;
   virtual std::string get_user_suffix() = 0;
   virtual const std::string &get_public_namespace() = 0;
+  virtual int save_object(const std::string &oid, librados::bufferlist &buffer) = 0;
+  virtual int read_object(const std::string &oid, librados::bufferlist *buffer) = 0;
+  virtual void set_io_ctx_namespace(std::string &namespace_) = 0;
 };
 
 } /* namespace librmb */

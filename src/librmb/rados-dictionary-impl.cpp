@@ -22,8 +22,8 @@
 #include <utility>
 #include <cstdint>
 
+#include <errno.h>
 #include <rados/librados.hpp>
-
 
 using std::string;
 using std::stringstream;
@@ -38,15 +38,19 @@ using librmb::RadosDictionaryImpl;
 #define DICT_PATH_SHARED "shared/"
 
 RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_poolname, const string &_username,
-                                         const string &_oid)
-    : cluster(_cluster), poolname(_poolname), username(_username), oid(_oid) {
-  shared_oid = oid + DICT_USERNAME_SEPARATOR + "shared";
-  private_oid = oid + DICT_USERNAME_SEPARATOR + username;
+                                         const string &_oid, librmb::RadosGuidGenerator *guid_generator_)
+    : cluster(_cluster), poolname(_poolname), username(_username), oid(_oid), cfg(nullptr), namespace_mgr(nullptr) {
   shared_io_ctx_created = false;
   private_io_ctx_created = false;
+  guid_generator = guid_generator_;
 }
 
-RadosDictionaryImpl::~RadosDictionaryImpl() {}
+RadosDictionaryImpl::~RadosDictionaryImpl() {
+  if (namespace_mgr != nullptr) {
+    delete namespace_mgr;
+    namespace_mgr = nullptr;
+  }
+}
 
 const string RadosDictionaryImpl::get_shared_oid() { return shared_oid; }
 
@@ -66,15 +70,58 @@ const string RadosDictionaryImpl::get_full_oid(const std::string &key) {
 librados::IoCtx &RadosDictionaryImpl::get_shared_io_ctx() {
   if (!shared_io_ctx_created) {
     shared_io_ctx_created = cluster->io_ctx_create(poolname, &shared_io_ctx) == 0;
+    std::string ns;
+    if (load_configuration(&shared_io_ctx)) {
+      std::string user = cfg->get_public_namespace();
+      lookup_namespace(user, cfg, &ns);
+      shared_io_ctx.set_namespace(ns);
+      shared_oid = oid + DICT_USERNAME_SEPARATOR + ns;
+    }
   }
   return shared_io_ctx;
+}
+
+bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
+  bool loaded = true;
+  if (cfg != nullptr) {
+    return loaded;
+  }
+
+  cfg = new librmb::RadosDovecotCephCfgImpl(io_ctx);
+  cfg->set_config_valid(true);
+  int load_cfg = cfg->load_rados_config();
+  if (load_cfg == -ENOENT) {
+    cfg->save_default_rados_config();
+  } else if (load_cfg < 0) {
+    // error
+    loaded = false;
+  }
+  return loaded;
+}
+
+bool RadosDictionaryImpl::lookup_namespace(std::string &username_, librmb::RadosDovecotCephCfg *cfg_, std::string *ns) {
+  if (namespace_mgr == nullptr) {
+    namespace_mgr = new librmb::RadosNamespaceManager(cfg_);
+  }
+  int ret = 0;
+  if (!namespace_mgr->lookup_key(username_, ns)) {
+    ret = namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? 0 : -1;
+  }
+  return ret == 0;
 }
 
 librados::IoCtx &RadosDictionaryImpl::get_private_io_ctx() {
   if (!private_io_ctx_created) {
     if (cluster->io_ctx_create(poolname, &private_io_ctx) == 0) {
-      private_io_ctx_created = true;
-      private_io_ctx.set_namespace(username);
+      std::string ns;
+      if (load_configuration(&private_io_ctx)) {
+        std::string user = username + cfg->get_user_suffix();
+        lookup_namespace(user, cfg, &ns);
+        private_oid = oid + DICT_USERNAME_SEPARATOR + ns;
+        private_io_ctx_created = true;
+        private_io_ctx.set_namespace(ns);
+      }
+
     }
   }
   return private_io_ctx;

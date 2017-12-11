@@ -15,25 +15,25 @@
 #include <string>
 #include "rados-storage.h"
 #include "rados-dovecot-ceph-cfg.h"
+#include "rados-guid-generator.h"
 namespace librmb {
 
 class RadosNamespaceManager {
  public:
-  RadosNamespaceManager(RadosStorage *storage_, RadosDovecotCephCfg *config_) {
-    this->storage = storage_;
+  RadosNamespaceManager(RadosDovecotCephCfg *config_) {
     this->oid_suffix = "_namespace";
     this->config = config_;
   }
   virtual ~RadosNamespaceManager();
-  void set_storage(RadosStorage *storage_) { this->storage = storage_; }
   void set_config(RadosDovecotCephCfg *config_) { config = config_; }
+  RadosDovecotCephCfg *get_config() { return config; }
+
   void set_namespace_oid(std::string namespace_oid_) { this->oid_suffix = oid_suffix; }
   bool lookup_key(std::string uid, std::string *value);
-  bool add_namespace_entry(std::string uid, std::string value);
+  bool add_namespace_entry(std::string uid, std::string *value, RadosGuidGenerator *guid_generator_);
 
  private:
   std::map<std::string, std::string> cache;
-  RadosStorage *storage;
   std::string oid_suffix;
   RadosDovecotCephCfg *config;
 };

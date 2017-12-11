@@ -13,9 +13,9 @@
 
 namespace librmb {
 
-RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(RadosStorage *storage) {
+RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_) {
   dovecot_cfg = new RadosConfig();
-  rados_cfg = new RadosCephConfig(storage);
+  rados_cfg = new RadosCephConfig(io_ctx_);
   delete_cfg = true;
 }
 
@@ -38,5 +38,6 @@ int RadosDovecotCephCfgImpl::save_default_rados_config() {
   rados_cfg->set_config_valid(valid);
   return valid ? 0 : -1;
 }
+
 
 } /* namespace librmb */

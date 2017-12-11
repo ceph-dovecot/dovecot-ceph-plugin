@@ -11,16 +11,15 @@
 
 #include "rados-ceph-config.h"
 #include <jansson.h>
+#include <climits>
 
 namespace librmb {
 
-RadosCephConfig::RadosCephConfig(RadosStorage *storage_) {
-  storage = storage_;
-}
+RadosCephConfig::RadosCephConfig(librados::IoCtx *io_ctx_) { io_ctx = io_ctx_; }
 
 int RadosCephConfig::save_cfg() {
   ceph::bufferlist buffer;
-  bool success = config.to_json(&buffer) ? storage->save_mail(config.get_cfg_object_name(), buffer) >= 0 : false;
+  bool success = config.to_json(&buffer) ? save_object(config.get_cfg_object_name(), buffer) >= 0 : false;
   return success ? 0 : -1;
 }
 
@@ -29,11 +28,11 @@ int RadosCephConfig::load_cfg() {
     return 0;
   }
   ceph::bufferlist buffer;
-  int ret = storage->read_mail(config.get_cfg_object_name(), &buffer);
+  int ret = read_object(config.get_cfg_object_name(), &buffer);
   if (ret < 0) {
     return ret;
   }
-
+  config.set_valid(true);
   return config.from_json(&buffer) ? 0 : -1;
 }
 
@@ -90,5 +89,15 @@ bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &valu
   }
   return success;
 }
+
+int RadosCephConfig::save_object(const std::string &oid, librados::bufferlist &buffer) {
+  return io_ctx->write_full(oid, buffer);
+}
+int RadosCephConfig::read_object(const std::string &oid, librados::bufferlist *buffer) {
+  size_t max = INT_MAX;
+  return io_ctx->read(oid, *buffer, max, 0);
+}
+
+void RadosCephConfig::set_io_ctx_namespace(std::string &namespace_) { io_ctx->set_namespace(namespace_); }
 
 } /* namespace librmb */

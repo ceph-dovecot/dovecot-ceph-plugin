@@ -17,6 +17,8 @@ using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;
 using ::testing::Matcher;
+using ::testing::ReturnRef;
+
 #pragma GCC diagnostic pop
 
 #if DOVECOT_PREREQ(2, 3)
@@ -57,9 +59,22 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   storage->s = storage_impl;
-  storage->ns_mgr->set_storage(storage_impl);
-  storage->config->set_storage(storage_impl);
   storage->ns_mgr->set_config(storage->config);
+
+  delete storage->config;
+  librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
+  EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+  std::string user = "client.admin";
+  std::string cluster = "ceph";
+  std::string pool = "mail_storage";
+  std::string suffix = "_u";
+
+  EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
+  EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  storage->ns_mgr->set_config(cfg_mock);
+
   ItUtils::add_mail(save_ctx, input, box, trans);
 
   i_stream_unref(&input);

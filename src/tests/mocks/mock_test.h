@@ -101,6 +101,10 @@ using librmb::RadosDovecotCephCfg;
 class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
  public:
   // dovecot configuration
+  MOCK_METHOD0(get_rados_cluster_name, const std::string &());
+  MOCK_METHOD0(get_rados_username, const std::string &());
+
+  // dovecot configuration
   MOCK_METHOD1(is_mail_attribute, bool(enum librmb::rbox_metadata_key key));
   MOCK_METHOD1(is_updateable_attribute, bool(enum librmb::rbox_metadata_key key));
 
@@ -123,7 +127,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_key_prefix_keywords, std::string());
 
   // ceph configuration
-  MOCK_METHOD1(set_storage, void(RadosStorage *storage));
+  MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));
   MOCK_METHOD0(load_rados_config, int());
   MOCK_METHOD0(save_default_rados_config, int());
 
@@ -138,6 +142,9 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(update_mail_attributes, void(const std::string &mail_attributes));
 
   MOCK_METHOD1(update_updatable_attributes, void(const std::string &updateable_attributes));
+  MOCK_METHOD2(save_object, int(const std::string &oid, librados::bufferlist &buffer));
+  MOCK_METHOD2(read_object, int(const std::string &oid, librados::bufferlist *buffer));
+  MOCK_METHOD1(set_io_ctx_namespace, void(std::string &namespace_));
 };
 
 }  // namespace librmbtest

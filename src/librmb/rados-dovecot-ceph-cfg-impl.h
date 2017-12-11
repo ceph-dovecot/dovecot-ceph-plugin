@@ -18,12 +18,13 @@
 #include <string>
 #include <map>
 #include "rados-dovecot-config.h"
+#include <rados/librados.hpp>
 
 namespace librmb {
 
 class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  public:
-  RadosDovecotCephCfgImpl(RadosStorage *storage);
+  RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_);
   RadosDovecotCephCfgImpl(RadosConfig *dovecot_cfg_, RadosCephConfig *rados_cfg_);
   virtual ~RadosDovecotCephCfgImpl();
 
@@ -50,9 +51,10 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   }
 
   std::map<std::string, std::string> *get_config() { return dovecot_cfg->get_config(); }
-  void set_storage(RadosStorage *storage) { rados_cfg->set_storage(storage); }
+  void set_io_ctx(librados::IoCtx *io_ctx_) { rados_cfg->set_io_ctx(io_ctx_); }
   int load_rados_config() {
-    return dovecot_cfg->is_config_valid() ? rados_cfg->load_cfg() : -1;
+    //  return dovecot_cfg->is_config_valid() ? rados_cfg->load_cfg() : -1;
+    return rados_cfg->load_cfg();
   }
   int save_default_rados_config();
   void set_user_mapping(bool value_) { rados_cfg->set_user_mapping(value_); }
@@ -79,6 +81,9 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   void update_updatable_attributes(const std::string &updateable_attributes) {
     rados_cfg->update_updateable_attribute(updateable_attributes.c_str());
   }
+  int save_object(const std::string &oid, librados::bufferlist &buffer) { return rados_cfg->save_object(oid, buffer); }
+  int read_object(const std::string &oid, librados::bufferlist *buffer) { return rados_cfg->read_object(oid, buffer); }
+  void set_io_ctx_namespace(std::string &namespace_) { rados_cfg->set_io_ctx_namespace(namespace_); }
 
  private:
   RadosConfig *dovecot_cfg;

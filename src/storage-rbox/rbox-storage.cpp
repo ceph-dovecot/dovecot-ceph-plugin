@@ -27,6 +27,7 @@ extern "C" {
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include "guid.h"
 }
 
 #include "rbox-storage.hpp"
@@ -35,10 +36,21 @@ extern "C" {
 #include "../librmb/rados-storage-impl.h"
 #include "../librmb/rados-namespace-manager.h"
 #include "../librmb/rados-dovecot-ceph-cfg-impl.h"
+#include "../librmb/rados-guid-generator.h"
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
 using std::string;
+
+class RboxGuidGeneraor : public librmb::RadosGuidGenerator {
+  std::string generate_guid() {
+    std::string ns;
+    guid_128_t namespace_guid;
+    guid_128_generate(namespace_guid);
+    ns = guid_128_to_string(namespace_guid);
+    return ns;
+  }
+};
 
 extern struct mailbox rbox_mailbox;
 extern struct mailbox_vfuncs rbox_mailbox_vfuncs;
@@ -54,8 +66,8 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->storage.pool = pool;
   storage->cluster = new librmb::RadosClusterImpl();
   storage->s = new librmb::RadosStorageImpl(storage->cluster);
-  storage->config = new librmb::RadosDovecotCephCfgImpl(storage->s);
-  storage->ns_mgr = new librmb::RadosNamespaceManager(storage->s, storage->config);
+  storage->config = new librmb::RadosDovecotCephCfgImpl(&storage->s->get_io_ctx());
+  storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
 
   FUNC_END();
   return &storage->storage;
@@ -298,11 +310,8 @@ int rbox_open_rados_connection(struct mailbox *box) {
 
   std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
-    // create new unique namespace
-    guid_128_t namespace_guid;
-    guid_128_generate(namespace_guid);
-    ns = guid_128_to_string(namespace_guid);
-    ret = mbox->storage->ns_mgr->add_namespace_entry(uid, ns) ? 0 : -1;
+    RboxGuidGeneraor guid_generator;
+    ret = mbox->storage->ns_mgr->add_namespace_entry(uid, &ns, &guid_generator) ? 0 : -1;
   }
   if (ret >= 0) {
     rados_storage->set_namespace(ns);

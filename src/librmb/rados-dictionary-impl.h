@@ -20,13 +20,17 @@
 #include <rados/librados.hpp>
 #include "rados-cluster.h"
 #include "rados-dictionary.h"
+#include "rados-dovecot-ceph-cfg.h"
+#include "rados-dovecot-ceph-cfg-impl.h"
+#include "rados-namespace-manager.h"
+#include "rados-guid-generator.h"
 
 namespace librmb {
 
 class RadosDictionaryImpl : public RadosDictionary {
  public:
   RadosDictionaryImpl(RadosCluster* cluster, const std::string& poolname, const std::string& username,
-                      const std::string& oid);
+                      const std::string& oid, librmb::RadosGuidGenerator* guid_generator_);
   virtual ~RadosDictionaryImpl();
 
   const std::string get_full_oid(const std::string& key);
@@ -48,6 +52,11 @@ class RadosDictionaryImpl : public RadosDictionary {
   int get(const std::string& key, std::string* value_r);
 
  private:
+  bool load_configuration(librados::IoCtx* io_ctx);
+
+  bool lookup_namespace(std::string& username_, librmb::RadosDovecotCephCfg* cfg_, std::string* ns);
+
+ private:
   RadosCluster* cluster;
   std::string poolname;
   std::string username;
@@ -63,6 +72,11 @@ class RadosDictionaryImpl : public RadosDictionary {
 
   std::list<librados::AioCompletion*> completions;
   std::mutex completions_mutex;
+
+  librmb::RadosDovecotCephCfg* cfg;
+  librmb::RadosNamespaceManager* namespace_mgr;
+
+  RadosGuidGenerator* guid_generator;
 };
 
 }  // namespace librmb

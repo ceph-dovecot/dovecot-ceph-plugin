@@ -28,7 +28,8 @@ headers = \
 	rados-dovecot-ceph-cfg.h \
 	rados-dovecot-ceph-cfg-impl.h \
 	rados-ceph-config.h \
-	rados-ceph-json-config.h
+	rados-ceph-json-config.h \
+	rados-guid-generator.h
 
 librmb_la_SOURCES = \
     $(headers) \

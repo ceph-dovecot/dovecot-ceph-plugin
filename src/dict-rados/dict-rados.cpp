@@ -42,6 +42,7 @@ extern "C" {
 #include "../librmb/rados-cluster-impl.h"
 #include "../librmb/rados-dictionary-impl.h"
 #include "../librmb/rados-cluster.h"
+#include "../librmb/rados-guid-generator.h"
 
 #if DOVECOT_PREREQ(2, 3)
 #define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r, error_r)
@@ -64,6 +65,7 @@ using librados::completion_t;
 
 using librmb::RadosCluster;
 using librmb::RadosDictionary;
+using librmb::RadosGuidGenerator;
 
 #define DICT_USERNAME_SEPARATOR '/'
 static const char CACHE_DELETED[] = "_DELETED_";
@@ -72,6 +74,17 @@ struct rados_dict {
   struct dict dict;
   RadosCluster *cluster;
   RadosDictionary *d;
+  RadosGuidGenerator *guid_generator;
+};
+
+class DictGuidGeneraor : public librmb::RadosGuidGenerator {
+  std::string generate_guid() {
+    std::string ns;
+    guid_128_t namespace_guid;
+    guid_128_generate(namespace_guid);
+    ns = guid_128_to_string(namespace_guid);
+    return ns;
+  }
 };
 
 enum rados_commit_ret {
@@ -143,7 +156,8 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     return -1;
   }
 
-  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid);
+  dict->guid_generator = new DictGuidGeneraor();
+  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator);
   dict->dict = *driver;
   *dict_r = &dict->dict;
 
@@ -164,6 +178,10 @@ void rados_dict_deinit(struct dict *_dict) {
     dict->cluster->deinit();
     delete dict->cluster;
     dict->cluster = nullptr;
+  }
+  if (dict->guid_generator != nullptr) {
+    delete dict->guid_generator;
+    dict->guid_generator = nullptr;
   }
 
   if (_dict != NULL) {

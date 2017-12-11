@@ -14,18 +14,20 @@
 #include "rados-storage.h"
 #include "rados-ceph-json-config.h"
 #include "rados-types.h"
+#include <rados/librados.hpp>
+
 namespace librmb {
 
 class RadosCephConfig {
  public:
-  RadosCephConfig(RadosStorage *storage_);
+  RadosCephConfig(librados::IoCtx *io_ctx_);
   virtual ~RadosCephConfig() {}
 
   // load settings from rados cfg_object
   int load_cfg();
   int save_cfg();
 
-  void set_storage(RadosStorage *storage_) { storage = storage_; }
+  void set_io_ctx(librados::IoCtx *io_ctx_) { io_ctx = io_ctx_; }
   bool is_config_valid() { return config.is_valid(); }
   void set_config_valid(bool valid_) { config.set_valid(valid_); }
   bool is_user_mapping() { return !config.get_user_mapping().compare("true"); }
@@ -55,9 +57,13 @@ class RadosCephConfig {
   const std::string &get_updateable_attribute_key() { return config.get_updateable_attribute_key(); }
   const std::string &get_update_attributes_key() { return config.get_update_attributes_key(); }
 
+  int save_object(const std::string &oid, librados::bufferlist &buffer);
+  int read_object(const std::string &oid, librados::bufferlist *buffer);
+  void set_io_ctx_namespace(std::string &namespace_);
+
  private:
   RadosCephJsonConfig config;
-  RadosStorage *storage;
+  librados::IoCtx *io_ctx;
 };
 
 } /* namespace tallence */
