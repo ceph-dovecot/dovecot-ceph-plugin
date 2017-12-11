@@ -30,7 +30,8 @@ namespace librmb {
 class RadosDictionaryImpl : public RadosDictionary {
  public:
   RadosDictionaryImpl(RadosCluster* cluster, const std::string& poolname, const std::string& username,
-                      const std::string& oid, librmb::RadosGuidGenerator* guid_generator_);
+                      const std::string& oid, librmb::RadosGuidGenerator* guid_generator_,
+                      const std::string& cfg_object_name_);
   virtual ~RadosDictionaryImpl();
 
   const std::string get_full_oid(const std::string& key);
@@ -77,6 +78,7 @@ class RadosDictionaryImpl : public RadosDictionary {
   librmb::RadosNamespaceManager* namespace_mgr;
 
   RadosGuidGenerator* guid_generator;
+  std::string cfg_object_name;
 };
 
 }  // namespace librmb

@@ -23,6 +23,10 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
     return true;
   }
 
+  if (config == nullptr) {
+    return false;
+  }
+
   if (!config->is_config_valid()) {
     return false;
   }
@@ -59,6 +63,10 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
 
 bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string *value,
                                                 RadosGuidGenerator *guid_generator_) {
+  if (config == nullptr) {
+    return false;
+  }
+
   if (!config->is_config_valid()) {
     return false;
   }

@@ -38,8 +38,15 @@ using librmb::RadosDictionaryImpl;
 #define DICT_PATH_SHARED "shared/"
 
 RadosDictionaryImpl::RadosDictionaryImpl(RadosCluster *_cluster, const string &_poolname, const string &_username,
-                                         const string &_oid, librmb::RadosGuidGenerator *guid_generator_)
-    : cluster(_cluster), poolname(_poolname), username(_username), oid(_oid), cfg(nullptr), namespace_mgr(nullptr) {
+                                         const string &_oid, librmb::RadosGuidGenerator *guid_generator_,
+                                         const std::string &cfg_object_name_)
+    : cluster(_cluster),
+      poolname(_poolname),
+      username(_username),
+      oid(_oid),
+      cfg(nullptr),
+      namespace_mgr(nullptr),
+      cfg_object_name(cfg_object_name_) {
   shared_io_ctx_created = false;
   private_io_ctx_created = false;
   guid_generator = guid_generator_;
@@ -92,6 +99,7 @@ bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
   }
 
   cfg = new librmb::RadosDovecotCephCfgImpl(io_ctx);
+  cfg->set_rbox_cfg_object_name(cfg_object_name);
   cfg->set_config_valid(true);
   int load_cfg = cfg->load_rados_config();
   if (load_cfg == -ENOENT) {

@@ -125,6 +125,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(is_config_valid, bool());
   MOCK_METHOD1(set_config_valid, void(bool is_valid_));
   MOCK_METHOD0(get_key_prefix_keywords, std::string());
+  MOCK_METHOD1(set_rbox_cfg_object_name, void(std::string &value));
 
   // ceph configuration
   MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));

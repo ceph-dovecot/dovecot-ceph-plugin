@@ -40,7 +40,7 @@ class RadosDovecotCephCfg {
   virtual std::string get_pool_name() = 0;
   virtual bool is_update_attributes() = 0;
 
-
+  virtual void set_rbox_cfg_object_name(std::string &value) = 0;
   virtual void update_metadata(std::string &key, const char *value_) = 0;
   virtual bool is_config_valid() = 0;
   virtual void set_config_valid(bool is_valid_) = 0;
