@@ -36,7 +36,7 @@ extern "C" {
 #include "rados-mail-object.h"
 #include "rbox-storage.hpp"
 #include "../librmb/rados-storage-impl.h"
-
+#include "istream-bufferlist.h"
 #include "rbox-mail.h"
 
 using librmb::RadosMailObject;
@@ -84,8 +84,10 @@ int rbox_get_index_record(struct mail *_mail) {
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
 
-    i_free(rmail->mail_buffer);
-    rmail->mail_buffer = NULL;
+    if (rmail->buffer != nullptr) {
+      delete rmail->buffer;
+      rmail->buffer = nullptr;
+    }
   }
   FUNC_END();
   return 0;
@@ -265,13 +267,14 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   return 0;
 }
 
-static int get_mail_stream(struct rbox_mail *mail, char *buffer, uint64_t physical_size, struct istream **stream_r) {
+static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, uint64_t physical_size,
+                           struct istream **stream_r) {
   struct mail_private *pmail = &mail->imail.mail;
   struct istream *input;  // = *stream_r;
   int ret = 0;
 
-  input = i_stream_create_from_data(buffer, physical_size);
-  i_stream_set_max_buffer_size(input, physical_size);
+  input = i_stream_create_from_bufferlist(buffer, physical_size);
+  // i_stream_set_max_buffer_size(input, physical_size - 1);
   i_stream_seek(input, 0);
 
   *stream_r = i_stream_create_limit(input, physical_size);
@@ -294,20 +297,19 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   int ret = -1;
   int size_r = 0;
 
-  if (data->stream == NULL /* && rmail->mail_buffer == NULL*/) {
+  if (data->stream == NULL) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
 
-    if (rmail->mail_buffer != NULL) {
-      i_free(rmail->mail_buffer);
+    if (rmail->buffer != nullptr) {
+      delete rmail->buffer;
     }
 
     _mail->transaction->stats.open_lookup_count++;
-
-    librados::bufferlist mail_data_bl;
-    size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), &mail_data_bl);
+    rmail->buffer = new librados::bufferlist();
+    size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->buffer);
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
         i_debug("Mail not found. %s, ns='%s'", rmail->mail_object->get_oid().c_str(),
@@ -320,15 +322,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         FUNC_END_RET("ret == -1");
         return -1;
       }
-    } else {
-      rmail->mail_buffer = p_new(default_pool, char, size_r + 1);
-      if (rmail->mail_buffer == NULL) {
-        FUNC_END_RET("ret == -1; out of memory");
-        return -1;
-      }
-      memcpy(rmail->mail_buffer, mail_data_bl.to_str().c_str(), size_r + 1);
     }
-    get_mail_stream(rmail, rmail->mail_buffer, size_r, &input);
+
+    get_mail_stream(rmail, rmail->buffer, size_r, &input);
 
     uoff_t size_decompressed = -1;
     i_stream_get_size(input, TRUE, &size_decompressed);
@@ -465,9 +461,9 @@ static void rbox_mail_close(struct mail *_mail) {
   struct rbox_mail *rmail_ = (struct rbox_mail *)_mail;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
-  if (rmail_->mail_buffer != NULL) {
-    i_free(rmail_->mail_buffer);
-    rmail_->mail_buffer = NULL;
+  if (rmail_->buffer != nullptr) {
+    delete rmail_->buffer;
+    rmail_->buffer = nullptr;
   }
   if (rmail_->mail_object != nullptr) {
     buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(rmail_->mail_object->get_mail_buffer());

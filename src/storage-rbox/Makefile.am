@@ -32,6 +32,7 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-sync.cpp \
 	rbox-storage.cpp \
 	rbox-sync-rebuild.cpp \
+	istream-bufferlist.cpp \
 	debug-helper.c \
 	debug-helper.h \
 	dovecot-all.h \
@@ -44,5 +45,6 @@ libstorage_rbox_plugin_la_SOURCES = \
 	rbox-storage.hpp \
 	rbox-sync-rebuild.h \
 	rbox-sync.h \
-	typeof-def.h
+	typeof-def.h \
+	istream-bufferlist.h
 

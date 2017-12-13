@@ -47,7 +47,9 @@ class RboxGuidGeneraor : public librmb::RadosGuidGenerator {
     std::string ns;
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
-    ns = guid_128_to_string(namespace_guid);
+    char *guid = guid_128_to_string(namespace_guid);
+    ns = guid;
+    free(guid);
     return ns;
   }
 };

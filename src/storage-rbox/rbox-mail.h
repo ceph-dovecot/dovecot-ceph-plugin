@@ -14,6 +14,7 @@
 
 #include "index-mail.h"
 #include "rados-mail-object.h"
+#include <rados/librados.hpp>
 
 struct rbox_mail {
   struct index_mail imail;
@@ -22,8 +23,8 @@ struct rbox_mail {
   guid_128_t index_oid;
 
   librmb::RadosMailObject *mail_object;
-  char *mail_buffer;
   uint32_t last_seq;  // TODO(jrse): init with -1
+  librados::bufferlist *buffer;
 };
 
 extern int rbox_get_index_record(struct mail *_mail);
