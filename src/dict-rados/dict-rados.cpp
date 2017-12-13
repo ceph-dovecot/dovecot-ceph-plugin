@@ -111,22 +111,6 @@ static const vector<string> explode(const string &str, const char &sep) {
   return v;
 }
 
-static const char *dict_rados_plugin_getenv(const char *name) {
-  const char *const *envs;
-  unsigned int i, count;
-  ARRAY(const char *) plugin_envs;
-
-  if (!array_is_created(&plugin_envs))
-    return NULL;
-
-  envs = array_get(&plugin_envs, &count);
-  for (i = 0; i < count; i += 2) {
-    if (strcmp(envs[i], name) == 0)
-      return envs[i + 1];
-  }
-  return NULL;
-}
-
 int rados_dict_init(struct dict *driver, const char *uri, const struct dict_settings *set, struct dict **dict_r,
                     const char **error_r) {
   struct rados_dict *dict;
@@ -135,10 +119,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   string clustername = "ceph";
   string rados_username = "client.admin";
   string ceph_cfg = "rbox_cfg";
-
-  char *gest_ = dict_rados_plugin_getenv("rbox_mutable_metadata");
-
-  i_debug("rados pugin getenv %s", gest_);
 
   if (uri != nullptr) {
 
