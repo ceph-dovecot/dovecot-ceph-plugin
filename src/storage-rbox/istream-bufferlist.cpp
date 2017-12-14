@@ -44,7 +44,7 @@ struct istream *i_stream_create_from_bufferlist(const librados::bufferlist *data
   stream->istream.seekable = TRUE;
 
 #if DOVECOT_PREREQ(2, 3)
-  i_stream_create(stream, NULL, -1, istream_create_flag.ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);
+  i_stream_create(stream, NULL, -1, ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);
 #else
   i_stream_create(stream, NULL, -1);
 #endif
