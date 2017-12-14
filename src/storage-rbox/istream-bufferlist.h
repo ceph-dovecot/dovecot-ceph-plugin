@@ -15,6 +15,6 @@
 #ifndef SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
 #define SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
 
-struct istream *i_stream_create_from_bufferlist(const librados::bufferlist *data, size_t size);
+struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, size_t size);
 
 #endif /* SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_ */
