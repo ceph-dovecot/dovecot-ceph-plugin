@@ -466,12 +466,6 @@ static void rbox_mail_close(struct mail *_mail) {
     rmail_->buffer = nullptr;
   }
   if (rmail_->mail_object != nullptr) {
-    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(rmail_->mail_object->get_mail_buffer());
-    if (mail_buffer != NULL) {
-      buffer_free(&mail_buffer);
-      mail_buffer = NULL;
-      rmail_->mail_object->set_mail_buffer(NULL);
-    }
     r_storage->s->free_mail_object(rmail_->mail_object);
     rmail_->mail_object = nullptr;
   }

@@ -32,7 +32,6 @@ RadosMailObject::RadosMailObject() {
   this->active_op = false;
   this->mail_buffer = new librados::bufferlist();
   this->save_date_rados = -1;
-  this->mail_buffer_start = NULL;
 }
 RadosMailObject::~RadosMailObject() {
   if (this->mail_buffer != nullptr) {
@@ -40,12 +39,6 @@ RadosMailObject::~RadosMailObject() {
   }
 }
 
-void RadosMailObject::set_mail_buffer(librados::bufferlist *buffer) {
-  if (this->mail_buffer != nullptr) {
-    delete this->mail_buffer;
-  }
-  this->mail_buffer = buffer;
-}
 
 void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
 

@@ -47,14 +47,12 @@ void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _sa
 const string& get_oid() { return this->oid; }
 const string& get_version() { return this->version; }
 const uint64_t& get_mail_size() { return this->object_size; }
-void set_mail_buffer(librados::bufferlist* buffer);
 
 time_t* get_rados_save_date() { return &this->save_date_rados; }
 uint8_t* get_guid_ref() { return this->guid; }
 librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
 map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
-void set_mail_buffer_content_ptr(const void* start) { mail_buffer_start = start; }
-const void* get_mail_buffer_content_ptr() { return mail_buffer_start; }
+
 map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
 string get_metadata(rbox_metadata_key key) {
   string str_key(1, static_cast<char>(key));
@@ -91,10 +89,8 @@ string get_metadata(rbox_metadata_key key) {
   uint8_t guid[GUID_128_SIZE];
   uint64_t object_size;  // byte
   map<AioCompletion*, ObjectWriteOperation*> completion_op;
-  const void* mail_buffer_start;
 
   bool active_op;
-  // used as pointer to a buffer_t (to avoid using dovecot datatypes in library)
   ceph::bufferlist* mail_buffer;
   time_t save_date_rados;
 
