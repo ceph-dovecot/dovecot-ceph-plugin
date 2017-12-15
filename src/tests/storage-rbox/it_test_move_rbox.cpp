@@ -125,29 +125,29 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
-  std::vector<librmb::RadosMailObject> objects;
+  std::vector<librmb::RadosMailObject *> objects;
   while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
-    librmb::RadosMailObject obj;
-    obj.set_oid((*iter).get_oid());
-    r_storage->s->load_metadata(&obj);
+    librmb::RadosMailObject *obj = new librmb::RadosMailObject();
+    obj->set_oid((*iter).get_oid());
+    r_storage->s->load_metadata(obj);
     objects.push_back(obj);
     iter++;
   }
 
   // compare objects
   ASSERT_EQ(1, (int)objects.size());
-  librmb::RadosMailObject mail1 = objects[0];
+  librmb::RadosMailObject *mail1 = objects[0];
 
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAIL_UID), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_GUID), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), "");
-  ASSERT_NE(mail1.get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_GUID), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), "");
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
 
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
-
+  delete mail1;
   mailbox_free(&box);
 }
 

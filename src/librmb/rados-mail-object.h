@@ -31,32 +31,34 @@ using librados::ObjectWriteOperation;
 class RadosMailObject {
  public:
   RadosMailObject();
-  virtual ~RadosMailObject() {}
+  virtual ~RadosMailObject();
 
-  void set_oid(const char* _oid) { this->oid = _oid; }
-  void set_oid(const string& _oid) { this->oid = _oid; }
-  void set_state(const string& _state) { this->state = _state; }
-  void set_version(const string& _version) { this->version = _version; }
-  void set_guid(const uint8_t* guid);
-  void set_mail_size(const uint64_t& _size) { object_size = _size; }
-  void set_mail_buffer(char* _mail_buffer) { this->mail_buffer = _mail_buffer; }
-  void set_active_op(bool _active) { this->active_op = _active; }
-  void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
+  void set_oid(const char* _oid) {
+  this->oid = _oid;
+}
+void set_oid(const string& _oid) { this->oid = _oid; }
+void set_state(const string& _state) { this->state = _state; }
+void set_version(const string& _version) { this->version = _version; }
+void set_guid(const uint8_t* guid);
+void set_mail_size(const uint64_t& _size) { object_size = _size; }
+void set_active_op(bool _active) { this->active_op = _active; }
+void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
 
-  const string& get_oid() { return this->oid; }
-  const string& get_version() { return this->version; }
-  const uint64_t& get_mail_size() { return this->object_size; }
+const string& get_oid() { return this->oid; }
+const string& get_version() { return this->version; }
+const uint64_t& get_mail_size() { return this->object_size; }
+void set_mail_buffer(librados::bufferlist* buffer);
 
-  time_t* get_rados_save_date() { return &this->save_date_rados; }
-  uint8_t* get_guid_ref() { return this->guid; }
-  char* get_mail_buffer() { return this->mail_buffer; }
-  map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
-  void set_mail_buffer_content_ptr(const void* start) { mail_buffer_start = start; }
-  const void* get_mail_buffer_content_ptr() { return mail_buffer_start; }
-  map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
-  string get_metadata(rbox_metadata_key key) {
-    string str_key(1, static_cast<char>(key));
-    return get_metadata(str_key);
+time_t* get_rados_save_date() { return &this->save_date_rados; }
+uint8_t* get_guid_ref() { return this->guid; }
+librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
+map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
+void set_mail_buffer_content_ptr(const void* start) { mail_buffer_start = start; }
+const void* get_mail_buffer_content_ptr() { return mail_buffer_start; }
+map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
+string get_metadata(rbox_metadata_key key) {
+  string str_key(1, static_cast<char>(key));
+  return get_metadata(str_key);
   }
   string get_metadata(const string& key) {
     string value;
@@ -93,7 +95,7 @@ class RadosMailObject {
 
   bool active_op;
   // used as pointer to a buffer_t (to avoid using dovecot datatypes in library)
-  char* mail_buffer;
+  ceph::bufferlist* mail_buffer;
   time_t save_date_rados;
 
   map<string, ceph::bufferlist> attrset;
