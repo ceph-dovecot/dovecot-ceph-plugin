@@ -382,6 +382,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
     struct mail_save_data *mdata = &r_ctx->ctx.data;
     if (mdata->output != r_ctx->output_stream) {
+#if DOVECOT_PREREQ(2, 3)
+      o_stream_finish(mdata->output);
+#endif
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&mdata->output);
