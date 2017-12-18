@@ -82,7 +82,7 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
     public_namespace = json_string_value(public_namespace_);
 
     json_t *mail_update_attributes_ = json_object_get(root, key_update_attributes.c_str());
-    updateable_attributes = json_string_value(mail_update_attributes_);
+    update_attributes = json_string_value(mail_update_attributes_);
 
     json_t *mail_attributes_ = json_object_get(root, key_mail_attributes.c_str());
     mail_attributes = json_string_value(mail_attributes_);

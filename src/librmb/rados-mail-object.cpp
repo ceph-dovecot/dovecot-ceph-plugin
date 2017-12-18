@@ -98,16 +98,17 @@ std::string RadosMailObject::to_string(const string &padding) {
        << endl;
   }
 
-/*  if (flags.length() > 0) {
-    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS)
-       << "(flags): " << RadosUtils::string_to_flags(flags) << endl;
-  }*/
-/*
+  if (flags.length() > 0) {
+    uint8_t flags_ = RadosUtils::string_to_flags(flags);
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): 0x" << std::hex << +flags_
+       << std::endl;
+  }
+
   if (pvt_flags.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_PVT_FLAGS) << "(private flags): " << pvt_flags
        << endl;
   }
-  */
+
   if (from_envelope.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_FROM_ENVELOPE)
        << "(from envelope): " << from_envelope << endl;

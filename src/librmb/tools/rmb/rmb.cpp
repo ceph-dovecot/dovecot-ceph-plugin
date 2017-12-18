@@ -439,7 +439,7 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
         } else {
           if (ceph_cfg.is_valid_key_value(key, key_val)) {
             failed = !ceph_cfg.update_valid_key_value(key, key_val);
-            std::cout << " saving : " << failed << std::endl;
+            // std::cout << " saving : " << failed << std::endl;
           } else {
             failed = true;
             std::cout << "Error: key : " << key << " value: " << key_val << " is not valid !" << std::endl;
@@ -448,8 +448,11 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
             }
           }
           if (!failed) {
-            std::cout << " saving cfg" << std::endl;
-            ceph_cfg.save_cfg();
+            if (ceph_cfg.save_cfg() != 0) {
+              std::cout << " saving cfg failed" << std::endl;
+            } else {
+              std::cout << " saving cfg" << std::endl;
+            }
           }
         }
       }
