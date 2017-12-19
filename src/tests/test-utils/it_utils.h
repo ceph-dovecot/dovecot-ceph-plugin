@@ -24,12 +24,6 @@ extern "C" {
 #include "mailbox-list.h"
 #include "ioloop.h"
 #include "istream.h"
-#include "doveadm.h"
-#include "doveadm-util.h"
-#include "doveadm-cmd.h"
-#include "doveadm-mailbox-list-iter.h"
-#include "doveadm-mail-iter.h"
-#include "doveadm-mail.h"
 #include "mail-search-build.h"
 
 #include "libdict-rados-plugin.h"

@@ -33,11 +33,9 @@ using ::testing::ReturnRef;
 
 namespace testutils {
 
-ItUtils::ItUtils() {
-}
+ItUtils::ItUtils() {}
 
-ItUtils::~ItUtils() {
-}
+ItUtils::~ItUtils() {}
 void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_namespace *_ns,
                        librmb::RadosStorage *storage_impl) {
   struct mail_namespace *ns = mail_namespace_find_inbox(_ns);
@@ -52,6 +50,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
@@ -93,10 +92,10 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
-
 
   ItUtils::add_mail(save_ctx, input, box, trans);
 
@@ -146,7 +145,7 @@ void ItUtils::add_mail(struct mail_save_context *save_ctx, struct istream *input
 
     EXPECT_TRUE(input->eof);
     EXPECT_GE(ret, 0);
-    }
+  }
 }
 
 } /* namespace testutils */

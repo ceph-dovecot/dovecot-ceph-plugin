@@ -30,12 +30,6 @@ extern "C" {
 #include "mailbox-list.h"
 #include "ioloop.h"
 #include "istream.h"
-#include "doveadm.h"
-#include "doveadm-util.h"
-#include "doveadm-cmd.h"
-#include "doveadm-mailbox-list-iter.h"
-#include "doveadm-mail-iter.h"
-#include "doveadm-mail.h"
 #include "mail-search-build.h"
 
 #include "libdict-rados-plugin.h"
@@ -97,6 +91,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 

@@ -107,6 +107,7 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 
