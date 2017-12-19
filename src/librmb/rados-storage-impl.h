@@ -36,6 +36,8 @@ class RadosStorageImpl : public RadosStorage {
   int get_max_write_size() { return max_write_size; }
   int get_max_write_size_bytes() { return max_write_size * 1024 * 1024; }
 
+  int split_buffer_and_exec_op(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
+                               uint64_t max_write);
   int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
                                librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write);
 

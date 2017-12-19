@@ -34,10 +34,11 @@ TEST(librmb, mock_test) {
 }
 
 TEST(librmb, split_write_operation) {
-  const char *buffer = "abcdefghijklmn";
-  size_t buffer_length = 14;
   uint64_t max_size = 3;
   librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
@@ -52,7 +53,7 @@ TEST(librmb, split_write_operation) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
@@ -76,10 +77,12 @@ TEST(librmb, split_write_operation) {
 }
 
 TEST(librmb1, split_write_operation_1) {
-  const char *buffer = "HALLO_WELT_";
-  size_t buffer_length = 11;
-  uint64_t max_size = buffer_length;
   librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("HALLO_WELT_");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+  uint64_t max_size = buffer_length;
+
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
@@ -94,7 +97,7 @@ TEST(librmb1, split_write_operation_1) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
@@ -146,10 +149,12 @@ TEST(librmb1, convert_types) {
 }
 
 TEST(librmb1, read_mail) {
-  const char *buffer = "abcdefghijklmn";
-  size_t buffer_length = 14;
-  uint64_t max_size = buffer_length;
   librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+  uint64_t max_size = buffer_length;
+
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
@@ -164,7 +169,7 @@ TEST(librmb1, read_mail) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
@@ -199,10 +204,12 @@ TEST(librmb1, read_mail) {
 }
 
 TEST(librmb, load_metadata) {
-  const char *buffer = "abcdefghijklmn";
-  size_t buffer_length = 14;
   uint64_t max_size = 3;
   librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
@@ -222,7 +229,7 @@ TEST(librmb, load_metadata) {
   op->setxattr("A", bl);
   op->setxattr("B", bl);
 
-  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
@@ -255,10 +262,12 @@ TEST(librmb, load_metadata) {
 }
 
 TEST(librmb, AttributeVersions) {
-  const char *buffer = "abcdefghijklmn";
-  size_t buffer_length = 14;
   uint64_t max_size = 3;
   librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+
   obj.set_oid("test_oid2");
   librados::IoCtx io_ctx;
 
@@ -277,7 +286,7 @@ TEST(librmb, AttributeVersions) {
   bl.append("xyz");
   op->setxattr("A", bl);
 
-  int ret_storage = storage.split_buffer_and_exec_op(buffer, buffer_length, &obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
   EXPECT_EQ(ret_storage, 0);
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
@@ -310,6 +319,7 @@ TEST(librmb, AttributeVersions) {
   // tear down
   cluster.deinit();
 }
+
 
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

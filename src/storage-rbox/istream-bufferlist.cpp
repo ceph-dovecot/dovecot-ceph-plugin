@@ -28,11 +28,11 @@ static void i_stream_data_seek(struct istream_private *stream, uoff_t v_offset, 
   stream->istream.v_offset = v_offset;
 }
 
-struct istream *i_stream_create_from_bufferlist(const librados::bufferlist *data, size_t size) {
+struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, size_t size) {
   struct istream_private *stream;
 
   stream = i_new(struct istream_private, 1);
-  stream->buffer = data->c_str();
+  stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
   stream->pos = size;
   stream->max_buffer_size = size;
 

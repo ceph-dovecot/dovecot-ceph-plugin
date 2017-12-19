@@ -30,10 +30,15 @@ RadosMailObject::RadosMailObject() {
   memset(this->guid, 0, GUID_128_SIZE);
   this->object_size = -1;
   this->active_op = false;
-  this->mail_buffer = NULL;
+  this->mail_buffer = new librados::bufferlist();
   this->save_date_rados = -1;
-  this->mail_buffer_start = NULL;
 }
+RadosMailObject::~RadosMailObject() {
+  if (this->mail_buffer != nullptr) {
+    delete this->mail_buffer;
+  }
+}
+
 
 void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
 
@@ -93,16 +98,17 @@ std::string RadosMailObject::to_string(const string &padding) {
        << endl;
   }
 
-/*  if (flags.length() > 0) {
-    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS)
-       << "(flags): " << RadosUtils::string_to_flags(flags) << endl;
-  }*/
-/*
+  if (flags.length() > 0) {
+    uint8_t flags_ = RadosUtils::string_to_flags(flags);
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): 0x" << std::hex << +flags_
+       << std::endl;
+  }
+
   if (pvt_flags.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_PVT_FLAGS) << "(private flags): " << pvt_flags
        << endl;
   }
-  */
+
   if (from_envelope.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_FROM_ENVELOPE)
        << "(from envelope): " << from_envelope << endl;

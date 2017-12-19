@@ -50,12 +50,12 @@ bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
     success = true;
   } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
     success = true;
-  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+  } else if (get_config()->get_mail_attribute_key().compare(key) == 0) {
     success = true;
   } else if (get_config()->get_updateable_attribute_key().compare(key) == 0) {
-    success = true;
-  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
     success = value.compare("true") == 0 || value.compare("false") == 0;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    success = true;
   }
   return success;
 }
@@ -77,8 +77,8 @@ bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &valu
   } else if (get_config()->get_key_public_namespace().compare(key) == 0) {
     get_config()->set_public_namespace(value);
     success = true;
-  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
-    get_config()->set_update_attributes(value);
+  } else if (get_config()->get_mail_attribute_key().compare(key) == 0) {
+    get_config()->set_mail_attributes(value);
     success = true;
   } else if (get_config()->get_updateable_attribute_key().compare(key) == 0) {
     get_config()->set_updateable_attributes(value);

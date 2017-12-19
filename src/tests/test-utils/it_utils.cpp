@@ -12,7 +12,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "../mocks/mock_test.h"
-
+#include "istream-bufferlist.h"
 using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;
@@ -44,7 +44,9 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
 
-  struct istream *input = i_stream_create_from_data(message, strlen(message));
+  librados::bufferlist i_stream_buffer;
+  i_stream_buffer.append(message);
+  struct istream *input = i_stream_create_from_bufferlist(&i_stream_buffer, i_stream_buffer.length());
 
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
@@ -85,8 +87,9 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct mailbox *box = mailbox_alloc(ns->list, mailbox, (mailbox_flags)0);
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
-
-  struct istream *input = i_stream_create_from_data(message, strlen(message));
+  librados::bufferlist i_stream_buffer;
+  i_stream_buffer.append(message);
+  struct istream *input = i_stream_create_from_bufferlist(&i_stream_buffer, i_stream_buffer.length());
 
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);

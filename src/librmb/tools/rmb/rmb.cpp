@@ -244,20 +244,13 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
           uint64_t size_r = 0;
           storage->stat_mail(oid, &size_r, &pm_time);
 
-          librados::bufferlist buffer;
-
-          char *mail_buffer = new char[size_r + 1];
-          (*it_mail)->set_mail_buffer(mail_buffer);
-
           (*it_mail)->set_mail_size(size_r);
-          int read = storage->read_mail(oid, &buffer);
+          int read = storage->read_mail(oid, (*it_mail)->get_mail_buffer());
           if (read > 0) {
-            memcpy(mail_buffer, buffer.to_str().c_str(), read + 1);
             if (tools.save_mail((*it_mail)) < 0) {
               std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
             }
           }
-          delete[] mail_buffer;
         }
       }
     }
@@ -446,7 +439,7 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
         } else {
           if (ceph_cfg.is_valid_key_value(key, key_val)) {
             failed = !ceph_cfg.update_valid_key_value(key, key_val);
-            std::cout << " saving : " << failed << std::endl;
+            // std::cout << " saving : " << failed << std::endl;
           } else {
             failed = true;
             std::cout << "Error: key : " << key << " value: " << key_val << " is not valid !" << std::endl;
@@ -455,8 +448,11 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
             }
           }
           if (!failed) {
-            std::cout << " saving cfg" << std::endl;
-            ceph_cfg.save_cfg();
+            if (ceph_cfg.save_cfg() != 0) {
+              std::cout << " saving cfg failed" << std::endl;
+            } else {
+              std::cout << " saving cfg" << std::endl;
+            }
           }
         }
       }
@@ -627,7 +623,7 @@ int main(int argc, const char **argv) {
     std::cout << "xist hier" << std::endl;
     usage_exit();
   }
-  std::string uid(opts["namespace"]);
+  std::string uid(opts["namespace"] + cfg.get_user_suffix());
   std::string ns;
   if (mgr.lookup_key(uid, &ns)) {
     storage.set_namespace(ns);

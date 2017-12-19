@@ -90,11 +90,9 @@ TEST(rmb1, save_mail) {
   bl.append("1");
   (*mail.get_metadata())["U"] = bl;
   std::string mail_guid = "defg";
-  std::string mail_content = "hallo welt\nbababababa\n";
+  mail.get_mail_buffer()->append("hallo welt\nbababababa\n");
   mail.set_oid(mail_guid);
-  mail.set_mail_buffer(&mail_content[0u]);
-  uint64_t size = mail_content.length();
-  mail.set_mail_size(size);
+  mail.set_mail_size(mail.get_mail_buffer()->length() - 1);
   int save = tools.save_mail(&mail);
   EXPECT_EQ(0, save);
 

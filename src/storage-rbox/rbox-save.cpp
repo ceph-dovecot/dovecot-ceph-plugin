@@ -37,6 +37,7 @@ extern "C" {
 #include "rbox-save.h"
 #include "rados-util.h"
 #include "rbox-mail.h"
+#include "ostream-bufferlist.h"
 
 using ceph::bufferlist;
 
@@ -166,38 +167,17 @@ void init_output_stream(mail_save_context *_ctx) {
     o_stream_unref(&_ctx->data.output);
   }
 
-  r_ctx->output_stream = o_stream_create_buffer(reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer()));
+  r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->current_object->get_mail_buffer());
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
 }
 
-int allocate_mail_buffer(mail_save_context *_ctx, int &initial_mail_buffer_size) {
-  FUNC_START();
-  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  librmb::RadosMailObject *mail = r_ctx->current_object;
-  char *current_mail_buffer = mail->get_mail_buffer();
-
-  if (current_mail_buffer != NULL) {
-    buffer_t *buffer = reinterpret_cast<buffer_t *>(current_mail_buffer);
-    // make 100% sure, buffer is empty!
-    buffer_free(&buffer);
-  }
-  mail->set_mail_buffer(reinterpret_cast<char *>(buffer_create_dynamic(default_pool, initial_mail_buffer_size)));
-
-  if (mail->get_mail_buffer() == NULL) {
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
-  FUNC_END();
-  return 0;
-}
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct istream *crlf_input;
-  int initial_mail_buffer_size = 512;
 
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
@@ -211,12 +191,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   crlf_input = i_stream_create_crlf(input);
   r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
   i_stream_unref(&crlf_input);
-
-  int ret = allocate_mail_buffer(_ctx, initial_mail_buffer_size);
-  if (ret < 0) {
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
 
   init_output_stream(_ctx);
 
@@ -408,6 +382,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
     struct mail_save_data *mdata = &r_ctx->ctx.data;
     if (mdata->output != r_ctx->output_stream) {
+#if DOVECOT_PREREQ(2, 3)
+      o_stream_finish(mdata->output);
+#endif
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&mdata->output);
@@ -421,12 +398,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->failed = true;
     } else {
       bool async_write = true;
-      // build rbox_mail_object
-      buffer_t *mail_buffer = reinterpret_cast<buffer_t *>(r_ctx->current_object->get_mail_buffer());
-      r_ctx->current_object->set_mail_buffer_content_ptr(mail_buffer->data);
-      r_ctx->current_object->set_mail_size(buffer_get_used_size(mail_buffer));
-
+      r_ctx->current_object->set_mail_size(r_ctx->current_object->get_mail_buffer()->length());
       rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
+
       r_ctx->failed = !r_storage->s->save_mail(r_ctx->current_object, async_write);
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
@@ -546,12 +520,6 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
 
 void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_storage *r_storage) {
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    buffer_t *mail_buffer = reinterpret_cast<buffer_t *>((*it)->get_mail_buffer());
-    if (mail_buffer != NULL) {
-      buffer_free(&mail_buffer);
-      mail_buffer = NULL;
-      (*it)->set_mail_buffer(NULL);
-    }
     r_storage->s->free_mail_object(*it);
     *it = nullptr;
   }

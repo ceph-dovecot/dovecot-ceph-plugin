@@ -10,11 +10,10 @@
  * Foundation.  See file COPYING.
  */
 
+#ifndef SRC_STORAGE_RBOX_OSTREAM_BUFFERLIST_H_
+#define SRC_STORAGE_RBOX_OSTREAM_BUFFERLIST_H_
 #include <rados/librados.hpp>
 
-#ifndef SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
-#define SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
+struct ostream *o_stream_create_bufferlist(librados::bufferlist *buf);
 
-struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, size_t size);
-
-#endif /* SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_ */
+#endif /* SRC_STORAGE_RBOX_OSTREAM_BUFFERLIST_H_ */
