@@ -80,6 +80,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 
@@ -171,6 +172,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
@@ -281,6 +283,7 @@ TEST_F(StorageTest, write_op_fails) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
@@ -291,7 +294,6 @@ TEST_F(StorageTest, write_op_fails) {
   delete storage->s;
   i_debug("after delete");
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
-
 
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
       .Times(AtLeast(1))
@@ -468,6 +470,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 

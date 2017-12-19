@@ -82,6 +82,7 @@ TEST_F(StorageTest, mail_save_to_inbox) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
@@ -151,6 +152,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
   char reason[256];
+  memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
