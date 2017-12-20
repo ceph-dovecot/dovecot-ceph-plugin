@@ -25,8 +25,8 @@ script:
 - docker exec build sh -c 'cd repo; ./autogen.sh'
 - docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind'
 - docker exec build sh -c 'cd repo; make clean all'
-- docker exec build sh -c 'cd repo; make check'
-- docker exec build sh -c 'cd repo; cat src/tests/test-suite.log'
+- docker exec build sh -c 'cd repo/src/tests; make check-valgrind'
+- docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
 
 after_script:
 - docker stop build ceph_demo
