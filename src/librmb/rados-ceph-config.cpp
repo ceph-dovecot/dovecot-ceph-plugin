@@ -42,7 +42,7 @@ bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
     return false;
   }
 
-  if (get_config()->get_key_generated_namespace().compare(key) == 0) {
+  if (get_config()->get_key_user_mapping().compare(key) == 0) {
     success = value.compare("true") == 0 || value.compare("false") == 0;
   } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {
     success = true;
@@ -53,9 +53,9 @@ bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
   } else if (get_config()->get_mail_attribute_key().compare(key) == 0) {
     success = true;
   } else if (get_config()->get_updateable_attribute_key().compare(key) == 0) {
-    success = value.compare("true") == 0 || value.compare("false") == 0;
-  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
     success = true;
+  } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
+    success = value.compare("true") == 0 || value.compare("false") == 0;
   }
   return success;
 }
@@ -65,7 +65,7 @@ bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &valu
   if (value.empty() || key.empty()) {
     return false;
   }
-  if (get_config()->get_key_generated_namespace().compare(key) == 0) {
+  if (get_config()->get_key_user_mapping().compare(key) == 0) {
     get_config()->set_user_mapping(value);
     success = true;
   } else if (get_config()->get_key_ns_cfg().compare(key) == 0) {

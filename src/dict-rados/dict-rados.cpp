@@ -81,12 +81,10 @@ struct rados_dict {
 
 class DictGuidGeneraor : public librmb::RadosGuidGenerator {
   std::string generate_guid() {
-    std::string ns;
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
     const char *guid = guid_128_to_string(namespace_guid);
-    ns = guid;
-    free(guid);
+    std::string ns(guid);
     return ns;
   }
 };

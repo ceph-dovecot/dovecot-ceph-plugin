@@ -43,13 +43,12 @@ extern "C" {
 using std::string;
 
 class RboxGuidGeneraor : public librmb::RadosGuidGenerator {
+ public:
   std::string generate_guid() {
-    std::string ns;
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
     char *guid = guid_128_to_string(namespace_guid);
-    ns = guid;
-    free(guid);
+    std::string ns(guid);
     return ns;
   }
 };
@@ -308,7 +307,6 @@ int rbox_open_rados_connection(struct mailbox *box) {
   } else {
     uid = mbox->storage->config->get_public_namespace();
   }
-
   std::string ns;
   if (!mbox->storage->ns_mgr->lookup_key(uid, &ns)) {
     RboxGuidGeneraor guid_generator;

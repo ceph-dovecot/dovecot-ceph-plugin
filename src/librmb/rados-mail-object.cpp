@@ -53,7 +53,7 @@ std::string RadosMailObject::to_string(const string &padding) {
   string mail_guid = get_metadata(RBOX_METADATA_GUID);
   string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX);
 
-  string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
+  // string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
   string flags = get_metadata(RBOX_METADATA_OLDV1_FLAGS);
   string pvt_flags = get_metadata(RBOX_METADATA_PVT_FLAGS);
   string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE);
@@ -93,9 +93,13 @@ std::string RadosMailObject::to_string(const string &padding) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_VERSION) << "(rbox_version): " << rbox_version
        << endl;
   }
-  if (keywords.length() > 0) {
-    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_KEYWORDS) << "(keywords): " << keywords
-       << endl;
+
+  if (extended_attrset.size() > 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_KEYWORDS) << "(keywords): " << std::endl;
+    for (std::map<string, ceph::bufferlist>::iterator iter = extended_attrset.begin(); iter != extended_attrset.end();
+         ++iter) {
+      ss << "                             " << iter->first << " : " << iter->second.to_str() << endl;
+    }
   }
 
   if (flags.length() > 0) {

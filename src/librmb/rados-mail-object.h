@@ -54,30 +54,32 @@ librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
 map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
 map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
+
 string get_metadata(rbox_metadata_key key) {
   string str_key(1, static_cast<char>(key));
   return get_metadata(str_key);
-  }
-  string get_metadata(const string& key) {
-    string value;
-    if (attrset.find(key) != attrset.end()) {
-      value = attrset[key].to_str();
-    }
-    return value;
-  }
+}
 
-  bool has_active_op() { return active_op; }
-  string to_string(const string& padding);
-  void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
+string get_metadata(const string& key) {
+  string value;
+  if (attrset.find(key) != attrset.end()) {
+    value = attrset[key].to_str();
+  }
+  return value;
+}
 
-  map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
-  void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
-  const string get_extended_metadata(string& key) {
-    string value;
-    if (extended_attrset.find(key) != extended_attrset.end()) {
-      value = extended_attrset[key].to_str();
-    }
-    return value;
+bool has_active_op() { return active_op; }
+string to_string(const string& padding);
+void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
+
+map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
+void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
+const string get_extended_metadata(string& key) {
+  string value;
+  if (extended_attrset.find(key) != extended_attrset.end()) {
+    value = extended_attrset[key].to_str();
+  }
+  return value;
   }
 
  private:

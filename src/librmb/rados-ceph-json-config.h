@@ -65,7 +65,7 @@ class RadosCephJsonConfig {
   void update_mail_attribute(const char* value);
   void update_updateable_attribute(const char* value);
 
-  const std::string& get_key_generated_namespace() const { return key_user_mapping; }
+  const std::string& get_key_user_mapping() const { return key_user_mapping; }
   const std::string& get_key_ns_cfg() const { return key_user_ns; }
   const std::string& get_key_ns_suffix() const { return key_user_suffix; }
   const std::string& get_key_public_namespace() const { return key_public_namespace; }
