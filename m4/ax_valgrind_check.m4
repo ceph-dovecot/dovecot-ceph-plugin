@@ -156,7 +156,7 @@ m4_if(m4_defn([en_dflt_valgrind_]vgtool), [off], [= "yes"], [!= "no"]),[
 
 # Optional variables
 VALGRIND_SUPPRESSIONS ?= $(addprefix --suppressions=,$(VALGRIND_SUPPRESSIONS_FILES))
-VALGRIND_FLAGS ?= --num-callers=30
+VALGRIND_FLAGS ?= --num-callers=30 --gen-suppressions=all
 VALGRIND_memcheck_FLAGS ?= --leak-check=full --show-reachable=no
 VALGRIND_helgrind_FLAGS ?= --history-level=approx
 VALGRIND_drd_FLAGS ?=
