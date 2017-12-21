@@ -20,7 +20,7 @@ AM_CXXFLAGS = \
     
 AM_LDFLAGS = $(GTEST_LDFLAGS)
 
-EXTRA_DIST = googletest mocks dict_rados.supp
+EXTRA_DIST = googletest mocks dict_rados.supp open_connection.supp
 
 rmb_shlibs = \
 	$(top_builddir)/src/librmb/librmb.la $(CODE_COVERAGE_LIBS)
@@ -121,4 +121,4 @@ noinst_PROGRAMS = $(TESTS)
 @CODE_COVERAGE_RULES@
 
 @VALGRIND_CHECK_RULES@
-VALGRIND_SUPPRESSIONS_FILES = dict_rados.supp
+VALGRIND_SUPPRESSIONS_FILES = dict_rados.supp open_connection.supp
