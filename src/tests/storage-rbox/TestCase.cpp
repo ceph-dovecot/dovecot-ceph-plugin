@@ -239,9 +239,6 @@ void StorageTest::SetUpTestCase() {
 }
 
 void StorageTest::TearDownTestCase() {
-  // wait 10 seconds
-  sleep(10);
-
   if (array_is_created(&s_test_mail_user->set->plugin_envs)) {
     if (array_count(&s_test_mail_user->set->plugin_envs) > 0) {
       array_delete(&s_test_mail_user->set->plugin_envs, array_count(&s_test_mail_user->set->plugin_envs) - 1, 1);
