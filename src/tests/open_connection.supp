@@ -628,3 +628,350 @@
    fun:_Z13RUN_ALL_TESTSv
    fun:main
 }
+{
+   <OpenConn_leak_21>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN40StorageTest_mail_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <OpenConn_leak_22>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL27rbox_mail_get_received_dateP4mailPl
+   fun:mail_get_received_date
+   fun:_ZL36rbox_mail_save_copy_default_metadataP17mail_save_contextP4mail
+   fun:_ZL26rbox_mail_storage_try_copyPP17mail_save_contextP4mail
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN40StorageTest_mail_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <OpenConn_leak_23>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:mailbox_move
+   fun:_ZN40StorageTest_mail_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <OpenConn_leak_24>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL27rbox_mail_get_received_dateP4mailPl
+   fun:mail_get_received_date
+   fun:_ZL36rbox_mail_save_copy_default_metadataP17mail_save_contextP4mail
+   fun:_ZL26rbox_mail_storage_try_copyPP17mail_save_contextP4mail
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:mailbox_move
+   fun:_ZN40StorageTest_mail_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+}
+{
+   <OpenConn_leak_25>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN44StorageTest_mail_lda_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <OpenConn_leak_26>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL20rbox_mail_get_streamP4mailbP12message_sizeS2_PP7istream
+   fun:mail_get_stream
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN44StorageTest_mail_lda_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <OpenConn_leak_27>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL27rbox_mail_get_received_dateP4mailPl
+   fun:mail_get_received_date
+   fun:mail_save_copy_default_metadata
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN44StorageTest_mail_lda_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <OpenConn_leak_28>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL24rbox_get_cached_metadataP9rbox_mailN6librmb17rbox_metadata_keyE17index_cache_fieldPPKc
+   fun:_ZL21rbox_mail_get_specialP4mail16mail_fetch_fieldPPKc
+   fun:mail_get_special
+   fun:mail_save_copy_default_metadata
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN44StorageTest_mail_lda_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
+{
+   <OpenConn_leak_29>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN55StorageTest_mail_doveadm_backup_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <OpenConn_leak_30>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL20rbox_mail_get_streamP4mailbP12message_sizeS2_PP7istream
+   fun:mail_get_stream
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN55StorageTest_mail_doveadm_backup_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+}
+{
+   <OpenConn_leak_31>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL27rbox_mail_get_received_dateP4mailPl
+   fun:mail_get_received_date
+   fun:mail_save_copy_default_metadata
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN55StorageTest_mail_doveadm_backup_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+}
+{
+   <OpenConn_leak_32>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   obj:/usr/lib/x86_64-linux-gnu/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8librados5Rados12ioctx_createEPKcRNS_5IoCtxE
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados5IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_ZL22rbox_mail_metadata_getP9rbox_mailN6librmb17rbox_metadata_keyEPPc
+   fun:_ZL24rbox_get_cached_metadataP9rbox_mailN6librmb17rbox_metadata_keyE17index_cache_fieldPPKc
+   fun:_ZL21rbox_mail_get_specialP4mail16mail_fetch_fieldPPKc
+   fun:mail_get_special
+   fun:mail_save_copy_default_metadata
+   fun:mail_storage_try_copy
+   fun:mail_storage_copy
+   fun:_Z22rbox_mail_storage_copyP17mail_save_contextP4mail
+   fun:_Z14rbox_mail_copyP17mail_save_contextP4mail
+   fun:_ZL19test_rbox_mail_copyP17mail_save_contextP4mail
+   fun:mailbox_copy
+   fun:_ZN55StorageTest_mail_doveadm_backup_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+}
