@@ -49,6 +49,17 @@ Ceph contains git submodules that need to be checked out with
 
 	git submodule update --init --recursive
 
+
+The build requires that you have the following software/packages installed:
+
+    jansson version >= 2.10 
+    librados2-devel (rados header) version >= 12.2.1  
+    
+If you are using CentOS make sure you also have the following package installed:
+
+    yum install redhat-rpm-config
+    
+
 ### Standard installation in /usr/local
 
     ./autogen.sh
