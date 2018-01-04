@@ -52,8 +52,8 @@ Ceph contains git submodules that need to be checked out with
 
 The build requires that you have the following software/packages installed:
 
-    jansson version >= 2.10 
-    librados2-devel (rados header) version >= 12.2.1  
+    jansson version >= 2.9 
+    librados2-devel (rados header) version >= 10.2.5 
     
 If you are using CentOS make sure you also have the following package installed:
 
