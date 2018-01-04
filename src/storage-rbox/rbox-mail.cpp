@@ -61,8 +61,8 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  i_debug("last_seq=%" PRIu32 ", mail_seq=%" PRIu32 ", ext_id=%" PRIu32 ", uid=%" PRIu32 ", old_oid=%s",
-          rmail->last_seq, _mail->seq, rbox->ext_id, _mail->uid, rmail->mail_object->get_oid().c_str());
+  //i_debug("last_seq=%" PRIu32 ", mail_seq=%" PRIu32 ", ext_id=%" PRIu32 ", uid=%" PRIu32 ", old_oid=%s",
+  //        rmail->last_seq, _mail->seq, rbox->ext_id, _mail->uid, rmail->mail_object->get_oid().c_str());
 
   if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
@@ -120,7 +120,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   ret = r_storage->s->load_metadata(rmail->mail_object);
   if (ret < 0) {
-    i_error("ret == -1; Errorcode: %d cannot get x_attr from object %s", ret, rmail->mail_object->get_oid().c_str());
+    i_error("ret == -1; Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(), getpid());
     return ret;
   }
 
@@ -312,8 +312,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->buffer);
     if (size_r <= 0) {
       if (size_r == -ENOENT) {
-        i_debug("Mail not found. %s, ns='%s'", rmail->mail_object->get_oid().c_str(),
-                r_storage->s->get_namespace().c_str());
+        i_debug("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
+                r_storage->s->get_namespace().c_str(), getpid());
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;

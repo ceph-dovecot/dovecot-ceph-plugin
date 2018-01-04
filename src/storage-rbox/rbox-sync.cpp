@@ -316,26 +316,27 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
 static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
-
+  int ret_remove = -1;
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-
+  
   const char *oid = guid_128_to_string(item->oid);
 
   if (rbox_open_rados_connection(box) < 0) {
     i_error("rbox_sync_object_expunge: connection to rados failed");
     return;
   }
-  i_debug("deleting mail: %s, in namespace %s", oid, r_storage->s->get_namespace().c_str());
-  r_storage->s->delete_mail(oid);
+//  i_debug("deleting mail: %s, in namespace %s", oid, r_storage->s->get_namespace().c_str());
+  ret_remove = r_storage->s->delete_mail(oid);
   // callback
   /* do sync_notify only when the file was unlinked by us */
   if (box->v.sync_notify != NULL) {
-    i_debug("sync: notify oid: %s", guid_128_to_string(item->oid));
+    // i_debug("sync: notify oid: %s", guid_128_to_string(item->oid));
     box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
   }
-  i_debug("sync: expunge object: oid=%s, process-id=%d", guid_128_to_string(item->oid), getpid());
-
+  //if(ret_remove <0){
+    i_debug("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d", guid_128_to_string(item->oid), getpid(),ret_remove);
+  //}
   FUNC_END();
 }
 

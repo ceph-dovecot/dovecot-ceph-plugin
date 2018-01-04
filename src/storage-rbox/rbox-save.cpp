@@ -5,7 +5,7 @@
  * Copyright (c) 2007-2017 Dovecot authors
  *
  * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * 
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
@@ -58,7 +58,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
   if (t->save_ctx == NULL) {
-    i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
+//    i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
     r_ctx = new rbox_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
@@ -156,7 +156,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
   if (_ctx->dest_mail != NULL) {
-    i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(rec.oid), _ctx->dest_mail->uid, r_ctx->seq);
+//    i_debug("SAVE OID: %s, seq=%d", guid_128_to_string(rec.oid), r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
 }
@@ -197,7 +197,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   if (_ctx->data.received_date == (time_t)-1)
     _ctx->data.received_date = ioloop_time;
 
-  i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
+  // i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
 
   FUNC_END();
   return 0;
@@ -342,12 +342,16 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin(); it_cur_obj != r_ctx->objects.end();
        ++it_cur_obj) {
     if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
-      i_debug("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
+      i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
+    }else{
+      i_error("clean_up_failed: mail object successfully %s removed from objectstore due to previous error", (*it_cur_obj)->get_oid().c_str());
     }
   }
   // clean up index
   if (r_ctx->seq > 0) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
+  }else{
+    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0",r_ctx->seq); 
   }
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
 
@@ -461,7 +465,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   i_assert(r_ctx->finished);
 
   r_ctx->failed = r_storage->s->wait_for_rados_operations(r_ctx->objects);
-
+  
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
   if (r_ctx->failed) {
     // delete index entry and delete object if it exist
@@ -471,6 +475,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
+  
   int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
