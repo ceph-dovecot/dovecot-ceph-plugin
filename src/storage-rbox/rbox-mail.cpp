@@ -120,7 +120,13 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   ret = r_storage->s->load_metadata(rmail->mail_object);
   if (ret < 0) {
-    i_error("ret == -1; Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(), getpid());
+    if (ret == -ENOENT) {
+      i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret,
+                rmail->mail_object->get_oid().c_str(), getpid());
+    } else {
+      i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(),
+              getpid());
+    }
     return ret;
   }
 
