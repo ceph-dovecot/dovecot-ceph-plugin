@@ -44,19 +44,19 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
     return -1;
   }
 
-  size_t write_buffer_size = current_object->get_mail_size();
+  uint64_t write_buffer_size = current_object->get_mail_size();
   int ret_val = 0;
   assert(max_write > 0);
 
-  int rest = write_buffer_size % max_write;
+  uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; i++) {
     int offset = i * max_write;
 
-    librados::ObjectWriteOperation *op = i == 0 ? write_op_xattr : new librados::ObjectWriteOperation();
+    librados::ObjectWriteOperation *op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
 
     uint64_t length = max_write;
-    if (current_object->get_mail_size() < ((i + 1) * length)) {
+    if (write_buffer_size < ((i + 1) * length)) {
       length = rest;
     }
 
@@ -65,8 +65,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
     } else {
       // split the buffer.
       ceph::bufferlist tmp_buffer;
-      std::cout << " buff: " << offset << " length : " << length
-                << " other.lenght:" << current_object->get_mail_buffer()->length() << std::endl;
+      /*  std::cout << " buff: " << offset << " length : " << length
+                  << " other.lenght:" << current_object->get_mail_buffer()->length() << std::endl;*/
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       op->write(offset, tmp_buffer);
     }
@@ -195,15 +195,10 @@ int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
   return ret;
 }
 int RadosStorageImpl::delete_mail(std::string oid) {
-  int ret = -1;
-  if (!cluster->is_connected()) {
+  if (!cluster->is_connected() || oid.empty()) {
     return -1;
   }
-
-  if (!oid.empty()) {
-    ret = get_io_ctx().remove(oid);
-  }
-  return ret;
+  return get_io_ctx().remove(oid);
 }
 
 int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
@@ -223,7 +218,6 @@ int RadosStorageImpl::stat_mail(const std::string &oid, uint64_t *psize, time_t 
   if (!cluster->is_connected()) {
     return -1;
   }
-
   return get_io_ctx().stat(oid, psize, pmtime);
 }
 void RadosStorageImpl::set_namespace(const std::string &_nspace) {
@@ -278,6 +272,7 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
     return err;
   }
   max_write_size = std::stoi(max_write_size_str);
+
   return 0;
 }
 

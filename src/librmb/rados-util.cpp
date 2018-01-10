@@ -21,8 +21,7 @@ RadosUtils::~RadosUtils() {
 }
 
 bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {
-  struct tm tm;
-  memset(&tm, 0, sizeof(struct tm));
+  struct tm tm = {0};
   if (strptime(date.c_str(), "%Y-%m-%d %H:%M:%S", &tm)) {
     tm.tm_isdst = -1;
     time_t t = mktime(&tm);
@@ -34,10 +33,13 @@ bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {
   return false;
 }
 
-std::string RadosUtils::convert_string_to_date(std::string &date) {
-  std::string ret;
+bool RadosUtils::convert_string_to_date(std::string &date_string, std::string *date) {
   time_t t;
-  return convert_str_to_time_t(date, &t) ? std::to_string(t) : "";
+  if (convert_str_to_time_t(date_string, &t)) {
+    *date = std::to_string(t);
+    return true;
+  }
+  return false;
 }
 
 bool RadosUtils::is_numeric(const std::string &s) {

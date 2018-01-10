@@ -37,15 +37,12 @@ class RadosMailObject {
   this->oid = _oid;
 }
 void set_oid(const string& _oid) { this->oid = _oid; }
-void set_state(const string& _state) { this->state = _state; }
-void set_version(const string& _version) { this->version = _version; }
 void set_guid(const uint8_t* guid);
 void set_mail_size(const uint64_t& _size) { object_size = _size; }
 void set_active_op(bool _active) { this->active_op = _active; }
 void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
 
 const string& get_oid() { return this->oid; }
-const string& get_version() { return this->version; }
 const uint64_t& get_mail_size() { return this->object_size; }
 
 time_t* get_rados_save_date() { return &this->save_date_rados; }
@@ -84,9 +81,6 @@ const string get_extended_metadata(string& key) {
 
  private:
   string oid;
-
-  string state;
-  string version;
 
   uint8_t guid[GUID_128_SIZE];
   uint64_t object_size;  // byte

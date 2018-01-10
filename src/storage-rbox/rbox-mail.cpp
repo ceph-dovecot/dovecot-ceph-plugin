@@ -61,9 +61,6 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
-  //i_debug("last_seq=%" PRIu32 ", mail_seq=%" PRIu32 ", ext_id=%" PRIu32 ", uid=%" PRIu32 ", old_oid=%s",
-  //        rmail->last_seq, _mail->seq, rbox->ext_id, _mail->uid, rmail->mail_object->get_oid().c_str());
-
   if (rmail->last_seq != _mail->seq) {
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
@@ -351,7 +348,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
       reinterpret_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
   char *value = NULL;
   string_t *str;
-  uint32_t order;
+  unsigned int order;
 
   str = str_new(imail->mail.data_pool, 64);
   if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
@@ -436,6 +433,8 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
                                       value_r);
 
     case MAIL_FETCH_FLAGS:
+    // although it is posible to save the flags as xattr. we currently load them directly
+    // from index.
     case MAIL_FETCH_MESSAGE_PARTS:
     case MAIL_FETCH_STREAM_HEADER:
     case MAIL_FETCH_STREAM_BODY:

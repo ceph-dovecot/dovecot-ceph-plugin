@@ -306,8 +306,12 @@ static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::
   librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
   while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
-    mail->set_oid(iter->get_oid());
+    std::string oid = iter->get_oid();
+    mail->set_oid(oid);
     storage.load_metadata(mail);
+    std::set<std::string> keys;
+    storage.get_io_ctx().omap_get_keys(oid, "k_", 100, &keys);
+    int ok = storage.load_extended_metadata(oid, keys, mail->get_extended_metadata());
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
     storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);
@@ -684,7 +688,10 @@ int main(int argc, const char **argv) {
       std::string value = it->second;
       if (librmb::RadosUtils::is_date_attribute(ke)) {
         if (!librmb::RadosUtils::is_numeric(value)) {
-          value = librmb::RadosUtils::convert_string_to_date(value);
+          std::string date;
+          if (librmb::RadosUtils::convert_string_to_date(value, &date)) {
+            value = date;
+          }
         }
       }
       librmb::RadosMetadata attr(ke, value);
