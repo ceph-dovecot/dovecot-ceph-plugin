@@ -22,14 +22,12 @@ Source:		%{name}_%{version}-%{release}.tar.gz
 
 Provides:	dovecot-ceph-plugin = %{version}-%{release}
 Requires:	librmb0 >= %{version}-%{release}
-Requires:	librados2 >= %librados_version
-Requires:	libjansson4 >= 2.9
 Conflicts:	otherproviders(dovecot-ceph-plugin)
 
 BuildRoot:	%{_tmppath}/%{name}-%{version}-build
 BuildRequires:	%dovecot_devel
 BuildRequires:	librados-devel >= %librados_version
-BuildRequires:	libjansson-devel
+BuildRequires:	libjansson-devel >= 2.9
 BuildRequires:	gcc-c++
 BuildRequires:	libtool
 

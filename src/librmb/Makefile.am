@@ -44,7 +44,9 @@ librmb_la_SOURCES = \
 	rados-dovecot-ceph-cfg-impl.cpp \
 	rados-ceph-json-config.cpp
 	
-AM_LDFLAGS = -ljansson
+AM_LDFLAGS = $(JANSSON_LIBS)
+AM_CFLAGS = $(JANSSON_CFLAGS)
+AM_CXXFLAGS = $(JANSSON_CFLAGS)
 
 pkginc_libdir=$(pkgincludedir)
 pkginc_lib_HEADERS = $(headers)
