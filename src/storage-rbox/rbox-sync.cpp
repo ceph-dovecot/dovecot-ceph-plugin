@@ -219,10 +219,10 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 }
 
 static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_error) {
-  struct mail_index_view *view;
+  struct mail_index_view *view = NULL;
   struct sdbox_index_header hdr;
-  bool need_resize;
-  int ret;
+  bool need_resize = false;
+  int ret = 0;
 
   view = mail_index_view_open(mbox->box.index);
   ret = rbox_read_header(mbox, &hdr, log_error, &need_resize);
@@ -238,12 +238,13 @@ static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_e
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags) {
   FUNC_START();
   struct rbox_sync_context *ctx;
-  int sync_flags;
-  int ret;
+  enum mail_index_sync_flags sync_flags;
+
+  int ret = 0;
   struct mail_storage *storage = mbox->box.storage;
 
-  unsigned int i;
-  bool rebuild, force_rebuild;
+  unsigned int i = 0;
+  bool rebuild, force_rebuild = false;
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || mbox->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
@@ -266,8 +267,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
   for (i = 0;; i++) {
     // sync_ctx->flags werden gesetzt.
-    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
-                                            static_cast<mail_index_sync_flags>(sync_flags));
+    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans, sync_flags);
 
     if (mail_index_reset_fscked(mbox->box.index))
       rbox_set_mailbox_corrupted(&mbox->box);
@@ -344,8 +344,8 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
-  unsigned int count, moved_count;
-  unsigned int i, j;
+  unsigned int count, moved_count = 0;
+  unsigned int i, j = 0;
 
   /* NOTE: Index is no longer locked. Multiple processes may be deleting
      the objects at the same time. */
@@ -387,7 +387,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   struct rbox_sync_context *ctx = *_ctx;
   int ret = success ? 0 : -1;
   struct expunged_item *const *exp_items, *exp_item;
-  unsigned int count, i;
+  unsigned int count, i = 0;
 
   *_ctx = NULL;
   if (success) {
@@ -425,7 +425,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
 int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
   FUNC_START();
-  struct rbox_sync_context *sync_ctx;
+  struct rbox_sync_context *sync_ctx = NULL;
 
   if (rbox_sync_begin(mbox, &sync_ctx, flags) < 0) {
     FUNC_END_RET("ret == -1");
@@ -439,8 +439,7 @@ int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  int sdbox_sync_flags = 0;
-
+  uint8_t rbox_sync_flags = 0;
   int ret = 0;
 
   if (!box->opened) {
@@ -453,17 +452,9 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     rbox_set_mailbox_corrupted(box);
   if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->corrupted_rebuild_count != 0)) {
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0)
-      sdbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
-    ret = rbox_sync(mbox, static_cast<rbox_sync_flags>(sdbox_sync_flags));
+      rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
+    ret = rbox_sync(mbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
   }
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);
-  /*
-    if (index_mailbox_want_full_sync(&mbox->box, flags) && ret == 0)
-      ret = rbox_sync(mbox);
-
-    struct mailbox_sync_context *ctx = index_mailbox_sync_init(box, flags, ret < 0);
-
-    return ctx;
-   */
 }

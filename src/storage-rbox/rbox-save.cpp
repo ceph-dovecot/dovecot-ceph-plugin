@@ -77,12 +77,12 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  int save_flags;
+  uint8_t save_flags;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
-  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
+  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
@@ -116,13 +116,13 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  int save_flags;
+  uint8_t save_flags;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
 
-  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<mail_flags>(save_flags));
+  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
@@ -172,7 +172,6 @@ void init_output_stream(mail_save_context *_ctx) {
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
 }
-
 
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
@@ -236,7 +235,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::RadosMailObject *mail_object) {
   FUNC_START();
   struct mail_save_data *mdata = &ctx->ctx.data;
-
   struct rbox_storage *r_storage = (struct rbox_storage *)&ctx->mbox->storage->storage;
 
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VERSION)) {
@@ -351,7 +349,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   if (r_ctx->seq > 0) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
   }else{
-    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0",r_ctx->seq); 
+    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0",r_ctx->seq);
   }
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
 
@@ -458,14 +456,13 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct mailbox_transaction_context *_t = _ctx->transaction;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-
   const struct mail_index_header *hdr;
   struct seq_range_iter iter;
 
   i_assert(r_ctx->finished);
 
   r_ctx->failed = r_storage->s->wait_for_rados_operations(r_ctx->objects);
-  
+
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
   if (r_ctx->failed) {
     // delete index entry and delete object if it exist
@@ -475,9 +472,9 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
-  
-  int sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
-  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<rbox_sync_flags>(sync_flags)) < 0) {
+
+  uint8_t sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
+  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<enum rbox_sync_flags>(sync_flags)) < 0) {
     r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
     FUNC_END_RET("ret == -1");
@@ -557,6 +554,8 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     mail_free(&_ctx->dest_mail);
   }
   r_ctx->current_object = nullptr;
+
   delete r_ctx;
+
   FUNC_END();
 }

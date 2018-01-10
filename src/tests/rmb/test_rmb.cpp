@@ -13,6 +13,7 @@
 #include "gmock/gmock.h"
 #include "rados-mail-object.h"
 #include <rados/librados.hpp>
+#include "../../librmb/rados-util.h"
 
 #include "../../librmb/rados-cluster-impl.h"
 #include "../../librmb/rados-storage-impl.h"
@@ -117,6 +118,7 @@ TEST(rmb1, path_tests) {
   librmb::MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
+
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

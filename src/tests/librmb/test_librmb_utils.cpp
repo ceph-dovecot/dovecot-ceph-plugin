@@ -50,11 +50,13 @@ TEST(librmb, utils_is_date_attribute) {
 }
 TEST(librmb, utils_convert_string_to_date) {
   std::string date_str = "2017-10-10 12:12:12";
-  std::string str = librmb::RadosUtils::convert_string_to_date(date_str);
+  std::string str;
+  librmb::RadosUtils::convert_string_to_date(date_str, &str);
   // EXPECT_EQ(str, "1507630332");
   EXPECT_NE("0", "1507630332");
   std::string test_str = "asjsjsjsj09202920";
-  std::string str2 = librmb::RadosUtils::convert_string_to_date(test_str);
+  std::string str2;
+  librmb::RadosUtils::convert_string_to_date(test_str, &str2);
   EXPECT_EQ(str2, "");
 }
 
