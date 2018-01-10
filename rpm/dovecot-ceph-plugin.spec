@@ -30,6 +30,7 @@ BuildRequires:	librados-devel >= %librados_version
 BuildRequires:	libjansson-devel >= 2.9
 BuildRequires:	gcc-c++
 BuildRequires:	libtool
+BuildRequires:	pkg-config
 
 %description
 Dovecot is an IMAP and POP3 server for Linux and UNIX-like systems,
