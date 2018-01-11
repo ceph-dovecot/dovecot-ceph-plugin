@@ -118,13 +118,13 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_update_attributes_key, const std::string &());
   MOCK_METHOD0(get_config, std::map<std::string, std::string> *());
 
-  MOCK_METHOD0(get_pool_name, std::string());
+  MOCK_METHOD0(get_pool_name, std::string &());
   MOCK_METHOD0(is_update_attributes, bool());
 
   MOCK_METHOD2(update_metadata, void(std::string &key, const char *value_));
   MOCK_METHOD0(is_config_valid, bool());
   MOCK_METHOD1(set_config_valid, void(bool is_valid_));
-  MOCK_METHOD0(get_key_prefix_keywords, std::string());
+  MOCK_METHOD0(get_key_prefix_keywords, std::string &());
   MOCK_METHOD1(set_rbox_cfg_object_name, void(std::string &value));
 
   // ceph configuration
@@ -135,9 +135,9 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(set_user_mapping, void(bool value_));
   MOCK_METHOD0(is_user_mapping, bool());
   MOCK_METHOD1(set_user_ns, void(std::string &ns));
-  MOCK_METHOD0(get_user_ns, std::string());
+  MOCK_METHOD0(get_user_ns, std::string &());
   MOCK_METHOD1(set_user_suffix, void(std::string &ns_suffix));
-  MOCK_METHOD0(get_user_suffix, std::string());
+  MOCK_METHOD0(get_user_suffix, std::string &());
 
   MOCK_METHOD0(get_public_namespace, const std::string &());
   MOCK_METHOD1(update_mail_attributes, void(const std::string &mail_attributes));

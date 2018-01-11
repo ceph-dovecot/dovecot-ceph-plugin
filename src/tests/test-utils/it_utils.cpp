@@ -72,8 +72,8 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
 
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
-  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
-  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   storage->ns_mgr->set_config(cfg_mock);
   storage->config = cfg_mock;
   ItUtils::add_mail(save_ctx, input, box, trans);

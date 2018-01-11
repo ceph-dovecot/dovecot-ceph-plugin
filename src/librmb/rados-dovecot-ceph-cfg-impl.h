@@ -36,9 +36,9 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
 
   const std::string &get_pool_name_metadata_key() { return dovecot_cfg->get_pool_name_metadata_key(); }
 
-  std::string get_pool_name() { return dovecot_cfg->get_pool_name(); }
+  std::string &get_pool_name() { return dovecot_cfg->get_pool_name(); }
 
-  std::string get_key_prefix_keywords() { return dovecot_cfg->get_key_prefix_keywords(); }
+  std::string &get_key_prefix_keywords() { return dovecot_cfg->get_key_prefix_keywords(); }
   void update_metadata(std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
 
   // rados config
@@ -61,9 +61,9 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   int save_default_rados_config();
   void set_user_mapping(bool value_) { rados_cfg->set_user_mapping(value_); }
   void set_user_ns(std::string &ns) { rados_cfg->set_user_ns(ns); }
-  std::string get_user_ns() { return rados_cfg->get_user_ns(); }
+  std::string &get_user_ns() { return rados_cfg->get_user_ns(); }
   void set_user_suffix(std::string &ns_suffix) { rados_cfg->set_user_suffix(ns_suffix); }
-  std::string get_user_suffix() { return rados_cfg->get_user_suffix(); }
+  std::string &get_user_suffix() { return rados_cfg->get_user_suffix(); }
 
   bool is_mail_attribute(enum rbox_metadata_key key) { return rados_cfg->is_mail_attribute(key); }
   bool is_updateable_attribute(enum rbox_metadata_key key) { return rados_cfg->is_updateable_attribute(key); }

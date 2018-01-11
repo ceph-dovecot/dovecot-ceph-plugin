@@ -40,11 +40,11 @@ class RadosCephJsonConfig {
 
   void set_valid(bool isValid) { valid = isValid; }
 
-  const std::string& get_user_ns() const { return user_ns; }
+  std::string& get_user_ns() { return user_ns; }
 
   void set_user_ns(const std::string& user_ns_) { user_ns = user_ns_; }
 
-  const std::string& get_user_suffix() const { return user_suffix; }
+  std::string& get_user_suffix() { return user_suffix; }
 
   void set_user_suffix(const std::string& user_suffix_) { user_suffix = user_suffix_; }
 
@@ -76,8 +76,8 @@ class RadosCephJsonConfig {
 
  private:
   bool string_contains_key(const std::string& str, enum rbox_metadata_key key);
-  std::string set_default_mail_attributes();
-  std::string set_default_updateable_attributes();
+  void set_default_mail_attributes();
+  void set_default_updateable_attributes();
 
  private:
   std::string cfg_object_name;

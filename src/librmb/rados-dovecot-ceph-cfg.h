@@ -37,7 +37,7 @@ class RadosDovecotCephCfg {
 
   virtual std::map<std::string, std::string> *get_config() = 0;
 
-  virtual std::string get_pool_name() = 0;
+  virtual std::string &get_pool_name() = 0;
   virtual bool is_update_attributes() = 0;
 
   virtual void set_rbox_cfg_object_name(std::string &value) = 0;
@@ -45,7 +45,7 @@ class RadosDovecotCephCfg {
   virtual bool is_config_valid() = 0;
   virtual void set_config_valid(bool is_valid_) = 0;
 
-  virtual std::string get_key_prefix_keywords() = 0;
+  virtual std::string &get_key_prefix_keywords() = 0;
 
   // ceph configuration
   virtual void set_io_ctx(librados::IoCtx *io_ctx) = 0;
@@ -54,9 +54,9 @@ class RadosDovecotCephCfg {
   virtual void set_user_mapping(bool value_) = 0;
   virtual bool is_user_mapping() = 0;
   virtual void set_user_ns(std::string &ns) = 0;
-  virtual std::string get_user_ns() = 0;
+  virtual std::string &get_user_ns() = 0;
   virtual void set_user_suffix(std::string &ns_suffix) = 0;
-  virtual std::string get_user_suffix() = 0;
+  virtual std::string &get_user_suffix() = 0;
   virtual const std::string &get_public_namespace() = 0;
   virtual int save_object(const std::string &oid, librados::bufferlist &buffer) = 0;
   virtual int read_object(const std::string &oid, librados::bufferlist *buffer) = 0;
