@@ -27,18 +27,11 @@ const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
 const char RadosMailObject::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
 
 RadosMailObject::RadosMailObject() {
-  memset(this->guid, 0, GUID_128_SIZE);
   this->object_size = -1;
   this->active_op = false;
-  this->mail_buffer = new librados::bufferlist();
   this->save_date_rados = -1;
 }
-RadosMailObject::~RadosMailObject() {
-  if (this->mail_buffer != nullptr) {
-    delete this->mail_buffer;
-  }
-}
-
+RadosMailObject::~RadosMailObject() {}
 
 void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
 

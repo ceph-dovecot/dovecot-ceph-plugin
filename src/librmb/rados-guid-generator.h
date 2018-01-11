@@ -18,7 +18,7 @@ namespace librmb {
 class RadosGuidGenerator {
  public:
   virtual ~RadosGuidGenerator(){};
-  virtual std::string generate_guid() = 0;
+  virtual void generate_guid(std::string *guid) = 0;
 };
 
 } /* namespace librmb */

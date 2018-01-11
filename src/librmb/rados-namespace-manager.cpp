@@ -74,7 +74,7 @@ bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string *va
     return false;
   }
 
-  *value = guid_generator_->generate_guid();
+  guid_generator_->generate_guid(value);
   // temporarily set storage namespace to config namespace
   std::string user_ns = config->get_user_ns();
   config->set_io_ctx_namespace(user_ns);
