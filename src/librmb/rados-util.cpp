@@ -61,19 +61,18 @@ int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   *ret_val = std::string(buffer);
   return 0;
 }
-std::string RadosUtils::flags_to_string(const uint8_t &flags_) {
-  std::string flags;
+bool RadosUtils::flags_to_string(const uint8_t &flags_, std::string *flags_str) {
   std::stringstream sstream;
   sstream << std::hex << flags_;
-  sstream >> flags;
-  return flags;
+  sstream >> *flags_str;
+  return true;
 }
-uint8_t RadosUtils::string_to_flags(std::string &flags_) {
+bool RadosUtils::string_to_flags(std::string &flags_, uint8_t *flags) {
   std::istringstream in(flags_);
-  uint8_t flags;
-  if (in >> std::hex >> flags) {
-    return flags;
+
+  if (in >> std::hex >> *flags) {
+    return true;
   }
-  return -1;
+  return false;
 }
 } /* namespace tallence */

@@ -5,7 +5,7 @@
  * Copyright (c) 2007-2017 Dovecot authors
  *
  * This is free software; you can redistribute it and/or
- * 
+ *
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
@@ -287,19 +287,23 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS)) {
     if (mdata->flags != 0) {
-      std::string flags = librmb::RadosUtils::flags_to_string(mdata->flags);
-      // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
-      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
-      mail_object->add_metadata(xattr);
+      std::string flags;
+      if (librmb::RadosUtils::flags_to_string(mdata->flags, &flags)) {
+        // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
+        RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
+        mail_object->add_metadata(xattr);
+      }
       // i_debug("save_flags : %s,  %s", mail_object->get_oid().c_str(), flags.c_str());
     }
   }
 
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS)) {
     if (mdata->pvt_flags != 0) {
-      std::string pvt_flags = librmb::RadosUtils::flags_to_string(mdata->pvt_flags);
-      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
-      mail_object->add_metadata(xattr);
+      std::string pvt_flags;
+      if (librmb::RadosUtils::flags_to_string(mdata->pvt_flags, &pvt_flags)) {
+        RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PVT_FLAGS, pvt_flags);
+        mail_object->add_metadata(xattr);
+      }
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
