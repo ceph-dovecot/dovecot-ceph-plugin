@@ -17,7 +17,7 @@ namespace librmb {
 RadosNamespaceManager::~RadosNamespaceManager() {
 }
 
-bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
+bool RadosNamespaceManager::lookup_key(std::string &uid, std::string *value) {
   if (uid.empty()) {
     *value = uid;
     return true;
@@ -42,26 +42,23 @@ bool RadosNamespaceManager::lookup_key(std::string uid, std::string *value) {
   }
 
   ceph::bufferlist bl;
-  std::string oid = uid;
   bool retval = false;
 
   // temporarily set storage namespace to config namespace
-  std::string user_ns = config->get_user_ns();
-  config->set_io_ctx_namespace(user_ns);
+  config->set_io_ctx_namespace(config->get_user_ns());
   // storage->set_namespace(config->get_user_ns());
-  int err = config->read_object(oid, &bl);
+  int err = config->read_object(uid, &bl);
   if (err >= 0 && !bl.to_str().empty()) {
     *value = bl.to_str();
     cache[uid] = *value;
     retval = true;
   }
   // reset namespace to empty
-  std::string mail_namespace;
-  config->set_io_ctx_namespace(mail_namespace);
+  config->set_io_ctx_namespace("");
   return retval;
 }
 
-bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string *value,
+bool RadosNamespaceManager::add_namespace_entry(std::string &uid, std::string *value,
                                                 RadosGuidGenerator *guid_generator_) {
   if (config == nullptr) {
     return false;
@@ -76,20 +73,17 @@ bool RadosNamespaceManager::add_namespace_entry(std::string uid, std::string *va
 
   guid_generator_->generate_guid(value);
   // temporarily set storage namespace to config namespace
-  std::string user_ns = config->get_user_ns();
-  config->set_io_ctx_namespace(user_ns);
+  config->set_io_ctx_namespace(config->get_user_ns());
 
-  std::string oid = uid;
   ceph::bufferlist bl;
   bl.append(*value);
   bool retval = false;
-  if (config->save_object(oid, bl) >= 0) {
+  if (config->save_object(uid, bl) >= 0) {
     cache[uid] = *value;
     retval = true;
   }
   // reset namespace
-  std::string mail_namespace;
-  config->set_io_ctx_namespace(mail_namespace);
+  config->set_io_ctx_namespace("");
   return retval;
 }
 
