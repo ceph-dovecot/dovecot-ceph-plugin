@@ -34,13 +34,13 @@ class RadosStorage {
   virtual int get_max_write_size_bytes() = 0;
 
   virtual int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
-                                       librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) = 0;
+                                       librados::ObjectWriteOperation *write_op_xattr, const uint64_t &max_write) = 0;
 
   virtual int load_metadata(RadosMailObject *mail) = 0;
   virtual int set_metadata(const std::string &oid, const RadosMetadata &xattr) = 0;
 
   virtual int delete_mail(RadosMailObject *mail) = 0;
-  virtual int delete_mail(std::string oid) = 0;
+  virtual int delete_mail(const std::string &oid) = 0;
 
   virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                           librados::ObjectWriteOperation *op) = 0;
@@ -55,7 +55,7 @@ class RadosStorage {
 
   virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
   virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
-  virtual bool update_metadata(std::string oid, std::list<RadosMetadata> &to_update) = 0;
+  virtual bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) = 0;
   virtual bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                     std::list<RadosMetadata> &to_update, bool delete_source) = 0;
   virtual bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,

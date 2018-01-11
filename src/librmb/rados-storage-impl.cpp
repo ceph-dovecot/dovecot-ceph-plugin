@@ -39,7 +39,8 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
 
 RadosStorageImpl::~RadosStorageImpl() {}
 int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
-                                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) {
+                                               librados::ObjectWriteOperation *write_op_xattr,
+                                               const uint64_t &max_write) {
   if (!cluster->is_connected()) {
     return -1;
   }
@@ -84,7 +85,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
 }
 int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
                                                RadosMailObject *current_object,
-                                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) {
+                                               librados::ObjectWriteOperation *write_op_xattr,
+                                               const uint64_t &max_write) {
   if (!cluster->is_connected()) {
     return -1;
   }
@@ -194,7 +196,7 @@ int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
   }
   return ret;
 }
-int RadosStorageImpl::delete_mail(std::string oid) {
+int RadosStorageImpl::delete_mail(const std::string &oid) {
   if (!cluster->is_connected() || oid.empty()) {
     return -1;
   }
@@ -311,7 +313,7 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
   return ctx_failed;
 }
 
-bool RadosStorageImpl::update_metadata(std::string oid, std::list<RadosMetadata> &to_update) {
+bool RadosStorageImpl::update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) {
   if (!cluster->is_connected()) {
     return false;
   }
