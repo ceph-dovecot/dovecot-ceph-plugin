@@ -36,7 +36,7 @@ int RadosCephConfig::load_cfg() {
   return config.from_json(&buffer) ? 0 : -1;
 }
 
-bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
+bool RadosCephConfig::is_valid_key_value(const std::string &key, const std::string &value) {
   bool success = false;
   if (value.empty() || key.empty()) {
     return false;
@@ -60,7 +60,7 @@ bool RadosCephConfig::is_valid_key_value(std::string &key, std::string &value) {
   return success;
 }
 
-bool RadosCephConfig::update_valid_key_value(std::string &key, std::string &value) {
+bool RadosCephConfig::update_valid_key_value(const std::string &key, const std::string &value) {
   bool success = false;
   if (value.empty() || key.empty()) {
     return false;
@@ -98,6 +98,6 @@ int RadosCephConfig::read_object(const std::string &oid, librados::bufferlist *b
   return io_ctx->read(oid, *buffer, max, 0);
 }
 
-void RadosCephConfig::set_io_ctx_namespace(std::string &namespace_) { io_ctx->set_namespace(namespace_); }
+void RadosCephConfig::set_io_ctx_namespace(const std::string &namespace_) { io_ctx->set_namespace(namespace_); }
 
 } /* namespace librmb */

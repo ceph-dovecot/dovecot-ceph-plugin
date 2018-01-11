@@ -43,7 +43,7 @@ class RadosConfig {
   const std::string &get_rados_username() { return config[rados_username]; }
   void update_metadata(const std::string &key, const char *value_);
 
-  void set_rbox_cfg_object_name(std::string &value) { config[rbox_cfg_object_name] = value; }
+  void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
 
  private:
   bool string_contains_key(const std::string &str, enum rbox_metadata_key key);

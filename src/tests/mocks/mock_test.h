@@ -121,11 +121,11 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_pool_name, std::string &());
   MOCK_METHOD0(is_update_attributes, bool());
 
-  MOCK_METHOD2(update_metadata, void(std::string &key, const char *value_));
+  MOCK_METHOD2(update_metadata, void(const std::string &key, const char *value_));
   MOCK_METHOD0(is_config_valid, bool());
   MOCK_METHOD1(set_config_valid, void(bool is_valid_));
   MOCK_METHOD0(get_key_prefix_keywords, std::string &());
-  MOCK_METHOD1(set_rbox_cfg_object_name, void(std::string &value));
+  MOCK_METHOD1(set_rbox_cfg_object_name, void(const std::string &value));
 
   // ceph configuration
   MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));
@@ -134,9 +134,9 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
 
   MOCK_METHOD1(set_user_mapping, void(bool value_));
   MOCK_METHOD0(is_user_mapping, bool());
-  MOCK_METHOD1(set_user_ns, void(std::string &ns));
+  MOCK_METHOD1(set_user_ns, void(const std::string &ns));
   MOCK_METHOD0(get_user_ns, std::string &());
-  MOCK_METHOD1(set_user_suffix, void(std::string &ns_suffix));
+  MOCK_METHOD1(set_user_suffix, void(const std::string &ns_suffix));
   MOCK_METHOD0(get_user_suffix, std::string &());
 
   MOCK_METHOD0(get_public_namespace, const std::string &());
@@ -145,7 +145,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(update_updatable_attributes, void(const std::string &updateable_attributes));
   MOCK_METHOD2(save_object, int(const std::string &oid, librados::bufferlist &buffer));
   MOCK_METHOD2(read_object, int(const std::string &oid, librados::bufferlist *buffer));
-  MOCK_METHOD1(set_io_ctx_namespace, void(std::string &namespace_));
+  MOCK_METHOD1(set_io_ctx_namespace, void(const std::string &namespace_));
 };
 
 }  // namespace librmbtest

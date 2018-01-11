@@ -39,7 +39,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   std::string &get_pool_name() { return dovecot_cfg->get_pool_name(); }
 
   std::string &get_key_prefix_keywords() { return dovecot_cfg->get_key_prefix_keywords(); }
-  void update_metadata(std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
+  void update_metadata(const std::string &key, const char *value_) { dovecot_cfg->update_metadata(key, value_); }
 
   // rados config
   bool is_user_mapping() { return rados_cfg->is_user_mapping(); }
@@ -50,7 +50,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
     }
   }
 
-  void set_rbox_cfg_object_name(std::string &value) { dovecot_cfg->set_rbox_cfg_object_name(value); }
+  void set_rbox_cfg_object_name(const std::string &value) { dovecot_cfg->set_rbox_cfg_object_name(value); }
 
   std::map<std::string, std::string> *get_config() { return dovecot_cfg->get_config(); }
   void set_io_ctx(librados::IoCtx *io_ctx_) { rados_cfg->set_io_ctx(io_ctx_); }
@@ -60,9 +60,9 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   }
   int save_default_rados_config();
   void set_user_mapping(bool value_) { rados_cfg->set_user_mapping(value_); }
-  void set_user_ns(std::string &ns) { rados_cfg->set_user_ns(ns); }
+  void set_user_ns(const std::string &ns) { rados_cfg->set_user_ns(ns); }
   std::string &get_user_ns() { return rados_cfg->get_user_ns(); }
-  void set_user_suffix(std::string &ns_suffix) { rados_cfg->set_user_suffix(ns_suffix); }
+  void set_user_suffix(const std::string &ns_suffix) { rados_cfg->set_user_suffix(ns_suffix); }
   std::string &get_user_suffix() { return rados_cfg->get_user_suffix(); }
 
   bool is_mail_attribute(enum rbox_metadata_key key) { return rados_cfg->is_mail_attribute(key); }
@@ -85,7 +85,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   }
   int save_object(const std::string &oid, librados::bufferlist &buffer) { return rados_cfg->save_object(oid, buffer); }
   int read_object(const std::string &oid, librados::bufferlist *buffer) { return rados_cfg->read_object(oid, buffer); }
-  void set_io_ctx_namespace(std::string &namespace_) { rados_cfg->set_io_ctx_namespace(namespace_); }
+  void set_io_ctx_namespace(const std::string &namespace_) { rados_cfg->set_io_ctx_namespace(namespace_); }
 
  private:
   RadosConfig *dovecot_cfg;

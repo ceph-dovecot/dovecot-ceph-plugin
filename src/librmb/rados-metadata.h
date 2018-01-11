@@ -35,6 +35,7 @@ class RadosMetadata {
   RadosMetadata(enum rbox_metadata_key _key, const uint& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const size_t& val) { convert(_key, val); }
+  ~RadosMetadata() {}
 
  public:
   ceph::bufferlist& get_bl();
