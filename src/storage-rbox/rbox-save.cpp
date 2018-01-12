@@ -439,16 +439,18 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
 
   seq_range_array_iter_init(&iter, uids);
 
+  RadosMetadata metadata;
+  int ret_val = 0;
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     r_ctx->current_object = *it;
     ret = seq_range_array_iter_nth(&iter, n++, &uid);
     i_assert(ret);
-    {
-      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-      int ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), xattr);
-      if (ret_val < 0) {
-        return -1;
-      }
+
+    metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
+
+    ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), metadata);
+    if (ret_val < 0) {
+      return -1;
     }
   }
   i_assert(!seq_range_array_iter_nth(&iter, n, &uid));

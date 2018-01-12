@@ -329,14 +329,15 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
       write_op.setxattr((*it).key.c_str(), (*it).bl);
     }
-
-    int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-    completion->wait_for_complete();
-    completion->release();
-
-    if (delete_source && strcmp(src_ns, dest_ns) != 0) {
-      src_io_ctx.remove(src_oid);
+    int ret = 0;
+    ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+    if (ret >= 0) {
+      completion->wait_for_complete();
+      if (delete_source && strcmp(src_ns, dest_ns) != 0) {
+        ret = src_io_ctx.remove(src_oid);
+      }
     }
+    completion->release();
     // reset io_ctx
     dest_io_ctx.set_namespace(dest_ns);
     return ret == 0;
@@ -352,7 +353,6 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   librados::ObjectWriteOperation write_op;
   librados::IoCtx src_io_ctx, dest_io_ctx;
 
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
   // destination io_ctx is current io_ctx
   dest_io_ctx = io_ctx;
@@ -377,9 +377,12 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
     write_op.setxattr((*it).key.c_str(), (*it).bl);
   }
-
-  int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-  ret = completion->wait_for_complete();
+  int ret = 0;
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  if (ret >= 0) {
+    ret = completion->wait_for_complete();
+  }
   completion->release();
   // reset io_ctx
   dest_io_ctx.set_namespace(dest_ns);

@@ -307,7 +307,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     _mail->transaction->stats.open_lookup_count++;
     size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
-    if (size_r <= 0) {
+    if (size_r < 0) {
       if (size_r == -ENOENT) {
         i_debug("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
                 r_storage->s->get_namespace().c_str(), getpid());
@@ -319,6 +319,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         FUNC_END_RET("ret == -1");
         return -1;
       }
+    } else if (size_r == 0) {
+      i_warning("trying to read a mail (size = 0) which is currently copied, moved or stored, returning with error. ");
+      FUNC_END_RET("ret == 0");
+      return -1;
     }
 
     get_mail_stream(rmail, rmail->mail_object->get_mail_buffer(), size_r, &input);
