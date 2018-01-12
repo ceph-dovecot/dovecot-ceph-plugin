@@ -38,7 +38,7 @@ class RadosStorageMock : public RadosStorage {
                    const uint64_t &max_write));
 
   MOCK_METHOD1(load_metadata, int(RadosMailObject *mail));
-  MOCK_METHOD2(set_metadata, int(const std::string &oid, const RadosMetadata &xattr));
+  MOCK_METHOD2(set_metadata, int(const std::string &oid, RadosMetadata &xattr));
 
   MOCK_METHOD1(delete_mail, int(RadosMailObject *mail));
   MOCK_METHOD1(delete_mail, int(const std::string &oid));
