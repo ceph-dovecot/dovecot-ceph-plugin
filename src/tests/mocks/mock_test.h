@@ -32,9 +32,11 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD0(get_namespace, std::string());
   MOCK_METHOD0(get_max_write_size, int());
   MOCK_METHOD0(get_max_write_size_bytes, int());
-  MOCK_METHOD5(split_buffer_and_exec_op,
-               int(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
-                   librados::ObjectWriteOperation *write_op_xattr, const uint64_t &max_write));
+
+  MOCK_METHOD3(split_buffer_and_exec_op,
+               int(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
+                   const uint64_t &max_write));
+
   MOCK_METHOD1(load_metadata, int(RadosMailObject *mail));
   MOCK_METHOD2(set_metadata, int(const std::string &oid, const RadosMetadata &xattr));
 

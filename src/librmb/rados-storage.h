@@ -33,8 +33,8 @@ class RadosStorage {
   virtual int get_max_write_size() = 0;
   virtual int get_max_write_size_bytes() = 0;
 
-  virtual int split_buffer_and_exec_op(const char *buffer, size_t buffer_length, RadosMailObject *current_object,
-                                       librados::ObjectWriteOperation *write_op_xattr, const uint64_t &max_write) = 0;
+  virtual int split_buffer_and_exec_op(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
+                                       const uint64_t &max_write) = 0;
 
   virtual int load_metadata(RadosMailObject *mail) = 0;
   virtual int set_metadata(const std::string &oid, const RadosMetadata &xattr) = 0;

@@ -619,7 +619,7 @@ int main(int argc, const char **argv) {
 
   librmb::RadosConfig dovecot_cfg;
   dovecot_cfg.set_config_valid(true);
-  librmb::RadosDovecotCephCfgImpl cfg(&dovecot_cfg, &ceph_cfg);
+  librmb::RadosDovecotCephCfgImpl cfg(dovecot_cfg, ceph_cfg);
   librmb::RadosNamespaceManager mgr(&cfg);
 
   // namespace (user) needs to be set

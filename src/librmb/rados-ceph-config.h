@@ -21,6 +21,7 @@ namespace librmb {
 class RadosCephConfig {
  public:
   RadosCephConfig(librados::IoCtx *io_ctx_);
+  RadosCephConfig() {}
   virtual ~RadosCephConfig() {}
 
   // load settings from rados cfg_object
