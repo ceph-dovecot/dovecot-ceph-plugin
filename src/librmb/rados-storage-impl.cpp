@@ -144,12 +144,11 @@ int RadosStorageImpl::load_extended_metadata(std::string &oid, std::set<std::str
   return get_io_ctx().omap_get_vals_by_keys(oid, keys, metadata);
 }
 
-int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
+int RadosStorageImpl::set_metadata(const std::string &oid, RadosMetadata &xattr) {
   if (!cluster->is_connected()) {
     return -1;
   }
-  ceph::bufferlist bl = xattr.bl;
-  return get_io_ctx().setxattr(oid, xattr.key.c_str(), bl);
+  return get_io_ctx().setxattr(oid, xattr.key.c_str(), xattr.bl);
 }
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {

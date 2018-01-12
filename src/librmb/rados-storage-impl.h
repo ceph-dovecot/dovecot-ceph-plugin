@@ -40,7 +40,7 @@ class RadosStorageImpl : public RadosStorage {
                                const uint64_t &max_write);
 
   int load_metadata(RadosMailObject *mail);
-  int set_metadata(const std::string &oid, const RadosMetadata &xattr);
+  int set_metadata(const std::string &oid, RadosMetadata &xattr);
 
   int delete_mail(RadosMailObject *mail);
   int delete_mail(const std::string &oid);

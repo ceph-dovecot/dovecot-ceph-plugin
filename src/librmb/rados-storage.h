@@ -37,7 +37,7 @@ class RadosStorage {
                                        const uint64_t &max_write) = 0;
 
   virtual int load_metadata(RadosMailObject *mail) = 0;
-  virtual int set_metadata(const std::string &oid, const RadosMetadata &xattr) = 0;
+  virtual int set_metadata(const std::string &oid, RadosMetadata &xattr) = 0;
 
   virtual int delete_mail(RadosMailObject *mail) = 0;
   virtual int delete_mail(const std::string &oid) = 0;
