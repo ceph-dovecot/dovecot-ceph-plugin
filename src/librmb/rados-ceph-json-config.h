@@ -75,7 +75,6 @@ class RadosCephJsonConfig {
   const std::string& get_update_attributes_key() { return key_update_attributes; }
 
  private:
-  bool string_contains_key(const std::string& str, enum rbox_metadata_key key);
   void set_default_mail_attributes();
   void set_default_updateable_attributes();
 
