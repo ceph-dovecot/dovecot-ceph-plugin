@@ -269,7 +269,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   return 0;
 }
 
-static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, uint64_t physical_size,
+static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, const size_t physical_size,
                            struct istream **stream_r) {
   struct mail_private *pmail = &mail->imail.mail;
   struct istream *input;  // = *stream_r;
@@ -295,7 +295,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct istream *input = NULL;
   struct index_mail_data *data = &rmail->imail.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  int ret, size_r = -1;
+  int ret, physical_size = -1;
 
   if (data->stream == NULL) {
     if (rbox_open_rados_connection(_mail->box) < 0) {
@@ -306,29 +306,30 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     rmail->mail_object->get_mail_buffer()->clear();
 
     _mail->transaction->stats.open_lookup_count++;
-    size_r = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
-    if (size_r < 0) {
-      if (size_r == -ENOENT) {
+    physical_size = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
+    if (physical_size < 0) {
+      if (physical_size == -ENOENT) {
         i_debug("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
                 r_storage->s->get_namespace().c_str(), getpid());
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;
       } else {
-        i_error("reading mail return code: %d, oid: %s", size_r, rmail->mail_object->get_oid().c_str());
+        i_error("reading mail return code: %d, oid: %s", physical_size, rmail->mail_object->get_oid().c_str());
         FUNC_END_RET("ret == -1");
         return -1;
       }
-    } else if (size_r == 0) {
+    } else if (physical_size == 0) {
       i_warning("trying to read a mail (size = 0) which is currently copied, moved or stored, returning with error. ");
       FUNC_END_RET("ret == 0");
       return -1;
+    } else if (physical_size == INT_MAX) {
+      i_error("trying to read a mail with INT_MAX size. ");
+      FUNC_END_RET("ret == -1");
+      return -1;
     }
 
-    get_mail_stream(rmail, rmail->mail_object->get_mail_buffer(), size_r, &input);
-
-    uoff_t size_decompressed = -1;
-    i_stream_get_size(input, TRUE, &size_decompressed);
+    get_mail_stream(rmail, rmail->mail_object->get_mail_buffer(), physical_size, &input);
 
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
