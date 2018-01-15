@@ -91,13 +91,23 @@ bool RadosCephConfig::update_valid_key_value(const std::string &key, const std::
 }
 
 int RadosCephConfig::save_object(const std::string &oid, librados::bufferlist &buffer) {
+  if (io_ctx == nullptr) {
+    return -1;
+  }
   return io_ctx->write_full(oid, buffer);
 }
 int RadosCephConfig::read_object(const std::string &oid, librados::bufferlist *buffer) {
   size_t max = INT_MAX;
+  if (io_ctx == nullptr) {
+    return -1;
+  }
   return io_ctx->read(oid, *buffer, max, 0);
 }
 
-void RadosCephConfig::set_io_ctx_namespace(const std::string &namespace_) { io_ctx->set_namespace(namespace_); }
+void RadosCephConfig::set_io_ctx_namespace(const std::string &namespace_) {
+  if (io_ctx != nullptr) {
+    io_ctx->set_namespace(namespace_);
+  }
+}
 
 } /* namespace librmb */

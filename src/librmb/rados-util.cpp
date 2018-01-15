@@ -33,7 +33,7 @@ bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {
   return false;
 }
 
-bool RadosUtils::convert_string_to_date(std::string &date_string, std::string *date) {
+bool RadosUtils::convert_string_to_date(const std::string &date_string, std::string *date) {
   time_t t;
   if (convert_str_to_time_t(date_string, &t)) {
     *date = std::to_string(t);
@@ -67,7 +67,7 @@ bool RadosUtils::flags_to_string(const uint8_t &flags_, std::string *flags_str) 
   sstream >> *flags_str;
   return true;
 }
-bool RadosUtils::string_to_flags(std::string &flags_, uint8_t *flags) {
+bool RadosUtils::string_to_flags(const std::string &flags_, uint8_t *flags) {
   std::istringstream in(flags_);
 
   if (in >> std::hex >> *flags) {

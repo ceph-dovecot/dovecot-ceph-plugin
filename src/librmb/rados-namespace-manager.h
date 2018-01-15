@@ -29,8 +29,8 @@ class RadosNamespaceManager {
   RadosDovecotCephCfg *get_config() { return config; }
 
   void set_namespace_oid(std::string &namespace_oid_) { this->oid_suffix = oid_suffix; }
-  bool lookup_key(std::string &uid, std::string *value);
-  bool add_namespace_entry(std::string &uid, std::string *value, RadosGuidGenerator *guid_generator_);
+  bool lookup_key(const std::string &uid, std::string *value);
+  bool add_namespace_entry(const std::string &uid, std::string *value, RadosGuidGenerator *guid_generator_);
 
  private:
   std::map<std::string, std::string> cache;

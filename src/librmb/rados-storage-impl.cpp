@@ -300,6 +300,7 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     return false;
   }
 
+  int ret = 0;
   librados::ObjectWriteOperation write_op;
   librados::IoCtx src_io_ctx, dest_io_ctx;
 
@@ -329,7 +330,6 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
       write_op.setxattr((*it).key.c_str(), (*it).bl);
     }
-    int ret = 0;
     ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
     if (ret >= 0) {
       completion->wait_for_complete();

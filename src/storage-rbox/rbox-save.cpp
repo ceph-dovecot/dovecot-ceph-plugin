@@ -53,19 +53,24 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)t->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)rbox->storage;
-  rbox_save_context *r_ctx;
+  rbox_save_context *r_ctx = NULL;
 
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
-  if (t->save_ctx == NULL) {
-//    i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
-    r_ctx = new rbox_save_context(*(r_storage->s));
-    r_ctx->ctx.transaction = t;
-    r_ctx->mbox = rbox;
-    r_ctx->trans = t->itrans;
+  if (t->save_ctx != NULL) {
+    /* use the existing allocated structure */
+    r_ctx->failed = FALSE;
+    r_ctx->finished = FALSE;
     r_ctx->current_object = nullptr;
-    t->save_ctx = &r_ctx->ctx;
+    return &r_ctx->ctx;
   }
+
+  r_ctx = new rbox_save_context(*(r_storage->s));
+  r_ctx->ctx.transaction = t;
+  r_ctx->mbox = rbox;
+  r_ctx->trans = t->itrans;
+  r_ctx->current_object = nullptr;
+  t->save_ctx = &r_ctx->ctx;
 
   FUNC_END();
   return t->save_ctx;
@@ -77,7 +82,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  uint8_t save_flags;
+  uint8_t save_flags = 0x0;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
@@ -116,7 +121,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  uint8_t save_flags;
+  uint8_t save_flags = 0x0;
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
@@ -193,8 +198,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
 
   init_output_stream(_ctx);
 
-  if (_ctx->data.received_date == (time_t)-1)
+  if (_ctx->data.received_date == (time_t)-1) {
     _ctx->data.received_date = ioloop_time;
+  }
 
   // i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
 
@@ -289,11 +295,9 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     if (mdata->flags != 0) {
       std::string flags;
       if (librmb::RadosUtils::flags_to_string(mdata->flags, &flags)) {
-        // i_debug("%s :flags : value=%s", mail_object->get_oid().c_str(), flags.c_str());
         RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS, flags);
         mail_object->add_metadata(xattr);
       }
-      // i_debug("save_flags : %s,  %s", mail_object->get_oid().c_str(), flags.c_str());
     }
   }
 
@@ -322,7 +326,6 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
         std::string ext_key = "k_" + keyword;
         RadosMetadata ext_metadata(ext_key, keyword);
         mail_object->add_extended_metadata(ext_metadata);
-        //  i_debug("keyword_added %s, %d:  '%s' ", mail_object->get_oid().c_str(), i, keyword.c_str());
       }
     }
 
