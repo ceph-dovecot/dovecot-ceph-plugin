@@ -28,8 +28,7 @@ bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {
     *val = t;
     return true;
   }
-
-  val = 0;
+  *val = 0;
   return false;
 }
 

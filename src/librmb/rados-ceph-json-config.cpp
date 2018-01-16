@@ -16,28 +16,42 @@
 
 namespace librmb {
 
-RadosCephJsonConfig::RadosCephJsonConfig() {
-  // set defaults.
-  cfg_object_name = "rbox_cfg";
+std::string user_mapping;
+ std::string user_ns;
+ std::string user_suffix;
+ std::string public_namespace;
 
-  key_user_mapping = "user_mapping";
-  key_user_ns = "user_ns";
-  key_user_suffix = "user_suffix";
-  key_public_namespace = "rbox_public_namespace";
+ std::string mail_attributes;
+ std::string update_attributes;
+ std::string updateable_attributes;
 
-  key_update_attributes = "rbox_update_attributes";
-  key_mail_attributes = "rbox_mail_attributes";
-  key_updateable_attributes = "rbox_updateable_attributes";
+ std::string key_user_mapping;
+ std::string key_user_ns;
+ std::string key_user_suffix;
+ std::string key_public_namespace;
 
-  update_attributes = "false";
-  set_default_mail_attributes();
-  set_default_updateable_attributes();
+ std::string key_mail_attributes;
+ std::string key_update_attributes;
+ std::string key_updateable_attributes;
 
-  user_mapping = "false";
-  user_ns = "users";
-  user_suffix = "_u";
-  public_namespace = "public";
-  valid = false;
+ RadosCephJsonConfig::RadosCephJsonConfig()
+     : cfg_object_name("rbox_cfg"),
+       valid(false),
+       user_mapping("false"),
+       user_ns("users"),
+       user_suffix("_u"),
+       public_namespace("public"),
+       update_attributes("false"),
+       key_user_mapping("user_mapping"),
+       key_user_ns("user_ns"),
+       key_user_suffix("user_suffix"),
+       key_public_namespace("rbox_public_namespace"),
+       key_mail_attributes("rbox_mail_attributes"),
+       key_update_attributes("rbox_update_attributes"),
+       key_updateable_attributes("rbox_updateable_attributes")
+        {
+   set_default_mail_attributes();
+   set_default_updateable_attributes();
 }
 
 void RadosCephJsonConfig::set_default_mail_attributes() {

@@ -13,15 +13,15 @@
 
 namespace librmb {
 
-RadosConfig::RadosConfig() {
-  // set defaults
-  rbox_cluster_name = "rbox_cluster_name";
-  rados_username = "rados_user_name";
-  prefix_keyword = "k";
-  pool_name = "rbox_pool_name";
+std::string pool_name;
 
-  rbox_cfg_object_name = "rbox_cfg_object_name";
-
+RadosConfig::RadosConfig()
+    : pool_name("rbox_pool_name"),
+      rbox_cfg_object_name("rbox_cfg_object_name"),
+      rbox_cluster_name("rbox_cluster_name"),
+      rados_username("rados_user_name"),
+      prefix_keyword("k")
+{
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
