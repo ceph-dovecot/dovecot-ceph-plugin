@@ -30,20 +30,20 @@ class RadosConfig {
 
   std::map<std::string, std::string> *get_config() { return &config; }
 
-  std::string get_pool_name() { return config[pool_name]; }
+  std::string &get_pool_name() { return config[pool_name]; }
 
   bool is_config_valid() { return is_valid; }
   void set_config_valid(bool is_valid_) { this->is_valid = is_valid_; }
 
-  std::string get_key_prefix_keywords() { return "k"; }
+  std::string &get_key_prefix_keywords() { return prefix_keyword; }
 
-  std::string get_rbox_cfg_object_name() { return config[rbox_cfg_object_name]; }
+  std::string &get_rbox_cfg_object_name() { return config[rbox_cfg_object_name]; }
 
   const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
   const std::string &get_rados_username() { return config[rados_username]; }
   void update_metadata(const std::string &key, const char *value_);
 
-  void set_rbox_cfg_object_name(std::string &value) { config[rbox_cfg_object_name] = value; }
+  void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
 
  private:
   bool string_contains_key(const std::string &str, enum rbox_metadata_key key);
@@ -55,6 +55,7 @@ class RadosConfig {
   std::string rbox_cfg_object_name;
   std::string rbox_cluster_name;
   std::string rados_username;
+  std::string prefix_keyword;
   bool is_valid;
 };
 

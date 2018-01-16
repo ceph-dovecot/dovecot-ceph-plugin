@@ -146,7 +146,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
- 
+
   delete test_obj;
   delete test_obj2;
 }
@@ -205,8 +205,8 @@ TEST_F(StorageTest, exec_write_op_fails) {
 
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
-  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
-  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -255,7 +255,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
- 
+
 
   delete test_obj;
   delete test_obj2;
@@ -318,8 +318,8 @@ TEST_F(StorageTest, write_op_fails) {
 
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
-  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
-  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -368,7 +368,7 @@ TEST_F(StorageTest, write_op_fails) {
   }
   i_stream_unref(&input);
   mailbox_free(&box);
- 
+
 
   delete test_obj;
   delete test_obj2;
@@ -453,8 +453,8 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
-  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(Return(pool));
-  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(Return(suffix));
+  EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -496,7 +496,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
     SUCCEED() << "tnx commit failed";
   }
   mailbox_free(&box);
- 
+
   delete test_object;
   delete test_object2;
 }

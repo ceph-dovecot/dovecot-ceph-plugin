@@ -28,7 +28,7 @@ static void i_stream_data_seek(struct istream_private *stream, uoff_t v_offset, 
   stream->istream.v_offset = v_offset;
 }
 
-struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, size_t size) {
+struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, const size_t &size) {
   struct istream_private *stream;
 
   stream = i_new(struct istream_private, 1);

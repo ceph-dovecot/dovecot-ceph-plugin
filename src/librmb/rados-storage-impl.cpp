@@ -39,23 +39,30 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
 
 RadosStorageImpl::~RadosStorageImpl() {}
 int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
-                                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) {
+                                               librados::ObjectWriteOperation *write_op_xattr,
+                                               const uint64_t &max_write) {
   if (!cluster->is_connected()) {
     return -1;
   }
 
+  uint64_t length = 0;
+  librados::ObjectWriteOperation *op = nullptr;
+  librados::AioCompletion *completion = nullptr;
+  int ret_val, offset = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
-  int ret_val = 0;
+
+  // split the buffer.
+  ceph::bufferlist tmp_buffer;
   assert(max_write > 0);
 
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; i++) {
-    int offset = i * max_write;
+    offset = i * max_write;
 
-    librados::ObjectWriteOperation *op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
+    op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
 
-    uint64_t length = max_write;
+    length = max_write;
     if (write_buffer_size < ((i + 1) * length)) {
       length = rest;
     }
@@ -63,14 +70,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
     if (div == 1) {
       op->write(0, *current_object->get_mail_buffer());
     } else {
-      // split the buffer.
-      ceph::bufferlist tmp_buffer;
-      /*  std::cout << " buff: " << offset << " length : " << length
-                  << " other.lenght:" << current_object->get_mail_buffer()->length() << std::endl;*/
+      tmp_buffer.clear();
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       op->write(offset, tmp_buffer);
     }
-    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+    completion = librados::Rados::aio_create_completion();
 
     (*current_object->get_completion_op_map())[completion] = op;
 
@@ -82,45 +86,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
 
   return ret_val;
 }
-int RadosStorageImpl::split_buffer_and_exec_op(const char *buffer, size_t buffer_length,
-                                               RadosMailObject *current_object,
-                                               librados::ObjectWriteOperation *write_op_xattr, uint64_t max_write) {
-  if (!cluster->is_connected()) {
-    return -1;
-  }
 
-  size_t write_buffer_size = buffer_length;
-  int ret_val = 0;
-  assert(max_write > 0);
-
-  int rest = write_buffer_size % max_write;
-  int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
-  for (int i = 0; i < div; i++) {
-    int offset = i * max_write;
-
-    librados::ObjectWriteOperation *op = i == 0 ? write_op_xattr : new librados::ObjectWriteOperation();
-
-    uint64_t length = max_write;
-    if (buffer_length < ((i + 1) * length)) {
-      length = rest;
-    }
-    const char *buf = buffer + offset;
-    librados::bufferlist tmp_buffer;
-    tmp_buffer.append(buf, length);
-    op->write(offset, tmp_buffer);
-
-    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-
-    (*current_object->get_completion_op_map())[completion] = op;
-
-    ret_val = get_io_ctx().aio_operate(current_object->get_oid(), completion, op);
-    if (ret_val < 0) {
-      break;
-    }
-  }
-
-  return ret_val;
-}
 int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &buffer) {
   return get_io_ctx().write_full(oid, buffer);
 }
@@ -178,12 +144,11 @@ int RadosStorageImpl::load_extended_metadata(std::string &oid, std::set<std::str
   return get_io_ctx().omap_get_vals_by_keys(oid, keys, metadata);
 }
 
-int RadosStorageImpl::set_metadata(const std::string &oid, const RadosMetadata &xattr) {
+int RadosStorageImpl::set_metadata(const std::string &oid, RadosMetadata &xattr) {
   if (!cluster->is_connected()) {
     return -1;
   }
-  ceph::bufferlist bl = xattr.bl;
-  return get_io_ctx().setxattr(oid, xattr.key.c_str(), bl);
+  return get_io_ctx().setxattr(oid, xattr.key.c_str(), xattr.bl);
 }
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
@@ -194,7 +159,7 @@ int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
   }
   return ret;
 }
-int RadosStorageImpl::delete_mail(std::string oid) {
+int RadosStorageImpl::delete_mail(const std::string &oid) {
   if (!cluster->is_connected() || oid.empty()) {
     return -1;
   }
@@ -229,6 +194,7 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
   if (!cluster->is_connected()) {
     return librados::NObjectIterator::__EndObjectIterator;
   }
+
   if (attr != nullptr) {
     std::string filter_name = PLAIN_FILTER_NAME;
     ceph::bufferlist filter_bl;
@@ -311,7 +277,7 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
   return ctx_failed;
 }
 
-bool RadosStorageImpl::update_metadata(std::string oid, std::list<RadosMetadata> &to_update) {
+bool RadosStorageImpl::update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) {
   if (!cluster->is_connected()) {
     return false;
   }
@@ -334,6 +300,7 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     return false;
   }
 
+  int ret = 0;
   librados::ObjectWriteOperation write_op;
   librados::IoCtx src_io_ctx, dest_io_ctx;
 
@@ -363,14 +330,14 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
       write_op.setxattr((*it).key.c_str(), (*it).bl);
     }
-
-    int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-    completion->wait_for_complete();
-    completion->release();
-
-    if (delete_source && strcmp(src_ns, dest_ns) != 0) {
-      src_io_ctx.remove(src_oid);
+    ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+    if (ret >= 0) {
+      completion->wait_for_complete();
+      if (delete_source && strcmp(src_ns, dest_ns) != 0) {
+        ret = src_io_ctx.remove(src_oid);
+      }
     }
+    completion->release();
     // reset io_ctx
     dest_io_ctx.set_namespace(dest_ns);
     return ret == 0;
@@ -386,7 +353,6 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   librados::ObjectWriteOperation write_op;
   librados::IoCtx src_io_ctx, dest_io_ctx;
 
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
   // destination io_ctx is current io_ctx
   dest_io_ctx = io_ctx;
@@ -411,9 +377,12 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
     write_op.setxattr((*it).key.c_str(), (*it).bl);
   }
-
-  int ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-  ret = completion->wait_for_complete();
+  int ret = 0;
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  if (ret >= 0) {
+    ret = completion->wait_for_complete();
+  }
   completion->release();
   // reset io_ctx
   dest_io_ctx.set_namespace(dest_ns);

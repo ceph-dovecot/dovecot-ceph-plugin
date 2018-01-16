@@ -29,10 +29,10 @@ class RadosUtils {
   static bool is_numeric(const std::string &s);
   static bool is_date_attribute(rbox_metadata_key &key);
 
-  static bool convert_string_to_date(std::string &date_string, std::string *date);
+  static bool convert_string_to_date(const std::string &date_string, std::string *date);
   static int convert_time_t_to_str(const time_t &t, std::string *ret_val);
-  static std::string flags_to_string(const uint8_t &flags);
-  static uint8_t string_to_flags(std::string &flags);
+  static bool flags_to_string(const uint8_t &flags, std::string *flags_str);
+  static bool string_to_flags(const std::string &flags_str, uint8_t *flags);
 };
 
 } /* namespace tallence */

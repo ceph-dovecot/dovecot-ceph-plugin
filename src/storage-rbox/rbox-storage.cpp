@@ -44,12 +44,10 @@ using std::string;
 
 class RboxGuidGeneraor : public librmb::RadosGuidGenerator {
  public:
-  std::string generate_guid() {
+  void generate_guid(std::string *guid_) {
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
-    char *guid = guid_128_to_string(namespace_guid);
-    std::string ns(guid);
-    return ns;
+    *guid_ = guid_128_to_string(namespace_guid);
   }
 };
 

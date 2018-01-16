@@ -72,21 +72,18 @@ int RadosClusterImpl::initialize() {
     if (ret == 0) {
       ret = cluster.conf_read_file(nullptr);
     }
-
-    std::string value_mount_timeout;
-    if (get_config_option(CLIENT_MOUNT_TIMEOUT, &value_mount_timeout) < 0) {
+    // check if ceph configuration has connection timeout set, else set defaults to avoid
+    // waiting forever
+    std::string cfg_value;
+    if (get_config_option(CLIENT_MOUNT_TIMEOUT, &cfg_value) < 0) {
       cluster.conf_set(CLIENT_MOUNT_TIMEOUT, CLIENT_MOUNT_TIMEOUT_DEFAULT);
     }
-
-    std::string value_mon_op_timeout;
-    ret = get_config_option(RADOS_MON_OP_TIMEOUT, &value_mon_op_timeout);
-    if (ret < 0 || value_mon_op_timeout.compare("0") == 0) {
+    ret = get_config_option(RADOS_MON_OP_TIMEOUT, &cfg_value);
+    if (ret < 0 || cfg_value.compare("0") == 0) {
       cluster.conf_set(RADOS_MON_OP_TIMEOUT, RADOS_MON_OP_TIMEOUT_DEFAULT);
     }
-
-    std::string value_osd_op_timeout;
-    ret = get_config_option(RADOS_OSD_OP_TIMEOUT, &value_mon_op_timeout);
-    if (ret < 0 || value_osd_op_timeout.compare("0") == 0) {
+    ret = get_config_option(RADOS_OSD_OP_TIMEOUT, &cfg_value);
+    if (ret < 0 || cfg_value.compare("0") == 0) {
       cluster.conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
     }
 

@@ -17,7 +17,7 @@ RadosConfig::RadosConfig() {
   // set defaults
   rbox_cluster_name = "rbox_cluster_name";
   rados_username = "rados_user_name";
-
+  prefix_keyword = "k";
   pool_name = "rbox_pool_name";
 
   rbox_cfg_object_name = "rbox_cfg_object_name";

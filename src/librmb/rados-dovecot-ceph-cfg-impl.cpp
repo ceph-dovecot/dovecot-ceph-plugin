@@ -14,28 +14,18 @@
 namespace librmb {
 
 RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_) {
-  dovecot_cfg = new RadosConfig();
-  rados_cfg = new RadosCephConfig(io_ctx_);
-  delete_cfg = true;
+  rados_cfg.set_io_ctx(io_ctx_);
 }
 
-RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(RadosConfig *dovecot_cfg_, RadosCephConfig *rados_cfg_) {
+RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(RadosConfig &dovecot_cfg_, RadosCephConfig &rados_cfg_) {
   dovecot_cfg = dovecot_cfg_;
   rados_cfg = rados_cfg_;
-  // do not delete injected pointer
-  delete_cfg = false;
 }
 
-RadosDovecotCephCfgImpl::~RadosDovecotCephCfgImpl() {
-  if (delete_cfg) {
-    delete dovecot_cfg;
-    delete rados_cfg;
-  }
-}
 
 int RadosDovecotCephCfgImpl::save_default_rados_config() {
-  bool valid = rados_cfg->save_cfg() == 0 ? true : false;
-  rados_cfg->set_config_valid(valid);
+  bool valid = rados_cfg.save_cfg() == 0 ? true : false;
+  rados_cfg.set_config_valid(valid);
   return valid ? 0 : -1;
 }
 

@@ -21,6 +21,7 @@ namespace librmb {
 class RadosCephConfig {
  public:
   RadosCephConfig(librados::IoCtx *io_ctx_);
+  RadosCephConfig() { io_ctx = nullptr; }
   virtual ~RadosCephConfig() {}
 
   // load settings from rados cfg_object
@@ -32,19 +33,19 @@ class RadosCephConfig {
   void set_config_valid(bool valid_) { config.set_valid(valid_); }
   bool is_user_mapping() { return !config.get_user_mapping().compare("true"); }
   void set_user_mapping(bool value_) { config.set_user_mapping(value_ ? "true" : "false"); }
-  void set_user_ns(std::string &ns_) { config.set_user_ns(ns_); }
-  std::string get_user_ns() { return config.get_user_ns(); }
-  void set_user_suffix(std::string &ns_suffix_) { config.set_user_suffix(ns_suffix_); }
-  std::string get_user_suffix() { return config.get_user_suffix(); }
+  void set_user_ns(const std::string &ns_) { config.set_user_ns(ns_); }
+  std::string &get_user_ns() { return config.get_user_ns(); }
+  void set_user_suffix(const std::string &ns_suffix_) { config.set_user_suffix(ns_suffix_); }
+  std::string &get_user_suffix() { return config.get_user_suffix(); }
   const std::string &get_public_namespace() const { return config.get_public_namespace(); }
-  void set_public_namespace(std::string &public_namespace_) { config.set_public_namespace(public_namespace_); }
+  void set_public_namespace(const std::string &public_namespace_) { config.set_public_namespace(public_namespace_); }
 
-  void set_cfg_object_name(std::string cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
+  void set_cfg_object_name(const std::string cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
   std::string get_cfg_object_name() { return config.get_cfg_object_name(); }
   RadosCephJsonConfig *get_config() { return &config; }
 
-  bool is_valid_key_value(std::string &key, std::string &value);
-  bool update_valid_key_value(std::string &key, std::string &value);
+  bool is_valid_key_value(const std::string &key, const std::string &value);
+  bool update_valid_key_value(const std::string &key, const std::string &value);
 
   bool is_mail_attribute(enum rbox_metadata_key key) { return config.is_mail_attribute(key); }
   bool is_updateable_attribute(enum rbox_metadata_key key) { return config.is_updateable_attribute(key); }
@@ -59,7 +60,7 @@ class RadosCephConfig {
 
   int save_object(const std::string &oid, librados::bufferlist &buffer);
   int read_object(const std::string &oid, librados::bufferlist *buffer);
-  void set_io_ctx_namespace(std::string &namespace_);
+  void set_io_ctx_namespace(const std::string &namespace_);
 
  private:
   RadosCephJsonConfig config;

@@ -53,7 +53,7 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
 static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
-  uint32_t uid;
+  uint32_t uid = -1;
 
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
@@ -76,7 +76,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
                                     bool remove) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
-  uint32_t uid;
+  uint32_t uid = -1;
   int ret = 0;
   if (rbox_open_rados_connection(box) < 0) {
     i_error("rbox_sync_object_expunge: connection to rados failed");
@@ -127,9 +127,8 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       mail_object.set_oid(oid);
       r_storage->s->load_metadata(&mail_object);
       std::string flags_metadata = mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
-      uint8_t flags = librmb::RadosUtils::string_to_flags(flags_metadata);
-
-      if (flags != 0) {
+      uint8_t flags;
+      if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {
         if (add_flags != 0) {
           flags |= add_flags;
         }
@@ -137,9 +136,10 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
           flags &= ~remove_flags;
         }
 
-        flags_metadata = librmb::RadosUtils::flags_to_string(flags);
-        librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
-        ret = r_storage->s->set_metadata(mail_object.get_oid(), update);
+        if (librmb::RadosUtils::flags_to_string(flags, &flags_metadata)) {
+          librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
+          ret = r_storage->s->set_metadata(mail_object.get_oid(), update);
+        }
       }
     }
   }
@@ -237,8 +237,8 @@ static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_e
 
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags) {
   FUNC_START();
-  struct rbox_sync_context *ctx;
-  enum mail_index_sync_flags sync_flags;
+  struct rbox_sync_context *ctx = NULL;
+  uint8_t sync_flags = 0x0;
 
   int ret = 0;
   struct mail_storage *storage = mbox->box.storage;
@@ -267,7 +267,8 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
   for (i = 0;; i++) {
     // sync_ctx->flags werden gesetzt.
-    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans, sync_flags);
+    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
+                                            static_cast<enum mail_index_sync_flags>(sync_flags));
 
     if (mail_index_reset_fscked(mbox->box.index))
       rbox_set_mailbox_corrupted(&mbox->box);
@@ -319,24 +320,25 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
   int ret_remove = -1;
   struct mailbox *box = &ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  
+
   const char *oid = guid_128_to_string(item->oid);
 
   if (rbox_open_rados_connection(box) < 0) {
     i_error("rbox_sync_object_expunge: connection to rados failed");
     return;
   }
-//  i_debug("deleting mail: %s, in namespace %s", oid, r_storage->s->get_namespace().c_str());
   ret_remove = r_storage->s->delete_mail(oid);
   // callback
   /* do sync_notify only when the file was unlinked by us */
   if (box->v.sync_notify != NULL) {
-    // i_debug("sync: notify oid: %s", guid_128_to_string(item->oid));
     box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
   }
-  //if(ret_remove <0){
-    i_debug("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d", guid_128_to_string(item->oid), getpid(),ret_remove);
-  //}
+
+  if (ret_remove < 0) {
+    i_error("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d", guid_128_to_string(item->oid),
+            getpid(), ret_remove);
+  }
+
   FUNC_END();
 }
 
@@ -375,8 +377,9 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
     }
   }
 
-  if (ctx->mbox->box.v.sync_notify != NULL)
+  if (ctx->mbox->box.v.sync_notify != NULL) {
     ctx->mbox->box.v.sync_notify(&ctx->mbox->box, 0, static_cast<mailbox_sync_type>(0));
+  }
 
   ctx->mbox->box.tmp_sync_view = NULL;
   FUNC_END();
@@ -439,7 +442,7 @@ int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  uint8_t rbox_sync_flags = 0;
+  uint8_t rbox_sync_flags = 0x0;
   int ret = 0;
 
   if (!box->opened) {
@@ -448,11 +451,13 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     }
   }
 
-  if (ret == 0 && mail_index_reset_fscked(box->index))
+  if (ret == 0 && mail_index_reset_fscked(box->index)) {
     rbox_set_mailbox_corrupted(box);
+  }
   if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->corrupted_rebuild_count != 0)) {
-    if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0)
+    if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
+    }
     ret = rbox_sync(mbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
   }
   FUNC_END();

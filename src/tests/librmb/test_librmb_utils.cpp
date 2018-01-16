@@ -85,9 +85,11 @@ TEST(librmb, config_mutable_metadata) {
 
 TEST(librmb, convert_flags) {
   uint8_t flags = 0x3f;
-  std::string s = librmb::RadosUtils::flags_to_string(flags);
+  std::string s;
+  librmb::RadosUtils::flags_to_string(flags, &s);
 
-  uint8_t flags_ = librmb::RadosUtils::string_to_flags(s);
+  uint8_t flags_;
+  librmb::RadosUtils::string_to_flags(s, &flags_);
   EXPECT_EQ(flags, flags_);
 }
 

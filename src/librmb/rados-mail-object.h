@@ -47,7 +47,7 @@ const uint64_t& get_mail_size() { return this->object_size; }
 
 time_t* get_rados_save_date() { return &this->save_date_rados; }
 uint8_t* get_guid_ref() { return this->guid; }
-librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
+librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
 map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
 map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
@@ -82,12 +82,12 @@ const string get_extended_metadata(string& key) {
  private:
   string oid;
 
-  uint8_t guid[GUID_128_SIZE];
+  uint8_t guid[GUID_128_SIZE] = {};
   uint64_t object_size;  // byte
   map<AioCompletion*, ObjectWriteOperation*> completion_op;
 
   bool active_op;
-  ceph::bufferlist* mail_buffer;
+  ceph::bufferlist mail_buffer;
   time_t save_date_rados;
 
   map<string, ceph::bufferlist> attrset;

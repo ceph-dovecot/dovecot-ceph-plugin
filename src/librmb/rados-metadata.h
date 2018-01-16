@@ -22,6 +22,7 @@ namespace librmb {
 
 class RadosMetadata {
  public:
+  RadosMetadata() {}
   RadosMetadata(std::string& key_, std::string& value_) {
     key = key_;
     bl.append(value_);
@@ -35,6 +36,7 @@ class RadosMetadata {
   RadosMetadata(enum rbox_metadata_key _key, const uint& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const size_t& val) { convert(_key, val); }
+  ~RadosMetadata() {}
 
  public:
   ceph::bufferlist& get_bl();
@@ -51,35 +53,34 @@ class RadosMetadata {
   ceph::bufferlist bl;
   std::string key;
 
- private:
   void convert(enum rbox_metadata_key _key, const std::string& val) {
-    key = enum_to_string(_key);
+    bl.clear();
+    key = static_cast<char>(_key);
     bl.append(val);
   }
 
   void convert(enum rbox_metadata_key _key, const time_t& time) {
-    key = enum_to_string(_key);
+    bl.clear();
+    key = static_cast<char>(_key);
     bl.append(std::to_string(time));
   }
 
   void convert(enum rbox_metadata_key _key, char* value) {
-    key = enum_to_string(_key);
+    bl.clear();
+    key = static_cast<char>(_key);
     bl.append(value);
   }
 
   void convert(enum rbox_metadata_key _key, const uint& value) {
-    key = enum_to_string(_key);
+    bl.clear();
+    key = static_cast<char>(_key);
     bl.append(std::to_string(value));
   }
 
   void convert(enum rbox_metadata_key _key, const size_t& value) {
-    key = enum_to_string(_key);
+    bl.clear();
+    key = static_cast<char>(_key);
     bl.append(std::to_string(static_cast<int>(value)));
-  }
-
-  std::string enum_to_string(enum rbox_metadata_key _key) {
-    std::string k(1, static_cast<char>(_key));
-    return k;
   }
 };
 }  // end namespace

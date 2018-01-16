@@ -25,8 +25,6 @@ struct bufferlist_ostream {
 
 static int o_stream_buffer_seek(struct ostream_private *stream, uoff_t offset) {
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
-
-  i_debug("BUFFERSTREAM_: setting seek");
   bstream->seeked = TRUE;
   stream->ostream.offset = offset;
   return 1;
@@ -36,7 +34,6 @@ static int o_stream_buffer_write_at(struct ostream_private *stream, const void *
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
   // ceph::bufferptr bp = ceph::buffer::create_static(size, reinterpret_cast<const char *>(data));
   // bstream->buf->append(bp, offset, size);
-  // i_debug("BUFFERSTREAM_: offset write at : %u", offset);
   bstream->buf->append(reinterpret_cast<const char *>(data), size);
   return 0;
 }

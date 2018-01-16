@@ -24,7 +24,6 @@ struct rbox_mail {
 
   librmb::RadosMailObject *mail_object;
   uint32_t last_seq;  // TODO(jrse): init with -1
-  librados::bufferlist *buffer;
 };
 
 extern int rbox_get_index_record(struct mail *_mail);
