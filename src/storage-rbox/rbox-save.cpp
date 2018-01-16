@@ -5,7 +5,7 @@
  * Copyright (c) 2007-2017 Dovecot authors
  *
  * This is free software; you can redistribute it and/or
- * 
+ *
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
@@ -58,7 +58,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
   if (t->save_ctx == NULL) {
-//    i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
+    //    i_debug("rbox_save_alloc: t->save_ctx == NULL, mailbox name = %s", t->box->name);
     r_ctx = new rbox_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
@@ -81,7 +81,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
-  mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
+  mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
   if (_ctx->data.keywords != NULL) {
@@ -120,7 +120,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 
   /* add to index */
   save_flags = mdata->flags & ~MAIL_RECENT;
-  mail_index_append(r_ctx->trans, 0, &r_ctx->seq);
+  mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
 
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
@@ -156,7 +156,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
   if (_ctx->dest_mail != NULL) {
-//    i_debug("SAVE OID: %s, seq=%d", guid_128_to_string(rec.oid), r_ctx->seq);
+    //    i_debug("SAVE OID: %s, seq=%d", guid_128_to_string(rec.oid), r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
 }
@@ -341,15 +341,16 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
        ++it_cur_obj) {
     if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
-    }else{
-      i_error("clean_up_failed: mail object successfully %s removed from objectstore due to previous error", (*it_cur_obj)->get_oid().c_str());
+    } else {
+      i_error("clean_up_failed: mail object successfully %s removed from objectstore due to previous error",
+              (*it_cur_obj)->get_oid().c_str());
     }
   }
   // clean up index
   if (r_ctx->seq > 0) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
-  }else{
-    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0",r_ctx->seq);
+  } else {
+    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0", r_ctx->seq);
   }
   mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
 
