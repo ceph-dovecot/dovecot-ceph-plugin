@@ -58,8 +58,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   FUNC_START();
   struct rbox_storage *storage;
   pool_t pool;
-
-  pool = pool_alloconly_create("rbox storage", 512 + 256);
+  pool = pool_alloconly_create("rbox storage", 256);
   storage = p_new(pool, struct rbox_storage, 1);
   storage->storage = rbox_storage;
   storage->storage.pool = pool;
@@ -136,7 +135,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
     i_debug("mailbox_list_index = %s", btoa(storage->set->mailbox_list_index));
   }*/
 
-  pool = pool_alloconly_create("rbox mailbox", 1024 * 3);
+  pool = pool_alloconly_create("rbox mailbox", 1024);
   rbox = p_new(pool, struct rbox_mailbox, 1);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
   rbox->box = rbox_mailbox;
@@ -289,11 +288,14 @@ int rbox_open_rados_connection(struct mailbox *box) {
                                        mbox->storage->config->get_rados_cluster_name(),
                                        mbox->storage->config->get_rados_username());
 
+  if (ret == 1) {
+    // already connected nothing to do!
+    return 0;
+  }
   if (ret < 0) {
     i_debug("Error = %d", ret);
     return ret;
   }
-
   // load rados configuration
   ret = mbox->storage->config->load_rados_config();
   if (ret == -ENOENT) {  // config does not exist.

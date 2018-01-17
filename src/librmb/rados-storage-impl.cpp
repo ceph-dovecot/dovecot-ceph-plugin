@@ -213,9 +213,14 @@ librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
 
 int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &clustername,
                                       const std::string &rados_username) {
+  if (cluster->is_connected()) {
+    // cluster is already connected!
+    return 1;
+  }
+
   if (cluster->init(clustername, rados_username) < 0) {
     return -1;
-  }
+    }
   return create_connection(poolname);
 }
 
