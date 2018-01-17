@@ -56,13 +56,14 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   rbox_save_context *r_ctx = NULL;
 
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
-
-  r_ctx = new rbox_save_context(*(r_storage->s));
-  r_ctx->ctx.transaction = t;
-  r_ctx->mbox = rbox;
-  r_ctx->trans = t->itrans;
-  r_ctx->current_object = nullptr;
-  t->save_ctx = &r_ctx->ctx;
+  if(t->save_ctx == NULL){
+    r_ctx = new rbox_save_context(*(r_storage->s));
+    r_ctx->ctx.transaction = t;
+    r_ctx->mbox = rbox;
+    r_ctx->trans = t->itrans;
+    r_ctx->current_object = nullptr;
+    t->save_ctx = &r_ctx->ctx;
+  }
 
   FUNC_END();
   return t->save_ctx;
