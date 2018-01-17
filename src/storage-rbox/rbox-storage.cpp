@@ -67,6 +67,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->config = new librmb::RadosDovecotCephCfgImpl(&storage->s->get_io_ctx());
   storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
 
+
   FUNC_END();
   return &storage->storage;
 }
@@ -117,6 +118,8 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
     storage->config = nullptr;
   }
   index_storage_destroy(_storage);
+
+  i_debug("destroying storage!");
 
   FUNC_END();
 }
