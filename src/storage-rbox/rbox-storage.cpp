@@ -153,7 +153,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   index_storage_mailbox_alloc(&rbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
 
-  ibox = static_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(&rbox->box));
+  ibox = static_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(&rbox->box));
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
@@ -293,6 +293,7 @@ int rbox_open_rados_connection(struct mailbox *box) {
 
   if (ret == 1) {
     // already connected nothing to do!
+    FUNC_END();
     return 0;
   }
   if (ret < 0) {

@@ -343,8 +343,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
                                     enum index_cache_field cache_field, const char **value_r) {
   struct index_mail *imail = &mail->imail;
-  struct index_mailbox_context *ibox =
-      reinterpret_cast<index_mailbox_context *>(INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
+  struct index_mailbox_context *ibox = reinterpret_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
+
   char *value = NULL;
   string_t *str;
   unsigned int order = 0;
