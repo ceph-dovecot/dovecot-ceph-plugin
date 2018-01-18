@@ -152,8 +152,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     ns_dest_mail1 = r_storage->config->get_public_namespace();
   }
 
-  i_debug("NAMESPACE: src: %s , dest=%s", ns_src_mail1.c_str(), ns_dest_mail1.c_str());
-
   std::string ns_src;
   if (!r_storage->ns_mgr->lookup_key(ns_src_mail1, &ns_src)) {
     i_error("not initialized : ns_src");
@@ -260,6 +258,10 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 
   if (ctx->saving || !r_ctx->copying) {
     // LDA or doveadm backup need copy for saving the mail
+
+    // explicitly copy flags
+    mailbox_save_copy_flags(ctx, mail);
+
     if (mail_storage_copy(ctx, mail) < 0) {
       FUNC_END_RET("ret == -1, mail_storage_copy failed");
       return -1;
