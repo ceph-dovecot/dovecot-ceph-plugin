@@ -78,11 +78,15 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   uint8_t save_flags = 0x0;
 
   /* add to index */
+#if DOVECOT_PREREQ(2, 3)
   if ((r_ctx->ctx.transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
     mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
   } else {
     r_ctx->seq = mdata->stub_seq;
   }
+#else
+  mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
+#endif
 
   save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
