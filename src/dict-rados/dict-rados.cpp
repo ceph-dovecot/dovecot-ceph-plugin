@@ -572,10 +572,11 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp A
   ctx->result_private = ctx->completion_private->get_return_value();
 
   if (ctx->locked_private) {
-    /*int err = */ d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
-    /*i_debug("rados_dict_transaction_private_complete_callback(): unlock(%s) ret=%d (%s)",
-       d->get_private_oid().c_str(),
-            err, strerror(-err));*/
+    int err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    if (err < 0) {
+      i_error("rados_dict_transaction_private_complete_callback(): unlock(%s) ret=%d (%s)",
+              d->get_private_oid().c_str(), err, strerror(-err));
+    }
   }
 
   if (finished) {
@@ -614,9 +615,11 @@ static void rados_dict_transaction_shared_complete_callback(completion_t comp AT
   ctx->result_shared = ctx->completion_shared->get_return_value();
 
   if (ctx->locked_shared) {
-    /*int err =*/d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
-    // i_debug("rados_dict_transaction_shared_complete_callback(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(),
-    //            err, strerror(-err));
+    int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    if (err < 0) {
+      i_error("rados_dict_transaction_shared_complete_callback(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(),
+              err, strerror(-err));
+    }
   }
 
   if (finished) {
@@ -732,23 +735,24 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
         ret = ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND
                                         : (failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK);
         if (ctx->locked_private) {
-          /*int err =*/d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC",
+          int err =d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC",
                                                       guid_128_to_string(ctx->guid));
+
           // i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_private_oid().c_str(), err,
           //      strerror(-err));
-          /* if (err < 0) {
+          if (err < 0) {
              i_error("rados_dict_transaction_commit()  private_io: unlock(% s) ret = % d(% s) ",
                      d->get_private_oid().c_str(), err, strerror(-err));
-           }*/
+           }
         }
         if (ctx->locked_shared) {
-          /*int err =*/d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+          int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
           // i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(), err,
           //        strerror(-err));
-          /*if (err < 0) {
+          if (err < 0) {
             i_error("rados_dict_transaction_commit() shared_io : unlock(% s) ret = % d(% s) ",
                     d->get_private_oid().c_str(), err, strerror(-err));
-          }*/
+          }
         }
         delete ctx;
         ctx = NULL;
@@ -781,12 +785,18 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
-
+  int ret = 0;
+  std::string oid;
   if (ctx->locked_private) {
-    d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    oid = d->get_private_oid();
+    ret = d->get_private_io_ctx().unlock(oid, "ATOMIC_INC", guid_128_to_string(ctx->guid));
   }
   if (ctx->locked_shared) {
-    d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    oid = d->get_shared_oid();
+    ret = d->get_shared_io_ctx().unlock(oid, "ATOMIC_INC", guid_128_to_string(ctx->guid));
+  }
+  if (ret < 0) {
+    i_error("rados_dict_transaction_rollback(): unlock(%s) ret=%d (%s)", oid.c_str(), ret, strerror(-ret));
   }
   delete ctx;
   ctx = NULL;
