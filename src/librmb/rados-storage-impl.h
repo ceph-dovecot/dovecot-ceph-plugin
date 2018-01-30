@@ -80,6 +80,7 @@ class RadosStorageImpl : public RadosStorage {
   int max_write_size;
   std::string nspace;
   librados::IoCtx io_ctx;
+  bool io_ctx_created;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };
