@@ -36,18 +36,16 @@ class RadosClusterImpl : public RadosCluster {
   int get_config_option(const char *option, std::string *value);
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
-
   bool is_connected();
-
   librados::Rados &get_cluster() { return cluster; }
 
  private:
   int initialize();
 
  private:
-  librados::Rados cluster;
-  int cluster_ref_count;
-  bool connected;
+  static librados::Rados cluster;
+  static int cluster_ref_count;
+  static bool connected;
 
   static const char *CLIENT_MOUNT_TIMEOUT;
   static const char *RADOS_MON_OP_TIMEOUT;

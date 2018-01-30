@@ -32,84 +32,90 @@ const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
 
+// Note: Using Dictionary und RadosStorage with different ceph cluster / user is currently
+//       not supported.
+librados::Rados RadosClusterImpl::cluster;
+int RadosClusterImpl::cluster_ref_count = 0;
+bool RadosClusterImpl::connected = false;
+
 RadosClusterImpl::RadosClusterImpl() {
-  cluster_ref_count = 0;
-  connected = false;
+
 }
 
 RadosClusterImpl::~RadosClusterImpl() {}
 
 int RadosClusterImpl::init() {
   int ret = 0;
-  if (cluster_ref_count == 0) {
-    ret = cluster.init(nullptr);
+  if (RadosClusterImpl::cluster_ref_count == 0) {
+    ret = RadosClusterImpl::cluster.init(nullptr);
     if (ret == 0) {
       ret = initialize();
     }
   }
+  if (ret == 0)
+    RadosClusterImpl::cluster_ref_count++;
   return ret;
 }
 
 int RadosClusterImpl::init(const std::string &clustername, const std::string &rados_username) {
   int ret = 0;
-  if (cluster_ref_count == 0) {
-    ret = cluster.init2(rados_username.c_str(), clustername.c_str(), 0);
+  if (RadosClusterImpl::cluster_ref_count == 0) {
+    ret = RadosClusterImpl::cluster.init2(rados_username.c_str(), clustername.c_str(), 0);
     if (ret == 0) {
       ret = initialize();
     }
   }
+  if (ret == 0)
+    RadosClusterImpl::cluster_ref_count++;
+
   return ret;
 }
 
 int RadosClusterImpl::initialize() {
   int ret = 0;
-  if (cluster_ref_count == 0) {
 
-    if (ret == 0) {
-      ret = cluster.conf_parse_env(nullptr);
-    }
-
-    if (ret == 0) {
-      ret = cluster.conf_read_file(nullptr);
-    }
-    // check if ceph configuration has connection timeout set, else set defaults to avoid
-    // waiting forever
-    std::string cfg_value;
-    if (get_config_option(CLIENT_MOUNT_TIMEOUT, &cfg_value) < 0) {
-      cluster.conf_set(CLIENT_MOUNT_TIMEOUT, CLIENT_MOUNT_TIMEOUT_DEFAULT);
-    }
-    ret = get_config_option(RADOS_MON_OP_TIMEOUT, &cfg_value);
-    if (ret < 0 || cfg_value.compare("0") == 0) {
-      cluster.conf_set(RADOS_MON_OP_TIMEOUT, RADOS_MON_OP_TIMEOUT_DEFAULT);
-    }
-    ret = get_config_option(RADOS_OSD_OP_TIMEOUT, &cfg_value);
-    if (ret < 0 || cfg_value.compare("0") == 0) {
-      cluster.conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
-    }
-
-    if (ret == 0)
-      cluster_ref_count++;
+  if (ret == 0) {
+    ret = RadosClusterImpl::cluster.conf_parse_env(nullptr);
   }
+
+  if (ret == 0) {
+    ret = RadosClusterImpl::cluster.conf_read_file(nullptr);
+  }
+  // check if ceph configuration has connection timeout set, else set defaults to avoid
+  // waiting forever
+  std::string cfg_value;
+  if (get_config_option(CLIENT_MOUNT_TIMEOUT, &cfg_value) < 0) {
+    RadosClusterImpl::cluster.conf_set(CLIENT_MOUNT_TIMEOUT, CLIENT_MOUNT_TIMEOUT_DEFAULT);
+  }
+  ret = get_config_option(RADOS_MON_OP_TIMEOUT, &cfg_value);
+  if (ret < 0 || cfg_value.compare("0") == 0) {
+    RadosClusterImpl::cluster.conf_set(RADOS_MON_OP_TIMEOUT, RADOS_MON_OP_TIMEOUT_DEFAULT);
+  }
+  ret = get_config_option(RADOS_OSD_OP_TIMEOUT, &cfg_value);
+  if (ret < 0 || cfg_value.compare("0") == 0) {
+    RadosClusterImpl::cluster.conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
+  }
+
   return ret;
 }
 
-bool RadosClusterImpl::is_connected() { return this->connected; }
+bool RadosClusterImpl::is_connected() { return RadosClusterImpl::connected; }
 
 int RadosClusterImpl::connect() {
   int ret = 0;
-  if (cluster_ref_count > 0 && !connected) {
-    ret = cluster.connect();
-    connected = ret == 0;
+  if (RadosClusterImpl::cluster_ref_count > 0 && !RadosClusterImpl::connected) {
+    ret = RadosClusterImpl::cluster.connect();
+    RadosClusterImpl::connected = ret == 0;
   }
   return ret;
 }
 
 void RadosClusterImpl::deinit() {
-  if (cluster_ref_count > 0) {
-    if (--cluster_ref_count == 0) {
-      if (connected) {
-        cluster.shutdown();
-        connected = false;
+  if (RadosClusterImpl::cluster_ref_count > 0) {
+    if (--RadosClusterImpl::cluster_ref_count == 0) {
+      if (RadosClusterImpl::connected) {
+        RadosClusterImpl::cluster.shutdown();
+        RadosClusterImpl::connected = false;
       }
     }
   }
@@ -121,7 +127,7 @@ int RadosClusterImpl::pool_create(const string &pool) {
   int ret = connect();
   if (ret == 0) {
     list<pair<int64_t, string>> pool_list;
-    ret = cluster.pool_list2(pool_list);
+    ret = RadosClusterImpl::cluster.pool_list2(pool_list);
 
     if (ret == 0) {
       bool pool_found = false;
@@ -134,7 +140,7 @@ int RadosClusterImpl::pool_create(const string &pool) {
       }
 
       if (pool_found != true) {
-        ret = cluster.pool_create(pool.c_str());
+        ret = RadosClusterImpl::cluster.pool_create(pool.c_str());
         pool_found = ret == 0;
       }
     }
@@ -148,7 +154,7 @@ int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx)
 
   assert(io_ctx != nullptr);
 
-  if (cluster_ref_count == 0) {
+  if (RadosClusterImpl::cluster_ref_count == 0) {
     ret = -ENOENT;
   }
 
@@ -161,11 +167,13 @@ int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx)
     }
 
     if (ret == 0) {
-      ret = cluster.ioctx_create(pool.c_str(), *io_ctx);
+      ret = RadosClusterImpl::cluster.ioctx_create(pool.c_str(), *io_ctx);
     }
   }
 
   return ret;
 }
 
-int RadosClusterImpl::get_config_option(const char *option, string *value) { return cluster.conf_get(option, *value); }
+int RadosClusterImpl::get_config_option(const char *option, string *value) {
+  return RadosClusterImpl::cluster.conf_get(option, *value);
+}
