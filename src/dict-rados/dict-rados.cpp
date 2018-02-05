@@ -354,7 +354,7 @@ class rados_dict_transaction_context {
   bool atomic_inc_not_found;
 
   guid_128_t guid;
-
+  std::string guid_to_str;
   void *context = nullptr;
   dict_transaction_commit_callback_t *callback;
 
@@ -399,6 +399,7 @@ class rados_dict_transaction_context {
     completion_shared = nullptr;
 
     guid_128_generate(guid);
+    guid_to_str = guid_128_to_string(guid);
   }
   ~rados_dict_transaction_context() {}
 
@@ -485,7 +486,7 @@ class rados_dict_transaction_context {
             if (!is_locked(key)) {
               struct timeval tv = {30, 0};  // TODO(peter): config?
               int err = -1;
-              err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_128_to_string(guid),
+              err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_to_str,
                                                       "rados_atomic_inc(" + key + ")", &tv, 0);
               if (err == 0) {
                 set_locked(key);
@@ -572,7 +573,7 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp A
   ctx->result_private = ctx->completion_private->get_return_value();
 
   if (ctx->locked_private) {
-    int err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    int err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", ctx->guid_to_str);
     if (err < 0) {
       i_error("rados_dict_transaction_private_complete_callback(): unlock(%s) ret=%d (%s)",
               d->get_private_oid().c_str(), err, strerror(-err));
@@ -615,7 +616,7 @@ static void rados_dict_transaction_shared_complete_callback(completion_t comp AT
   ctx->result_shared = ctx->completion_shared->get_return_value();
 
   if (ctx->locked_shared) {
-    int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", ctx->guid_to_str);
     if (err < 0) {
       i_error("rados_dict_transaction_shared_complete_callback(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(),
               err, strerror(-err));
@@ -735,8 +736,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
         ret = ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND
                                         : (failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK);
         if (ctx->locked_private) {
-          int err =d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC",
-                                                      guid_128_to_string(ctx->guid));
+          int err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", ctx->guid_to_str);
 
           // i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_private_oid().c_str(), err,
           //      strerror(-err));
@@ -746,7 +746,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
            }
         }
         if (ctx->locked_shared) {
-          int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", guid_128_to_string(ctx->guid));
+          int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", ctx->guid_to_str);
           // i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_shared_oid().c_str(), err,
           //        strerror(-err));
           if (err < 0) {
@@ -789,11 +789,11 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
   std::string oid;
   if (ctx->locked_private) {
     oid = d->get_private_oid();
-    ret = d->get_private_io_ctx().unlock(oid, "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    ret = d->get_private_io_ctx().unlock(oid, "ATOMIC_INC", ctx->guid_to_str);
   }
   if (ctx->locked_shared) {
     oid = d->get_shared_oid();
-    ret = d->get_shared_io_ctx().unlock(oid, "ATOMIC_INC", guid_128_to_string(ctx->guid));
+    ret = d->get_shared_io_ctx().unlock(oid, "ATOMIC_INC", ctx->guid_to_str);
   }
   if (ret < 0) {
     i_error("rados_dict_transaction_rollback(): unlock(%s) ret=%d (%s)", oid.c_str(), ret, strerror(-ret));
@@ -856,6 +856,7 @@ class rados_dict_iterate_context {
   typename vector<kv_map>::iterator results_iter;
 
   guid_128_t guid;
+  std::string guid_to_str;
 
   rados_dict_iterate_context(struct dict *dict, enum dict_iterate_flags _flags)
       : results(), results_iter(results.begin()) {
@@ -865,10 +866,11 @@ class rados_dict_iterate_context {
     failed = FALSE;
     result_pool = pool_alloconly_create("iterate value pool", 1024);
     guid_128_generate(this->guid);
+    guid_to_str = guid_128_to_string(this->guid);
   }
 
   void dump() {
-    auto g = guid_128_to_string(guid);
+    auto g = guid_to_str;
     for (const auto &i : results) {
       for (const auto &j : i.map) {
         i_debug("rados_dict_iterate_context %s - %s=%s", g, j.first.c_str(), j.second.to_str().c_str());
