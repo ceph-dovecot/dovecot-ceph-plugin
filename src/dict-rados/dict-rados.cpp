@@ -485,9 +485,16 @@ class rados_dict_transaction_context {
           } else {
             if (!is_locked(key)) {
               struct timeval tv = {30, 0};  // TODO(peter): config?
-              int err = -1;
-              err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_to_str,
-                                                      "rados_atomic_inc(" + key + ")", &tv, 0);
+              int err = -EBUSY;
+              int max_tries = 100;  // avoid waiting forever!
+              while (err == -EBUSY || err == -EEXIST) {
+                err = d->get_io_ctx(key).lock_exclusive(d->get_full_oid(key), "ATOMIC_INC", guid_to_str,
+                                                        "rados_atomic_inc(" + key + ")", &tv, 0);
+                if (max_tries == 0) {
+                  break;
+                }
+                --max_tries;
+              }
               if (err == 0) {
                 set_locked(key);
               } else {
@@ -573,7 +580,8 @@ static void rados_dict_transaction_private_complete_callback(completion_t comp A
   ctx->result_private = ctx->completion_private->get_return_value();
 
   if (ctx->locked_private) {
-    int err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", ctx->guid_to_str);
+    int err = -ENOENT;
+    err = d->get_private_io_ctx().unlock(d->get_private_oid(), "ATOMIC_INC", ctx->guid_to_str);
     if (err < 0) {
       i_error("rados_dict_transaction_private_complete_callback(): unlock(%s) ret=%d (%s)",
               d->get_private_oid().c_str(), err, strerror(-err));
