@@ -881,7 +881,7 @@ class rados_dict_iterate_context {
     auto g = guid_to_str;
     for (const auto &i : results) {
       for (const auto &j : i.map) {
-        i_debug("rados_dict_iterate_context %s - %s=%s", g, j.first.c_str(), j.second.to_str().c_str());
+        i_debug("rados_dict_iterate_context %s - %s=%s", g.c_str(), j.first.c_str(), j.second.to_str().c_str());
       }
     }
   }
