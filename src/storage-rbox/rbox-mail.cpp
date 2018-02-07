@@ -210,23 +210,28 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   char *value = NULL;
   *size_r = -1;
 
-  if (rmail->mail_object == nullptr) {
-    // Mail already deleted
-    FUNC_END_RET("ret == -1; mail_object == nullptr ");
-    return -1;
+  if (index_mail_get_virtual_size(_mail, size_r) == 0) {
+    return 0;
   }
 
   bool ret = index_mail_get_cached_virtual_size(&rmail->imail, size_r);
   if (ret && *size_r > 0) {
     return 0;
   }
+  if (rmail->mail_object == nullptr) {
+    // Mail already deleted
+    FUNC_END_RET("ret == -1; mail_object == nullptr ");
+    return -1;
+  }
 
   if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
     value = NULL;
   }
 
-  if (value == NULL)
-    return index_mail_get_virtual_size(_mail, size_r);
+  if (value == NULL) {
+    FUNC_END_RET("ret == -1; mail_object, no xattribute ");
+    return -1;
+  }
 
   data->virtual_size = std::stol(value);
 
