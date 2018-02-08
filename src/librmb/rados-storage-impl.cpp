@@ -67,6 +67,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
     if (write_buffer_size < ((i + 1) * length)) {
       length = rest;
     }
+    op->set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
 
     if (div == 1) {
       op->write(0, *current_object->get_mail_buffer());
