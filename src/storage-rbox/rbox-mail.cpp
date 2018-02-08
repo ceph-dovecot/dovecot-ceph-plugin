@@ -123,11 +123,13 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     }
     return ret;
   }
-
+  std::string str_key(1, static_cast<char>(key));
+  i_debug("getting xattr : %s, num metadata %d", str_key.c_str(), rmail->mail_object->get_metadata()->size());
   std::string value = rmail->mail_object->get_metadata(key);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
   }
+
   return 0;
 }
 
@@ -150,13 +152,16 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
       rbox_mail_set_expunged(rmail);
       return -1;
     } else {
-      FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
+      FUNC_END_RET("ret == -1; cannot get received date");
       return -1;
     }
   }
 
-  if (value == NULL)
-    return -1;
+  if (value == NULL) {
+    // file exists but receive date is unkown, due to missing index entry and missing
+    // rados xattribute, as in sdbox this is not necessarily a error so return 0;
+    return 0;
+  }
 
   data->received_date = static_cast<time_t>(std::stol(value));
 
@@ -196,7 +201,15 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
       return -1;
     }
   }
-
+  if (save_date_rados == 0) {
+    // last chance is to stat the object to get the save date.
+    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+    uint64_t psize;
+    if (r_storage->s->stat_mail(rmail->mail_object->get_oid(), &psize, &save_date_rados) < 0) {
+      // at least it needs to exist?
+      return -1;
+    }
+  }
   // check if this is null
   *date_r = data->save_date = save_date_rados;
 
@@ -264,11 +277,21 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   }
 
   if (value == NULL) {
-    return -1;
+    // no index entry, no xattribute,
+    // last change is to stat the object to get physical size.
+    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+    uint64_t psize;
+    time_t pmtime;
+    if (r_storage->s->stat_mail(rmail->mail_object->get_oid(), &psize, &pmtime) < 0) {
+      // at least it needs to exists?
+      return -1;
+    }
+    data->physical_size = psize;
+    *size_r = data->physical_size;
+  } else {
+    data->physical_size = std::stol(value);
+    *size_r = data->physical_size;
   }
-
-  data->physical_size = std::stol(value);
-  *size_r = data->physical_size;
 
   FUNC_END();
   return 0;
