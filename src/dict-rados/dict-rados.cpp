@@ -79,7 +79,7 @@ struct rados_dict {
   RadosGuidGenerator *guid_generator;
 };
 
-class DictGuidGeneraor : public librmb::RadosGuidGenerator {
+class DictGuidGenerator : public librmb::RadosGuidGenerator {
   void generate_guid(std::string *guid) {
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
@@ -119,7 +119,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   string ceph_cfg = "rbox_cfg";
 
   if (uri != nullptr) {
-
     vector<string> props(explode(uri, ':'));
 
     for (vector<string>::iterator it = props.begin(); it != props.end(); ++it) {
@@ -157,7 +156,7 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     return -1;
   }
 
-  dict->guid_generator = new DictGuidGeneraor();
+  dict->guid_generator = new DictGuidGenerator();
   dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator, ceph_cfg);
   dict->dict = *driver;
   *dict_r = &dict->dict;
@@ -749,9 +748,9 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
           // i_debug("rados_dict_transaction_commit(): unlock(%s) ret=%d (%s)", d->get_private_oid().c_str(), err,
           //      strerror(-err));
           if (err < 0) {
-             i_error("rados_dict_transaction_commit()  private_io: unlock(% s) ret = % d(% s) ",
-                     d->get_private_oid().c_str(), err, strerror(-err));
-           }
+            i_error("rados_dict_transaction_commit()  private_io: unlock(% s) ret = % d(% s) ",
+                    d->get_private_oid().c_str(), err, strerror(-err));
+          }
         }
         if (ctx->locked_shared) {
           int err = d->get_shared_io_ctx().unlock(d->get_shared_oid(), "ATOMIC_INC", ctx->guid_to_str);
