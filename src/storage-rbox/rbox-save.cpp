@@ -56,7 +56,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   rbox_save_context *r_ctx = NULL;
 
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
-  if(t->save_ctx == NULL){
+  if (t->save_ctx == NULL) {
     r_ctx = new rbox_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
@@ -77,7 +77,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 
   uint8_t save_flags = 0x0;
 
-  /* add to index */
+/* add to index */
 #if DOVECOT_PREREQ(2, 3)
   if ((r_ctx->ctx.transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
     mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
@@ -104,7 +104,9 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   r_ctx->objects.push_back(r_ctx->current_object);
 
   if (mdata->guid != NULL) {
-    mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
+    string str(mdata->guid);
+    librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
+    mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
     guid_128_generate(r_ctx->mail_guid);
   }
@@ -150,7 +152,9 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   r_ctx->objects.push_back(r_ctx->current_object);
 
   if (mdata->guid != NULL) {
-    mail_generate_guid_128_hash(mdata->guid, r_ctx->mail_guid);
+    string str(mdata->guid);
+    librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
+    mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
     guid_128_generate(r_ctx->mail_guid);
   }
