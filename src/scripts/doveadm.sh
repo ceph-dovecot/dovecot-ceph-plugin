@@ -50,6 +50,7 @@ get_user_mail_location() {
 	local bin_path="$DOVECOT_HOME/bin"
 	local user="$1"
 	local mail
+	local ml_array=()
 	local path
 	
 	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ]; then
@@ -57,7 +58,8 @@ get_user_mail_location() {
 	fi
 	
 	mail=$("$bin_path"/doveadm user -f mail "$user")
-	IFS=$':'; ml_array=($mail); unset IFS;
+	IFS=":" read -r -a ml_array <<< "$mail"
+	#IFS=$':'; ml_array=("$mail"); unset IFS;
 	if [ ${#ml_array[*]} -lt 2 ]; then
 		error_exit "mail_location in wrong format: $mail"								
 	fi
