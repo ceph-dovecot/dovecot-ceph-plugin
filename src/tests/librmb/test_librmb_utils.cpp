@@ -93,6 +93,37 @@ TEST(librmb, convert_flags) {
   EXPECT_EQ(flags, flags_);
 }
 
+TEST(librmb, find_and_replace) {
+  const std::string str_red_house = "i have a red house and a red car";
+  const std::string str_banana = "i love banana";
+  const std::string str_underscore = "some_words_separated_by_underscore";
+  const std::string str_missing = "th string has an  msing";
+  const std::string str_hello = "hello world ";
+
+  std::string text;
+
+  text = "i have a blue house and a blue car";
+  librmb::RadosUtils::find_and_replace(&text, "blue", "red");
+  EXPECT_EQ(str_red_house, text);
+
+  text = "i love apple";
+  librmb::RadosUtils::find_and_replace(&text, "apple", "banana");
+  EXPECT_EQ(str_banana, text);
+
+  text = "some-words-separated-by-hyphen";
+  librmb::RadosUtils::find_and_replace(&text, "-", "_");
+  librmb::RadosUtils::find_and_replace(&text, "hyphen", "underscore");
+  EXPECT_EQ(str_underscore, text);
+
+  text = "this string has an is missing";
+  librmb::RadosUtils::find_and_replace(&text, "is", "");
+  EXPECT_EQ(str_missing, text);
+
+  text = "hello;world;";
+  librmb::RadosUtils::find_and_replace(&text, ";", " ");
+  EXPECT_EQ(str_hello, text);
+}
+
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
