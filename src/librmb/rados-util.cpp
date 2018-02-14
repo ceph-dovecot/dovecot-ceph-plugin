@@ -14,11 +14,9 @@
 
 namespace librmb {
 
-RadosUtils::RadosUtils() {
-}
+RadosUtils::RadosUtils() {}
 
-RadosUtils::~RadosUtils() {
-}
+RadosUtils::~RadosUtils() {}
 
 bool RadosUtils::convert_str_to_time_t(const std::string &date, time_t *val) {
   struct tm tm = {0};
@@ -49,23 +47,26 @@ bool RadosUtils::is_numeric(const std::string &s) {
   return !s.empty() && it == s.end();
 }
 
-bool RadosUtils::is_date_attribute(rbox_metadata_key &key) {
+bool RadosUtils::is_date_attribute(const rbox_metadata_key &key) {
   return (key == RBOX_METADATA_OLDV1_SAVE_TIME || key == RBOX_METADATA_RECEIVED_TIME);
 }
+
 int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   char buffer[256];
-  struct tm *timeinfo;
-  timeinfo = localtime(&t);
-  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+  struct tm timeinfo;
+  localtime_r(&t, &timeinfo);
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
   *ret_val = std::string(buffer);
   return 0;
 }
+
 bool RadosUtils::flags_to_string(const uint8_t &flags_, std::string *flags_str) {
   std::stringstream sstream;
   sstream << std::hex << flags_;
   sstream >> *flags_str;
   return true;
 }
+
 bool RadosUtils::string_to_flags(const std::string &flags_, uint8_t *flags) {
   std::istringstream in(flags_);
 
@@ -74,4 +75,12 @@ bool RadosUtils::string_to_flags(const std::string &flags_, uint8_t *flags) {
   }
   return false;
 }
-} /* namespace tallence */
+
+void RadosUtils::find_and_replace(std::string *source, std::string const &find, std::string const &replace) {
+  for (std::string::size_type i = 0; source != nullptr && (i = source->find(find, i)) != std::string::npos;) {
+    source->replace(i, find.length(), replace);
+    i += replace.length();
+  }
+}
+
+}  // namespace librmb
