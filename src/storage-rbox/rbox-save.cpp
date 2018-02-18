@@ -455,10 +455,12 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     ret = seq_range_array_iter_nth(&iter, n++, &uid);
     i_assert(ret);
 
-    metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-    int ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), metadata);
-    if (ret_val < 0) {
-      return -1;
+    if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
+      metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
+      int ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), metadata);
+      if (ret_val < 0) {
+        return -1;
+      }
     }
   }
   i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
