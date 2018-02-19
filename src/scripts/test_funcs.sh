@@ -19,7 +19,7 @@ echo "script_path = $script_path"
 source "$script_path/utils.sh"
 source "$script_path/doveadm.sh"
 
-test_environment
+#test_environment
 
 mail_location=$(get_user_mail_location "$1")
 if [ -z "$mail_location" ] ; then
