@@ -5,15 +5,19 @@
 set -o errexit
 #set -o nounset
 
+DOVEADM="/opt/app/dovecot/bin/doveadm"
+#DOVEADM="/home/peter/dovecot_master.2.2/bin/doveadm"
+#export $DOVEADM
+
 # Tests if required environment variable exist
 #
-test_environment() {
-	if [ -n "$DOVECOT_HOME" ] && [ -d "$DOVECOT_HOME" ]; then
-		echo "DOVECOT_HOME is set: $DOVECOT_HOME"
-	else 
-		error_exit "DOVECOT_HOME not set"
-	fi		
-}
+#test_environment() {
+#	if [ -n "$DOVECOT_HOME" ] && [ -d "$DOVECOT_HOME" ]; then
+#		echo "DOVECOT_HOME is set: $DOVECOT_HOME"
+#	else 
+#		error_exit "DOVECOT_HOME not set"
+#	fi		
+#}
 
 # Calls doveadm sync and returns its exit value
 # doveadm will exit with one of the following values:
@@ -25,19 +29,18 @@ test_environment() {
 # Parameter $3 mail format
 #
 doveadm_sync() {
-	local bin_path="$DOVECOT_HOME/bin"
 	local dest_path="$1"
 	local user="$2"
 	local mail_format="$3"
 	
-	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ]; then
-		error_exit "program path is empty or doesn't exist: $bin_path"								
+	if [ ! -x "$DOVEADM" ]; then
+		error_exit "doveadm doesn't exist: $DOVEADM"								
 	fi
 	
 	if [ "$mail_format" = "rbox" ]; then
-		"$bin_path"/doveadm sync -u "$user" "$mail_format":"$dest_path"/"$user":LAYOUT=fs
+		"$DOVEADM" sync -u "$user" "$mail_format":"$dest_path"/"$user":LAYOUT=fs
 	else
-		"$bin_path"/doveadm sync -u "$user" "$mail_format":"$dest_path"/"$user"
+		"$DOVEADM" sync -u "$user" "$mail_format":"$dest_path"/"$user"
 	fi
 	echo $?	
 }
@@ -53,11 +56,11 @@ get_user_mail_location() {
 	local ml_array=()
 	local path
 	
-	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ]; then
-		error_exit "program path is empty or doesn't exist: $bin_path"								
+	if [ ! -x "$DOVEADM" ]; then
+		error_exit "doveadm doesn't exist: $DOVEADM"								
 	fi
 	
-	mail=$("$bin_path"/doveadm user -f mail "$user")
+	mail=$("$DOVEADM" user -f mail "$user")
 	IFS=":" read -r -a ml_array <<< "$mail"
 	#IFS=$':'; ml_array=("$mail"); unset IFS;
 	if [ ${#ml_array[*]} -lt 2 ]; then
@@ -77,11 +80,11 @@ get_mailbox_list() {
 	local user="$1"
 	local list
 	
-	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ]; then
-		error_exit "program path is empty or doesn't exist: $bin_path"								
+	if [ ! -x "$DOVEADM" ]; then
+		error_exit "doveadm doesn't exist: $DOVEADM"								
 	fi
 	
-	list=$("$bin_path"/doveadm mailbox list -u "$user")
+	list=$("$DOVEADM" mailbox list -u "$user")
 	echo "$list"
 }
 
@@ -95,9 +98,9 @@ delete_mailbox() {
 	local user="$1"
 	local mailbox="$2"
 	
-	if [ -z "$bin_path" ] || [ ! -d "$bin_path" ]; then
-		error_exit "program path is empty or doesn't exist: $bin_path"								
+	if [ ! -x "$DOVEADM" ]; then
+		error_exit "doveadm doesn't exist: $DOVEADM"								
 	fi
 	
-	"$bin_path"/doveadm mailbox delete -rsZ -u "$user" "$mailbox" &> /dev/null
+	"$DOVEADM" mailbox delete -rsZ -u "$user" "$mailbox" &> /dev/null
 }
