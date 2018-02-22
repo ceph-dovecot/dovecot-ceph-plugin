@@ -28,6 +28,8 @@
 #include "../../rados-cluster-impl.h"
 #include "../../rados-storage.h"
 #include "../../rados-storage-impl.h"
+#include "../../rados-metadata-storage-ima.h"
+#include "../../rados-metadata-storage-module.h"
 #include "rados-mail-object.h"
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
@@ -35,6 +37,7 @@
 #include "rados-namespace-manager.h"
 #include "rados-dovecot-ceph-cfg.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
+#include "rados-metadata-storage-default.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -300,18 +303,18 @@ static bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *
   return *i->get_rados_save_date() < *j->get_rados_save_date();
 }
 
-static void load_objects(librmb::RadosStorageImpl &storage, std::vector<librmb::RadosMailObject *> &mail_objects,
-                         std::string &sort_string) {
+static void load_objects(librmb::RadosStorageMetadataModule *ms, librmb::RadosStorageImpl &storage,
+                         std::vector<librmb::RadosMailObject *> &mail_objects, std::string &sort_string) {
   // get load all objects metadata into memory
   librados::NObjectIterator iter(storage.get_io_ctx().nobjects_begin());
   while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     std::string oid = iter->get_oid();
     mail->set_oid(oid);
-    storage.load_metadata(mail);
-    std::set<std::string> keys;
-    storage.get_io_ctx().omap_get_keys(oid, "k_", 100, &keys);
-    int ok = storage.load_extended_metadata(oid, keys, mail->get_extended_metadata());
+    ms->load_metadata(mail);
+    // std::set<std::string> keys;
+    // storage.get_io_ctx().omap_get_keys(oid, "k_", 100, &keys);
+    // ms->load_keyword_metadata(oid, keys, mail->get_extended_metadata());
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
     storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);
@@ -622,6 +625,15 @@ int main(int argc, const char **argv) {
   librmb::RadosDovecotCephCfgImpl cfg(dovecot_cfg, ceph_cfg);
   librmb::RadosNamespaceManager mgr(&cfg);
 
+  librmb::RadosStorageMetadataModule *ms;
+  // decide metadata storage!
+  std::string storage_module_name = ceph_cfg.get_metadata_storage_module();
+  if (storage_module_name.compare(librmb::RadosMetadataStorageIma::module_name) == 0) {
+    ms = new librmb::RadosMetadataStorageIma(&storage.get_io_ctx(), &cfg);
+  } else {
+    ms = new librmb::RadosMetadataStorageDefault(&storage.get_io_ctx());
+  }
+
   // namespace (user) needs to be set
   if (opts.find("namespace") == opts.end()) {
     std::cout << "xist hier" << std::endl;
@@ -646,7 +658,7 @@ int main(int argc, const char **argv) {
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-      load_objects(storage, mail_objects, sort_type);
+      load_objects(ms, storage, mail_objects, sort_type);
       query_mail_storage(&mail_objects, &parser, false, nullptr);
     } else {
       // tear down.
@@ -670,7 +682,7 @@ int main(int argc, const char **argv) {
 
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0 || parser.parse_ls_string()) {
       // get load all objects metadata into memory
-      load_objects(storage, mail_objects, sort_type);
+      load_objects(ms, storage, mail_objects, sort_type);
       query_mail_storage(&mail_objects, &parser, true, &storage);
     } else {
       // tear down.
@@ -694,8 +706,11 @@ int main(int argc, const char **argv) {
           }
         }
       }
+      librmb::RadosMailObject obj;
+      obj.set_oid(oid);
+      ms->load_metadata(&obj);
       librmb::RadosMetadata attr(ke, value);
-      storage.set_metadata(oid, attr);
+      ms->set_metadata(&obj, attr);
     }
   }
   // tear down.

@@ -208,8 +208,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     _ctx->data.received_date = ioloop_time;
   }
 
-  // i_debug("SAVE OID: %s, %d uid, seq=%d", guid_128_to_string(r_ctx->mail_oid), _ctx->dest_mail->uid, r_ctx->seq);
-
   FUNC_END();
   return 0;
 }
@@ -417,7 +415,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->current_object->set_mail_size(r_ctx->current_object->get_mail_buffer()->length());
       rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
 
-      r_ctx->failed = !r_storage->s->save_mail(r_ctx->current_object, async_write);
+      // write_op will be deleted in [wait_for_operations]
+      librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
+      r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->current_object);
+      r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->current_object, async_write);
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());
@@ -454,11 +455,12 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     r_ctx->current_object = *it;
     ret = seq_range_array_iter_nth(&iter, n++, &uid);
     i_assert(ret);
-
-    metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-    int ret_val = r_storage->s->set_metadata(r_ctx->current_object->get_oid(), metadata);
-    if (ret_val < 0) {
-      return -1;
+    if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
+      metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
+      int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->current_object, metadata);
+      if (ret_val < 0) {
+        return -1;
+      }
     }
   }
   i_assert(!seq_range_array_iter_nth(&iter, n, &uid));

@@ -65,6 +65,15 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   delete storage->config;
   librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
   EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
+
+  delete storage->ms;
+  librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  storage->ms = ms_p_mock;
+
+  librmbtest::RadosStorageMetadataMock ms_mock;
+  EXPECT_CALL(*ms_p_mock, get_storage()).WillRepeatedly(Return(&ms_mock));
+  EXPECT_CALL(ms_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
+
   std::string user = "client.admin";
   std::string cluster = "ceph";
   std::string pool = "mail_storage";
@@ -74,6 +83,7 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
+
   storage->ns_mgr->set_config(cfg_mock);
   storage->config = cfg_mock;
   ItUtils::add_mail(save_ctx, input, box, trans);

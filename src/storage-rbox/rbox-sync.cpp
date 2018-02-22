@@ -93,10 +93,10 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
       std::string key_value = std::to_string(keyword_idx);
       std::string ext_key = "k_" + key_value;
       if (remove) {
-        ret = r_storage->s->remove_extended_metadata(key_oid, ext_key);
+        ret = r_storage->ms->get_storage()->remove_keyword_metadata(key_oid, ext_key);
       } else {
         librmb::RadosMetadata ext_metata(ext_key, key_value);
-        ret = r_storage->s->update_extended_metadata(key_oid, &ext_metata);
+        ret = r_storage->ms->get_storage()->update_keyword_metadata(key_oid, &ext_metata);
       }
       if (ret < 0) {
         break;
@@ -125,7 +125,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
       librmb::RadosMailObject mail_object;
       mail_object.set_oid(oid);
-      r_storage->s->load_metadata(&mail_object);
+      r_storage->ms->get_storage()->load_metadata(&mail_object);
       std::string flags_metadata = mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
       uint8_t flags;
       if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {
@@ -138,7 +138,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
 
         if (librmb::RadosUtils::flags_to_string(flags, &flags_metadata)) {
           librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
-          ret = r_storage->s->set_metadata(mail_object.get_oid(), update);
+          ret = r_storage->ms->get_storage()->set_metadata(&mail_object, update);
         }
       }
     }
@@ -185,12 +185,16 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
-        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
+        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS) &&
+            r_storage->config->is_update_attributes() &&
+            r_storage->config->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
           update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
         }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
-        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS) &&
+            r_storage->config->is_update_attributes() &&
+            r_storage->config->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           // sync_rec.keyword_idx;
           if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, false) < 0) {
             return -1;
@@ -198,7 +202,9 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         }
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_REMOVE:
-        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS) &&
+            r_storage->config->is_update_attributes() &&
+            r_storage->config->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
           /* FIXME: should be bother calling sync_notify()? */
           // sync_rec.keyword_idx
           if (update_extended_metadata(ctx, seq1, seq2, sync_rec.keyword_idx, true) < 0) {

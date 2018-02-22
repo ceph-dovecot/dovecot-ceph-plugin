@@ -26,6 +26,7 @@ class RadosDovecotCephCfg {
   virtual const std::string &get_rados_username() = 0;
   virtual bool is_mail_attribute(enum rbox_metadata_key key) = 0;
   virtual bool is_updateable_attribute(enum rbox_metadata_key key) = 0;
+  virtual void set_update_attributes(const std::string &update_attributes_) = 0;
   virtual void update_mail_attributes(const char *value) = 0;
   virtual void update_updatable_attributes(const char *value) = 0;
   virtual void update_pool_name_metadata(const char *value) = 0;
@@ -34,6 +35,9 @@ class RadosDovecotCephCfg {
   virtual const std::string &get_update_attributes_key() = 0;
   virtual const std::string &get_mail_attributes_key() = 0;
   virtual const std::string &get_updateable_attributes_key() = 0;
+
+  virtual const std::string &get_metadata_storage_module() = 0;
+  virtual const std::string &get_metadata_storage_attribute() = 0;
 
   virtual std::map<std::string, std::string> *get_config() = 0;
 
@@ -47,7 +51,6 @@ class RadosDovecotCephCfg {
 
   virtual std::string &get_key_prefix_keywords() = 0;
 
-  // ceph configuration
   virtual void set_io_ctx(librados::IoCtx *io_ctx) = 0;
   virtual int load_rados_config() = 0;
   virtual int save_default_rados_config() = 0;
@@ -58,6 +61,7 @@ class RadosDovecotCephCfg {
   virtual void set_user_suffix(const std::string &ns_suffix) = 0;
   virtual std::string &get_user_suffix() = 0;
   virtual const std::string &get_public_namespace() = 0;
+
   virtual int save_object(const std::string &oid, librados::bufferlist &buffer) = 0;
   virtual int read_object(const std::string &oid, librados::bufferlist *buffer) = 0;
   virtual void set_io_ctx_namespace(const std::string &namespace_) = 0;

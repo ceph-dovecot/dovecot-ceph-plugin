@@ -112,7 +112,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     return -1;
   }
 
-  ret = r_storage->s->load_metadata(rmail->mail_object);
+  ret = r_storage->ms->get_storage()->load_metadata(rmail->mail_object);
   if (ret < 0) {
     if (ret == -ENOENT) {
       i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret,
@@ -124,7 +124,6 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     return ret;
   }
   std::string str_key(1, static_cast<char>(key));
-  i_debug("getting xattr : %s, num metadata %d", str_key.c_str(), rmail->mail_object->get_metadata()->size());
   std::string value = rmail->mail_object->get_metadata(key);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
@@ -460,7 +459,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
                                       value_r);
 
     case MAIL_FETCH_FLAGS:
-    // although it is posible to save the flags as xattr. we currently load them directly
+    // although it is possible to save the flags as xattr. we currently load them directly
     // from index.
     case MAIL_FETCH_MESSAGE_PARTS:
     case MAIL_FETCH_STREAM_HEADER:

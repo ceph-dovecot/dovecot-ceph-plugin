@@ -37,6 +37,8 @@ extern "C" {
 #include "../librmb/rados-namespace-manager.h"
 #include "../librmb/rados-dovecot-ceph-cfg-impl.h"
 #include "../librmb/rados-guid-generator.h"
+#include "../librmb/rados-metadata-storage-impl.h"
+
 #include "rbox-copy.h"
 #include "rbox-mail.h"
 
@@ -66,6 +68,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->s = new librmb::RadosStorageImpl(storage->cluster);
   storage->config = new librmb::RadosDovecotCephCfgImpl(&storage->s->get_io_ctx());
   storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
+  storage->ms = new librmb::RadosMetadataStorageImpl();
 
   FUNC_END();
   return &storage->storage;
@@ -116,6 +119,11 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
     delete storage->config;
     storage->config = nullptr;
   }
+  if (storage->ms != nullptr) {
+    delete storage->ms;
+    storage->ms = nullptr;
+  }
+
   index_storage_destroy(_storage);
 
   i_debug("destroying storage!");
@@ -307,6 +315,8 @@ int rbox_open_rados_connection(struct mailbox *box) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
   }
+  mbox->storage->ms->create_metadata_storage(&mbox->storage->s->get_io_ctx(), mbox->storage->config);
+
   std::string uid;
   if (box->list->ns->owner != nullptr) {
     uid = box->list->ns->owner->username;

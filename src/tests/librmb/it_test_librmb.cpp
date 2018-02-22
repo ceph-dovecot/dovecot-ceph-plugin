@@ -17,7 +17,9 @@
 #include "mock_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-
+#include "../../librmb/rados-metadata-storage-default.h"
+#include "../../librmb/rados-metadata-storage-ima.h"
+#include "../../librmb/rados-dovecot-ceph-cfg-impl.h"
 //#include "common/Formatter.h"
 //#include "common/ceph_json.h"
 
@@ -216,13 +218,14 @@ TEST(librmb, load_metadata) {
   librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
-
   std::string pool_name("test");
   std::string ns("t");
 
   int open_connection = storage.open_connection(pool_name);
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
+
+  librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   ceph::bufferlist bl;
   bl.append("xyz");
@@ -234,31 +237,31 @@ TEST(librmb, load_metadata) {
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
-  storage.load_metadata(&obj);
-
+  ms.load_metadata(&obj);
+  std::cout << "load metadata ok" << std::endl;
   // stat the object
   uint64_t size;
   time_t save_date;
   int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
 
-  // remove it
-  int ret_remove = storage.delete_mail(obj.get_oid());
-
-  // tear down
-  cluster.deinit();
-
   EXPECT_EQ(buffer_length, size);
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
-  EXPECT_EQ(0, ret_remove);
   EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
   EXPECT_EQ(2, (int)obj.get_metadata()->size());
-
-  int i = storage.load_metadata(nullptr);
+  std::cout << " load with null" << std::endl;
+  int i = ms.load_metadata(nullptr);
   EXPECT_EQ(-1, i);
+  // obj->get_metadata()->size == 2
+  i = ms.load_metadata(&obj);
+  EXPECT_EQ(0, i);
 
-  i = storage.load_metadata(&obj);
-  EXPECT_EQ(-1, i);
+  // remove it
+  int ret_remove = storage.delete_mail(obj.get_oid());
+  EXPECT_EQ(0, ret_remove);
+
+  // tear down
+  cluster.deinit();
 }
 
 TEST(librmb, AttributeVersions) {
@@ -282,6 +285,8 @@ TEST(librmb, AttributeVersions) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
+  librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
+
   ceph::bufferlist bl;
   bl.append("xyz");
   op->setxattr("A", bl);
@@ -300,7 +305,7 @@ TEST(librmb, AttributeVersions) {
 
   // update metadata
   librmb::RadosMetadata metadata(librmb::RBOX_METADATA_OLDV1_KEYWORDS, "abc");
-  storage.set_metadata(obj.get_oid(), metadata);
+  ms.set_metadata(&obj, metadata);
 
   uint64_t version_after_xattr_update = storage.get_io_ctx().get_last_version();
   EXPECT_NE(version, version_after_xattr_update);
@@ -320,6 +325,225 @@ TEST(librmb, AttributeVersions) {
   cluster.deinit();
 }
 
+// standard call order for metadata updates
+// 1. save_metadata
+// 2. set_metadata (update uid)
+TEST(librmb, json_ima) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("test");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  librmb::RadosDovecotCephCfgImpl cfg(&storage.get_io_ctx());
+
+  // cfg.update_updatable_attributes("");
+  librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
+
+  librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+  obj.set_oid("test_ima");
+  unsigned int flags = 0x18;
+  long recv_time = 12345677;
+  // all attributes are not updateable.
+  librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, "guid");
+  librmb::RadosMetadata attr2(librmb::RBOX_METADATA_OLDV1_FLAGS, flags);
+  librmb::RadosMetadata attr3(librmb::RBOX_METADATA_RECEIVED_TIME, recv_time);
+  librmb::RadosMetadata attr4(librmb::RBOX_METADATA_VERSION, "0.1");
+
+  obj.add_metadata(attr);
+  obj.add_metadata(attr2);
+  obj.add_metadata(attr3);
+  obj.add_metadata(attr4);
+
+  ms.save_metadata(op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  EXPECT_EQ(ret_storage, 0);
+
+  // wait for op to finish.
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+
+  // check
+  std::map<std::string, ceph::bufferlist> attr_list;
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(1, attr_list.size());
+
+  unsigned int uid = 10;
+  librmb::RadosMetadata attr_uid(librmb::RBOX_METADATA_MAIL_UID, uid);
+
+  ms.set_metadata(&obj, attr_uid);
+
+  // check again
+  attr_list.clear();
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(1, attr_list.size());
+
+  storage.delete_mail(&obj);
+  // tear down
+  cluster.deinit();
+}
+// standard call order for metadata updates
+// 0. pre-condition: setting flags as updateable
+// 1. save_metadata
+// 2. set_metadata (update uid)
+TEST(librmb, json_ima_2) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("test");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  librmb::RadosDovecotCephCfgImpl cfg(&storage.get_io_ctx());
+
+  cfg.set_update_attributes("true");
+  cfg.update_updatable_attributes("F");
+  librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
+
+  librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+  obj.set_oid("test_ima");
+  unsigned int flags = 0x18;
+  long recv_time = 12345677;
+  // all attributes are not updateable.
+  librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, "guid");
+  librmb::RadosMetadata attr2(librmb::RBOX_METADATA_OLDV1_FLAGS, flags);
+  librmb::RadosMetadata attr3(librmb::RBOX_METADATA_RECEIVED_TIME, recv_time);
+  librmb::RadosMetadata attr4(librmb::RBOX_METADATA_VERSION, "0.1");
+
+  obj.add_metadata(attr);
+  obj.add_metadata(attr2);
+  obj.add_metadata(attr3);
+  obj.add_metadata(attr4);
+
+  ms.save_metadata(op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  EXPECT_EQ(ret_storage, 0);
+
+  // wait for op to finish.
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+
+  // check there should be ima and F (Flags)
+  std::map<std::string, ceph::bufferlist> attr_list;
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(2, attr_list.size());
+
+  unsigned int uid = 10;
+  librmb::RadosMetadata attr_uid(librmb::RBOX_METADATA_MAIL_UID, uid);
+
+  ms.set_metadata(&obj, attr_uid);
+
+  // check again
+  attr_list.clear();
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(2, attr_list.size());
+
+  storage.delete_mail(&obj);
+  // tear down
+  cluster.deinit();
+}
+
+// standard call order for metadata updates
+// 0. pre-condition: setting flags as updateable
+// 1. save_metadata with keywords
+// 2. set_metadata (update uid)
+TEST(librmb, json_ima_3) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("test");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  librmb::RadosDovecotCephCfgImpl cfg(&storage.get_io_ctx());
+  cfg.set_update_attributes("true");
+  cfg.update_updatable_attributes("FK");
+  librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
+
+  librmb::RadosMailObject obj;
+  obj.get_mail_buffer()->append("abcdefghijklmn");
+  size_t buffer_length = obj.get_mail_buffer()->length();
+  obj.set_mail_size(buffer_length);
+  obj.set_oid("test_ima");
+  unsigned int flags = 0x18;
+  long recv_time = 12345677;
+  // all attributes are not updateable.
+  librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, "guid");
+  librmb::RadosMetadata attr2(librmb::RBOX_METADATA_OLDV1_FLAGS, flags);
+  librmb::RadosMetadata attr3(librmb::RBOX_METADATA_RECEIVED_TIME, recv_time);
+  librmb::RadosMetadata attr4(librmb::RBOX_METADATA_VERSION, "0.1");
+
+  obj.add_metadata(attr);
+  obj.add_metadata(attr2);
+  obj.add_metadata(attr3);
+  obj.add_metadata(attr4);
+
+  for (int i = 0; i < 10; i++) {
+    std::string keyword = std::to_string(i);
+    std::string ext_key = "k_" + keyword;
+    librmb::RadosMetadata ext_metadata(ext_key, keyword);
+    obj.add_extended_metadata(ext_metadata);
+  }
+
+  ms.save_metadata(op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  EXPECT_EQ(ret_storage, 0);
+
+  // wait for op to finish.
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+
+  // check there should be ima and F (Flags)
+  std::map<std::string, ceph::bufferlist> attr_list;
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(2, attr_list.size());
+
+  unsigned int uid = 10;
+  librmb::RadosMetadata attr_uid(librmb::RBOX_METADATA_MAIL_UID, uid);
+
+  ms.set_metadata(&obj, attr_uid);
+
+  // check again
+  attr_list.clear();
+  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  EXPECT_EQ(2, attr_list.size());
+
+  obj.get_metadata()->clear();
+  obj.get_extended_metadata()->clear();
+  std::cout << "loading metatadata" << std::endl;
+  ms.load_metadata(&obj);
+
+  EXPECT_EQ(10, obj.get_extended_metadata()->size());
+
+  storage.delete_mail(&obj);
+  // tear down
+  cluster.deinit();
+}
 
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

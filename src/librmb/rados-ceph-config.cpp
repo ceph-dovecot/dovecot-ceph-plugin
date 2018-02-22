@@ -56,6 +56,10 @@ bool RadosCephConfig::is_valid_key_value(const std::string &key, const std::stri
     success = true;
   } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
     success = value.compare("true") == 0 || value.compare("false") == 0;
+  } else if (get_config()->get_metadata_storage_module_key().compare(key) == 0) {
+    success = value.compare("default") == 0 || value.compare("ima") == 0;
+  } else if (get_config()->get_metadata_storage_attribute_key().compare(key) == 0) {
+    success = true;
   }
   return success;
 }
@@ -85,6 +89,12 @@ bool RadosCephConfig::update_valid_key_value(const std::string &key, const std::
     success = true;
   } else if (get_config()->get_update_attributes_key().compare(key) == 0) {
     get_config()->set_update_attributes(value);
+    success = true;
+  } else if (get_config()->get_metadata_storage_module_key().compare(key) == 0) {
+    get_config()->set_metadata_storage_module(value);
+    success = true;
+  } else if (get_config()->get_metadata_storage_attribute_key().compare(key) == 0) {
+    get_config()->set_metadata_storage_attribute(value);
     success = true;
   }
   return success;

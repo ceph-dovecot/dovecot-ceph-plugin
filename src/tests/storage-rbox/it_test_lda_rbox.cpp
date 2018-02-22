@@ -140,7 +140,7 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *obj = new librmb::RadosMailObject();
     obj->set_oid((*iter).get_oid());
-    r_storage->s->load_metadata(obj);
+    r_storage->ms->get_storage()->load_metadata(obj);
     objects.push_back(obj);
     iter++;
   }

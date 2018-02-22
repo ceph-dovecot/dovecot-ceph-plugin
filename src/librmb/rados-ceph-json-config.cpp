@@ -17,41 +17,46 @@
 namespace librmb {
 
 std::string user_mapping;
- std::string user_ns;
- std::string user_suffix;
- std::string public_namespace;
+std::string user_ns;
+std::string user_suffix;
+std::string public_namespace;
 
- std::string mail_attributes;
- std::string update_attributes;
- std::string updateable_attributes;
+std::string mail_attributes;
+std::string update_attributes;
+std::string updateable_attributes;
 
- std::string key_user_mapping;
- std::string key_user_ns;
- std::string key_user_suffix;
- std::string key_public_namespace;
+std::string key_user_mapping;
+std::string key_user_ns;
+std::string key_user_suffix;
+std::string key_public_namespace;
 
- std::string key_mail_attributes;
- std::string key_update_attributes;
- std::string key_updateable_attributes;
+std::string key_mail_attributes;
+std::string key_update_attributes;
+std::string key_updateable_attributes;
 
- RadosCephJsonConfig::RadosCephJsonConfig()
-     : cfg_object_name("rbox_cfg"),
-       valid(false),
-       user_mapping("false"),
-       user_ns("users"),
-       user_suffix("_u"),
-       public_namespace("public"),
-       update_attributes("false"),
-       key_user_mapping("user_mapping"),
-       key_user_ns("user_ns"),
-       key_user_suffix("user_suffix"),
-       key_public_namespace("rbox_public_namespace"),
-       key_mail_attributes("rbox_mail_attributes"),
-       key_update_attributes("rbox_update_attributes"),
-       key_updateable_attributes("rbox_updateable_attributes")
-        {
-   set_default_mail_attributes();
-   set_default_updateable_attributes();
+RadosCephJsonConfig::RadosCephJsonConfig()
+    : cfg_object_name("rbox_cfg"),
+      valid(false),
+      user_mapping("false"),
+      user_ns("users"),
+      user_suffix("_u"),
+      public_namespace("public"),
+      update_attributes("false"),
+      metadata_storage_module("default"),
+      metadata_storage_attribute("ima"),
+      key_user_mapping("user_mapping"),
+      key_user_ns("user_ns"),
+      key_user_suffix("user_suffix"),
+      key_public_namespace("rbox_public_namespace"),
+      key_mail_attributes("rbox_mail_attributes"),
+      key_update_attributes("rbox_update_attributes"),
+      key_updateable_attributes("rbox_updateable_attributes"),
+      key_metadata_storage_module("rbox_metadata_storage"),
+      key_metadata_storage_attribute("rbox_storage_metadata_attr")
+
+{
+  set_default_mail_attributes();
+  set_default_updateable_attributes();
 }
 
 void RadosCephJsonConfig::set_default_mail_attributes() {
@@ -99,6 +104,12 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
     json_t *updateable_attributes_ = json_object_get(root, key_updateable_attributes.c_str());
     updateable_attributes = json_string_value(updateable_attributes_);
 
+    json_t *metadata_storage_ = json_object_get(root, key_metadata_storage_module.c_str());
+    metadata_storage_module = json_string_value(metadata_storage_);
+
+    json_t *metadata_storage_attr_ = json_object_get(root, key_metadata_storage_attribute.c_str());
+    metadata_storage_attribute = json_string_value(metadata_storage_attr_);
+
     ret = valid = true;
     json_decref(root);
   }
@@ -118,6 +129,8 @@ bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
   json_object_set_new(root, key_mail_attributes.c_str(), json_string(mail_attributes.c_str()));
   json_object_set_new(root, key_updateable_attributes.c_str(), json_string(updateable_attributes.c_str()));
   json_object_set_new(root, key_update_attributes.c_str(), json_string(update_attributes.c_str()));
+  json_object_set_new(root, key_metadata_storage_module.c_str(), json_string(metadata_storage_module.c_str()));
+  json_object_set_new(root, key_metadata_storage_attribute.c_str(), json_string(metadata_storage_attribute.c_str()));
 
   s = json_dumps(root, 0);
   buffer->append(s);
@@ -136,6 +149,8 @@ std::string RadosCephJsonConfig::to_string() {
   ss << "  " << key_update_attributes << "=" << update_attributes << std::endl;
   ss << "  " << key_mail_attributes << "=" << mail_attributes << std::endl;
   ss << "  " << key_updateable_attributes << "=" << updateable_attributes << std::endl;
+  ss << "  " << key_metadata_storage_module << "=" << metadata_storage_module << std::endl;
+  ss << "  " << key_metadata_storage_attribute << "=" << metadata_storage_attribute << std::endl;
   return ss.str();
 }
 

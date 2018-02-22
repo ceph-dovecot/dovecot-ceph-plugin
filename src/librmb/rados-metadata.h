@@ -16,6 +16,7 @@
 #include <string>
 #include "time.h"
 #include <stdlib.h>
+#include <sstream>
 #include <rados/librados.hpp>
 
 namespace librmb {
