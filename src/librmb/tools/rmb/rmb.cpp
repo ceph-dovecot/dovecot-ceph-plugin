@@ -312,9 +312,7 @@ static void load_objects(librmb::RadosStorageMetadataModule *ms, librmb::RadosSt
     std::string oid = iter->get_oid();
     mail->set_oid(oid);
     ms->load_metadata(mail);
-    // std::set<std::string> keys;
-    // storage.get_io_ctx().omap_get_keys(oid, "k_", 100, &keys);
-    // ms->load_keyword_metadata(oid, keys, mail->get_extended_metadata());
+
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
     storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);

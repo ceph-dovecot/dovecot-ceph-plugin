@@ -202,7 +202,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   }
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.
-    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
     uint64_t psize;
     if (r_storage->s->stat_mail(rmail->mail_object->get_oid(), &psize, &save_date_rados) < 0) {
       // at least it needs to exist?

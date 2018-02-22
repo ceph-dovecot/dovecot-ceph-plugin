@@ -48,7 +48,7 @@ class RadosMetadataStorageImpl : public RadosMetadataStorage {
     return storage;
   }
 
-  const RadosStorageMetadataModule *get_storage() {
+  RadosStorageMetadataModule *get_storage() {
     assert(storage != nullptr);
     return storage;
   }

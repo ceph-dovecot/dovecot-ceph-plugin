@@ -61,6 +61,7 @@ int RadosMetadataStorageIma::parse_attribute(RadosMailObject *mail, json_t *root
         keyword_key = json_object_iter_key(keyword_iter);
         keyword_value = json_object_iter_value(keyword_iter);
         bl.append(json_string_value(keyword_value));
+
         (*mail->get_extended_metadata())[keyword_key] = bl;
 
         keyword_iter = json_object_iter_next(value, keyword_iter);
@@ -90,12 +91,12 @@ int RadosMetadataStorageIma::load_metadata(RadosMailObject *mail) {
   }
 
   if (attr.find(cfg->get_metadata_storage_attribute()) != attr.end()) {
-                     // json object for immutable attributes.
-                     json_t *
-                     root;
+    // json object for immutable attributes.
+    json_t *root;
     json_error_t error;
     root = json_loads(attr[cfg->get_metadata_storage_attribute()].to_str().c_str(), 0, &error);
     parse_attribute(mail, root);
+
     json_decref(root);
   }
 
@@ -105,8 +106,13 @@ int RadosMetadataStorageIma::load_metadata(RadosMailObject *mail) {
       (*mail->get_metadata())[(*it).first] = (*it).second;
     }
   }
+
   // load other omap values.
-  return get_all_keys_and_values(mail->get_oid(), mail->get_extended_metadata());
+  if (cfg->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
+    ret = get_all_keys_and_values(mail->get_oid(), mail->get_extended_metadata());
+  }
+
+  return ret;
 }
 
 // it is required that mail->get_metadata is up to date before update.

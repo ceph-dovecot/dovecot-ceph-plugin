@@ -50,8 +50,8 @@ AC_CHECK_HEADER([rados/librados.h], [
 ], [AC_MSG_ERROR([cannot build without RADOS support: librados.h not found])])
 
 AC_CHECK_FUNC(rados_read_op_omap_get_vals2, AC_DEFINE(HAVE_OMAP_GET_VALS2, 1, [Define if you have the `rados_read_op_omap_get_vals2' function]))
-AC_CHECK_FUNC(set_alloc_hint2, AC_DEFINE(HAVE_ALLOC_HINT_2, 1, [Define if you have the `set_alloc_hint2' function]))
-AC_CHECK_FUNC(omap_get_keys2, AC_DEFINE(HAVE_OMAP_GET_KEYS_2, 1, [Define if you have the `omap_get_keys2' function]))
+AC_CHECK_FUNC(rados_set_alloc_hint2, AC_DEFINE(HAVE_ALLOC_HINT_2, 1, [Define if you have the `set_alloc_hint2' function]))
+AC_CHECK_FUNC(rados_read_op_omap_get_keys2, AC_DEFINE(HAVE_OMAP_GET_KEYS_2, 1, [Define if you have the `omap_get_keys2' function]))
 
 # Evaluate with options
 AC_ARG_WITH(dict,

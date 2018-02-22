@@ -18,7 +18,7 @@ class RadosMetadataStorage {
  public:
   virtual ~RadosMetadataStorage() {}
   virtual RadosStorageMetadataModule *create_metadata_storage(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_) = 0;
-  virtual const RadosStorageMetadataModule *get_storage() = 0;
+  virtual RadosStorageMetadataModule *get_storage() = 0;
 };
 
 }  // namespace librmb
