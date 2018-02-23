@@ -8,8 +8,11 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-#include "rados-metadata-storage-default.h"
 #include <limits.h>
+
+#include "rados-metadata-storage-default.h"
+#include "rados-util.h"
+
 namespace librmb {
 
 std::string RadosMetadataStorageDefault::module_name = "default";
@@ -18,24 +21,7 @@ RadosMetadataStorageDefault::RadosMetadataStorageDefault(librados::IoCtx *io_ctx
 
 RadosMetadataStorageDefault::~RadosMetadataStorageDefault() {}
 
-// TODO: remove duplicate in rados-metadata-storage-ima.cpp
-int RadosMetadataStorageDefault::get_all_keys_and_values(const std::string &oid,
-                                                         std::map<std::string, librados::bufferlist> *kv_map) {
-  int err = 0;
-  librados::ObjectReadOperation first_read;
-  std::set<std::string> extended_keys;
 
-#ifdef HAVE_OMAP_GET_KEYS_2
-  first_read.omap_get_keys2("", LONG_MAX, &extended_keys, nullptr, &err);
-#else
-  first_read.omap_get_keys("", LONG_MAX, &extended_keys, &err);
-#endif
-  io_ctx->operate(oid.c_str(), &first_read, NULL);
-  if (err < 0) {
-    return err;
-  }
-  return io_ctx->omap_get_vals_by_keys(oid, extended_keys, kv_map);
-}
 int RadosMetadataStorageDefault::load_metadata(RadosMailObject *mail) {
   int ret = -1;
   if (mail != nullptr) {
@@ -45,7 +31,7 @@ int RadosMetadataStorageDefault::load_metadata(RadosMailObject *mail) {
       ret = 0;
     }
     if (ret >= 0) {
-      ret = get_all_keys_and_values(mail->get_oid(), mail->get_extended_metadata());
+      ret = RadosUtils::get_all_keys_and_values(io_ctx, mail->get_oid(), mail->get_extended_metadata());
     }
   }
   return ret;

@@ -17,9 +17,6 @@
 namespace librmb {
 
 class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
- private:
-  int get_all_keys_and_values(const std::string &oid, std::map<std::string, librados::bufferlist> *kv_map);
-
  public:
   RadosMetadataStorageDefault(librados::IoCtx *io_ctx_);
   virtual ~RadosMetadataStorageDefault();

@@ -17,6 +17,8 @@
 #include <stdlib.h>
 
 #include <string>
+#include <map>
+#include <rados/librados.hpp>
 
 #include "rados-types.h"
 
@@ -37,6 +39,9 @@ class RadosUtils {
   static bool string_to_flags(const std::string &flags_str, uint8_t *flags);
 
   static void find_and_replace(std::string *source, std::string const &find, std::string const &replace);
+
+  static int get_all_keys_and_values(const librados::IoCtx *io_ctx, const std::string &oid,
+                                     std::map<std::string, librados::bufferlist> *kv_map);
 };
 
 }  // namespace librmb
