@@ -258,6 +258,7 @@ log "$MDBOX"
 log "$RBOX"
 
 mail=$(get_user_mail_location "$USER")
+make_outpath "$mail"
 new_path="$mail/mailboxes"
 echo "$new_path"
 make_outpath "$new_path"
@@ -287,5 +288,9 @@ fi
 
 TMP_FILE_MDBOX_GUIDS="$TMP_DIR/tmp_file_mdbox_guids.txt"
 TMP_FILE_RBOX_GUIDS="$TMP_DIR/tmp_file_rbox_guids.txt"
-check_guids "$TMP_FILE_MDBOX_GUIDS" "$TMP_FILE_RBOX_GUIDS" "$MDBOX_CONF"
+if check_guids "$TMP_FILE_MDBOX_GUIDS" "$TMP_FILE_RBOX_GUIDS" "$MDBOX_CONF"; then
+	execute_cmd "$DOVEADM" -c "$MDBOX_CONF" quota recalc -u "$USER"
+	execute_cmd "$DOVEADM" quota recalc -u "$USER"
+fi
+
 
