@@ -110,13 +110,12 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
     struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
-    if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID)) {
-      librmb::RadosMetadata metadata_mailbox_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                                                  guid_128_to_string(dest_mailbox->mailbox_guid));
-      metadata_update->push_back(metadata_mailbox_guid);
-    }
-
     if (r_storage->config->is_update_attributes()) {
+      if (r_storage->config->is_updateable_attribute(rbox_metadata_key::RBOX_METADATA_GUID)) {
+        librmb::RadosMetadata metadata_mailbox_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
+                                                    guid_128_to_string(dest_mailbox->mailbox_guid));
+        metadata_update->push_back(metadata_mailbox_guid);
+      }
       if (r_storage->config->is_updateable_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
         // updates the plain text mailbox name
         librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);

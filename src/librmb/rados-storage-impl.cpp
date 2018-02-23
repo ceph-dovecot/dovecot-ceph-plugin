@@ -104,57 +104,7 @@ int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *bu
   return get_io_ctx().read(oid, *buffer, max, 0);
 }
 
-int RadosStorageImpl::load_metadata(RadosMailObject *mail) {
-  int ret = -1;
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return ret;
-  }
 
-  if (mail != nullptr) {
-    if (mail->get_metadata()->size() == 0) {
-      ret = get_io_ctx().getxattrs(mail->get_oid(), *mail->get_metadata());
-    } else {
-      ret = 0;
-    }
-  }
-  return ret;
-}
-int RadosStorageImpl::update_extended_metadata(std::string &oid, RadosMetadata *metadata) {
-  int ret = -1;
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return ret;
-  }
-
-  if (metadata != nullptr) {
-    std::map<std::string, bufferlist> map;
-    map.insert(pair<string, bufferlist>(metadata->key, metadata->bl));
-    ret = get_io_ctx().omap_set(oid, map);
-  }
-  return ret;
-}
-int RadosStorageImpl::remove_extended_metadata(std::string &oid, std::string &key) {
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return -1;
-  }
-
-  std::set<std::string> keys;
-  keys.insert(key);
-  return get_io_ctx().omap_rm_keys(oid, keys);
-}
-int RadosStorageImpl::load_extended_metadata(std::string &oid, std::set<std::string> &keys,
-                                             std::map<std::string, ceph::bufferlist> *metadata) {
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return -1;
-  }
-  return get_io_ctx().omap_get_vals_by_keys(oid, keys, metadata);
-}
-
-int RadosStorageImpl::set_metadata(const std::string &oid, RadosMetadata &xattr) {
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return -1;
-  }
-  return get_io_ctx().setxattr(oid, xattr.key.c_str(), xattr.bl);
-}
 
 int RadosStorageImpl::delete_mail(RadosMailObject *mail) {
   int ret = -1;
@@ -248,7 +198,9 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
     return err;
   }
   max_write_size = std::stoi(max_write_size_str);
-  io_ctx_created = err == 0;
+  if (err == 0) {
+    io_ctx_created = true;
+  }
   return 0;
 }
 
@@ -287,21 +239,6 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
   return ctx_failed;
 }
 
-bool RadosStorageImpl::update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) {
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return false;
-  }
-  librados::ObjectWriteOperation write_op;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-  // update metadata
-  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
-    write_op.setxattr((*it).key.c_str(), (*it).bl);
-  }
-  int ret = aio_operate(&io_ctx, oid, completion, &write_op);
-  completion->wait_for_complete();
-  completion->release();
-  return ret == 0;
-}
 
 // assumes that destination io ctx is current io_ctx;
 bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
@@ -401,25 +338,14 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
 
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
-bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
+bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail,
+                                 bool &save_async) {
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
-  // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-  librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
-  int ret = -1;
-  // set metadata
-  for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
-       it != mail->get_metadata()->end(); ++it) {
-    write_op_xattr->setxattr(it->first.c_str(), it->second);
-  }
-
-  if (mail->get_extended_metadata()->size() > 0) {
-    write_op_xattr->omap_set(*mail->get_extended_metadata());
-  }
 
   write_op_xattr->mtime(mail->get_rados_save_date());
-  ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
+  int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);
   if (!save_async) {
     std::vector<librmb::RadosMailObject *> objects;
@@ -433,6 +359,26 @@ bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
   }
 
   return ret == 0;
+}
+// if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
+// to wait for completion and free resources.
+bool RadosStorageImpl::save_mail(RadosMailObject *mail, bool &save_async) {
+  if (!cluster->is_connected() || !io_ctx_created) {
+    return false;
+  }
+  // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
+  librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
+
+  // set metadata
+  for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
+       it != mail->get_metadata()->end(); ++it) {
+    write_op_xattr->setxattr(it->first.c_str(), it->second);
+  }
+
+  if (mail->get_extended_metadata()->size() > 0) {
+    write_op_xattr->omap_set(*mail->get_extended_metadata());
+  }
+  return save_mail(write_op_xattr, mail, save_async);
 }
 librmb::RadosMailObject *RadosStorageImpl::alloc_mail_object() { return new librmb::RadosMailObject(); }
 void RadosStorageImpl::free_mail_object(librmb::RadosMailObject *mail) {

@@ -62,6 +62,16 @@ class RadosCephJsonConfig {
   bool is_updateable_attribute(enum rbox_metadata_key key);
   bool is_update_attributes() { return update_attributes.compare("true") == 0; }
 
+  void set_metadata_storage_module(const std::string metadata_storage_module_) {
+    metadata_storage_module = metadata_storage_module_;
+  }
+  const std::string& get_metadata_storage_module() { return metadata_storage_module; }
+
+  void set_metadata_storage_attribute(const std::string metadata_storage_attribute_) {
+    metadata_storage_attribute = metadata_storage_attribute_;
+  }
+  const std::string& get_metadata_storage_attribute() { return metadata_storage_attribute; }
+
   void update_mail_attribute(const char* value);
   void update_updateable_attribute(const char* value);
 
@@ -73,6 +83,9 @@ class RadosCephJsonConfig {
   const std::string& get_mail_attribute_key() { return key_mail_attributes; }
   const std::string& get_updateable_attribute_key() { return key_updateable_attributes; }
   const std::string& get_update_attributes_key() { return key_update_attributes; }
+
+  const std::string& get_metadata_storage_module_key() { return key_metadata_storage_module; }
+  const std::string& get_metadata_storage_attribute_key() { return key_metadata_storage_attribute; }
 
  private:
   void set_default_mail_attributes();
@@ -90,6 +103,9 @@ class RadosCephJsonConfig {
   std::string update_attributes;
   std::string updateable_attributes;
 
+  std::string metadata_storage_module;
+  std::string metadata_storage_attribute;
+
   std::string key_user_mapping;
   std::string key_user_ns;
   std::string key_user_suffix;
@@ -98,6 +114,9 @@ class RadosCephJsonConfig {
   std::string key_mail_attributes;
   std::string key_update_attributes;
   std::string key_updateable_attributes;
+
+  std::string key_metadata_storage_module;
+  std::string key_metadata_storage_attribute;
 };
 
 } /* namespace librmb */

@@ -94,7 +94,7 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObject
     librmb::RadosMailObject mail_object;
     mail_object.set_oid((*iter).get_oid());
 
-    int retx = r_storage->s->load_metadata(&mail_object);
+    int retx = r_storage->ms->get_storage()->load_metadata(&mail_object);
 
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object);

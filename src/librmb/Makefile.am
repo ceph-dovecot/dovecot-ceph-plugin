@@ -29,7 +29,13 @@ headers = \
 	rados-dovecot-ceph-cfg-impl.h \
 	rados-ceph-config.h \
 	rados-ceph-json-config.h \
-	rados-guid-generator.h
+	rados-guid-generator.h \
+	rados-metadata-storage.h \
+	rados-metadata-storage-impl.h \
+	rados-metadata-storage-module.h \
+	rados-metadata-storage-default.h \
+	rados-metadata-storage-ima.h 
+	
 
 librmb_la_SOURCES = \
     $(headers) \
@@ -42,7 +48,9 @@ librmb_la_SOURCES = \
 	rados-namespace-manager.cpp\
 	rados-ceph-config.cpp \
 	rados-dovecot-ceph-cfg-impl.cpp \
-	rados-ceph-json-config.cpp
+	rados-ceph-json-config.cpp \
+	rados-metadata-storage-default.cpp \
+	rados-metadata-storage-ima.cpp
 	
 AM_LDFLAGS = $(JANSSON_LIBS)
 AM_CFLAGS = $(JANSSON_CFLAGS)

@@ -21,7 +21,6 @@
 #include <rados/librados.hpp>
 #include "rados-mail-object.h"
 #include "rados-storage.h"
-
 namespace librmb {
 
 class RadosStorageImpl : public RadosStorage {
@@ -39,9 +38,6 @@ class RadosStorageImpl : public RadosStorage {
   int split_buffer_and_exec_op(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                const uint64_t &max_write);
 
-  int load_metadata(RadosMailObject *mail);
-  int set_metadata(const std::string &oid, RadosMetadata &xattr);
-
   int delete_mail(RadosMailObject *mail);
   int delete_mail(const std::string &oid);
 
@@ -57,7 +53,6 @@ class RadosStorageImpl : public RadosStorage {
   bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list);
 
   int read_mail(const std::string &oid, librados::bufferlist *buffer);
-  bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update);
   bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
             std::list<RadosMetadata> &to_update, bool delete_source);
   bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
@@ -65,12 +60,10 @@ class RadosStorageImpl : public RadosStorage {
 
   int save_mail(const std::string &oid, librados::bufferlist &buffer);
   bool save_mail(RadosMailObject *mail, bool &save_async);
+  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool &save_async);
   librmb::RadosMailObject *alloc_mail_object();
+
   void free_mail_object(librmb::RadosMailObject *mail);
-  int update_extended_metadata(std::string &oid, RadosMetadata *metadata);
-  int remove_extended_metadata(std::string &oid, std::string &key);
-  int load_extended_metadata(std::string &oid, std::set<std::string> &keys,
-                             std::map<std::string, ceph::bufferlist> *metadata);
 
  private:
   int create_connection(const std::string &poolname);
@@ -87,4 +80,4 @@ class RadosStorageImpl : public RadosStorage {
 
 }  // namespace librmb
 
-#endif  // SRC_LIBRMB_RADOS_STORAGE_IMPL_H_
+#endif  // SRC_LIBRMB_RADOS_MAIL_STORAGE_IMPL_H_

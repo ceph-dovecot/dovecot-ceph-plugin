@@ -83,4 +83,5 @@ void RadosUtils::find_and_replace(std::string *source, std::string const &find, 
   }
 }
 
+
 }  // namespace librmb
