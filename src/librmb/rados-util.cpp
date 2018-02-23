@@ -10,6 +10,7 @@
  */
 #include "rados-util.h"
 #include <string>
+#include <limits.h>
 #include <sstream>
 
 namespace librmb {

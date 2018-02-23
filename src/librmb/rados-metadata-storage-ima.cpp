@@ -12,7 +12,6 @@
 #include "rados-metadata-storage-ima.h"
 #include "rados-util.h"
 #include <string.h>
-#include <limits.h>
 
 namespace librmb {
 std::string RadosMetadataStorageIma::module_name = "ima";

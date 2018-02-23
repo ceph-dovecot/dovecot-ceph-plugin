@@ -8,7 +8,6 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-#include <limits.h>
 
 #include "rados-metadata-storage-default.h"
 #include "rados-util.h"
