@@ -100,8 +100,6 @@ std::string RadosMailObject::to_string(const string &padding) {
     if (RadosUtils::string_to_flags(flags, &flags_)) {
       std::string resolved_flags;
       RadosUtils::resolve_flags(flags_, &resolved_flags);
-      // ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): 0x" << std::hex
-      //   << +flags_ << std::endl;
       ss << padding << "        " << static_cast<char>(RBOX_METADATA_OLDV1_FLAGS) << "(flags): " << resolved_flags
          << std::endl;
     }

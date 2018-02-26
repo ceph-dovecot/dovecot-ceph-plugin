@@ -317,21 +317,15 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS)) {
     const char *const *keywords_list = mail_get_keywords(ctx->ctx.dest_mail);
-    struct mail_keywords *keywords;
-    keywords = str_array_length(keywords_list) == 0 ? NULL : mailbox_keywords_create_valid(ctx->ctx.transaction->box,
-                                                                                           keywords_list);
-    unsigned int keyword_count = keywords == NULL ? 0 : keywords->count;
-    if (keyword_count > 0) {
-      for (unsigned int i = 0; i < keyword_count; i++) {
-        std::string keyword = std::to_string(keywords->idx[i]);
-        std::string ext_key = "k_" + keyword;
-        RadosMetadata ext_metadata(ext_key, keyword);
-        mail_object->add_extended_metadata(ext_metadata);
-      }
+    int idx = 0;
+    while (*keywords_list != NULL) {
+      std::string keyword = *keywords_list;
+      std::string ext_key = std::to_string(idx);
+      RadosMetadata ext_metadata(ext_key, keyword);
+      mail_object->add_extended_metadata(ext_metadata);
+      keywords_list++;
+      idx++;
     }
-
-    if (keywords != NULL)
-      mailbox_keywords_unref(&keywords);
   }
 
   mail_object->set_rados_save_date(mdata->save_date);
