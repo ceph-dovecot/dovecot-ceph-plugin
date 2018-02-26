@@ -1,4 +1,4 @@
-./" Manpage for rmb.
+./" Manpage for rmb.g
 ./" Contact ..@tallence.com to correct errors or typos.
 .TH man 1 "09 Oct 2017" "1.0" "rmb man page"
 .SH NAME 
@@ -23,24 +23,19 @@ The option\(aqs argument is the rados namespace where the user mails are stored.
 The option\(aqs argument is the path where mails are stored when using get command option. ~/ can be used 
 
 .TP
-.BI \-help\  
+.BI \-h\  
  displays the usage information
  
 .TP
-.BI \-obj\ objectname  
+.BI \-o\ objectname  
  defines the dovecot-ceph configuration object, if not given a object with oid rbox_cfg is used.
  
 .TP
-.BI \-R\ dovecot_user_name  
- Renames a user
- 
- 
-.TP
-.BI \ -cluster\ cluster_name  
+.BI \-c\ cluster_name  
  The rados cluster name, default is ceph.
 
 .TP
-.BI \ -rados_user\ rados_user  
+.BI \-u\ rados_user  
  The rados user to use, default is client.admin
 
 
@@ -81,23 +76,28 @@ Currently the following sort keywords are defined: uid, recv_date, save_date, ph
 List all available pools
 
 .TP
-.BI \-D\ oid
+.BI delete\ oid
 delete the e-mail object. It is required to use the -N option and to confirm the deletion with --yes-i-really-really-mean-it
 
+TP
+.BI rename\ dovecot_user_name  
+ Renames a user
+ 
+ 
 .SH CONFIGURATION
 
 	
 .TP
-.BI \-cfg\ \-U\ key=value
+.BI \cfg\ update\ key=value
 Update configuration key with value. Changes to configuration need to be confirmed with  --yes-i-really-really-mean-it
 
 	
 .TP
-.BI \-cfg\ \-C\ 
+.BI cfg\ create\ 
 Create the default configuration.
 
 .TP
-.BI \-cfg\ ls\ \- 
+.BI cfg\ ls\ show 
 print the current configuation to screen.
 
 .SH METADATA
