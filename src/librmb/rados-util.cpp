@@ -11,6 +11,7 @@
 #include "rados-util.h"
 #include <string>
 #include <limits.h>
+#include <iostream>
 #include <sstream>
 
 namespace librmb {
@@ -99,6 +100,31 @@ int RadosUtils::get_all_keys_and_values(const librados::IoCtx *io_ctx, const std
     return err;
   }
   return io_ctx->omap_get_vals_by_keys(oid, extended_keys, kv_map);
+}
+
+void RadosUtils::resolve_flags(const uint8_t &flags, std::string *flat) {
+  std::stringbuf buf;
+  std::ostream os(&buf);
+
+  if ((flags & 0x01) != 0) {
+    os << "\\Answered ";
+  }
+  if ((flags & 0x02) != 0) {
+    os << "\\Flagged ";
+  }
+  if ((flags & 0x04) != 0) {
+    os << "\\Deleted ";
+  }
+  if ((flags & 0x08) != 0) {
+    os << "\\Seen ";
+  }
+  if ((flags & 0x10) != 0) {
+    os << "\\Draft ";
+  }
+  if ((flags & 0x20) != 0) {
+    os << "\\Recent ";
+  }
+  *flat = buf.str();
 }
 
 }  // namespace librmb

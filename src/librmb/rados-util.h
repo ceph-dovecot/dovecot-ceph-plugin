@@ -42,7 +42,8 @@ class RadosUtils {
 
   static int get_all_keys_and_values(const librados::IoCtx *io_ctx, const std::string &oid,
                                      std::map<std::string, librados::bufferlist> *kv_map);
-};
+  static void resolve_flags(const uint8_t &flags, std::string *flat);
+  };
 
 }  // namespace librmb
 
