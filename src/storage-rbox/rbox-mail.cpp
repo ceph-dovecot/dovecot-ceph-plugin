@@ -350,8 +350,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     physical_size = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
     if (physical_size < 0) {
       if (physical_size == -ENOENT) {
-        i_debug("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
-                r_storage->s->get_namespace().c_str(), getpid());
+        i_warning("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
+                  r_storage->s->get_namespace().c_str(), getpid());
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;

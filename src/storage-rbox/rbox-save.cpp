@@ -74,7 +74,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-
   uint8_t save_flags = 0x0;
 
 /* add to index */
@@ -167,7 +166,6 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
   if (_ctx->dest_mail != NULL) {
-    //    i_debug("SAVE OID: %s, seq=%d", guid_128_to_string(rec.oid), r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
 }
@@ -277,7 +275,6 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE)) {
     if (mdata->from_envelope != NULL) {
-      i_debug("from envelope %s", mdata->from_envelope);
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope);
       mail_object->add_metadata(xattr);
     }
@@ -285,7 +282,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE)) {
     uoff_t vsize = -1;
     if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
-      i_debug("warning, unable to determine virtual size, using physical size instead.");
+      i_warning("unable to determine virtual size, using physical size instead.");
       vsize = ctx->input->v_offset;
     }
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);

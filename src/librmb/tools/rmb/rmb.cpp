@@ -468,7 +468,7 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
   }
 }
 
-static void handle_delete_mail(bool delete_mail_option, bool confirmed, const std::map<std::string, std::string> &opts,
+static void handle_delete_mail(bool delete_mail_option, bool confirmed, std::map<std::string, std::string> &opts,
                                librmb::RadosStorageImpl &storage, librmb::RadosClusterImpl &cluster) {
   if (delete_mail_option) {
     if (!confirmed) {
@@ -488,7 +488,7 @@ static void handle_delete_mail(bool delete_mail_option, bool confirmed, const st
 }
 
 static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
-                               const std::string &uid, const std::map<std::string, std::string> &opts,
+                               const std::string &uid, std::map<std::string, std::string> &opts,
                                librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
     if (!cfg.is_user_mapping()) {
@@ -505,6 +505,7 @@ static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCeph
       exit(0);
     }
     std::string src_ = uid + cfg.get_user_suffix();
+
     std::string dest_ = opts["to_rename"] + cfg.get_user_suffix();
     if (src_.compare(dest_) == 0) {
       std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;

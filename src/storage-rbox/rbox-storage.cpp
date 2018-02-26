@@ -126,8 +126,6 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
 
   index_storage_destroy(_storage);
 
-  i_debug("destroying storage!");
-
   FUNC_END();
 }
 
@@ -141,10 +139,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   /* rados can't work without index files */
   int intflags = flags & ~MAILBOX_FLAG_NO_INDEX_FILES;
 
-  /*  if (storage->set != NULL) {
-      i_debug("mailbox_list_index = %s", btoa(storage->set->mailbox_list_index));
-    }*/
-
   pool = pool_alloconly_create("rbox mailbox", 1024);
   rbox = p_new(pool, struct rbox_mailbox, 1);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
@@ -155,9 +149,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   rbox->box.v = rbox_mailbox_vfuncs;
   rbox->box.mail_vfuncs = &rbox_mail_vfuncs;
 
-  // i_debug("rbox_mailbox_alloc: vname = %s, storage-name = %s, mail-location = %s", vname, storage->name,
-  //         storage->set->mail_location);
-
   index_storage_mailbox_alloc(&rbox->box, vname, static_cast<mailbox_flags>(intflags), MAIL_INDEX_PREFIX);
 
   ibox = static_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(&rbox->box));
@@ -166,7 +157,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   rbox->storage = (struct rbox_storage *)storage;
 
-  //  i_debug("list name = %s", list->name);
   FUNC_END();
   return &rbox->box;
 }
@@ -232,8 +222,6 @@ static int rbox_open_mailbox(struct mailbox *box) {
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
   const char *box_path = mailbox_get_path(box);
   struct stat st;
-
-  //  i_debug("rbox-storage::rbox_mailbox_open box_path = %s", box_path);
 
   if (stat(box_path, &st) == 0) {
     /* exists, open it */
