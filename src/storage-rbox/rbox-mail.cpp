@@ -123,7 +123,6 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     }
     return ret;
   }
-  std::string str_key(1, static_cast<char>(key));
   std::string value = rmail->mail_object->get_metadata(key);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
@@ -134,15 +133,15 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
 static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   FUNC_START();
-  struct index_mail *mail = (struct index_mail *)_mail;
-  struct index_mail_data *data = &mail->data;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
+  struct index_mail_data *data = &rmail->imail.data;
+
   char *value = NULL;
   int ret = 0;
 
   if (index_mail_get_received_date(_mail, date_r) == 0) {
     FUNC_END_RET("ret == 0");
-    return 0;
+    return ret;
   }
 
   ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
@@ -161,21 +160,26 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     // rados xattribute, as in sdbox this is not necessarily a error so return 0;
     return 0;
   }
-
-  data->received_date = static_cast<time_t>(std::stol(value));
-
-  *date_r = data->received_date;
+  try {
+    data->received_date = static_cast<time_t>(std::stol(value));
+    *date_r = data->received_date;
+  } catch (const std::invalid_argument &e) {
+    i_error("invalid value (invalid argument) for received_date %s", value);
+    ret = -1;
+  } catch (const std::out_of_range &e) {
+    i_error("invalid value (out of range) for received_date %s", value);
+    ret = -1;
+  }
   i_free(value);
 
   FUNC_END();
-  return 0;
+  return ret;
 }
 
 static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   FUNC_START();
-  struct index_mail *mail = (struct index_mail *)_mail;
-  struct index_mail_data *data = &mail->data;
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
+  struct index_mail_data *data = &rmail->imail.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   uint64_t object_size = 0;
   time_t save_date_rados = 0;
@@ -220,13 +224,13 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct index_mail_data *data = &rmail->imail.data;
   char *value = NULL;
   *size_r = -1;
+  int ret = 0;
 
   if (index_mail_get_virtual_size(_mail, size_r) == 0) {
     return 0;
   }
 
-  bool ret = index_mail_get_cached_virtual_size(&rmail->imail, size_r);
-  if (ret && *size_r > 0) {
+  if (index_mail_get_cached_virtual_size(&rmail->imail, size_r) && *size_r > 0) {
     return 0;
   }
   if (rmail->mail_object == nullptr) {
@@ -244,10 +248,19 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
     return -1;
   }
 
-  data->virtual_size = std::stol(value);
+  try {
+    data->virtual_size = std::stol(value);
+    *size_r = data->virtual_size;
+  } catch (const std::invalid_argument &e) {
+    i_error("invalid value (invalid argument) for received_date %s", value);
+    ret = -1;
+  } catch (const std::out_of_range &e) {
+    i_error("invalid value (out of range) for received_date %s", value);
+    ret = -1;
+  }
+  i_free(value);
 
-  *size_r = data->virtual_size;
-  return 0;
+  return ret;
 }
 
 static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
@@ -284,6 +297,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
       // at least it needs to exists?
       return -1;
     }
+
+    // TODO: psize is uint64_t (64Bit = unsigned long int, 32Bit =unsigned long long int)
     data->physical_size = psize;
     *size_r = data->physical_size;
   } else {
