@@ -391,7 +391,7 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
   }
 }
 
-int handle_lspools_cmd() {
+int cmd_lspools() {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
   cluster.init();
@@ -410,7 +410,7 @@ int handle_lspools_cmd() {
   return 0;
 }
 
-static void handle_config_option(bool is_config_option, bool create_config, const std::string &obj_, bool confirmed,
+static void cmd_config_option(bool is_config_option, bool create_config, const std::string &obj_, bool confirmed,
                                  std::map<std::string, std::string> &opts, librmb::RadosClusterImpl &cluster,
                                  librmb::RadosCephConfig &ceph_cfg) {
   if (is_config_option) {
@@ -466,7 +466,7 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
   }
 }
 
-static void handle_delete_mail(bool delete_mail_option, bool confirmed, std::map<std::string, std::string> &opts,
+static void cmd_delete_mail(bool delete_mail_option, bool confirmed, std::map<std::string, std::string> &opts,
                                librmb::RadosStorageImpl &storage, librmb::RadosClusterImpl &cluster) {
   if (delete_mail_option) {
     if (!confirmed) {
@@ -485,7 +485,7 @@ static void handle_delete_mail(bool delete_mail_option, bool confirmed, std::map
   }
 }
 
-static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
+static void cmd_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
                                const std::string &uid, std::map<std::string, std::string> &opts,
                                librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
@@ -581,7 +581,7 @@ int main(int argc, const char **argv) {
   std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
 
   if (is_lspools_cmd) {
-    return handle_lspools_cmd();
+    return cmd_lspools();
   }
 
   librmb::RadosClusterImpl cluster;
@@ -615,7 +615,7 @@ int main(int argc, const char **argv) {
     exit(0);
   }
 
-  handle_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
+  cmd_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
 
   librmb::RadosConfig dovecot_cfg;
   dovecot_cfg.set_config_valid(true);
@@ -649,9 +649,9 @@ int main(int argc, const char **argv) {
     storage.set_namespace(ns);
   }
 
-  handle_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
+  cmd_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
 
-  handle_rename_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
+  cmd_rename_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {

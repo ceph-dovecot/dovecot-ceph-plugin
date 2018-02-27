@@ -100,6 +100,6 @@ class RadosMailBox {
   std::string mbox_orig_name;
 };
 }  // namespace librmb
-int handle_lspools_cmd();
+int cmd_lspools();
 
 #endif  // SRC_LIBRMB_TOOLS_RMB_RMB_H_
