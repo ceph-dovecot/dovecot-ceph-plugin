@@ -85,7 +85,7 @@ void RadosUtils::find_and_replace(std::string *source, std::string const &find, 
   }
 }
 
-int RadosUtils::get_all_keys_and_values(const librados::IoCtx *io_ctx, const std::string &oid,
+int RadosUtils::get_all_keys_and_values(librados::IoCtx *io_ctx, const std::string &oid,
                                         std::map<std::string, librados::bufferlist> *kv_map) {
   int err = 0;
   librados::ObjectReadOperation first_read;

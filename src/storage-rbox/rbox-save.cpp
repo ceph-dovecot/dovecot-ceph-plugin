@@ -316,15 +316,23 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS)) {
-    const char *const *keywords_list = mail_get_keywords(ctx->ctx.dest_mail);
-    int idx = 0;
-    while (*keywords_list != NULL) {
-      std::string keyword = *keywords_list;
-      std::string ext_key = std::to_string(idx);
-      RadosMetadata ext_metadata(ext_key, keyword);
+    struct rbox_mail *rmail = (struct rbox_mail *)ctx->ctx.dest_mail;
+    // load keyword indexes to rmail->imal.data.keyword_indexes
+    index_mail_get_keyword_indexes(ctx->ctx.dest_mail);
+    unsigned int count_keyword_indexes;
+    const unsigned int *const keyword_indexes = array_get(&rmail->imail.data.keyword_indexes, &count_keyword_indexes);
+
+    // load keywords to rmail->imal.data.keywords
+    mail_get_keywords(ctx->ctx.dest_mail);
+    unsigned int count_keywords;
+    const char *const *keywords = array_get(&rmail->imail.data.keywords, &count_keywords);
+
+    for (unsigned int i = 0; i < count_keyword_indexes; i++) {
+      // set keyword_idx : keyword_value
+      std::string key_idx = std::to_string(keyword_indexes[i]);
+      std::string keyword_value = keywords[i];
+      RadosMetadata ext_metadata(key_idx, keyword_value);
       mail_object->add_extended_metadata(ext_metadata);
-      keywords_list++;
-      idx++;
     }
   }
 
