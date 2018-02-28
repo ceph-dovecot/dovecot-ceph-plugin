@@ -28,7 +28,7 @@ DOVEADM="/opt/app/dovecot/bin/doveadm"
 # Parameter $2 user id
 # Parameter $3 mail format
 #
-doveadm_sync() {
+doveadm_backup() {
 	local dest_path="$1"
 	local user="$2"
 	local mail_format="$3"
@@ -38,9 +38,9 @@ doveadm_sync() {
 	fi
 	
 	if [ "$mail_format" = "rbox" ]; then
-		"$DOVEADM" sync -u "$user" "$mail_format":"$dest_path"/"$user":LAYOUT=fs
+		"$DOVEADM" -o plugin/quota= backup -f -u "$user" "$mail_format":"$dest_path"/"$user":LAYOUT=fs
 	else
-		"$DOVEADM" sync -u "$user" "$mail_format":"$dest_path"/"$user"
+		"$DOVEADM" -o plugin/quota= backup -f -u "$user" "$mail_format":"$dest_path"/"$user"
 	fi
 	echo $?	
 }
