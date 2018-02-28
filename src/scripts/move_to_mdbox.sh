@@ -17,9 +17,9 @@ source "$script_path/doveadm.sh"
 mail_location=$(get_user_mail_location "$user")
 
 # Synchronize from rbox to mdbox
-result=$(doveadm_sync "$dest_path" "$user" mdbox)
+result=$(doveadm_backup "$dest_path" "$user" mdbox)
 [ "$result" -eq 0 ] || { echo "doveadm sync failed"; exit 1; }
-result=$(doveadm_sync "$dest_path" "$user" mdbox)
+result=$(doveadm_backup "$dest_path" "$user" mdbox)
 [ "$result" -eq 0 ] || { echo "doveadm sync failed"; exit 1; }
 
 # Copy files from rbox to mdbox
