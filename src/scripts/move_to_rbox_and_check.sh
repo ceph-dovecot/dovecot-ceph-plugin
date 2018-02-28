@@ -66,7 +66,7 @@ function execute_cmd_with_redirect_ignore_stderr()
 
 USER=$1
 TMP_DIR=$2
-MDBOX_CONF=$3
+MDBOX_CONF="/opt/app/dovecot/etc/dovecot/dovecot-mdbox.conf"
 TMP_FILE_MDBOX="$TMP_DIR/tmp_file_mdbox.txt"
 TMP_FILE_RBOX="$TMP_DIR/tmp_file_rbox.txt"
 COMPRESS_TMP_CMDLOG="$TMP_DIR/command.log"
@@ -268,7 +268,7 @@ execute_cmd "$DOVEADM" -c "$MDBOX_CONF" purge -u "$USER"
 # List all mails of original format
 list_all_mails "$TMP_FILE_MDBOX" "$MDBOX_CONF" "$fields_to_verify"
 # Execute backup to rbox format
-execute_cmd "$DOVEADM" -c "$MDBOX_CONF" backup -f -u "$USER" "$RBOX"
+execute_cmd "$DOVEADM" -o plugin/quota= -c "$MDBOX_CONF" backup -f -u "$USER" "$RBOX"
 # List all mails of rbox format
 list_all_mails "$TMP_FILE_RBOX" "" "$fields_to_verify"
 # Compare the two lists of mails (without field "flags")
@@ -288,9 +288,5 @@ fi
 
 TMP_FILE_MDBOX_GUIDS="$TMP_DIR/tmp_file_mdbox_guids.txt"
 TMP_FILE_RBOX_GUIDS="$TMP_DIR/tmp_file_rbox_guids.txt"
-if check_guids "$TMP_FILE_MDBOX_GUIDS" "$TMP_FILE_RBOX_GUIDS" "$MDBOX_CONF"; then
-	execute_cmd "$DOVEADM" -c "$MDBOX_CONF" quota recalc -u "$USER"
-	execute_cmd "$DOVEADM" quota recalc -u "$USER"
-fi
-
+check_guids "$TMP_FILE_MDBOX_GUIDS" "$TMP_FILE_RBOX_GUIDS" "$MDBOX_CONF"
 
