@@ -151,44 +151,40 @@ static bool ceph_argparse_double_dash(std::vector<const char *> *args, std::vect
 
 static void usage(std::ostream &out) {
   out << "usage: rmb [options] [commands]\n"
-         "   -p                     pool\n"
-         "                          pool where mail data is saved, if not given mail_storage is used\n"
-         "   -N                     namespace e.g. dovecot user name\n"
-         "                          specify the namespace/user to use for the mails\n"
-         "   -O                     path to store the boxes. If not given, $HOME/rmb is used\n"
-         "                          lspools  list pools\n "
-         "   -help                  print this information\n"
-         "   -obj <objectname>      defines the dovecot-ceph configuration object\n"
-         "   -R dovecot_user_name   renames a username\n "
-         "   -cluster <name>        rados cluster name\n"
-         "   -rados_user <user>     rados user name\n"
+         "   -p    ceph mail storage pool, default:'mail_storage'\n"
+         "   -N    namespace e.g. dovecot user name\n"
+         "         specify the namespace/user\n"
+         "   -O    path to store the boxes, default: '$HOME/rmb'\n"
+         "   -h    print this information\n"
+         "   -o    defines the dovecot-ceph configuration object\n"
+         "   -c    rados cluster name, default: 'ceph'\n"
+         "   -u    rados user name, default: 'client.admin' \n"
          "\n"
          "\nMAIL COMMANDS\n"
-         "    ls     -              list all mails and mailbox statistic\n"
-         "                          all list all mails and mailbox statistic\n"
-         "                          <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
-         "                          <VALUE> e.g. R= %Y-%m-%d %H:%M:%S (\"R=2017-08-22 14:30\")\n"
-         "                          <OP> =,>,< for strings only = is supported.\n"
-         "    get     -             download mails to file\n"
-         "                          <XATTR><OP><VALUE> e.g. U=7, \"U<7\", \"U>7\"\n"
-         "                          <VALUE> e.g. R= %Y-%m-%d %H:%M:%S (\"R=2017-08-22 14:30\")\n"
-         "                          <OP> =,>,< for strings only = is supported.\n"
+         "    ls -    list all mails and mailbox statistic\n"
+         "            use Metadata value to filter results \n"
+         "            filter: e.g. U=7, \"U<7\", \"U>7\"\n"
+         "            date format:  %Y-%m-%d %H:%M:%S e.g. (\"R=2017-08-22 14:30\")\n"
+         "            comparison operators: =,>,< for strings only = is supported.\n"
+         "    get -   download mails to file\n"
+         "            filter: e.g. U=7, \"U<7\", \"U>7\"\n"
+         "            date format: %Y-%m-%d %H:%M:%S e.g. (\"R=2017-08-22 14:30\")\n"
+         "            comparison operators: =,>,< for strings only = is supported.\n"
+         "    set     oid metadata value   e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
+         "    sort    values: uid, recv_date, save_date, phy_size\n"
+         "    lspools list all available pools\n"
          "\n"
-         "    set     oid XATTR value   e.g. U 1 B INBOX R \"2017-08-22 14:30\"\n"
-         "    sort    keyword           keywords = uid, recv_date, save_date, phy_size\n"
-         "    lspools                   list all available pools\n"
-         "\n"
-         "    -D      oid --yes-i-really-really-mean-it \n"
-         "                              deletes the ceph object with oid\n"
+         "    delete  deletes the ceph object, use oid attribute to identify mail.\n"
+         "    rename  dovecot_user_name, rename a user\n"
+         "    lspools list pools\n"
+
          "\nMAILBOX COMMANDS\n"
          "    ls     mb  -N user        list all mailboxes\n"
          "\nCONFIGURATION COMMANDS\n"
-         "    -cfg -U key=value [-obj <objectname>] --yes-i-really-really-mean-it \n"
-         "                                          sets the configuration value\n"
-         "                                          e.g. generated_namespace=true|false\n"
-         "    -cfg -C [-obj <objectnam>]            create the default configuration\n"
-         "    -cfg ls - [-obj <objectname>]         print the current configuation to screen"
-
+         "    cfg create            create the default configuration\n"
+         "    cfg show              print configuration to screen\n"
+         "    cfg update key=value  sets the configuration value key=value\n"
+         "                          e.g. user_mapping=true\n"
          "\n";
 }
 
@@ -348,39 +344,41 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["pool"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
       (*opts)["namespace"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
+      (*opts)["out"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-h", "--help", (char *)(NULL))) {
+      show_usage = true;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-o", "--object", static_cast<char>(NULL))) {
+      (*opts)["cfg_obj"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-c", "--cluster", static_cast<char>(NULL))) {
+      (*opts)["clustername"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-u", "--rados_user", static_cast<char>(NULL))) {
+      (*opts)["rados_user"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
       (*opts)["ls"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
       (*opts)["get"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
-      (*opts)["out"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "set", "--set", static_cast<char>(NULL))) {
       (*opts)["set"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
       (*opts)["sort"] = val;
-    } else if (ceph_argparse_flag(*args, i, "-cfg", "--config", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "cfg", "--config", (char *)(NULL))) {
       is_config = true;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-obj", "--object", static_cast<char>(NULL))) {
-      (*opts)["cfg_obj"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-U", "--update", static_cast<char>(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "update", "--update", static_cast<char>(NULL))) {
       (*opts)["update"] = val;
-    } else if (ceph_argparse_flag(*args, i, "-C", "--create", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "create", "--create", (char *)(NULL))) {
       create_config = true;
-    } else if (ceph_argparse_flag(*args, i, "-help", "--help", (char *)(NULL))) {
-      show_usage = true;
+    } else if (ceph_argparse_flag(*args, i, "show", "--show", (char *)(NULL))) {
+      (*opts)["print_cfg"] = "true";
     } else if (ceph_argparse_flag(*args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
                                   (char *)(NULL))) {
       update_confirmed = true;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-D", "--delete", static_cast<char>(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "delete", "--delete", static_cast<char>(NULL))) {
       // delete oid
       (*opts)["to_delete"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-R", "--rename", static_cast<char>(NULL))) {
+    } else if (ceph_argparse_witharg(args, &i, &val, "rename", "--rename", static_cast<char>(NULL))) {
       // rename
       (*opts)["to_rename"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-cluster", "--cluster", static_cast<char>(NULL))) {
-      (*opts)["clustername"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-rados_user", "--rados_user", static_cast<char>(NULL))) {
-      (*opts)["rados_user"] = val;
     } else {
       if (idx + 1 < (*args).size()) {
         std::string m_idx((*args)[idx]);
@@ -393,7 +391,7 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
   }
 }
 
-int handle_lspools_cmd() {
+int cmd_lspools() {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
   cluster.init();
@@ -412,12 +410,12 @@ int handle_lspools_cmd() {
   return 0;
 }
 
-static void handle_config_option(bool is_config_option, bool create_config, const std::string &obj_, bool confirmed,
+static void cmd_config_option(bool is_config_option, bool create_config, const std::string &obj_, bool confirmed,
                                  std::map<std::string, std::string> &opts, librmb::RadosClusterImpl &cluster,
                                  librmb::RadosCephConfig &ceph_cfg) {
   if (is_config_option) {
     bool has_update = opts.find("update") != opts.end();
-    bool has_ls = opts.find("ls") != opts.end();
+    bool has_ls = opts.find("print_cfg") != opts.end();
     if (has_update && has_ls) {
       usage_exit();
     }
@@ -468,7 +466,7 @@ static void handle_config_option(bool is_config_option, bool create_config, cons
   }
 }
 
-static void handle_delete_mail(bool delete_mail_option, bool confirmed, const std::map<std::string, std::string> &opts,
+static void cmd_delete_mail(bool delete_mail_option, bool confirmed, std::map<std::string, std::string> &opts,
                                librmb::RadosStorageImpl &storage, librmb::RadosClusterImpl &cluster) {
   if (delete_mail_option) {
     if (!confirmed) {
@@ -479,7 +477,7 @@ static void handle_delete_mail(bool delete_mail_option, bool confirmed, const st
       if (storage.delete_mail(opts["to_delete"]) == 0) {
         std::cout << "unable to delete e-mail object with oid: " << opts["to_delete"] << std::endl;
       } else {
-        std::cout << "Success: email objekt with oid: " << opts["to_delete"] << " deleted" << std::endl;
+        std::cout << "Success: email object with oid: " << opts["to_delete"] << " deleted" << std::endl;
       }
     }
     cluster.deinit();
@@ -487,8 +485,8 @@ static void handle_delete_mail(bool delete_mail_option, bool confirmed, const st
   }
 }
 
-static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
-                               const std::string &uid, const std::map<std::string, std::string> &opts,
+static void cmd_rename_user(bool rename_user_option, librmb::RadosDovecotCephCfgImpl cfg, bool confirmed,
+                               const std::string &uid, std::map<std::string, std::string> &opts,
                                librmb::RadosClusterImpl &cluster, librmb::RadosStorageImpl &storage) {
   if (rename_user_option) {
     if (!cfg.is_user_mapping()) {
@@ -505,6 +503,7 @@ static void handle_rename_user(bool rename_user_option, librmb::RadosDovecotCeph
       exit(0);
     }
     std::string src_ = uid + cfg.get_user_suffix();
+
     std::string dest_ = opts["to_rename"] + cfg.get_user_suffix();
     if (src_.compare(dest_) == 0) {
       std::cout << "Error: you need to give a valid username not equal to -N" << std::endl;
@@ -582,7 +581,7 @@ int main(int argc, const char **argv) {
   std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
 
   if (is_lspools_cmd) {
-    return handle_lspools_cmd();
+    return cmd_lspools();
   }
 
   librmb::RadosClusterImpl cluster;
@@ -616,7 +615,7 @@ int main(int argc, const char **argv) {
     exit(0);
   }
 
-  handle_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
+  cmd_config_option(is_config_option, create_config, config_obj, confirmed, opts, cluster, ceph_cfg);
 
   librmb::RadosConfig dovecot_cfg;
   dovecot_cfg.set_config_valid(true);
@@ -650,9 +649,9 @@ int main(int argc, const char **argv) {
     storage.set_namespace(ns);
   }
 
-  handle_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
+  cmd_delete_mail(delete_mail_option, confirmed, opts, storage, cluster);
 
-  handle_rename_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
+  cmd_rename_user(rename_user_option, cfg, confirmed, uid, opts, cluster, storage);
   if (opts.find("ls") != opts.end()) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {

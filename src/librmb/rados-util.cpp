@@ -10,6 +10,8 @@
  */
 #include "rados-util.h"
 #include <string>
+#include <limits.h>
+#include <iostream>
 #include <sstream>
 
 namespace librmb {
@@ -83,5 +85,46 @@ void RadosUtils::find_and_replace(std::string *source, std::string const &find, 
   }
 }
 
+int RadosUtils::get_all_keys_and_values(librados::IoCtx *io_ctx, const std::string &oid,
+                                        std::map<std::string, librados::bufferlist> *kv_map) {
+  int err = 0;
+  librados::ObjectReadOperation first_read;
+  std::set<std::string> extended_keys;
+#ifdef HAVE_OMAP_GET_KEYS_2
+  first_read.omap_get_keys2("", LONG_MAX, &extended_keys, nullptr, &err);
+#else
+  first_read.omap_get_keys("", LONG_MAX, &extended_keys, &err);
+#endif
+  io_ctx->operate(oid.c_str(), &first_read, NULL);
+  if (err < 0) {
+    return err;
+  }
+  return io_ctx->omap_get_vals_by_keys(oid, extended_keys, kv_map);
+}
+
+void RadosUtils::resolve_flags(const uint8_t &flags, std::string *flat) {
+  std::stringbuf buf;
+  std::ostream os(&buf);
+
+  if ((flags & 0x01) != 0) {
+    os << "\\Answered ";
+  }
+  if ((flags & 0x02) != 0) {
+    os << "\\Flagged ";
+  }
+  if ((flags & 0x04) != 0) {
+    os << "\\Deleted ";
+  }
+  if ((flags & 0x08) != 0) {
+    os << "\\Seen ";
+  }
+  if ((flags & 0x10) != 0) {
+    os << "\\Draft ";
+  }
+  if ((flags & 0x20) != 0) {
+    os << "\\Recent ";
+  }
+  *flat = buf.str();
+}
 
 }  // namespace librmb

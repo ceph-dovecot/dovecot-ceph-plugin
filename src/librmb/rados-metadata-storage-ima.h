@@ -22,7 +22,6 @@ namespace librmb {
 class RadosMetadataStorageIma : public RadosStorageMetadataModule {
  private:
   int parse_attribute(RadosMailObject *mail, json_t *root);
-  int get_all_keys_and_values(const std::string &oid, std::map<std::string, librados::bufferlist> *kv_map);
 
  public:
   RadosMetadataStorageIma(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_);

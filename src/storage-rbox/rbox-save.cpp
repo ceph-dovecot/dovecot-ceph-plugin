@@ -74,7 +74,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-
   uint8_t save_flags = 0x0;
 
 /* add to index */
@@ -167,7 +166,6 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
   if (_ctx->dest_mail != NULL) {
-    //    i_debug("SAVE OID: %s, seq=%d", guid_128_to_string(rec.oid), r_ctx->seq);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
 }
@@ -277,7 +275,6 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE)) {
     if (mdata->from_envelope != NULL) {
-      i_debug("from envelope %s", mdata->from_envelope);
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE, mdata->from_envelope);
       mail_object->add_metadata(xattr);
     }
@@ -285,7 +282,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE)) {
     uoff_t vsize = -1;
     if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
-      i_debug("warning, unable to determine virtual size, using physical size instead.");
+      i_warning("unable to determine virtual size, using physical size instead.");
       vsize = ctx->input->v_offset;
     }
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
@@ -319,22 +316,24 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS)) {
-    const char *const *keywords_list = mail_get_keywords(ctx->ctx.dest_mail);
-    struct mail_keywords *keywords;
-    keywords = str_array_length(keywords_list) == 0 ? NULL : mailbox_keywords_create_valid(ctx->ctx.transaction->box,
-                                                                                           keywords_list);
-    unsigned int keyword_count = keywords == NULL ? 0 : keywords->count;
-    if (keyword_count > 0) {
-      for (unsigned int i = 0; i < keyword_count; i++) {
-        std::string keyword = std::to_string(keywords->idx[i]);
-        std::string ext_key = "k_" + keyword;
-        RadosMetadata ext_metadata(ext_key, keyword);
-        mail_object->add_extended_metadata(ext_metadata);
-      }
-    }
+    struct rbox_mail *rmail = (struct rbox_mail *)ctx->ctx.dest_mail;
+    // load keyword indexes to rmail->imal.data.keyword_indexes
+    index_mail_get_keyword_indexes(ctx->ctx.dest_mail);
+    unsigned int count_keyword_indexes;
+    const unsigned int *const keyword_indexes = array_get(&rmail->imail.data.keyword_indexes, &count_keyword_indexes);
 
-    if (keywords != NULL)
-      mailbox_keywords_unref(&keywords);
+    // load keywords to rmail->imal.data.keywords
+    mail_get_keywords(ctx->ctx.dest_mail);
+    unsigned int count_keywords;
+    const char *const *keywords = array_get(&rmail->imail.data.keywords, &count_keywords);
+
+    for (unsigned int i = 0; i < count_keyword_indexes; i++) {
+      // set keyword_idx : keyword_value
+      std::string key_idx = std::to_string(keyword_indexes[i]);
+      std::string keyword_value = keywords[i];
+      RadosMetadata ext_metadata(key_idx, keyword_value);
+      mail_object->add_extended_metadata(ext_metadata);
+    }
   }
 
   mail_object->set_rados_save_date(mdata->save_date);

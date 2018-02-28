@@ -89,12 +89,15 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
       const char *oid = guid_128_to_string(index_oid);
 
       struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
       std::string key_oid(oid);
-      std::string key_value = std::to_string(keyword_idx);
-      std::string ext_key = "k_" + key_value;
+      std::string ext_key = std::to_string(keyword_idx);
       if (remove) {
         ret = r_storage->ms->get_storage()->remove_keyword_metadata(key_oid, ext_key);
       } else {
+        unsigned int count;
+        const char *const *keywords = array_get(&ctx->sync_view->index->keywords, &count);
+        std::string key_value = keywords[keyword_idx];
         librmb::RadosMetadata ext_metata(ext_key, key_value);
         ret = r_storage->ms->get_storage()->update_keyword_metadata(key_oid, &ext_metata);
       }
