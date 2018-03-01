@@ -29,7 +29,7 @@ script:
 - docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
 - docker exec build sh -c 'ldconfig'
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
-- docker exec build sh -c 'dovecot'
+- docker exec build sh -c 'dovecot &'
 - travis_wait 2 docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=60'
 after_script:
 - docker stop build ceph_demo
