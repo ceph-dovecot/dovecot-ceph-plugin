@@ -24,10 +24,13 @@ before_script:
 script:
 - docker exec build sh -c 'cd repo; ./autogen.sh'
 - docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind'
-- docker exec build sh -c 'cd repo; make clean all'
+- docker exec build sh -c 'cd repo; make clean install'
 - docker exec build sh -c 'cd repo/src/tests; make check-valgrind'
 - docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
-
+- docker exec build sh -c 'ldconfig'
+- docker exec build sh -c 'chmod 777 /etc/ceph/*'
+- docker exec build sh -c 'dovecot'
+- travis_wait 2 docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=60'
 after_script:
 - docker stop build ceph_demo
 - docker rm build ceph_demo
