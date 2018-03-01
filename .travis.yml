@@ -10,7 +10,8 @@ env:
 before_install:
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
-- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 ceph/demo
+- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWO
+RK=192.168.100.0/24 ceph/demo
 - docker exec ceph_demo sh -c 'printf "[client]\nid=zorro\nosd max write size =5\nclient mount timeout=120\n[global]\nmon allow pool delete=true\n" >> /etc/ceph/ceph.conf'
 - docker restart ceph_demo
 
@@ -30,7 +31,8 @@ script:
 - docker exec build sh -c 'ldconfig'
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
 - docker exec --detach build sh -c 'service dovecot.service start'
-- travis_wait 2 docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=60'
+- docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=60'
+- docker exec build sh -c 'cat /var/log/dovecot.log'
 after_script:
 - docker stop build ceph_demo
 - docker rm build ceph_demo
