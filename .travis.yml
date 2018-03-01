@@ -10,8 +10,7 @@ env:
 before_install:
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
-- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWO
-RK=192.168.100.0/24 ceph/demo
+- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo -v ceph_config:/etc/ceph -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 ceph/demo
 - docker exec ceph_demo sh -c 'printf "[client]\nid=zorro\nosd max write size =5\nclient mount timeout=120\n[global]\nmon allow pool delete=true\n" >> /etc/ceph/ceph.conf'
 - docker restart ceph_demo
 
