@@ -31,6 +31,11 @@ script:
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
 - docker exec --detach build sh -c 'service dovecot.service start'
 - docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=60'
+- docker exec build sh -c 'cat /var/log/dovecot.log | grep -q Error:'
+- docker exec build sh -c 'cat /var/log/dovecot.log | grep -q failed:'
+- docker exec build sh -c 'cat /var/log/dovecot.log | grep -q Killed'
+- docker exec build sh -c 'cat /var/log/dovecot.log | grep -q critical'
+
 after_script:
 - docker stop build ceph_demo
 - docker rm build ceph_demo
