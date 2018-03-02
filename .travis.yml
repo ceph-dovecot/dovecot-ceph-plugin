@@ -30,7 +30,7 @@ script:
 - docker exec build sh -c 'ldconfig'
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
 - docker exec --detach build sh -c 'service dovecot.service start'
-- travis_wait 6 docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=350'
+- docker exec build sh -c 'cd /usr/local/src/imaptest/src; ./imaptest user=t%d pass=t port=10143 users=10 clients=10 error_quit secs=300'
 
 after_script:
 - docker stop build ceph_demo
