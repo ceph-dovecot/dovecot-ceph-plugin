@@ -21,7 +21,7 @@
 
 extern "C" {
 #include "dovecot-all.h"
-
+#include "macros.h"
 #include "istream.h"
 #include "istream-crlf.h"
 #include "ostream.h"
@@ -48,11 +48,6 @@ using librmb::rbox_metadata_key;
 
 using std::string;
 using std::vector;
-
-#if DOVECOT_PREREQ(2, 3)
-// avoid compilation errors.
-int o_stream_nfinish(struct ostream *stream) {}
-#endif
 
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t) {
   FUNC_START();
@@ -404,8 +399,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */
       o_stream_finish(mdata->output);
-#endif
-#if DOVECOT_PREREQ(2, 2)
+#else
       if (o_stream_nfinish(mdata->output) < 0) {
         mail_storage_set_critical(r_ctx->ctx.transaction->box->storage, "write(%s) failed: %m",
                                   o_stream_get_name(mdata->output));
