@@ -11,7 +11,6 @@ before_install:
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
 - travis_wait 30 docker run -d --net=ceph_network --name ceph_demo --mount type=tmpfs,destination=/etc/ceph -v ceph_config:/root/cfg -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 -e CEPH_DEMO_UID=qqq -e CEPH_DEMO_ACCESS_KEY=qqq -e CEPH_DEMO_SECRET_KEY=qqq -e CEPH_DEMO_BUCKET=qqq ceph/daemon demo
-- docker exec ceph_demo sh -c 'cp -r /etc/ceph/* /root/cfg'
 
 - travis_wait 30 docker run -itd --name build --net=ceph_network -e SOURCE_VERSION=$DOVECOT -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'
@@ -27,6 +26,7 @@ script:
 - docker exec build sh -c 'cd repo/src/tests; make check-valgrind'
 - docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
 - docker exec build sh -c 'ldconfig'
+- docker exec ceph_demo sh -c 'cp -r /etc/ceph/* /root/cfg'
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
 - docker exec build sh -c 'chmod -R 777 /usr/local/var/'
 - docker exec --detach build sh -c 'service dovecot.service start'
