@@ -371,6 +371,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
 static void clean_up_write_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
+  r_ctx->finished = TRUE;
   if (r_ctx->input != NULL) {
     i_stream_unref(&r_ctx->input);
   }
@@ -379,6 +380,7 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   }
 
   index_save_context_free(_ctx);
+
 }
 
 int rbox_save_finish(struct mail_save_context *_ctx) {
@@ -386,7 +388,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  r_ctx->finished = TRUE;
+
   if (!r_ctx->failed) {
     if (_ctx->data.save_date != (time_t)-1) {
       uint32_t save_date = _ctx->data.save_date;
@@ -559,6 +561,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   if (!r_ctx->finished) {
     rbox_save_cancel(&r_ctx->ctx);
+    clean_up_write_finish(_ctx);
   }
 
   if (r_ctx->sync_ctx != NULL)
