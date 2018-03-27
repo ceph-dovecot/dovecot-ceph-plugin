@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <iostream>
 #include <sstream>
+#include "encoding.h"
 
 namespace librmb {
 
@@ -125,6 +126,23 @@ void RadosUtils::resolve_flags(const uint8_t &flags, std::string *flat) {
     os << "\\Recent ";
   }
   *flat = buf.str();
+}
+
+int RadosUtils::osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, double value_to_add) {
+  librados::bufferlist in, out;
+  encode(key, in);
+
+  std::stringstream stream;
+  stream << value_to_add;
+
+  encode(stream.str(), in);
+
+  return ioctx->exec(oid, "numops", "add", in, out);
+}
+
+int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
+                        double value_to_subtract) {
+  return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
 }  // namespace librmb
