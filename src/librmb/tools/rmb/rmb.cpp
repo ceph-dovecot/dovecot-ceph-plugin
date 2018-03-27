@@ -588,7 +588,7 @@ int main(int argc, const char **argv) {
   librmb::RadosStorageImpl storage(&cluster);
   int open_connection = storage.open_connection(pool_name, rados_cluster, rados_user);
   if (open_connection < 0) {
-    std::cout << " error opening rados connection" << std::endl;
+    std::cout << " error opening rados connection. Errorcode: " << open_connection << std::endl;
     cluster.deinit();
     return -1;
   }
