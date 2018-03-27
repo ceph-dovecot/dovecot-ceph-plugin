@@ -20,6 +20,7 @@
 #include "../../librmb/rados-metadata-storage-default.h"
 #include "../../librmb/rados-metadata-storage-ima.h"
 #include "../../librmb/rados-dovecot-ceph-cfg-impl.h"
+#include "../../librmb/rados-util.h"
 //#include "common/Formatter.h"
 //#include "common/ceph_json.h"
 
@@ -601,7 +602,7 @@ TEST(librmb, test_default_metadata_load_attributes) {
 
    int a = ms.load_metadata(&obj2);
    EXPECT_EQ(true, a >= 0);
-   
+
    storage.delete_mail(&obj);
    // tear down
    cluster.deinit();
@@ -661,6 +662,138 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
   int a = ms.load_metadata(&obj2);
   EXPECT_EQ(-2, a);
 
+  // tear down
+  cluster.deinit();
+}
+
+TEST(librmb, increment_add_to_non_existing_key) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("dictionary");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  std::string key = "my-key";
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject");
+
+  bool b = true;
+  storage.save_mail(&obj2, b);
+  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
+
+  double val = 10;  // value to add
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+
+  // get the value!
+  std::set<std::string> keys;
+  std::map<std::string, ceph::bufferlist> omap;
+  keys.insert(key);
+
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+
+  std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
+  ASSERT_NE(omap.end(), it);
+
+  ceph::bufferlist bl = (*it).second;
+  EXPECT_EQ(bl.to_str(), "10");
+  storage.delete_mail(&obj2);
+  // tear down
+  cluster.deinit();
+}
+
+TEST(librmb, increment_add_to_existing_key) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("dictionary");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  std::string key = "my-key";
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject");
+
+  bool b = true;
+  storage.save_mail(&obj2, b);
+  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
+
+  double val = 10;  // value to add
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  // get the value!
+  std::set<std::string> keys;
+  std::map<std::string, ceph::bufferlist> omap;
+  keys.insert(key);
+
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+
+  std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
+  ASSERT_NE(omap.end(), it);
+
+  ceph::bufferlist bl = (*it).second;
+
+  EXPECT_EQ(bl.to_str(), "20");
+  storage.delete_mail(&obj2);
+  // tear down
+  cluster.deinit();
+}
+
+TEST(librmb, increment_sub_from_existing_key) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("dictionary");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  std::string key = "my-key";
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject");
+
+  bool b = true;
+  storage.save_mail(&obj2, b);
+  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
+
+  double val = 10;  // value to add
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  double sub_val = 5;  // value to add
+  ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), obj2.get_oid(), key, sub_val);
+  // get the value!
+  std::set<std::string> keys;
+  std::map<std::string, ceph::bufferlist> omap;
+  keys.insert(key);
+
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+
+  std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
+  ASSERT_NE(omap.end(), it);
+
+  ceph::bufferlist bl = (*it).second;
+
+  EXPECT_EQ(bl.to_str(), "5");
+  storage.delete_mail(&obj2);
   // tear down
   cluster.deinit();
 }
