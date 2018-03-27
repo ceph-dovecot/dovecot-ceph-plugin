@@ -118,6 +118,11 @@ it_test_sync_rbox_2_SOURCES = sync-rbox/it_test_sync_rbox_2.cpp sync-rbox/TestCa
 it_test_sync_rbox_2_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 it_test_sync_rbox_2_LDADD = $(storage_shlibs) $(gtest_shlibs) 
 
+TESTS += it_test_sync_rbox_duplicate_uid
+it_test_sync_rbox_duplicate_uid_SOURCES = sync-rbox/it_test_sync_rbox_duplicate_uid.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h test-utils/it_utils.cpp test-utils/it_utils.h
+it_test_sync_rbox_duplicate_uid_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+it_test_sync_rbox_duplicate_uid_LDADD = $(storage_shlibs) $(gtest_shlibs) 
+
 endif
 
 check_PROGRAMS = $(TESTS)

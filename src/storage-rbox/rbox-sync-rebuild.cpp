@@ -87,15 +87,28 @@ int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObject
   // find all objects with x attr M = mailbox_guid
   // if non is found : set mailbox_deleted and mail_storage_set_critical...
 
+  // it is required to check for duplicat uids,
+  // because if user moved / copied mails from mailbox to sub-mailbox,
+  // uid may stay the same (depends on configuration).
+  std::vector<std::string> uids;
+
   int found = 0;
   int ret = 0;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
     librmb::RadosMailObject mail_object;
     mail_object.set_oid((*iter).get_oid());
-
     int retx = r_storage->ms->get_storage()->load_metadata(&mail_object);
+    
+    /*std::string uid = mail_object->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
+    
 
+    if(std::find(vector.begin(), vector.end(), uid) != vector.end(){
+      uids.put_back(uid);
+    }else{
+      // ups we have a duplicate!!!
+    }
+    */
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object);
       if (ret < 0) {
