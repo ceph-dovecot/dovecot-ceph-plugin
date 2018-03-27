@@ -685,9 +685,8 @@ TEST(librmb, increment_add_to_non_existing_key) {
   librmb::RadosMailObject obj2;
   obj2.set_oid("myobject");
 
-  bool b = true;
-  storage.save_mail(&obj2, b);
-  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
+  ceph::bufferlist mail_buf;
+  storage.save_mail(obj2.get_oid(), mail_buf);
 
   double val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
@@ -728,10 +727,8 @@ TEST(librmb, increment_add_to_existing_key) {
   librmb::RadosMailObject obj2;
   obj2.set_oid("myobject");
 
-  bool b = true;
-  storage.save_mail(&obj2, b);
-  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
-
+  ceph::bufferlist mail_buf;
+  storage.save_mail(obj2.get_oid(), mail_buf);
   double val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
@@ -773,8 +770,8 @@ TEST(librmb, increment_sub_from_existing_key) {
   obj2.set_oid("myobject");
 
   bool b = true;
-  storage.save_mail(&obj2, b);
-  storage.wait_for_write_operations_complete(obj2.get_completion_op_map());
+  ceph::bufferlist mail_buf;
+  storage.save_mail(obj2.get_oid(), mail_buf);
 
   double val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
