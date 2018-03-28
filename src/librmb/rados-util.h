@@ -44,8 +44,9 @@ class RadosUtils {
                                      std::map<std::string, librados::bufferlist> *kv_map);
   static void resolve_flags(const uint8_t &flags, std::string *flat);
 
-  static int osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, double value_to_add);
-  static int osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, double value_to_subtract);
+  static int osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, long long value_to_add);
+  static int osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
+                     long long value_to_subtract);
   };
 
 }  // namespace librmb

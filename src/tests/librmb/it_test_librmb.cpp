@@ -688,7 +688,7 @@ TEST(librmb, increment_add_to_non_existing_key) {
   ceph::bufferlist mail_buf;
   storage.save_mail(obj2.get_oid(), mail_buf);
 
-  double val = 10;  // value to add
+  long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
 
   // get the value!
@@ -726,7 +726,7 @@ TEST(librmb, increment_add_to_non_existing_object) {
   librmb::RadosMailObject obj2;
   obj2.set_oid("myobject");
 
-  double val = 10;  // value to add
+  long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   // get the value!
@@ -767,7 +767,7 @@ TEST(librmb, increment_add_to_existing_key) {
 
   ceph::bufferlist mail_buf;
   storage.save_mail(obj2.get_oid(), mail_buf);
-  double val = 10;  // value to add
+  long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   // get the value!
@@ -811,9 +811,9 @@ TEST(librmb, increment_sub_from_existing_key) {
   ceph::bufferlist mail_buf;
   storage.save_mail(obj2.get_oid(), mail_buf);
 
-  double val = 10;  // value to add
+  long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
-  double sub_val = 5;  // value to add
+  long sub_val = 5;  // value to add
   ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), obj2.get_oid(), key, sub_val);
   // get the value!
   std::set<std::string> keys;

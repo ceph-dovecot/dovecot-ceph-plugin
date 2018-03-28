@@ -128,7 +128,8 @@ void RadosUtils::resolve_flags(const uint8_t &flags, std::string *flat) {
   *flat = buf.str();
 }
 
-int RadosUtils::osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, double value_to_add) {
+int RadosUtils::osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
+                        long long value_to_add) {
   librados::bufferlist in, out;
   encode(key, in);
 
@@ -141,7 +142,7 @@ int RadosUtils::osd_add(librados::IoCtx *ioctx, const std::string &oid, const st
 }
 
 int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
-                        double value_to_subtract) {
+                        long long value_to_subtract) {
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
