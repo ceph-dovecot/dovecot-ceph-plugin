@@ -707,7 +707,45 @@ TEST(librmb, increment_add_to_non_existing_key) {
   // tear down
   cluster.deinit();
 }
+TEST(librmb, increment_add_to_non_existing_object) {
+  librados::IoCtx io_ctx;
+  uint64_t max_size = 3;
 
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("dictionary");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  storage.set_namespace(ns);
+  EXPECT_EQ(0, open_connection);
+
+  std::string key = "my-key";
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject");
+
+  double val = 10;  // value to add
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  // get the value!
+  std::set<std::string> keys;
+  std::map<std::string, ceph::bufferlist> omap;
+  keys.insert(key);
+
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+
+  std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
+  ASSERT_NE(omap.end(), it);
+
+  ceph::bufferlist bl = (*it).second;
+
+  EXPECT_EQ(bl.to_str(), "20");
+  storage.delete_mail(&obj2);
+  // tear down
+  cluster.deinit();
+}
 TEST(librmb, increment_add_to_existing_key) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
