@@ -38,6 +38,11 @@ static int o_stream_buffer_write_at(struct ostream_private *stream, const void *
   return 0;
 }
 
+static void rbox_ostream_destroy(struct iostream_private *stream) {
+  // nothing to do. but required, so that default destroy is not evoked!
+  // buffer is member of RboxMailObjec, which destroys the bufferlist
+}
+
 static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struct const_iovec *iov,
                                      unsigned int iov_count) {
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
@@ -64,7 +69,7 @@ struct ostream *o_stream_create_bufferlist(librados::bufferlist *buf) {
   bstream->ostream.seek = o_stream_buffer_seek;
   bstream->ostream.sendv = o_stream_buffer_sendv;
   bstream->ostream.write_at = o_stream_buffer_write_at;
-
+  bstream->ostream.iostream.destroy = rbox_ostream_destroy;
   bstream->buf = buf;
   output = o_stream_create(&bstream->ostream, NULL, -1);
   o_stream_set_name(output, "(buffer)");
