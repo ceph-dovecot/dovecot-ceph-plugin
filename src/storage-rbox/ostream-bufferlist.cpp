@@ -16,7 +16,6 @@ extern "C" {
 }
 #include "ostream-bufferlist.h"
 
-
 struct bufferlist_ostream {
   struct ostream_private ostream;
   librados::bufferlist *buf;
@@ -31,33 +30,25 @@ static int o_stream_buffer_seek(struct ostream_private *stream, uoff_t offset) {
 }
 
 static int o_stream_buffer_write_at(struct ostream_private *stream, const void *data, size_t size, uoff_t offset) {
+  i_assert(stream != NULL);
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
-  // ceph::bufferptr bp = ceph::buffer::create_static(size, reinterpret_cast<const char *>(data));
-  // bstream->buf->append(bp, offset, size);
-
   i_assert(bstream->buf != nullptr);
+
   if (bstream->buf->length() == 0 || bstream->buf->length() == offset) {
     bstream->buf->append(reinterpret_cast<const char *>(data));
   } else if (offset == 0) {
-    librados::bufferlist tmp;
-    tmp.append(reinterpret_cast<const char *>(data));
-    tmp.append(bstream->buf->to_str());
+    std::string tmp = bstream->buf->to_str();  // create a copy
     bstream->buf->clear();
-    bstream->buf->append(tmp.to_str());
+    bstream->buf->append(reinterpret_cast<const char *>(data));
+    bstream->buf->append(tmp);
   } else {
     // split buffer into two
-    std::string left;
-    std::string right;
-    std::string stream = bstream->buf->to_str();
-
-    left = stream.substr(0, offset);
-    right = stream.substr(offset, bstream->buf->length() - 1);
+    std::string tmp = bstream->buf->to_str();  // create a copy
     bstream->buf->clear();
-    bstream->buf->append(left);
+    bstream->buf->append(tmp.substr(0, offset));
     bstream->buf->append(reinterpret_cast<const char *>(data));
-    bstream->buf->append(right);
+    bstream->buf->append(tmp.substr(offset, bstream->buf->length() - 1));
   }
-  // bstream->buf->copy_in(offset, size, reinterpret_cast<const char *>(data));
   return 0;
 }
 

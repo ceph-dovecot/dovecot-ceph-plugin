@@ -323,8 +323,8 @@ static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer,
 
   if (pmail->v.istream_opened != NULL) {
     if (pmail->v.istream_opened(&pmail->mail, stream_r) < 0) {
+      i_stream_unref(&input);  // free it.
       ret = -1;
-      i_stream_unref(&input);
     }
   }
   return ret;
@@ -371,7 +371,10 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
-    get_mail_stream(rmail, rmail->mail_object->get_mail_buffer(), physical_size, &input);
+    if (get_mail_stream(rmail, rmail->mail_object->get_mail_buffer(), physical_size, &input) < 0) {
+      FUNC_END_RET("ret == -1");
+      return -1;
+    }
 
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
