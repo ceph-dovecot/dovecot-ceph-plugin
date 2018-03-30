@@ -34,7 +34,30 @@ static int o_stream_buffer_write_at(struct ostream_private *stream, const void *
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
   // ceph::bufferptr bp = ceph::buffer::create_static(size, reinterpret_cast<const char *>(data));
   // bstream->buf->append(bp, offset, size);
-  bstream->buf->append(reinterpret_cast<const char *>(data), size);
+
+  i_assert(bstream->buf != nullptr);
+  if (bstream->buf->length() == 0 || bstream->buf->length() == offset) {
+    bstream->buf->append(reinterpret_cast<const char *>(data));
+  } else if (offset == 0) {
+    librados::bufferlist tmp;
+    tmp.append(reinterpret_cast<const char *>(data));
+    tmp.append(bstream->buf->to_str());
+    bstream->buf->clear();
+    bstream->buf->append(tmp.to_str());
+  } else {
+    // split buffer into two
+    std::string left;
+    std::string right;
+    std::string stream = bstream->buf->to_str();
+
+    left = stream.substr(0, offset);
+    right = stream.substr(offset, bstream->buf->length() - 1);
+    bstream->buf->clear();
+    bstream->buf->append(left);
+    bstream->buf->append(reinterpret_cast<const char *>(data));
+    bstream->buf->append(right);
+  }
+  // bstream->buf->copy_in(offset, size, reinterpret_cast<const char *>(data));
   return 0;
 }
 

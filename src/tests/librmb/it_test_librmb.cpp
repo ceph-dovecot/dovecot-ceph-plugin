@@ -21,6 +21,7 @@
 #include "../../librmb/rados-metadata-storage-ima.h"
 #include "../../librmb/rados-dovecot-ceph-cfg-impl.h"
 #include "../../librmb/rados-util.h"
+
 //#include "common/Formatter.h"
 //#include "common/ceph_json.h"
 
@@ -832,6 +833,7 @@ TEST(librmb, increment_sub_from_existing_key) {
   // tear down
   cluster.deinit();
 }
+
 
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

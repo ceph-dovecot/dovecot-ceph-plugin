@@ -19,7 +19,7 @@ extern "C" {
 #include <rados/librados.hpp>
 
 static ssize_t i_stream_data_read(struct istream_private *stream) {
-  stream->istream.eof = TRUE;
+  stream->istream.eof = TRUE;  // all in!
   return -1;
 }
 
@@ -38,10 +38,11 @@ struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, cons
   stream = i_new(struct istream_private, 1);
   stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
   stream->pos = size;
-  stream->max_buffer_size = size;
+  stream->max_buffer_size = (size_t)-1;
+  ;
 
   stream->read = i_stream_data_read;
-  stream->seek = i_stream_data_seek;
+  stream->seek = i_stream_data_seek;  // use default
 
   stream->istream.readable_fd = FALSE;
   stream->istream.blocking = TRUE;
