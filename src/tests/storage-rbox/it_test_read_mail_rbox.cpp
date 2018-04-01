@@ -131,7 +131,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   }
 
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
-  i_stream_unref(&input);  // missing close input stream normally done in index_storage_mailbox_close(box);
   mailbox_free(&box);
 }
 

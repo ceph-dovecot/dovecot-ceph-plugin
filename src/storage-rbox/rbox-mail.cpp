@@ -319,14 +319,14 @@ static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer,
   input = i_stream_create_from_bufferlist(buffer, physical_size);
   i_stream_seek(input, 0);
 
-  *stream_r = i_stream_create_limit(input, physical_size);
-
+  *stream_r = input;
   if (pmail->v.istream_opened != NULL) {
     if (pmail->v.istream_opened(&pmail->mail, stream_r) < 0) {
       i_stream_unref(&input);  // free it.
       ret = -1;
     }
   }
+
   return ret;
 }
 

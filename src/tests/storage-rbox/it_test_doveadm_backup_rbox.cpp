@@ -174,7 +174,6 @@ TEST_F(StorageTest, mail_doveadm_backup_copy_mail_in_inbox) {
   ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);
   delete mail1;
   delete mail2;
-  index_storage_mailbox_close(box);
   mailbox_free(&box);
 }
 
