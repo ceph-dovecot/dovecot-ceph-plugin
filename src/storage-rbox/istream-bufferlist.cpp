@@ -19,7 +19,7 @@ extern "C" {
 #include <rados/librados.hpp>
 
 static ssize_t i_stream_data_read(struct istream_private *stream) {
-  stream->istream.eof = TRUE;
+  stream->istream.eof = TRUE;  // all in!
   return -1;
 }
 
@@ -28,20 +28,26 @@ static void i_stream_data_seek(struct istream_private *stream, uoff_t v_offset, 
   stream->istream.v_offset = v_offset;
 }
 
+static void rbox_istream_destroy(struct iostream_private *stream) {
+  // nothing to do. but required, so that default destroy is not evoked!
+  // buffer is member of RboxMailObjec, which destroys the bufferlist
+}
 struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, const size_t &size) {
   struct istream_private *stream;
 
   stream = i_new(struct istream_private, 1);
   stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
   stream->pos = size;
-  stream->max_buffer_size = size;
+  stream->max_buffer_size = (size_t)-1;
+  ;
 
   stream->read = i_stream_data_read;
-  stream->seek = i_stream_data_seek;
+  stream->seek = i_stream_data_seek;  // use default
 
   stream->istream.readable_fd = FALSE;
   stream->istream.blocking = TRUE;
   stream->istream.seekable = TRUE;
+  stream->iostream.destroy = rbox_istream_destroy;
 
 #if DOVECOT_PREREQ(2, 3)
   i_stream_create(stream, NULL, -1, ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);

@@ -31,6 +31,7 @@ extern "C" {
 #include "ioloop.h"
 #include "istream.h"
 #include "mail-search-build.h"
+#include "ostream.h"
 
 #include "libdict-rados-plugin.h"
 }
@@ -40,7 +41,8 @@ extern "C" {
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
-
+#include "../../storage-rbox/istream-bufferlist.h"
+#include "../../storage-rbox/ostream-bufferlist.h"
 using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;
@@ -516,7 +518,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
     int ret2 = mailbox_copy(&save_ctx, mail);
     EXPECT_EQ(ret2, -1);
-  
+
     break;  // only move one mail.
   }
 
@@ -532,7 +534,50 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   delete test_object;
   delete test_object2;
-  
+
+}
+
+TEST_F(StorageTest, copy_input_to_output_stream) {
+  librados::bufferlist buffer;
+  librados::bufferlist buffer_out;
+  buffer.append("\r\t\0\nJAN");
+  unsigned long physical_size = buffer.length();
+  struct istream *input;  // = *stream_r;
+  struct ostream *output;
+  output = o_stream_create_bufferlist(&buffer_out);
+  input = i_stream_create_from_bufferlist(&buffer, physical_size);
+
+  do {
+    if (o_stream_send_istream(output, input) < 0) {
+      EXPECT_EQ(1, -1);
+    }
+
+  } while (i_stream_read(input) > 0);
+
+  EXPECT_EQ(buffer.to_str(), buffer_out.to_str());
+  o_stream_unref(&output);
+  i_stream_unref(&input);
+}
+TEST_F(StorageTest, eval_output_append) {
+  librados::bufferlist buffer;
+  librados::bufferlist buffer_out;
+
+  struct ostream *output;
+  output = o_stream_create_bufferlist(&buffer_out);
+  std::string toappend = "def";
+  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toappend.c_str()), toappend.length(), 0);
+  EXPECT_EQ(toappend, buffer_out.to_str());
+  std::string toappend2 = "abc";
+  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toappend2.c_str()), toappend2.length(),
+                           0);
+  EXPECT_EQ("abcdef", buffer_out.to_str());
+  std::string toapend3 = "ghjk";
+  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toapend3.c_str()), toapend3.length(), 6);
+  EXPECT_EQ("abcdefghjk", buffer_out.to_str());
+  std::string toapend4 = "i";
+  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toapend4.c_str()), toapend4.length(), 8);
+  EXPECT_EQ("abcdefghijk", buffer_out.to_str());
+  o_stream_unref(&output);
 }
 
 TEST_F(StorageTest, deinit) {}

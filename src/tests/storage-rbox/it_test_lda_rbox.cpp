@@ -181,6 +181,7 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);
   delete mail1;
   delete mail2;
+
   mailbox_free(&box);
 }
 

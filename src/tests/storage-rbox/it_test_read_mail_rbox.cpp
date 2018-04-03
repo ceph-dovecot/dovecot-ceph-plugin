@@ -113,7 +113,40 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     size_t size = -1;
     int ret_size = i_stream_get_size(input, true, &size);
     EXPECT_EQ(ret_size, 1);
-    EXPECT_EQ(size, (size_t)133);
+    uoff_t phy_size;
+    index_mail_get_physical_size(mail, &phy_size);
+
+    std::string msg3(
+        "From: user@domain.org\r\nDate: Sat, 24 Mar 2017 23:00:00 +0200\r\nMime-Version: 1.0\r\nContent-Type: "
+        "text/plain; charset=us-ascii\r\n\r\nbody\r\n");
+
+    EXPECT_EQ(phy_size, msg3.length());  // i_stream ads a \r before every \n
+
+    // read the input stream and evaluate content.
+    struct const_iovec iov;
+    const unsigned char *data = NULL;
+    ssize_t ret = 0;
+    std::string buff;
+    do {
+      (void)i_stream_read_data(input, &data, &iov.iov_len, 0);
+      if (iov.iov_len == 0) {
+
+    if (input->stream_errno != 0)
+      FAIL() << "stream errno";
+    break;
+      }
+      const char *data_t = reinterpret_cast<const char *>(data);
+      std::string tmp(data_t, phy_size);
+      buff += tmp;
+    } while ((size_t)ret == iov.iov_len);
+
+    //    i_debug("data: %s", buff.c_str());
+    std::string msg(
+        "From: user@domain.org\r\nDate: Sat, 24 Mar 2017 23:00:00 +0200\r\nMime-Version: 1.0\r\nContent-Type: "
+        "text/plain; charset=us-ascii\r\n\r\nbody\r\n");
+
+    // validate !
+    EXPECT_EQ(buff, msg);
 
     break;
   }
@@ -131,7 +164,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   }
 
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
-
   mailbox_free(&box);
 }
 
