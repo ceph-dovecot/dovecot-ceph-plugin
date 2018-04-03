@@ -71,7 +71,6 @@ using librmb::RadosDictionary;
 using librmb::RadosGuidGenerator;
 
 #define DICT_USERNAME_SEPARATOR '/'
-static const char CACHE_DELETED[] = "_DELETED_";
 
 struct rados_dict {
   struct dict dict;
@@ -357,7 +356,6 @@ class rados_dict_transaction_context {
   void *context = nullptr;
   dict_transaction_commit_callback_t *callback;
 
-  map<string, string> cache;
 
   map<string, string> set_map;
   set<string> unset_set;
@@ -455,7 +453,7 @@ class rados_dict_transaction_context {
         bl.append(it->second);
         const string key = it->first;
         map.insert(pair<string, bufferlist>(key, bl));
-        // get_op(key).omap_set(map);
+
         std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
         i_debug("deploy_set_map_value: %s , oid=%s", bl.to_str().c_str(), oid.c_str());
         if ((is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()).omap_set(oid, map) < 0) {
@@ -475,35 +473,10 @@ class rados_dict_transaction_context {
       i_debug("deploy_atomic_inc_map: atomic_inc_map size = %lu", atomic_inc_map.size());
       for (auto it = atomic_inc_map.begin(); it != atomic_inc_map.end() && !atomic_inc_not_found; it++) {
         const string key = it->first;
-
-        auto cache_it = cache.find(key);
-        if (cache_it == cache.end()) {
-          if (d->get(key, &old_value) == -ENOENT) {
-            old_value = CACHE_DELETED;
-            atomic_inc_not_found = true;
-          }
-        } else {
-          cache[key] = old_value = cache_it->second;
-        }
-
-        if (old_value.compare(CACHE_DELETED) == 0) {
-          atomic_inc_not_found = true;
-        } else if (atomic_inc_not_found != true) {
-          long long value;  // NOLINT
-          if (str_to_llong(old_value.c_str(), &value) < 0)
-            i_unreached();
-
-          value += it->second;
-          string str_val = std::to_string(value);
-          i_debug("deploy_atomic_inc_map: omap_set(%s, %s)", key.c_str(), str_val.c_str());
-
-          std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
-
-          // it->second is a signed long int
-          librmb::RadosUtils::osd_add(&(is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()), oid, key,
-                                      it->second);
-
-        }
+        std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
+        // it->second is a signed long int
+        librmb::RadosUtils::osd_add(&(is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()), oid, key,
+                                    it->second);
       }
       atomic_inc_map.clear();
     }
@@ -547,8 +520,8 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
     _ctx->timestamp.tv_sec = t.tv_sec;
     _ctx->timestamp.tv_nsec = t.tv_nsec;
     // TODO:
-    // ctx->write_op_private.mtime2(&t);
-    // ctx->write_op_shared.mtime2(&t);
+    ctx->write_op_private.mtime2(&t);
+    ctx->write_op_shared.mtime2(&t);
   }
 }
 #endif
@@ -567,8 +540,6 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
 #endif
 {
   rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(_ctx);
-  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
-  RadosDictionary *d = dict->d;
   string old_value = "0";
 
   // i_debug("rados_dict_transaction_commit(): async=%d, user=%s", async, d->get_username().c_str());
@@ -606,10 +577,8 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
 
 void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
-  RadosDictionary *d = dict->d;
 
-  // hmm nothing to do here???... (jrse)
+  // hmm, nothing to do here???... (jrse)
 
   delete ctx;
   ctx = NULL;
@@ -625,7 +594,6 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
 
   _ctx->changed = TRUE;
   ctx->add_set_item(key, value);
-  ctx->cache[key] = value;
 }
 
 void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
@@ -638,7 +606,6 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
 
   _ctx->changed = TRUE;
   ctx->add_unset_item(key);
-  ctx->cache[key] = CACHE_DELETED;
 }
 
 void rados_dict_atomic_inc(struct dict_transaction_context *_ctx, const char *_key, long long diff) {  // NOLINT
