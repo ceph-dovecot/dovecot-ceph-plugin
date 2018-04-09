@@ -373,8 +373,9 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
 
   r_ctx->finished = TRUE;
 
-  i_stream_unref(&r_ctx->input);
-
+  if (r_ctx->input != NULL) {
+    i_stream_unref(&r_ctx->input);
+  }
   if (_ctx->data.output != NULL) {
     o_stream_unref(&_ctx->data.output);
     _ctx->data.output = NULL;
