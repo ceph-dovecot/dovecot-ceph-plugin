@@ -372,11 +372,12 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   r_ctx->finished = TRUE;
-  if (r_ctx->input != NULL) {
-    i_stream_unref(&r_ctx->input);
-  }
+
+  i_stream_unref(&r_ctx->input);
+
   if (_ctx->data.output != NULL) {
     o_stream_unref(&_ctx->data.output);
+    _ctx->data.output = NULL;
   }
 
   index_save_context_free(_ctx);
