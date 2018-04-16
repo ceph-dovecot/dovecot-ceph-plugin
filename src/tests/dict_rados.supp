@@ -97,3 +97,95 @@
    fun:start_thread
    fun:clone
 }
+{
+   <ceph_osd_op_reply_1>
+   Memcheck:Addr8
+   fun:_ZNSt7__cxx1110_List_baseIN4ceph6buffer3ptrESaIS3_EE8_M_clearEv
+   fun:clear
+   fun:clear
+   fun:_ZN4ceph6buffer4list5claimERS1_j
+   fun:claim_data
+   fun:_ZN8Objecter19handle_osd_op_replyEP11MOSDOpReply
+   fun:_ZN8Objecter11ms_dispatchEP7Message
+   fun:_ZN8Objecter16ms_fast_dispatchEP7Message
+   fun:ms_fast_dispatch
+   fun:_ZN13DispatchQueue13fast_dispatchEP7Message
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   fun:_ZZN12NetworkStack10add_threadEjENKUlvE_clEv
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
+
+{
+   <ceph_osd_op_reply_2>
+   Memcheck:Addr8
+   fun:_ZN4ceph6buffer3ptr7releaseEv
+   fun:_ZN4ceph6buffer3ptrD1Ev
+   fun:_ZN9__gnu_cxx13new_allocatorISt10_List_nodeIN4ceph6buffer3ptrEEE7destroyIS4_EEvPT_
+   fun:_ZNSt16allocator_traitsISaISt10_List_nodeIN4ceph6buffer3ptrEEEE7destroyIS3_EEvRS5_PT_
+   fun:_ZNSt7__cxx1110_List_baseIN4ceph6buffer3ptrESaIS3_EE8_M_clearEv
+   fun:clear
+   fun:clear
+   fun:_ZN4ceph6buffer4list5claimERS1_j
+   fun:claim_data
+   fun:_ZN8Objecter19handle_osd_op_replyEP11MOSDOpReply
+   fun:_ZN8Objecter11ms_dispatchEP7Message
+   fun:_ZN8Objecter16ms_fast_dispatchEP7Message
+   fun:ms_fast_dispatch
+   fun:_ZN13DispatchQueue13fast_dispatchEP7Message
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   fun:_ZZN12NetworkStack10add_threadEjENKUlvE_clEv
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
+{
+   <ceph_osd_op_reply_3>
+   Memcheck:Free
+   fun:_ZdlPv
+   fun:_ZN9__gnu_cxx13new_allocatorISt10_List_nodeIN4ceph6buffer3ptrEEE10deallocateEPS5_m
+   fun:_ZNSt16allocator_traitsISaISt10_List_nodeIN4ceph6buffer3ptrEEEE10deallocateERS5_PS4_m
+   fun:_ZNSt7__cxx1110_List_baseIN4ceph6buffer3ptrESaIS3_EE11_M_put_nodeEPSt10_List_nodeIS3_E
+   fun:_ZNSt7__cxx1110_List_baseIN4ceph6buffer3ptrESaIS3_EE8_M_clearEv
+   fun:clear
+   fun:clear
+   fun:_ZN4ceph6buffer4list5claimERS1_j
+   fun:claim_data
+   fun:_ZN8Objecter19handle_osd_op_replyEP11MOSDOpReply
+   fun:_ZN8Objecter11ms_dispatchEP7Message
+   fun:_ZN8Objecter16ms_fast_dispatchEP7Message
+   fun:ms_fast_dispatch
+   fun:_ZN13DispatchQueue13fast_dispatchEP7Message
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   fun:_ZZN12NetworkStack10add_threadEjENKUlvE_clEv
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
+{
+   <ceph_decode_msg>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:allocate
+   fun:allocate
+   fun:_M_get_node
+   fun:_M_create_node<const ceph::buffer::ptr&>
+   fun:_M_insert<const ceph::buffer::ptr&>
+   fun:emplace_back<const ceph::buffer::ptr&>
+   fun:push_back
+   fun:share
+   fun:set_data
+   fun:_Z14decode_messageP11CephContextiR15ceph_msg_headerR15ceph_msg_footerRN4ceph6buffer4listES8_S8_P10Connection
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   fun:_ZZN12NetworkStack10add_threadEjENKUlvE_clEv
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
+
