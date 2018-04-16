@@ -117,8 +117,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     index_mail_get_physical_size(mail, &phy_size);
 
     std::string msg3(
-        "From: user@domain.org\r\nDate: Sat, 24 Mar 2017 23:00:00 +0200\r\nMime-Version: 1.0\r\nContent-Type: "
-        "text/plain; charset=us-ascii\r\n\r\nbody\r\n");
+        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
+        "text/plain; charset=us-ascii\n\nbody\n");
 
     EXPECT_EQ(phy_size, msg3.length());  // i_stream ads a \r before every \n
 
@@ -142,8 +142,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
     //    i_debug("data: %s", buff.c_str());
     std::string msg(
-        "From: user@domain.org\r\nDate: Sat, 24 Mar 2017 23:00:00 +0200\r\nMime-Version: 1.0\r\nContent-Type: "
-        "text/plain; charset=us-ascii\r\n\r\nbody\r\n");
+        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
+        "text/plain; charset=us-ascii\n\nbody\n");
 
     // validate !
     EXPECT_EQ(buff, msg);
