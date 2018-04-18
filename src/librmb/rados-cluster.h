@@ -22,13 +22,14 @@ class RadosDictionary;
 class RadosCluster {
  public:
   virtual ~RadosCluster() {}
+  /* initialize the cluster */
   virtual int init() = 0;
   virtual int init(const std::string &clustername, const std::string &rados_username) = 0;
-
+  /* tear down cluster  */
   virtual void deinit() = 0;
-
+  /* create a storae pool */
   virtual int pool_create(const std::string &pool) = 0;
-
+  /* create io context */
   virtual int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) = 0;
   virtual int get_config_option(const char *option, std::string *value) = 0;
   virtual bool is_connected() = 0;

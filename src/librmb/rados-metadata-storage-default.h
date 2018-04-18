@@ -15,7 +15,12 @@
 #include "rados-metadata-storage-module.h"
 
 namespace librmb {
-
+/**
+ * Implements the default storage of mail metadata.
+ *
+ * Each metadata attribute is saved as single xattribute.
+ *
+ */
 class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
  public:
   RadosMetadataStorageDefault(librados::IoCtx *io_ctx_);

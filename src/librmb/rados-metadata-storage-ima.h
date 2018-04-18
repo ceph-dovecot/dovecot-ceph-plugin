@@ -18,7 +18,15 @@
 #include <jansson.h>
 
 namespace librmb {
-
+/*
+ *  All immutable mail attributes are saved in one rados
+ *  attribute. The value of the attribute is a json format
+ *
+ * If a attribute changes from immutable to mutable, a
+ * new attribute is added to the mail object, which overrides the
+ * immutable value.
+ *
+ */
 class RadosMetadataStorageIma : public RadosStorageMetadataModule {
  private:
   int parse_attribute(RadosMailObject *mail, json_t *root);
