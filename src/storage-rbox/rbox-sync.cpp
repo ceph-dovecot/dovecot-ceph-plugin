@@ -26,12 +26,8 @@ extern "C" {
 
 #define RBOX_REBUILD_COUNT 3
 
-
-// TODO(jrse) nearly a copy of
-//            static int rbox_get_index_record(struct mail *_mail)
-// in rbox-mail.cpp
-static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t seq, uint32_t ext_id,
-                                 guid_128_t *index_oid) {
+static int rbox_get_oid_from_index(struct mail_index_view *_sync_view, uint32_t seq, uint32_t ext_id,
+                                   guid_128_t *index_oid) {
   FUNC_START();
 
   const struct obox_mail_index_record *obox_rec;
@@ -40,12 +36,12 @@ static int rbox_get_index_record(struct mail_index_view *_sync_view, uint32_t se
   obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
   if (obox_rec == nullptr) {
+    i_error("no index entry for %d, ext_id=%d ", seq, ext_id);
     /* lost for some reason, give up */
     FUNC_END_RET("ret == -1");
     return -1;
   }
   memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
-
   FUNC_END();
   return 0;
 }
@@ -62,7 +58,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
 
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
       item->uid = uid;
-      if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
+      if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
         // continue anyway
       } else {
         array_append(&ctx->expunged_items, &item, 1);
@@ -85,7 +81,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;
-    if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
+    if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
 
       struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
@@ -122,7 +118,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     guid_128_t index_oid;
-    if (rbox_get_index_record(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
+    if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
 
       struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
