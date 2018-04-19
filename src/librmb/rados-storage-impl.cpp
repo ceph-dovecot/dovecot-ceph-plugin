@@ -280,6 +280,7 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
     if (ret >= 0) {
       completion->wait_for_complete();
+      ret = completion->get_return_value();
       if (delete_source && strcmp(src_ns, dest_ns) != 0) {
         ret = src_io_ctx.remove(src_oid);
       }
@@ -329,6 +330,7 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
   if (ret >= 0) {
     ret = completion->wait_for_complete();
+    ret = completion->get_return_value();
   }
   completion->release();
   // reset io_ctx

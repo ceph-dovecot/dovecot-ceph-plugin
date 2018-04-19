@@ -577,7 +577,9 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
 
   if (r_ctx->failed) {
     // delete index entry and delete object if it exist
-    clean_up_failed(r_ctx);
+    if (!r_ctx->copying || !_ctx->moving) {
+      clean_up_failed(r_ctx);
+    }
   }
 
   clean_up_mail_object_list(r_ctx, r_storage);
