@@ -37,13 +37,13 @@ class RadosClusterImpl : public RadosCluster {
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
   bool is_connected();
-  librados::Rados &get_cluster() { return cluster; }
+  librados::Rados &get_cluster() { return *cluster; }
 
  private:
   int initialize();
 
  private:
-  static librados::Rados cluster;
+  static librados::Rados *cluster;
   static int cluster_ref_count;
   static bool connected;
 
