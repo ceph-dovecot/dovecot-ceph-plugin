@@ -56,22 +56,6 @@ class RboxGuidGenerator : public librmb::RadosGuidGenerator {
 extern struct mailbox rbox_mailbox;
 extern struct mailbox_vfuncs rbox_mailbox_vfuncs;
 
-// if process is forked, child process
-// also tries to call ~librados::Rados() which leads
-// parent process wait forever at wait()
-// In case it's a child process it's safe to
-// _exit(0) here without calling additional
-// exit handlers.
-static int pid;
-static void rbox_storage_exit_handler(void) {
-  int current_pid = getpid();
-  if (current_pid != pid) {
-    // fork detected. this is the child process,
-    // exit with _exit to avoid additionaly exit handlers.
-    _exit(EXIT_SUCCESS);
-  }
-}
-
 struct mail_storage *rbox_storage_alloc(void) {
   FUNC_START();
   struct rbox_storage *storage;
@@ -85,11 +69,6 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->config = new librmb::RadosDovecotCephCfgImpl(&storage->s->get_io_ctx());
   storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
   storage->ms = new librmb::RadosMetadataStorageImpl();
-
-  // register exit handler and save parent
-  // pid in case this process gets forked.
-  pid = getpid();
-  atexit(rbox_storage_exit_handler);
 
   FUNC_END();
   return &storage->storage;
