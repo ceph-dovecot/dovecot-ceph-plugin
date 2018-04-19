@@ -139,6 +139,11 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   std::string ns_src_mail1;
 
+  // eval that src starage is not raw storage!
+  if (strcmp(mail->box->storage->name, "raw") == 0) {
+    i_debug("mails source is from raw storage, using standard copy");
+    return 0;
+  }
   if (mail->box->list->ns->owner != nullptr) {
     ns_src_mail1 = mail->box->list->ns->owner->username;
     ns_src_mail1 += r_storage->config->get_user_suffix();
@@ -159,6 +164,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     i_error("not initialized : ns_src");
     return -1;
   }
+  //  ns_src = "raw mail user";
   std::string ns_dest;
   if (!r_storage->ns_mgr->lookup_key(ns_dest_mail1, &ns_dest)) {
     i_error("not_initialized : ns_dest");
@@ -170,6 +176,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   int ret_val = 0;
 
   if (r_ctx->copying == TRUE) {
+    i_debug("using copying = TRUE");
     if (rbox_get_index_record(mail) < 0) {
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
@@ -192,6 +199,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       set_mailbox_metadata(ctx, &metadata_update);
 
       if (!r_storage->s->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update)) {
+        i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
+                ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
         FUNC_END_RET("ret == -1, rados_storage->copy failed");
         return -1;
       }
@@ -212,6 +221,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       bool delete_source = true;
       if (!r_storage->s->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source)) {
+        i_error("move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
+                ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
         FUNC_END_RET("ret == -1, rados_storage->move failed");
         return -1;
       }
@@ -252,9 +263,10 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   }
 
   if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
-    if (ctx != NULL)
+    if (ctx != NULL) {
       mailbox_save_cancel(&ctx);
-    FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed");
+    }
+    FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
     return -1;
   }
 
