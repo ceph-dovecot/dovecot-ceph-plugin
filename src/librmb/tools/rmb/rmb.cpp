@@ -226,6 +226,7 @@ static void query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_obje
       if (it->second->get_mail_count() == 0) {
         continue;
       }
+
       std::cout << it->second->to_string() << std::endl;
 
       if (download) {
@@ -309,6 +310,11 @@ static void load_objects(librmb::RadosStorageMetadataModule *ms, librmb::RadosSt
     mail->set_oid(oid);
     ms->load_metadata(mail);
 
+    if (mail->get_metadata()->size() == 0) {
+      std::cout << " pool object " << oid << " is not a mail object" << std::endl;
+      ++iter;
+      continue;
+    }
     uint64_t object_size = 0;
     time_t save_date_rados = 0;
     storage.stat_mail(iter->get_oid(), &object_size, &save_date_rados);
