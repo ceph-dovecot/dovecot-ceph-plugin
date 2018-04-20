@@ -139,11 +139,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
   std::string ns_src_mail1;
 
-  // eval that src starage is not raw storage!
-  if (strcmp(mail->box->storage->name, "raw") == 0) {
-    i_debug("mails source is from raw storage, using standard copy");
-    return 0;
-  }
   if (mail->box->list->ns->owner != nullptr) {
     ns_src_mail1 = mail->box->list->ns->owner->username;
     ns_src_mail1 += r_storage->config->get_user_suffix();
@@ -257,20 +252,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     mailbox_keywords_ref(ctx->data.keywords);
   }
 
-  if (rbox_open_rados_connection(dest_mbox) < 0) {
-    FUNC_END_RET("ret == -1, connection to rados failed");
-    return -1;
-  }
-
-  if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
-    if (ctx != NULL) {
-      mailbox_save_cancel(&ctx);
-    }
-    FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
-    return -1;
-  }
-
-  if (ctx->saving || !r_ctx->copying) {
+  if (ctx->saving || !r_ctx->copying || strcmp(mail->box->storage->name, "rbox") != 0) {
     // LDA or doveadm backup need copy for saving the mail
 
     // explicitly copy flags
@@ -281,7 +263,20 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
       return -1;
     } else {
       i_debug("Mail saved without ceph copy, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
+    }
 
+  } else {
+    if (rbox_open_rados_connection(dest_mbox) < 0) {
+      FUNC_END_RET("ret == -1, connection to rados failed");
+      return -1;
+    }
+
+    if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
+      if (ctx != NULL) {
+        mailbox_save_cancel(&ctx);
+      }
+      FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
+      return -1;
     }
   }
 
