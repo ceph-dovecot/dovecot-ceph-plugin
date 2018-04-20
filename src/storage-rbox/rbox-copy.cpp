@@ -171,7 +171,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   int ret_val = 0;
 
   if (r_ctx->copying == TRUE) {
-    i_debug("using copying = TRUE");
     if (rbox_get_index_record(mail) < 0) {
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
