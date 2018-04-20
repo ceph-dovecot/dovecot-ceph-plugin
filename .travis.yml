@@ -31,6 +31,7 @@ script:
 - docker exec build sh -c 'chmod -R 777 /usr/local/var/'
 - docker exec --detach build sh -c 'service dovecot.service start'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 users=100 clients=25 error_quit secs=600 output=/var/log/imaptest.log'
+- docker exec build sh -c 'smtp-source -v -L -s 1 -m 1 -c -F /root/lmtp_test_mail.tld -f test@example.com -t t1 inet:127.0.0.1:1024'
 
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
