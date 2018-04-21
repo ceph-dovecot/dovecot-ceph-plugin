@@ -250,10 +250,13 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
+  if (rbox_open_rados_connection(dest_mbox) < 0) {
+    FUNC_END_RET("ret == -1, connection to rados failed");
+    return -1;
+  }
 
   if (ctx->saving || !r_ctx->copying || strcmp(mail->box->storage->name, "rbox") != 0) {
     // LDA or doveadm backup need copy for saving the mail
-
     // explicitly copy flags
     mailbox_save_copy_flags(ctx, mail);
 
@@ -265,11 +268,6 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     }
 
   } else {
-    if (rbox_open_rados_connection(dest_mbox) < 0) {
-      FUNC_END_RET("ret == -1, connection to rados failed");
-      return -1;
-    }
-
     if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
       if (ctx != NULL) {
         mailbox_save_cancel(&ctx);
