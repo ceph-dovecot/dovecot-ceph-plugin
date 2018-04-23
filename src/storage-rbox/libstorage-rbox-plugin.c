@@ -20,13 +20,13 @@ static int refcount = 0;
 
 struct mail_storage rbox_storage = {
     .name = "rbox",
-    .class_flags = MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS |
-                   MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUID128 | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS |
-                   MAIL_STORAGE_CLASS_FLAG_BINARY_DATA,
+    .class_flags = MAIL_STORAGE_CLASS_FLAG_UNIQUE_ROOT | MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG |
+                   MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUIDS | MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_GUID128 |
+                   MAIL_STORAGE_CLASS_FLAG_HAVE_MAIL_SAVE_GUIDS | MAIL_STORAGE_CLASS_FLAG_BINARY_DATA,
 
     .v = {
-        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings, NULL,
-        rbox_mailbox_alloc, NULL,
+        NULL, rbox_storage_alloc, rbox_storage_create, rbox_storage_destroy, NULL, rbox_storage_get_list_settings,
+        rbox_storage_autodetect, rbox_mailbox_alloc, NULL,
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_LIST_INDEX_CORRUPTED
         NULL,
 #endif

@@ -24,6 +24,7 @@ extern int rbox_storage_create(struct mail_storage *storage, struct mail_namespa
 extern struct mail_storage *rbox_storage_alloc(void);
 extern void rbox_storage_destroy(struct mail_storage *storage);
 extern void rbox_storage_get_list_settings(const struct mail_namespace *ns, struct mailbox_list_settings *set);
+extern bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set);
 extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_list *list, const char *vname,
                                           enum mailbox_flags flags);
 

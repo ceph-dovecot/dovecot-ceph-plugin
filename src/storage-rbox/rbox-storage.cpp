@@ -89,10 +89,67 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   FUNC_END();
 }
 
-int rbox_storage_create(struct mail_storage *ATTR_UNUSED, struct mail_namespace *ATTR_UNUSED,
-                        const char **ATTR_UNUSED) {
+static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
+  bool debug = ns->mail_set->mail_debug;
+  const char *home, *path;
+
+  if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
+    path = t_strconcat(home, "/rbox", NULL);
+    if (access(path, R_OK | W_OK | X_OK) == 0) {
+      if (debug)
+        i_debug("rbox: root exists (%s)", path);
+      return path;
+    }
+    if (debug)
+      i_debug("rbox: access(%s, rwx): failed: %m", path);
+  }
+  return NULL;
+}
+bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set) {
   FUNC_START();
+  bool debug = ns->mail_set->mail_debug;
+  struct stat st;
+  const char *path, *root_dir;
+
+  if (set->root_dir != NULL)
+    root_dir = set->root_dir;
+  else {
+    root_dir = rbox_storage_find_root_dir(ns);
+    if (root_dir == NULL) {
+      if (debug)
+        i_debug("rbox: couldn't find root dir");
+      return FALSE;
+    }
+  }
+
+  path = t_strconcat(root_dir, "/" RBOX_MAILBOX_DIR_NAME, NULL);
+  if (stat(path, &st) < 0) {
+    if (debug)
+      i_debug("rbox autodetect: stat(%s) failed: %m", path);
+    return FALSE;
+  }
+
+  if (!S_ISDIR(st.st_mode)) {
+    if (debug)
+      i_debug("rbox autodetect: %s not a directory", path);
+    return FALSE;
+  }
+
+  set->root_dir = root_dir;
+
+  rbox_storage_get_list_settings(ns, set);
+  FUNC_END();
+}
+
+int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
+  FUNC_START();
+
   // RADOS initialization postponed to mailbox_open
+  if (*ns->list->set.mailbox_dir_name == '\0') {
+    *error_r = "rbox: MAILBOXDIR must not be empty";
+    return -1;
+  }
+  _storage->unique_root_dir = p_strdup(_storage->pool, ns->list->set.root_dir);
   FUNC_END();
   return 0;
 }
