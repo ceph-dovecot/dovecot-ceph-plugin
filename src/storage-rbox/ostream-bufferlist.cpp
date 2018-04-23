@@ -63,7 +63,13 @@ static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struc
   ssize_t ret = 0;
   unsigned int i;
 
+  if (bstream->buf == nullptr) {
+    i_error("ceph:buffer is null");
+  }
   for (i = 0; i < iov_count; i++) {
+    i_debug("appending: %s length %d to rbox_mail_bufffer", reinterpret_cast<const char *>(iov[i].iov_base),
+            iov[i].iov_len);
+
     bstream->buf->append(reinterpret_cast<const char *>(iov[i].iov_base), iov[i].iov_len);
     stream->ostream.offset += iov[i].iov_len;
     ret += iov[i].iov_len;
