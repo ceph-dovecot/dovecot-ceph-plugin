@@ -254,16 +254,6 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     FUNC_END_RET("ret == -1, connection to rados failed");
     return -1;
   }
-  if (mail->box == NULL) {
-    i_error("mail_box is null");
-  }
-  if (mail->box->storage == NULL) {
-    i_error("mail_box_storage is null");
-  }
-
-  if (mail->box->storage->name == NULL) {
-    i_error("mail_box_storage_name is null");
-  }
 
   if (ctx->saving || !r_ctx->copying || strcmp(mail->box->storage->name, "rbox") != 0) {
     // LDA or doveadm backup need copy for saving the mail

@@ -63,16 +63,12 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->mbox = rbox;
     r_ctx->trans = t->itrans;
     r_ctx->current_object = nullptr;
-    i_debug("rbox_save allow r_ctx == null");
   }else {
-   /*
     r_ctx->current_object = nullptr;
     r_ctx->failed = FALSE;
     r_ctx->finished = FALSE;
     r_ctx->output_stream = NULL;
     r_ctx->input = NULL;
-    */
-   i_debug("rbox_save allow r_ctx != null, reset of r_ctx disabled!");
   }
 
   t->save_ctx = &r_ctx->ctx;
@@ -130,7 +126,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
 
-  i_debug("rbox_save streams initialized ");
   FUNC_END();
 }
 
@@ -200,7 +195,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct istream *crlf_input;
-  i_debug("rbox_save_begin called");
   r_ctx->failed = FALSE;
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
