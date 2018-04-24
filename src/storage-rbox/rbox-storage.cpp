@@ -105,12 +105,14 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   i_debug("ns prefix '%s'", ns->set->prefix);
   i_debug("ns location '%s'", ns->set->location);
   i_debug("ns alias '%s'", ns->set->alias_for);
-  box_sets = array_get(&ns->set->mailboxes, &count);
-
-  for (i = 0; i < count; i++) {
-    i_debug("boxname: %s", box_sets[i]->name);
+  if (ns->set != NULL && array_is_created(&ns->set->mailboxes)) {
+    box_sets = array_get(&ns->set->mailboxes, &count);
+    for (i = 0; i < count; i++) {
+      i_debug("boxname: %s", box_sets[i]->name);
+    }
+    i_debug("mailboxes: %d", count);
   }
-  i_debug("mailboxes: %d", count);
+
   i_debug("maildir_name = '%s'", set->maildir_name);
   i_debug("mailbox_dir_name_name = '%s'", set->mailbox_dir_name);
   i_debug("subscription_fname = '%s'", set->subscription_fname);
