@@ -91,6 +91,7 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
     set->subscription_fname = RBOX_SUBSCRIPTION_FILE_NAME;
 
   i_debug("inbox_path is: '%s'", set->inbox_path);
+
   if (set->inbox_path != NULL) {
     i_debug("inbox_path != 0 %s , resetting to 0", set->inbox_path);
     set->inbox_path = '\0';
@@ -492,13 +493,15 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   struct mail_index_transaction *new_trans = NULL;
   const struct mail_index_header *hdr;
   uint32_t uid_validity, uid_next;
+  struct mail_index_view *view;
 
   if (trans == NULL) {
     new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
     trans = new_trans;
   }
+  view = mail_index_view_open(box->index);
+  hdr = mail_index_get_header(view);
 
-  hdr = mail_index_get_header(box->view);
   if (update != NULL && update->uid_validity != 0) {
     uid_validity = update->uid_validity;
   } else if (hdr->uid_validity != 0) {
@@ -523,10 +526,11 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
                              sizeof(first_recent_uid), FALSE);
   }
   if (update != NULL && update->min_highest_modseq != 0 &&
-      mail_index_modseq_get_highest(box->view) < update->min_highest_modseq) {
+      mail_index_modseq_get_highest(view) < update->min_highest_modseq) {
     mail_index_modseq_enable(box->index);
     mail_index_update_highest_modseq(trans, update->min_highest_modseq);
   }
+  mail_index_view_close(&view);
 
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
   if (box->inbox_user && box->creating) {
