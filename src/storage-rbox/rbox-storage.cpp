@@ -76,6 +76,9 @@ struct mail_storage *rbox_storage_alloc(void) {
 
 void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED, struct mailbox_list_settings *set) {
   FUNC_START();
+  struct mailbox_settings *const *box_sets;
+  unsigned int count, i;
+
   if (set->layout == NULL) {
     set->layout = MAILBOX_LIST_NAME_FS;
     // TODO(peter): better default? set->layout = MAILBOX_LIST_NAME_INDEX;
@@ -86,6 +89,43 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
     set->mailbox_dir_name = RBOX_MAILBOX_DIR_NAME;
   if (set->subscription_fname == NULL)
     set->subscription_fname = RBOX_SUBSCRIPTION_FILE_NAME;
+
+  i_debug("inbox_path is: '%s'", set->inbox_path);
+  if (set->inbox_path != NULL) {
+    i_debug("inbox_path != 0 %s , resetting to 0", set->inbox_path);
+    set->inbox_path = '\0';
+  }
+
+  i_debug("mailbox prefix: %s", ns->prefix);
+
+  i_debug("#### namespace settings ####");
+  i_debug("ns_name '%s'", ns->set->name);
+  i_debug("ns_type '%s'", ns->set->type);
+  i_debug("ns separator: %s", ns->set->separator);
+  i_debug("ns prefix '%s'", ns->set->prefix);
+  i_debug("ns location '%s'", ns->set->location);
+  i_debug("ns alias '%s'", ns->set->alias_for);
+  box_sets = array_get(&ns->set->mailboxes, &count);
+
+  for (i = 0; i < count; i++) {
+    i_debug("boxname: %s", box_sets[i]->name);
+  }
+  i_debug("mailboxes: %d", count);
+  i_debug("maildir_name = '%s'", set->maildir_name);
+  i_debug("mailbox_dir_name_name = '%s'", set->mailbox_dir_name);
+  i_debug("subscription_fname = '%s'", set->subscription_fname);
+  i_debug("alt_dir = '%s'", set->alt_dir);
+  i_debug("index_dir = '%s'", set->index_dir);
+  i_debug("control_dir = '%s'", set->control_dir);
+  i_debug("index_pvt_dir = '%s'", set->index_pvt_dir);
+  i_debug("index_control_use_maildir_name = '%s'", set->index_control_use_maildir_name);
+  i_debug("root_dir = '%s'", set->root_dir);
+  i_debug("layout= '%s'", set->layout);
+  i_debug("escape char= '%c'", set->escape_char);
+  i_debug("broken_char char= '%c'", set->broken_char);
+  i_debug("utf-8 = '%d'", set->utf8);
+  i_debug("alt_dir_nocheck = '%d'", set->alt_dir_nocheck);
+  i_debug("index_control_use_maildir_name = '%d'", set->index_control_use_maildir_name);
   FUNC_END();
 }
 
