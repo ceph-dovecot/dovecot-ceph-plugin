@@ -1,0 +1,226 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab
+/*
+ * Copyright (c) 2017-2018 Tallence AG and the authors
+ * Copyright (c) 2007-2017 Dovecot authors
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License version 2.1, as published by the Free Software
+ * Foundation.  See file COPYING.
+ */
+
+#include "rbox-mailbox-list-fs.h"
+
+static int rbox_list_is_maildir_mailbox(struct mailbox_list *list, const char *dir, const char *fname,
+                                        enum mailbox_list_file_type type, enum mailbox_info_flags *flags_r) {
+  FUNC_START();
+
+  const char *path, *maildir_path;
+  struct stat st, st2;
+  bool mailbox_files;
+
+  switch (type) {
+    case MAILBOX_LIST_FILE_TYPE_FILE:
+    case MAILBOX_LIST_FILE_TYPE_OTHER:
+      /* non-directories aren't valid */
+      *flags_r |= MAILBOX_NOSELECT | MAILBOX_NOINFERIORS;
+      FUNC_END();
+      return 0;
+
+    case MAILBOX_LIST_FILE_TYPE_DIR:
+    case MAILBOX_LIST_FILE_TYPE_UNKNOWN:
+    case MAILBOX_LIST_FILE_TYPE_SYMLINK:
+      break;
+  }
+
+  path = t_strdup_printf("%s/%s", dir, fname);
+  if (stat(path, &st) < 0) {
+    if (errno == ENOENT) {
+      *flags_r |= MAILBOX_NONEXISTENT;
+      i_debug("exit MAILBOX_NONEXISTENT: %s fname: %s", dir, fname);
+      FUNC_END();
+      return 0;
+    } else {
+      /* non-selectable. probably either access denied, or
+         symlink destination not found. don't bother logging
+         errors. */
+      *flags_r |= MAILBOX_NOSELECT;
+      i_debug("exit MAILBOX_NOSELECT: %s fname: %s", dir, fname);
+      FUNC_END();
+      return 1;
+    }
+  }
+
+  if (!S_ISDIR(st.st_mode)) {
+    if (strncmp(fname, ".nfs", 4) == 0) {
+      /* temporary NFS file */
+      *flags_r |= MAILBOX_NONEXISTENT;
+    } else {
+      *flags_r |= MAILBOX_NOSELECT | MAILBOX_NOINFERIORS;
+      i_debug("!flags_r |= MAILBOX_NOSELECT | MAILBOX_NOINFERIORS ");
+    }
+    FUNC_END();
+    return 0;
+  }
+
+  /* ok, we've got a directory. see what we can do about it. */
+
+  /* 1st link is "."
+     2nd link is ".."
+     3rd link is either child mailbox or mailbox dir
+     rest of the links are child mailboxes
+
+     if mailboxes are files, then 3+ links are all child mailboxes.
+  */
+  mailbox_files = (list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) != 0;
+  if (st.st_nlink == 2 && !mailbox_files) {
+    *flags_r |= MAILBOX_NOSELECT;
+    i_debug("*flags_r |= MAILBOX_NOSELECT ");
+    FUNC_END();
+    return 1;
+  }
+
+  /* we have at least one directory. see if this mailbox is selectable */
+  maildir_path = t_strconcat(path, "/", list->set.maildir_name, NULL);
+  if (stat(maildir_path, &st2) < 0) {
+    *flags_r |= MAILBOX_NOSELECT | MAILBOX_CHILDREN;
+    i_debug(" %s is selectable ", maildir_path);
+  } else if (!S_ISDIR(st2.st_mode)) {
+    if (mailbox_files) {
+      *flags_r |= st.st_nlink == 2 ? MAILBOX_NOCHILDREN : MAILBOX_CHILDREN;
+      i_debug(" MAILBOX_NOCHILDREN : MAILBOX_CHILDREN; ");
+
+    } else {
+      *flags_r |= MAILBOX_NOSELECT | MAILBOX_CHILDREN;
+      i_debug(" *flags_r |= MAILBOX_NOSELECT | MAILBOX_CHILDREN; ");
+    }
+  } else {
+    /* now we know what link count 3 means. */
+    // if (st.st_nlink == 3 || st.st_nlink == 1) {
+    if (st.st_nlink == 3) {
+      *flags_r |= MAILBOX_NOCHILDREN;
+    } else if (st.st_nlink < 2) {
+      /* link count < 2 can happen with filesystems that don't
+               support link counts. we'll just ignore them for now.. */
+      *flags_r |= MAILBOX_NOCHILDREN;
+    } else {
+      *flags_r |= MAILBOX_CHILDREN;
+      i_debug(" st.st_nlink != 3 : %d", st.st_nlink);
+    }
+  }
+  *flags_r |= MAILBOX_SELECT;
+  FUNC_END();
+  return 1;
+}
+static bool rbox_is_inbox_file(struct mailbox_list *list, const char *path, const char *fname) {
+  FUNC_START();
+
+  const char *inbox_path;
+
+  if (strcasecmp(fname, "INBOX") != 0) {
+    FUNC_END();
+    return FALSE;
+  }
+
+  if (mailbox_list_get_path(list, "INBOX", MAILBOX_LIST_PATH_TYPE_MAILBOX, &inbox_path) <= 0)
+    i_unreached();
+
+  FUNC_END();
+  return strcmp(inbox_path, path) == 0;
+}
+int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, const char *fname,
+                                   enum mailbox_list_file_type type, enum mailbox_info_flags *flags_r) {
+  FUNC_START();
+  struct stat st;
+  const char *path;
+
+  *flags_r = 0;
+
+  if (*list->set.maildir_name != '\0') {
+    /* maildir_name is set: the code is common for all
+       storage types */
+    i_debug("maildir_name is set code is common for all !");
+    return rbox_list_is_maildir_mailbox(list, dir, fname, type, flags_r);
+  }
+  if (list->v.is_internal_name != NULL && list->v.is_internal_name(list, fname)) {
+    /* skip internal dirs */
+    *flags_r |= MAILBOX_NOSELECT;
+    return 0;
+  }
+
+  switch (type) {
+    case MAILBOX_LIST_FILE_TYPE_DIR:
+      if ((list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) != 0) {
+        *flags_r |= MAILBOX_NOSELECT;
+        return 1;
+      }
+      break;
+    case MAILBOX_LIST_FILE_TYPE_FILE:
+      if ((list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) == 0) {
+        *flags_r |= MAILBOX_NOSELECT | MAILBOX_NOINFERIORS;
+        return 0;
+      }
+      break;
+    default:
+      break;
+  }
+
+  /* we've done all filtering we can before stat()ing */
+  path = t_strconcat(dir, "/", fname, NULL);
+  if (stat(path, &st) < 0) {
+    if (ENOTFOUND(errno)) {
+      *flags_r |= MAILBOX_NONEXISTENT;
+      return 0;
+    } else if (ENOACCESS(errno)) {
+      *flags_r |= MAILBOX_NOSELECT;
+      return 1;
+    } else {
+      /* non-selectable. probably either access denied, or
+         symlink destination not found. don't bother logging
+         errors. */
+      mailbox_list_set_critical(list, "stat(%s) failed: %m", path);
+      return -1;
+    }
+  }
+
+  if (!S_ISDIR(st.st_mode)) {
+    if (strncmp(fname, ".nfs", 4) == 0) {
+      /* temporary NFS file */
+      *flags_r |= MAILBOX_NONEXISTENT;
+      return 0;
+    }
+
+    if ((list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) == 0) {
+      *flags_r |= MAILBOX_NOSELECT | MAILBOX_NOINFERIORS;
+      return 0;
+    }
+    /* looks like a valid mailbox file */
+    if (rbox_is_inbox_file(list, path, fname) && strcmp(fname, "INBOX") != 0) {
+      /* it's possible for INBOX to have child
+         mailboxes as long as the inbox file itself
+         isn't in <mail root>/INBOX */
+    } else {
+      *flags_r |= MAILBOX_NOINFERIORS;
+    }
+  } else {
+    if ((list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) != 0) {
+      *flags_r |= MAILBOX_NOSELECT | MAILBOX_CHILDREN;
+      return 1;
+    }
+  }
+
+  if ((list->flags & MAILBOX_LIST_FLAG_MAILBOX_FILES) != 0) {
+    *flags_r |= STAT_GET_MARKED_FILE(st);
+  } else if (list->v.is_internal_name == NULL) {
+    /* link count < 2 can happen with filesystems that don't
+       support link counts. we'll just ignore them for now.. */
+    if (st.st_nlink == 2)
+      *flags_r |= MAILBOX_NOCHILDREN;
+    else if (st.st_nlink > 2)
+      *flags_r |= MAILBOX_CHILDREN;
+  }
+  i_debug("fs_list_get_mailbox_flags: exit");
+  FUNC_END();
+  return 1;
+}
