@@ -91,7 +91,7 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
   if (*set->mailbox_dir_name == '\0')
     set->mailbox_dir_name = RBOX_MAILBOX_DIR_NAME;
   if (set->subscription_fname == NULL)
-    set->subscription_fname = RBOX_SUBSCRIPTION_FILE_NAME; 
+    set->subscription_fname = RBOX_SUBSCRIPTION_FILE_NAME;
 
   FUNC_END();
 }
@@ -221,8 +221,15 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   rbox->storage = (struct rbox_storage *)storage;
 
+  i_debug("STORAGE_NAME: %s", list->name);
+  read_plugin_configuration(&rbox->box);
+  // TODO: load dovecot config and eval is_ceph_posix_bugfix_enabled
   // cephfs does not support 2 hardlinks.
-  list->ns->list->v.get_mailbox_flags = rbox_fs_list_get_mailbox_flags;
+  if (rbox->storage->config->is_ceph_posix_bugfix_enabled()) {
+    list->ns->list->v.get_mailbox_flags = rbox_fs_list_get_mailbox_flags;
+  } else {
+    i_debug("CONFIG NOT AVAIL");
+  }
   FUNC_END();
   return &rbox->box;
 }

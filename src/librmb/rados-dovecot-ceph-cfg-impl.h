@@ -41,6 +41,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   std::string &get_key_prefix_keywords() { return dovecot_cfg.get_key_prefix_keywords(); }
   void update_metadata(const std::string &key, const char *value_) { dovecot_cfg.update_metadata(key, value_); }
 
+  bool is_ceph_posix_bugfix_enabled() { return dovecot_cfg.is_ceph_posix_bugfix_enabled(); }
   // rados config
   bool is_user_mapping() { return rados_cfg.is_user_mapping(); }
   void set_config_valid(bool is_valid_) {

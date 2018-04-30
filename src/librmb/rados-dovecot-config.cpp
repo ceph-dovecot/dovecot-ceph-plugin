@@ -20,13 +20,14 @@ RadosConfig::RadosConfig()
       rbox_cfg_object_name("rbox_cfg_object_name"),
       rbox_cluster_name("rbox_cluster_name"),
       rados_username("rados_user_name"),
-      prefix_keyword("k")
-{
+      prefix_keyword("k"),
+      bugfix_cephfs_posix_hardlinks("rbox_bugfix_cephfs_21652") {
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
   config[rbox_cluster_name] = "ceph";
   config[rados_username] = "client.admin";
+  config[bugfix_cephfs_posix_hardlinks] = "false";
   is_valid = false;
 }
 

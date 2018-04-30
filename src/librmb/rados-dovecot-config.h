@@ -42,8 +42,11 @@ class RadosConfig {
   const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
   const std::string &get_rados_username() { return config[rados_username]; }
   void update_metadata(const std::string &key, const char *value_);
-
+  bool is_ceph_posix_bugfix_enabled() {
+    return config[bugfix_cephfs_posix_hardlinks].compare("true") == 0 ? true : false;
+  }
   void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
+
 
  private:
   bool string_contains_key(const std::string &str, enum rbox_metadata_key key);
@@ -56,6 +59,7 @@ class RadosConfig {
   std::string rbox_cluster_name;
   std::string rados_username;
   std::string prefix_keyword;
+  std::string bugfix_cephfs_posix_hardlinks;
   bool is_valid;
 };
 
