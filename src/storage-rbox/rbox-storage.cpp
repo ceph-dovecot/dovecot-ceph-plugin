@@ -79,8 +79,6 @@ struct mail_storage *rbox_storage_alloc(void) {
 
 void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED, struct mailbox_list_settings *set) {
   FUNC_START();
-  struct mailbox_settings *const *box_sets;
-  unsigned int count, i;
 
   if (set->layout == NULL) {
     set->layout = MAILBOX_LIST_NAME_FS;
@@ -146,6 +144,7 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
 
   rbox_storage_get_list_settings(ns, set);
   FUNC_END();
+  return TRUE;
 }
 
 int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
