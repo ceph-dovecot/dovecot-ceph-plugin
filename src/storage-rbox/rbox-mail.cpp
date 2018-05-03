@@ -344,7 +344,12 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
-
+    if (rmail->mail_object == nullptr) {
+      // make sure that mail_object is initialized,
+      // else create and load guid from index.
+      rmail->mail_object = r_storage->s->alloc_mail_object();
+      rbox_get_index_record(_mail);
+    }
     rmail->mail_object->get_mail_buffer()->clear();
 
     _mail->transaction->stats.open_lookup_count++;
@@ -511,8 +516,10 @@ static void rbox_mail_close(struct mail *_mail) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
   if (rmail_->mail_object != nullptr) {
+    i_debug("freeing mail_object %lu", rmail_->mail_object);
     r_storage->s->free_mail_object(rmail_->mail_object);
     rmail_->mail_object = nullptr;
+
   }
 
   index_mail_close(_mail);
