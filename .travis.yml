@@ -32,10 +32,12 @@ script:
 - docker exec --detach build sh -c 'service dovecot.service start'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 users=100 clients=25 error_quit secs=600 output=/var/log/imaptest.log'
 - docker exec build sh -c 'smtp-source -v -L -s 1 -m 1 -c -F /root/lmtp_test_mail.tld -f test@example.com -t t1 inet:127.0.0.1:1024'
-
+- docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
+- docker exec build sh -c 'cd /usr/local/bin; ./imaptest pass=t port=10110 profile=/root/pop3-profile.conf clients=10 error_quit secs=150 output=/usr/log/imaptest.log'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Internal error\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"killed\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Panic:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Fatal:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/imaptest.log | grep \"BUG:\""'
