@@ -219,15 +219,14 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
   rbox->storage = (struct rbox_storage *)storage;
-
-  i_debug("STORAGE_NAME: %s", list->name);
+  if (list->set.alt_dir != NULL) {
+    i_warning("STORAGE_NAME: %s, alt storage set but currently not supported %s", list->name, list->set.alt_dir);
+  }
   read_plugin_configuration(&rbox->box);
   // TODO: load dovecot config and eval is_ceph_posix_bugfix_enabled
   // cephfs does not support 2 hardlinks.
   if (rbox->storage->config->is_ceph_posix_bugfix_enabled()) {
     list->ns->list->v.get_mailbox_flags = rbox_fs_list_get_mailbox_flags;
-  } else {
-    i_debug("CONFIG NOT AVAIL");
   }
   FUNC_END();
   return &rbox->box;
