@@ -49,7 +49,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD1(open_connection, int(const std::string &poolname));
   MOCK_METHOD3(open_connection,
                int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
-
+  MOCK_METHOD0(close_connection, void());
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMailObject *> &object_list));
@@ -57,6 +57,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD2(read_mail, int(const std::string &oid, librados::bufferlist *buffer));
   MOCK_METHOD6(move, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                           std::list<RadosMetadata> &to_update, bool delete_source));
+
   MOCK_METHOD5(copy, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                           std::list<RadosMetadata> &to_update));
   MOCK_METHOD2(save_mail, int(const std::string &oid, librados::bufferlist &bufferlist));
@@ -69,6 +70,7 @@ class RadosStorageMock : public RadosStorage {
 
 class RadosStorageMetadataMock : public RadosStorageMetadataModule {
  public:
+  MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));
   MOCK_METHOD1(load_metadata, int(RadosMailObject *mail));
   MOCK_METHOD2(set_metadata, int(RadosMailObject *mail, RadosMetadata &xattr));
   MOCK_METHOD2(update_metadata, bool(std::string &oid, std::list<RadosMetadata> &to_update));

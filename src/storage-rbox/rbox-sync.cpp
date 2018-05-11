@@ -54,6 +54,10 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
     if (!mail_index_transaction_is_expunged(ctx->trans, seq1)) {
+      /* todo load flags and set alt_storage flag */
+      const struct mail_index_record *rec;
+      rec = mail_index_lookup(ctx->sync_view, seq1);
+
       mail_index_expunge(ctx->trans, seq1);
 
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
@@ -61,6 +65,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
         // continue anyway
       } else {
+        item->alt_storage = is_alternate_storage_set(rec->flags);
         array_append(&ctx->expunged_items, &item, 1);
       }
     }
@@ -71,20 +76,33 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
 static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, const int &keyword_idx,
                                     bool remove) {
   FUNC_START();
-  struct mailbox *box = &ctx->mbox->box;
   uint32_t uid = -1;
   int ret = 0;
-  if (rbox_open_rados_connection(box) < 0) {
-    i_error("rbox_sync_object_expunge: connection to rados failed");
-    return -1;
-  }
+  struct mailbox *box = &ctx->mbox->box;
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
+    /* TODO:  */
+    const struct mail_index_record *rec;
+    rec = mail_index_lookup(ctx->sync_view, seq1);
+    bool alt_storage = is_alternate_storage_set(rec->flags);
+
+    if (rbox_open_rados_connection(box, alt_storage) < 0) {
+      i_error("rbox_sync_object_expunge: connection to rados failed");
+      return -1;
+    }
+    if (alt_storage) {
+      r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
+    } else {
+      r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
+    }
+    /* END TODO*/
+
     guid_128_t index_oid;
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
 
-      struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
       std::string key_oid(oid);
       std::string ext_key = std::to_string(keyword_idx);
@@ -102,26 +120,67 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
       }
     }
   }
+  // reset metadatas storage
+  r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
   FUNC_END();
   return ret;
 }
+
+static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, bool inverse) {
+  struct mailbox *box = &ctx->mbox->box;
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+  bool ret = -1;
+  // make sure alternative storage is open
+  if (rbox_open_rados_connection(box, true) < 0) {
+    i_error("rbox_sync_object_expunge: connection to rados failed");
+    return -1;
+  }
+  for (; seq1 <= seq2; seq1++) {
+    guid_128_t index_oid;
+    if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)&ctx->mbox->box)->ext_id, &index_oid) >=
+        0) {
+      std::string oid = guid_128_to_string(index_oid);
+      i_debug("found oid: %s", oid.c_str());
+      ret = librmb::RadosUtils::move_to_alt(oid, r_storage->s, r_storage->alt, r_storage->ms, inverse);
+      if (inverse) {
+        mail_index_update_flags(ctx->trans, seq1, MODIFY_REMOVE, (enum mail_flags)RBOX_INDEX_FLAG_ALT);
+      } else {
+        mail_index_update_flags(ctx->trans, seq1, MODIFY_ADD, (enum mail_flags)RBOX_INDEX_FLAG_ALT);
+      }
+    }
+  }
+  return ret;  // TODO: fix this
+}
+
 static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, uint8_t &add_flags,
                         uint8_t &remove_flags) {
   FUNC_START();
   struct mailbox *box = &ctx->mbox->box;
   uint32_t uid;
   int ret = 0;
-  if (rbox_open_rados_connection(box) < 0) {
-    i_error("rbox_sync_object_expunge: connection to rados failed");
-    return -1;
-  }
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
+    /* TODO:  */
+    const struct mail_index_record *rec;
+    rec = mail_index_lookup(ctx->sync_view, seq1);
+
+    bool alt_storage = is_alternate_storage_set(rec->flags);
+    if (rbox_open_rados_connection(box, alt_storage) < 0) {
+      i_error("rbox_sync_object_expunge: connection to rados failed");
+      return -1;
+    }
+    if (alt_storage) {
+      r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
+    } else {
+      r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
+    }
+
     guid_128_t index_oid;
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
 
-      struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
       librmb::RadosMailObject mail_object;
       mail_object.set_oid(oid);
       r_storage->ms->get_storage()->load_metadata(&mail_object);
@@ -142,6 +201,8 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       }
     }
   }
+  // reset metadatas storage
+  r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
   FUNC_END();
   return ret;
 }
@@ -151,7 +212,6 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
   const struct mail_index_header *hdr;
   struct mail_index_sync_rec sync_rec;
   uint32_t seq1, seq2;
-
   hdr = mail_index_get_header(ctx->sync_view);
   if (hdr->uid_validity == 0) {
     /* newly created index file */
@@ -178,15 +238,31 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       continue;
     }
     struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+    const struct mail_index_record *rec;
+    rec = mail_index_lookup(ctx->sync_view, seq1);
 
     switch (sync_rec.type) {
       case MAIL_INDEX_SYNC_TYPE_EXPUNGE:
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
-        if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS) &&
-            r_storage->config->is_update_attributes() &&
-            r_storage->config->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
+
+        if (is_alternate_storage_set(sync_rec.add_flags)) {
+          // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_TO_ALT;
+
+          // move object from mail_storage to apternative_storage.
+          int ret = move_to_alt(ctx, seq1, seq2, false);
+          i_debug("setting move to alt flag! %d", ret);
+        } else if (is_alternate_storage_set(sync_rec.remove_flags)) {
+          // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_FROM_ALT;
+
+          int ret = move_to_alt(ctx, seq1, seq2, true);
+          i_debug("removeing  alt flag! %d", ret);
+        }
+
+        else if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS) &&
+                 r_storage->config->is_update_attributes() &&
+                 r_storage->config->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS)) {
           update_flags(ctx, seq1, seq2, sync_rec.add_flags, sync_rec.remove_flags);
         }
         break;
@@ -328,11 +404,15 @@ static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expun
 
   const char *oid = guid_128_to_string(item->oid);
 
-  if (rbox_open_rados_connection(box) < 0) {
+  if (rbox_open_rados_connection(box, item->alt_storage) < 0) {
     i_error("rbox_sync_object_expunge: connection to rados failed");
     return;
   }
-  ret_remove = r_storage->s->delete_mail(oid);
+  if (!item->alt_storage) {
+    ret_remove = r_storage->s->delete_mail(oid);
+  } else {
+    ret_remove = r_storage->alt->delete_mail(oid);
+  }
   // callback
   /* do sync_notify only when the file was unlinked by us */
   if (box->v.sync_notify != NULL) {

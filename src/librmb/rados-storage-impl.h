@@ -46,7 +46,7 @@ class RadosStorageImpl : public RadosStorage {
   librados::NObjectIterator find_mails(const RadosMetadata *attr);
   int open_connection(const std::string &poolname);
   int open_connection(const std::string &poolname, const std::string &clustername, const std::string &rados_username);
-
+  void close_connection();
   bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map);
 

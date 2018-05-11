@@ -26,6 +26,7 @@ struct rbox_storage {
   librmb::RadosDovecotCephCfg *config;
   librmb::RadosNamespaceManager *ns_mgr;
   librmb::RadosMetadataStorage *ms;
+  librmb::RadosStorage *alt;
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_

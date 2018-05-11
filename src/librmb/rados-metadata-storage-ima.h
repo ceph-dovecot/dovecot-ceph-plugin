@@ -34,7 +34,7 @@ class RadosMetadataStorageIma : public RadosStorageMetadataModule {
  public:
   RadosMetadataStorageIma(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_);
   virtual ~RadosMetadataStorageIma();
-
+  void set_io_ctx(librados::IoCtx *io_ctx_) { this->io_ctx = io_ctx_; }
   int load_metadata(RadosMailObject *mail);
   int set_metadata(RadosMailObject *mail, RadosMetadata &xattr);
   bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update);

@@ -19,6 +19,7 @@ enum rbox_sync_flags { RBOX_SYNC_FLAG_FORCE = 0x01, RBOX_SYNC_FLAG_FSYNC = 0x02,
 struct expunged_item {
   uint32_t uid;
   guid_128_t oid;
+  bool alt_storage;
 };
 
 struct rbox_sync_context {

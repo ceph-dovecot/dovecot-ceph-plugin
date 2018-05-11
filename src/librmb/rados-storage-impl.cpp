@@ -204,6 +204,11 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
   return 0;
 }
 
+void RadosStorageImpl::close_connection() {
+  if (cluster != nullptr) {
+    cluster->deinit();
+  }
+}
 bool RadosStorageImpl::wait_for_write_operations_complete(
     std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) {
   bool failed = false;
@@ -281,7 +286,7 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     if (ret >= 0) {
       completion->wait_for_complete();
       ret = completion->get_return_value();
-      if (delete_source && strcmp(src_ns, dest_ns) != 0) {
+      if (delete_source && strcmp(src_ns, dest_ns) != 0 && ret == 0) {
         ret = src_io_ctx.remove(src_oid);
       }
     }

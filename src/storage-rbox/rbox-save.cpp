@@ -425,8 +425,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     }
     // reset virtual size
     index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
-
-    if (rbox_open_rados_connection(_ctx->transaction->box) < 0) {
+	// always save to primary storage
+    if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
       i_error("ERROR, cannot open rados connection (rbox_save_finish)");
       r_ctx->failed = true;
     } else {

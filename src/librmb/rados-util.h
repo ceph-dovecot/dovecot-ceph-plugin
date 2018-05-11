@@ -19,7 +19,8 @@
 #include <string>
 #include <map>
 #include <rados/librados.hpp>
-
+#include "rados-storage.h"
+#include "rados-metadata-storage.h"
 #include "rados-types.h"
 
 namespace librmb {
@@ -43,7 +44,10 @@ class RadosUtils {
   static int get_all_keys_and_values(librados::IoCtx *io_ctx, const std::string &oid,
                                      std::map<std::string, librados::bufferlist> *kv_map);
   static void resolve_flags(const uint8_t &flags, std::string *flat);
-
+  static int copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorage *primary, RadosStorage *alt_storage,
+                         RadosMetadataStorage *metadata, bool inverse);
+  static int move_to_alt(std::string &oid, RadosStorage *primary, RadosStorage *alt_storage,
+                         RadosMetadataStorage *metadata, bool inverse);
   static int osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, long long value_to_add);
   static int osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
                      long long value_to_subtract);

@@ -25,6 +25,7 @@ class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
  public:
   RadosMetadataStorageDefault(librados::IoCtx *io_ctx_);
   virtual ~RadosMetadataStorageDefault();
+  void set_io_ctx(librados::IoCtx *io_ctx_) { this->io_ctx = io_ctx_; }
 
   int load_metadata(RadosMailObject *mail);
   int set_metadata(RadosMailObject *mail, RadosMetadata &xattr);

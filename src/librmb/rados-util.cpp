@@ -146,4 +146,87 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
+// assumes that destination is open and initialized with uses namespace
+int RadosUtils::move_to_alt(std::string &oid, RadosStorage *primary, RadosStorage *alt_storage,
+                            RadosMetadataStorage *metadata, bool inverse) {
+  int ret = 0;
+  ret = copy_to_alt(oid, oid, primary, alt_storage, metadata, inverse);
+  if (ret >= 0) {
+    if (inverse) {
+      ret = alt_storage->get_io_ctx().remove(oid);
+    } else {
+      ret = primary->get_io_ctx().remove(oid);
+    }
+  }
+}
+static int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorage *primary,
+                                   RadosStorage *alt_storage, RadosMetadataStorage *metadata, bool inverse) {
+  // TODO; check that storage is connected and open.
+  if (primary == nullptr) {
+    return false;
+  }
+  if (alt_storage == nullptr) {
+    return false;
+  }
+
+  int ret = 0;
+
+  RadosMailObject mail;
+  mail.set_oid(src_oid);
+  librados::ObjectWriteOperation write_op;
+  // todo read metadata
+  std::cout << "hallo welr" << std::endl;
+  if (inverse) {
+    ret = alt_storage->read_mail(src_oid, mail.get_mail_buffer());
+    metadata->get_storage()->set_io_ctx(&alt_storage->get_io_ctx());
+
+  } else {
+    ret = primary->read_mail(src_oid, mail.get_mail_buffer());
+  }
+
+  if (ret < 0) {
+    metadata->get_storage()->set_io_ctx(&primary->get_io_ctx());
+    return ret;
+  }
+  mail.set_mail_size(mail.get_mail_buffer()->length());
+  std::cout << "hallo metadata " << metadata->get_storage() << std::endl;
+
+  // load the metadata;
+  ret = metadata->get_storage()->load_metadata(&mail);
+  if (ret < 0) {
+    return ret;
+  }
+
+  mail.set_oid(dest_oid);
+  std::cout << "adding save metadata :" << mail.get_metadata()->size() << std::endl;
+  bool async = true;
+  if (inverse) {
+    // ret = aio_operate(&io_ctx, oid, completion, &write_op);
+    ret = primary->save_mail(&write_op, &mail, async);
+  } else {
+    std::cout << "alt_storage save mail" << std::endl;
+    ret = alt_storage->save_mail(&write_op, &mail, async);
+    // ret = aio_operate(&alt_storage->get_io_ctx(), oid, completion, &write_op);
+  }
+  metadata->get_storage()->save_metadata(&write_op, &mail);
+  std::cout << "adding save metadata to write op" << std::endl;
+
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  if (inverse) {
+    ret = primary->aio_operate(&primary->get_io_ctx(), dest_oid, completion, &write_op);
+  } else {
+    ret = alt_storage->aio_operate(&alt_storage->get_io_ctx(), dest_oid, completion, &write_op);
+  }
+  std::cout << "hallo wait for" << std::endl;
+
+  if (ret >= 0) {
+    ret = completion->wait_for_complete();
+    ret = completion->get_return_value();
+  }
+  completion->release();
+
+
+  return ret;
+}
+
 }  // namespace librmb

@@ -106,12 +106,19 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
   int ret = -1;
-
-  if (rbox_open_rados_connection(mail->box) < 0) {
+  enum mail_flags flags = index_mail_get_flags(mail);
+  bool alt_storage = is_alternate_storage_set(flags);
+  if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
     return -1;
   }
 
+  // update metadata storage io_ctx and load metadata
+  if (alt_storage) {  
+    r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
+  } else {
+    r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
+  }
   ret = r_storage->ms->get_storage()->load_metadata(rmail->mail_object);
   if (ret < 0) {
     if (ret == -ENOENT) {
@@ -184,17 +191,21 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   uint64_t object_size = 0;
   time_t save_date_rados = 0;
 
+  enum mail_flags flags = index_mail_get_flags(_mail);
+  bool alt_storage = is_alternate_storage_set(flags);
+
   if (index_mail_get_save_date(_mail, date_r) == 0) {
     FUNC_END_RET("ret == 0");
     return 0;
   }
 
-  if (rbox_open_rados_connection(_mail->box) < 0) {
+  if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {
     FUNC_END_RET("ret == -1;  connection to rados failed");
     return -1;
   }
-
-  int ret_val = (r_storage->s)->stat_mail(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
+  
+  librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
+  int ret_val = rados_storage->stat_mail(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
     if (ret_val == -ENOENT) {
       rbox_mail_set_expunged(rmail);
@@ -207,7 +218,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.
     uint64_t psize;
-    if (r_storage->s->stat_mail(rmail->mail_object->get_oid(), &psize, &save_date_rados) < 0) {
+    if (rados_storage->stat_mail(rmail->mail_object->get_oid(), &psize, &save_date_rados) < 0) {
       // at least it needs to exist?
       return -1;
     }
@@ -267,6 +278,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
+  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+  
   *size_r = -1;
 
   char *value = NULL;
@@ -288,12 +301,16 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   }
 
   if (value == NULL) {
+    enum mail_flags flags = index_mail_get_flags(_mail);
+    bool alt_storage = is_alternate_storage_set(flags);
+
     // no index entry, no xattribute,
     // last change is to stat the object to get physical size.
-    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+
+    librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
     uint64_t psize;
     time_t pmtime;
-    if (r_storage->s->stat_mail(rmail->mail_object->get_oid(), &psize, &pmtime) < 0) {
+    if (rados_storage->stat_mail(rmail->mail_object->get_oid(), &psize, &pmtime) < 0) {
       // at least it needs to exists?
       return -1;
     }
@@ -336,28 +353,34 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct istream *input = NULL;
   struct index_mail_data *data = &rmail->imail.data;
-  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   int ret, physical_size = -1;
+  enum mail_flags flags = index_mail_get_flags(_mail);
+  bool alt_storage = is_alternate_storage_set(flags);
 
   if (data->stream == NULL) {
-    if (rbox_open_rados_connection(_mail->box) < 0) {
+    if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
+    librmb::RadosStorage *rados_storage = alt_storage ? ((struct rbox_storage *)_mail->box->storage)->alt : ((struct rbox_storage *)_mail->box->storage)->s;
+    if (alt_storage) {
+      rados_storage->set_namespace(rados_storage->get_namespace());
+    }
+
     if (rmail->mail_object == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
-      rmail->mail_object = r_storage->s->alloc_mail_object();
+      rmail->mail_object = rados_storage->alloc_mail_object();
       rbox_get_index_record(_mail);
     }
     rmail->mail_object->get_mail_buffer()->clear();
 
     _mail->transaction->stats.open_lookup_count++;
-    physical_size = r_storage->s->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
+    physical_size = rados_storage->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
     if (physical_size < 0) {
       if (physical_size == -ENOENT) {
         i_warning("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),
-                  r_storage->s->get_namespace().c_str(), getpid());
+                  rados_storage->get_namespace().c_str(), getpid());
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;

@@ -29,15 +29,17 @@ extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct m
                                           enum mailbox_flags flags);
 
 extern void rbox_set_mailbox_corrupted(struct mailbox *box);
-
+extern bool is_alternate_storage_set(uint8_t flags);
 extern struct mail_storage rbox_storage;
-
-extern int rbox_open_rados_connection(struct mailbox *box);
+extern int rbox_open_rados_connection(struct mailbox *box, bool alt_storage);
 extern int read_plugin_configuration(struct mailbox *box);
 
 #ifdef __cplusplus
 }
 #endif
+
+/* Flag specifies if the message should be in primary or alternative storage */
+#define RBOX_INDEX_FLAG_ALT MAIL_INDEX_MAIL_FLAG_BACKEND
 
 #define SDBOX_INDEX_HEADER_MIN_SIZE (sizeof(uint32_t))
 struct sdbox_index_header {

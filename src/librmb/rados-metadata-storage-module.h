@@ -19,6 +19,8 @@ namespace librmb {
 class RadosStorageMetadataModule {
  public:
   virtual ~RadosStorageMetadataModule(){};
+  /* update io_ctx */
+  virtual void set_io_ctx(librados::IoCtx *io_ctx){};
   /* load the metadta into RadosMailObject */
   virtual int load_metadata(RadosMailObject *mail) = 0;
   /* set a new metadata attribute to a mail object */

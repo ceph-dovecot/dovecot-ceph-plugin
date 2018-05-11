@@ -165,8 +165,14 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
   struct rbox_storage *storage = (struct rbox_storage *)_storage;
 
   if (storage->s != nullptr) {
+    storage->s->close_connection();
     delete storage->s;
     storage->s = nullptr;
+  }
+  if (storage->alt != nullptr) {
+    storage->alt->close_connection();
+    delete storage->alt;
+    storage->alt = nullptr;
   }
   if (storage->cluster != nullptr) {
     storage->cluster->deinit();
@@ -222,6 +228,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   if (list->set.alt_dir != NULL) {
     i_warning("STORAGE_NAME: %s, alt storage set but currently not supported %s", list->name, list->set.alt_dir);
   }
+
   read_plugin_configuration(&rbox->box);
   // TODO: load dovecot config and eval is_ceph_posix_bugfix_enabled
   // cephfs does not support 2 hardlinks.
@@ -342,7 +349,9 @@ int read_plugin_configuration(struct mailbox *box) {
   return 0;
 }
 
-int rbox_open_rados_connection(struct mailbox *box) {
+bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_ALT) != 0; }
+
+int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
   int ret = -1;
 
@@ -356,11 +365,17 @@ int rbox_open_rados_connection(struct mailbox *box) {
                                        mbox->storage->config->get_rados_cluster_name(),
                                        mbox->storage->config->get_rados_username());
 
-  if (ret == 1) {
+  if (alt_storage) {
+    i_debug("using alt storage %s", box->list->set.alt_dir);
+    mbox->storage->alt = new librmb::RadosStorageImpl(mbox->storage->cluster);
+    ret = mbox->storage->alt->open_connection(box->list->set.alt_dir, mbox->storage->config->get_rados_cluster_name(),
+                                              mbox->storage->config->get_rados_username());
+  }
+  /*TODO: if (ret == 1) {
     // already connected nothing to do!
     FUNC_END();
     return 0;
-  }
+  }*/
   if (ret < 0) {
     i_debug("Error = %d", ret);
     return ret;
@@ -390,6 +405,9 @@ int rbox_open_rados_connection(struct mailbox *box) {
   }
   if (ret >= 0) {
     rados_storage->set_namespace(ns);
+    if (alt_storage) {
+      mbox->storage->alt->set_namespace(ns);
+    }
   } else {
     i_error("error namespace not set: for uid %s error code is: %d", uid.c_str(), ret);
   }
@@ -643,7 +661,6 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
     FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
     return ret;
   }
-
   if (mailbox_open(box) < 0) {
     FUNC_END_RET("mailbox_open: ret < 0");
     return -1;

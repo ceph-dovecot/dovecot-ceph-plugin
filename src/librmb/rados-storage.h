@@ -55,6 +55,7 @@ class RadosStorage {
   /* open the rados connection with given user and clustername */
   virtual int open_connection(const std::string &poolname, const std::string &clustername,
                               const std::string &rados_username) = 0;
+  virtual void close_connection() = 0;
 
   /* wait for all write operations to complete */
   virtual bool wait_for_write_operations_complete(

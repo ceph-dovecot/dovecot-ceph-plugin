@@ -10,6 +10,7 @@
  */
 #ifndef SRC_LIBRMB_RADOS_METADATA_STORAGE_PRODUCER_H_
 #define SRC_LIBRMB_RADOS_METADATA_STORAGE_PRODUCER_H_
+#include "rados-dovecot-ceph-cfg.h"
 
 #include "rados-metadata-storage-module.h"
 

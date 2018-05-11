@@ -29,6 +29,7 @@ extern "C" {
 #include "rbox-save.h"
 #include "rbox-sync.h"
 #include "rbox-copy.h"
+#include "rados-util.h"
 
 const char *SETTINGS_RBOX_UPDATE_IMMUTABLE = "rbox_update_immutable";
 const char *SETTINGS_DEF_UPDATE_IMMUTABLE = "false";
@@ -126,8 +127,7 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
   }
 }
 
-
-static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail) {
+static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail, bool from_alt_storage) {
   FUNC_START();
   struct mail_save_context *ctx = *_ctx;
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
@@ -192,11 +192,20 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       set_mailbox_metadata(ctx, &metadata_update);
 
-      if (!r_storage->s->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update)) {
-        i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
-                ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
-        FUNC_END_RET("ret == -1, rados_storage->copy failed");
-        return -1;
+      if (!from_alt_storage) {
+        if (!r_storage->s->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update)) {
+          i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
+                  ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
+          FUNC_END_RET("ret == -1, rados_storage->copy failed");
+          return -1;
+        }
+      } else {
+        if (!r_storage->alt->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update)) {
+          i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
+                  ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
+          FUNC_END_RET("ret == -1, rados_storage->copy failed");
+          return -1;
+        }
       }
 
       i_debug("copy successfully finished: from src %s to oid = %s", src_oid.c_str(), dest_oid.c_str());
@@ -250,7 +259,10 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
-  if (rbox_open_rados_connection(dest_mbox) < 0) {
+  enum mail_flags flags = index_mail_get_flags(mail);
+  bool alt_storage = is_alternate_storage_set(flags);
+
+  if (rbox_open_rados_connection(dest_mbox, alt_storage) < 0) {
     FUNC_END_RET("ret == -1, connection to rados failed");
     return -1;
   }
@@ -268,7 +280,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     }
 
   } else {
-    if (rbox_mail_storage_try_copy(&ctx, mail) < 0) {
+    if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {
       if (ctx != NULL) {
         mailbox_save_cancel(&ctx);
       }
