@@ -71,7 +71,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->config = new librmb::RadosDovecotCephCfgImpl(&storage->s->get_io_ctx());
   storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
   storage->ms = new librmb::RadosMetadataStorageImpl();
-
+  storage->alt = new librmb::RadosStorageImpl(storage->cluster);
   FUNC_END();
   return &storage->storage;
 }
@@ -366,16 +366,16 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                        mbox->storage->config->get_rados_username());
 
   if (alt_storage) {
-    i_debug("using alt storage %s", box->list->set.alt_dir);
-    mbox->storage->alt = new librmb::RadosStorageImpl(mbox->storage->cluster);
     ret = mbox->storage->alt->open_connection(box->list->set.alt_dir, mbox->storage->config->get_rados_cluster_name(),
                                               mbox->storage->config->get_rados_username());
+    //}
   }
-  /*TODO: if (ret == 1) {
+  /*TODO:*/
+  if (ret == 1) {
     // already connected nothing to do!
     FUNC_END();
     return 0;
-  }*/
+  }
   if (ret < 0) {
     i_debug("Error = %d", ret);
     return ret;

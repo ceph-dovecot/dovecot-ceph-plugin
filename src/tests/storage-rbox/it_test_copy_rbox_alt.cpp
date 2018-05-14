@@ -43,7 +43,6 @@ extern "C" {
 #include "rbox-mail.h"
 #include "rbox-storage.h"
 #include "rados-util.h"
-
 using ::testing::AtLeast;
 using ::testing::Return;
 
@@ -77,6 +76,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces);
 
+  i_debug("mail_ added ");
+
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
   ASSERT_NE(sarg, nullptr);
@@ -90,6 +91,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   }
+
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
@@ -101,19 +103,17 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
 
-  struct message_size hdr_size, body_size;
-  struct istream *input = NULL;
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
-    EXPECT_NE(save_ctx, nullptr);
 
     // 1. read index to get oid
     // 2. move mail to alt
     // 3. update index.
     // see what happends
-    std::string alt_dir = "mail_storage_alt_test";
+    std::string alt_dir = "mail_storage_alt_test_copy";
     box->list->set.alt_dir = alt_dir.c_str();
-    i_debug("SETTING UPDATE_FLAG");
+
+    i_debug("SETTING UPDATE_FLAG ");
     mail_update_flags(mail, MODIFY_ADD, (enum mail_flags)MAIL_INDEX_MAIL_FLAG_BACKEND);
     rbox_get_index_record(mail);
     struct rbox_mail *r_mail = (struct rbox_mail *)mail;
@@ -127,51 +127,11 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
       librmb::RadosUtils::move_to_alt(oid, mbox->storage->s, mbox->storage->alt, mbox->storage->ms, false);
     }
 
-    int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
+    mailbox_save_copy_flags(save_ctx, mail);
+
+    int ret2 = mailbox_copy(&save_ctx, mail);
     EXPECT_EQ(ret2, 0);
-    EXPECT_NE(input, nullptr);
-    EXPECT_NE(body_size.physical_size, (uoff_t)0);
-    EXPECT_NE(hdr_size.physical_size, (uoff_t)0);
-
-    size_t size = -1;
-    int ret_size = i_stream_get_size(input, true, &size);
-    EXPECT_EQ(ret_size, 1);
-    uoff_t phy_size;
-    index_mail_get_physical_size(mail, &phy_size);
-
-    std::string msg3(
-        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
-        "text/plain; charset=us-ascii\n\nbody\n");
-
-    EXPECT_EQ(phy_size, msg3.length());  // i_stream ads a \r before every \n
-
-    // read the input stream and evaluate content.
-    struct const_iovec iov;
-    const unsigned char *data = NULL;
-    ssize_t ret = 0;
-    std::string buff;
-    do {
-      (void)i_stream_read_data(input, &data, &iov.iov_len, 0);
-      if (iov.iov_len == 0) {
-
-    if (input->stream_errno != 0)
-      FAIL() << "stream errno";
-    break;
-      }
-      const char *data_t = reinterpret_cast<const char *>(data);
-      std::string tmp(data_t, phy_size);
-      buff += tmp;
-    } while ((size_t)ret == iov.iov_len);
-
-    //    i_debug("data: %s", buff.c_str());
-    std::string msg(
-        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
-        "text/plain; charset=us-ascii\n\nbody\n");
-
-    // validate !
-    EXPECT_EQ(buff, msg);
-
-    break;
+    break;  // only move one mail.
   }
 
   if (mailbox_search_deinit(&search_ctx) < 0) {
@@ -181,12 +141,60 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   if (mailbox_transaction_commit(&desttrans) < 0) {
     FAIL() << "tnx commit failed";
   }
-
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
+  librados::NObjectIterator iter_alt(r_storage->alt->get_io_ctx().nobjects_begin());
+  r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
+  std::vector<librmb::RadosMailObject *> objects_alt;
+  while (iter_alt != librados::NObjectIterator::__EndObjectIterator) {
+    librmb::RadosMailObject *obj = new librmb::RadosMailObject();
+    obj->set_oid((*iter_alt).get_oid());
+    r_storage->ms->get_storage()->load_metadata(obj);
+    objects_alt.push_back(obj);
+    iter_alt++;
+  }
+  r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
+  ASSERT_EQ(2, (int)objects_alt.size());
+  librmb::RadosMailObject *mail1 = objects_alt[0];
+  librmb::RadosMailObject *mail2 = objects_alt[1];
+
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS),
+            mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_EXT_REF), mail2->get_metadata(librmb::RBOX_METADATA_EXT_REF));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE),
+            mail2->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_GUID), mail2->get_metadata(librmb::RBOX_METADATA_GUID));
+
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID),
+            mail2->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX),
+            mail2->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE),
+            mail2->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_POP3_ORDER),
+            mail2->get_metadata(librmb::RBOX_METADATA_POP3_ORDER));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_POP3_UIDL), mail2->get_metadata(librmb::RBOX_METADATA_POP3_UIDL));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS), mail2->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME),
+            mail2->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_VERSION), mail2->get_metadata(librmb::RBOX_METADATA_VERSION));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE),
+            mail2->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE));
+  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME),
+            mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME));
+
+  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID), mail2->get_metadata(librmb::RBOX_METADATA_MAIL_UID));
+
+  ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);
+  r_storage->alt->delete_mail(mail1);
+  r_storage->alt->delete_mail(mail2);
+
+  delete mail1;
+  delete mail2;
+
   mailbox_free(&box);
 }
 
