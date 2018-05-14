@@ -196,13 +196,14 @@ static int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, 
   }
 
   mail.set_oid(dest_oid);
+  metadata->get_storage()->save_metadata(write_op, &mail);
+
   bool async = true;
   if (inverse) {
     ret = primary->save_mail(write_op, &mail, async);
   } else {
     ret = alt_storage->save_mail(write_op, &mail, async);
   }
-  metadata->get_storage()->save_metadata(write_op, &mail);
 
   bool success = false;
   std::vector<librmb::RadosMailObject *> objects;
