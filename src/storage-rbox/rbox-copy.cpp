@@ -271,7 +271,10 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags);
 
-  if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
+  // we need to use the destination box to initialize the
+  // rados connection to make sure we have all necessary information (lmtp)
+
+  if (rbox_open_rados_connection(dest_mbox, alt_storage) < 0) {
     FUNC_END_RET("ret == -1, connection to rados failed");
     return -1;
   }
