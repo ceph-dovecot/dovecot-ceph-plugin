@@ -6,13 +6,11 @@ env:
 - DOVECOT="release-2.2.21"
 - DOVECOT="master-2.3"
 - DOVECOT="master-2.2"
-- DOVECOT="master"
 before_install:
 - set -e
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
 - travis_wait 30 docker run -d --net=ceph_network --name ceph_demo --mount type=tmpfs,destination=/etc/ceph -v ceph_config:/root/cfg -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 -e CEPH_DEMO_UID=$DOVECOT ceph/daemon:v3.0.5-stable-3.0-luminous-ubuntu-16.04-x86_64 demo
-- docker exec ceph_demo sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'
 
 - travis_wait 30 docker run -itd --name build --net=ceph_network -e SOURCE_VERSION=$DOVECOT -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'
@@ -37,6 +35,8 @@ script:
 - docker exec build sh -c 'smtp-source -v -L -s 1 -m 1 -c -F /root/lmtp_test_mail.tld -f test@example.com -t t1 inet:127.0.0.1:1024'
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=150 output=/var/log/imaptest.log'
+- docker exec build sh -c 'doveadm -D altmove -u t1 ALL'
+- docker exec build sh -c 'doveadm -D altmove -R -u t1 ALL'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Internal error\""'
