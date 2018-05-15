@@ -65,7 +65,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
         // continue anyway
       } else {
-        item->alt_storage = is_alternate_storage_set(rec->flags);
+        item->alt_storage = is_alternate_storage_set(rec->flags) && box->list->set.alt_dir != NULL;
         array_append(&ctx->expunged_items, &item, 1);
       }
     }
@@ -86,7 +86,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
     /* TODO:  */
     const struct mail_index_record *rec;
     rec = mail_index_lookup(ctx->sync_view, seq1);
-    bool alt_storage = is_alternate_storage_set(rec->flags);
+    bool alt_storage = is_alternate_storage_set(rec->flags) && box->list->set.alt_dir != NULL;
 
     if (rbox_open_rados_connection(box, alt_storage) < 0) {
       i_error("rbox_sync_object_expunge: connection to rados failed");
@@ -166,7 +166,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
     const struct mail_index_record *rec;
     rec = mail_index_lookup(ctx->sync_view, seq1);
 
-    bool alt_storage = is_alternate_storage_set(rec->flags);
+    bool alt_storage = is_alternate_storage_set(rec->flags) && box->list->set.alt_dir != NULL;
     if (rbox_open_rados_connection(box, alt_storage) < 0) {
       i_error("rbox_sync_object_expunge: connection to rados failed");
       return -1;
@@ -245,13 +245,13 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
 
-        if (is_alternate_storage_set(sync_rec.add_flags)) {
+        if (is_alternate_storage_set(sync_rec.add_flags) && box->list->set.alt_dir != NULL) {
           // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_TO_ALT;
 
           // move object from mail_storage to apternative_storage.
           int ret = move_to_alt(ctx, seq1, seq2, false);
           i_debug("setting move to alt flag! %d", ret);
-        } else if (is_alternate_storage_set(sync_rec.remove_flags)) {
+        } else if (is_alternate_storage_set(sync_rec.remove_flags) && box->list->set.alt_dir != NULL) {
           // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_FROM_ALT;
 
           int ret = move_to_alt(ctx, seq1, seq2, true);

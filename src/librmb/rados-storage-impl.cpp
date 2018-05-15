@@ -205,7 +205,7 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
 }
 
 void RadosStorageImpl::close_connection() {
-  if (cluster != nullptr) {
+  if (cluster != nullptr && io_ctx_created) {
     cluster->deinit();
   }
 }

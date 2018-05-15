@@ -269,7 +269,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     mailbox_keywords_ref(ctx->data.keywords);
   }
   enum mail_flags flags = index_mail_get_flags(mail);
-  bool alt_storage = is_alternate_storage_set(flags);
+  bool alt_storage = is_alternate_storage_set(flags) && mail->box->list->set.alt_dir != NULL;
 
   // we need to use the destination box to initialize the
   // rados connection to make sure we have all necessary information (lmtp)
