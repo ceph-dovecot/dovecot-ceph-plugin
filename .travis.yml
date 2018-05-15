@@ -8,6 +8,7 @@ env:
 - DOVECOT="master-2.2"
 - DOVECOT="master"
 before_install:
+- set -e
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
 - travis_wait 30 docker run -d --net=ceph_network --name ceph_demo --mount type=tmpfs,destination=/etc/ceph -v ceph_config:/root/cfg -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 -e CEPH_DEMO_UID=qqq -e CEPH_DEMO_ACCESS_KEY=qqq -e CEPH_DEMO_SECRET_KEY=qqq -e CEPH_DEMO_BUCKET=qqq ceph/daemon demo
