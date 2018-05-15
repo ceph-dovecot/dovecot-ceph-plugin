@@ -107,7 +107,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
   int ret = -1;
   enum mail_flags flags = index_mail_get_flags(mail);
-  bool alt_storage = is_alternate_storage_set(flags) && mail->box->list->set.alt_dir != NULL;
+  bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
   if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
     return -1;
@@ -192,7 +192,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   time_t save_date_rados = 0;
 
   enum mail_flags flags = index_mail_get_flags(_mail);
-  bool alt_storage = is_alternate_storage_set(flags) && _mail->box->list->set.alt_dir != NULL;
+  bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
 
   if (index_mail_get_save_date(_mail, date_r) == 0) {
     FUNC_END_RET("ret == 0");
@@ -302,7 +302,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   if (value == NULL) {
     enum mail_flags flags = index_mail_get_flags(_mail);
-    bool alt_storage = is_alternate_storage_set(flags) && _mail->box->list->set.alt_dir != NULL;
+    bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
 
     // no index entry, no xattribute,
     // last change is to stat the object to get physical size.
@@ -355,7 +355,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct index_mail_data *data = &rmail->imail.data;
   int ret, physical_size = -1;
   enum mail_flags flags = index_mail_get_flags(_mail);
-  bool alt_storage = is_alternate_storage_set(flags) && _mail->box->list->set.alt_dir != NULL;
+  bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
 
   if (data->stream == NULL) {
     if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {

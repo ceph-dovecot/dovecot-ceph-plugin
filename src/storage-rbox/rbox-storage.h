@@ -30,6 +30,7 @@ extern struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct m
 
 extern void rbox_set_mailbox_corrupted(struct mailbox *box);
 extern bool is_alternate_storage_set(uint8_t flags);
+extern bool is_alternate_pool_valid(struct mailbox *_box);
 extern struct mail_storage rbox_storage;
 extern int rbox_open_rados_connection(struct mailbox *box, bool alt_storage);
 extern int read_plugin_configuration(struct mailbox *box);
