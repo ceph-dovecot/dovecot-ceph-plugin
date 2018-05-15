@@ -114,7 +114,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
 
   // update metadata storage io_ctx and load metadata
-  if (alt_storage) {  
+  if (alt_storage) {
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
   } else {
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
@@ -203,7 +203,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     FUNC_END_RET("ret == -1;  connection to rados failed");
     return -1;
   }
-  
+
   librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
   int ret_val = rados_storage->stat_mail(rmail->mail_object->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
@@ -279,7 +279,7 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-  
+
   *size_r = -1;
 
   char *value = NULL;
@@ -539,7 +539,6 @@ static void rbox_mail_close(struct mail *_mail) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
   if (rmail_->mail_object != nullptr) {
-    i_debug("freeing mail_object %lu", rmail_->mail_object);
     r_storage->s->free_mail_object(rmail_->mail_object);
     rmail_->mail_object = nullptr;
 

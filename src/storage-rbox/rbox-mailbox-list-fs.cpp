@@ -31,6 +31,8 @@ static int rbox_list_is_maildir_mailbox(struct mailbox_list *list, const char *d
     case MAILBOX_LIST_FILE_TYPE_UNKNOWN:
     case MAILBOX_LIST_FILE_TYPE_SYMLINK:
       break;
+    default:
+      return -1;
   }
 
   path = t_strdup_printf("%s/%s", dir, fname);

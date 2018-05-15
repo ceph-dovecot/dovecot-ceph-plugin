@@ -238,8 +238,6 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
       continue;
     }
     struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-    const struct mail_index_record *rec;
-    rec = mail_index_lookup(ctx->sync_view, seq1);
 
     switch (sync_rec.type) {
       case MAIL_INDEX_SYNC_TYPE_EXPUNGE:

@@ -29,7 +29,7 @@ static int o_stream_buffer_seek(struct ostream_private *stream, uoff_t offset) {
   return 1;
 }
 
-static int o_stream_buffer_write_at(struct ostream_private *stream, const void *data, size_t size, uoff_t offset) {
+int o_stream_buffer_write_at(struct ostream_private *stream, const void *data, size_t size, uoff_t offset) {
   i_assert(stream != NULL);
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
   i_assert(bstream->buf != nullptr);

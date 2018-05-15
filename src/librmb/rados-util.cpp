@@ -158,9 +158,10 @@ int RadosUtils::move_to_alt(std::string &oid, RadosStorage *primary, RadosStorag
       ret = primary->get_io_ctx().remove(oid);
     }
   }
+  return ret;
 }
-static int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorage *primary,
-                                   RadosStorage *alt_storage, RadosMetadataStorage *metadata, bool inverse) {
+int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorage *primary,
+                            RadosStorage *alt_storage, RadosMetadataStorage *metadata, bool inverse) {
   int ret = 0;
 
   // TODO; check that storage is connected and open.

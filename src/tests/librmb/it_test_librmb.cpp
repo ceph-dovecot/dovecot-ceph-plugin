@@ -611,7 +611,6 @@ TEST(librmb, test_default_metadata_load_attributes) {
 
 TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -640,7 +639,6 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist) {
 
 TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -669,7 +667,6 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
 
 TEST(librmb, increment_add_to_non_existing_key) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -691,7 +688,7 @@ TEST(librmb, increment_add_to_non_existing_key) {
 
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
-
+  ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
@@ -710,7 +707,6 @@ TEST(librmb, increment_add_to_non_existing_key) {
 }
 TEST(librmb, increment_add_to_non_existing_object) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -730,6 +726,7 @@ TEST(librmb, increment_add_to_non_existing_object) {
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
@@ -749,7 +746,6 @@ TEST(librmb, increment_add_to_non_existing_object) {
 }
 TEST(librmb, increment_add_to_existing_key) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -770,7 +766,9 @@ TEST(librmb, increment_add_to_existing_key) {
   storage.save_mail(obj2.get_oid(), mail_buf);
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ASSERT_EQ(0, ret);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
@@ -791,7 +789,6 @@ TEST(librmb, increment_add_to_existing_key) {
 
 TEST(librmb, increment_sub_from_existing_key) {
   librados::IoCtx io_ctx;
-  uint64_t max_size = 3;
 
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -808,7 +805,6 @@ TEST(librmb, increment_sub_from_existing_key) {
   librmb::RadosMailObject obj2;
   obj2.set_oid("myobject");
 
-  bool b = true;
   ceph::bufferlist mail_buf;
   storage.save_mail(obj2.get_oid(), mail_buf);
 
@@ -817,6 +813,7 @@ TEST(librmb, increment_sub_from_existing_key) {
   long sub_val = 5;  // value to add
   ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), obj2.get_oid(), key, sub_val);
   // get the value!
+  ASSERT_EQ(0, ret);
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
   keys.insert(key);

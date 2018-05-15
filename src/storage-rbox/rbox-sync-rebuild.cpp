@@ -181,8 +181,6 @@ int search_objects(struct index_rebuild_context *ctx, bool alt_storage) {
 int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   int ret = 0;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
-  struct mail_storage *storage = ctx->box->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   rbox_sync_set_uidvalidity(ctx);
 
   bool alt_storage = rbox->box.list->set.alt_dir != NULL;
