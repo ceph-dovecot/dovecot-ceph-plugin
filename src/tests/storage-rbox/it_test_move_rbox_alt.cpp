@@ -97,6 +97,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
 
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
 
@@ -142,7 +144,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     FAIL() << "sync failed";
   }
 
-  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->alt->get_io_ctx().nobjects_begin());
   r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
   std::vector<librmb::RadosMailObject *> objects;
@@ -167,6 +168,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX), "");
 
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
+  r_storage->alt->delete_mail(mail1);
   delete mail1;
   mailbox_free(&box);
 }
