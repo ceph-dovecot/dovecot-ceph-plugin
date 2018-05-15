@@ -225,9 +225,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
   rbox->storage = (struct rbox_storage *)storage;
-  if (list->set.alt_dir != NULL) {
-    i_warning("STORAGE_NAME: %s, alt storage set but currently not supported %s", list->name, list->set.alt_dir);
-  }
 
   read_plugin_configuration(&rbox->box);
   // TODO: load dovecot config and eval is_ceph_posix_bugfix_enabled
@@ -350,6 +347,10 @@ int read_plugin_configuration(struct mailbox *box) {
 }
 
 bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_ALT) != 0; }
+
+bool is_alternate_pool_valid(struct mailbox *_box) {
+  return _box->list->set.alt_dir != NULL && strlen(_box->list->set.alt_dir) > 0;
+}
 
 int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();

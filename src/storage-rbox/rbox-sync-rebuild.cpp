@@ -183,7 +183,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
   rbox_sync_set_uidvalidity(ctx);
 
-  bool alt_storage = rbox->box.list->set.alt_dir != NULL;
+  bool alt_storage = is_alternate_pool_valid(ctx->box);
 
   if (rbox_open_rados_connection(ctx->box, alt_storage) < 0) {
     i_error("cannot open rados connection");
