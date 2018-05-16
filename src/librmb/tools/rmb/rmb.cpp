@@ -573,7 +573,7 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
-  if (args.size() <= 0 && opts.size() <= 0 && !is_config_option) {
+  if (args.empty() && opts.empty() && !is_config_option) {
     usage_exit();
   }
 
