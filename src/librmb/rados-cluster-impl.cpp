@@ -76,9 +76,7 @@ int RadosClusterImpl::init(const std::string &clustername, const std::string &ra
 int RadosClusterImpl::initialize() {
   int ret = 0;
 
-  if (ret == 0) {
-    ret = RadosClusterImpl::cluster->conf_parse_env(nullptr);
-  }
+  ret = RadosClusterImpl::cluster->conf_parse_env(nullptr);
 
   if (ret == 0) {
     ret = RadosClusterImpl::cluster->conf_read_file(nullptr);
