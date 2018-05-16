@@ -52,7 +52,7 @@ Ceph contains git submodules that need to be checked out with
 
 The build requires that you have the following software/packages installed:
 
-    jansson version >= 2.9
+    libjansson-devel version >= 2.9
     librados2-devel (rados header) version >= 10.2.5
     dovecot-devel (dovecot header)
 
