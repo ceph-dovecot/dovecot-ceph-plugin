@@ -42,7 +42,7 @@ script:
 - docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
 - docker exec build sh -c 'doveadm -D -c /usr/local/etc/dovecot_mdbox/dovecot.conf fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/mdbox.t1.mails'
 - docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
-- docker exec build sh -c 'rm -r /usr/local/var/mail/rbox/u/u/t1'
+- docker exec build sh -c 'rm -r /usr/local/var/mail/rbox/t1'
 - docker exec build sh -c 'doveadm -Dv -c /usr/local/etc/dovecot_mdbox/dovecot.conf backup -u t1 -m INBOX rbox:/usr/local/var/mail/rbox/u/u/t1'
 - docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
 - docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
