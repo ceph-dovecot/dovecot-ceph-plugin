@@ -37,6 +37,16 @@ script:
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=150 output=/var/log/imaptest.log'
 - docker exec build sh -c 'doveadm -D altmove -u t1 ALL'
 - docker exec build sh -c 'doveadm -D altmove -r -u t1 ALL'
+
+- docker exec build sh -c 'doveadm -Dv backup -u t1 -m INBOX mdbox:/usr/local/var/mail/rbox/u/u/t1'
+- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
+- docker exec build sh -c 'doveadm -D -c /usr/local/etc/dovecot_mdbox/dovecot.conf fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/mdbox.t1.mails'
+- docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
+- docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
+- docker exec build sh -c 'doveadm -Dv -c /usr/local/etc/dovecot_mdbox/dovecot.conf backup -u t1 -m INBOX rbox:/usr/local/var/mail/rbox/u/u/t1'
+- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
+- docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
+
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Internal error\""'
