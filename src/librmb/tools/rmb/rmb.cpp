@@ -307,6 +307,16 @@ static void load_objects(librmb::RadosStorageMetadataModule *ms, librmb::RadosSt
   while (iter != storage.get_io_ctx().nobjects_end()) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     std::string oid = iter->get_oid();
+		uint64_t size = 0;
+    time_t t;
+		int ret = storage.get_io_ctx().stat(oid, &size, &t);
+    if (ret != 0 || size <= 0) {
+      std::cout << " object '" << oid
+          << "' is not a valid mail object, size = 0"
+          << std::endl;
+			++iter;
+			continue;
+		}
     mail->set_oid(oid);
     ms->load_metadata(mail);
 
