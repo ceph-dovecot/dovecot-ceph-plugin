@@ -301,8 +301,6 @@ int main(int argc, const char **argv) {
     usage_exit();
   }
 
-  debug = opts.find("debug") != opts.end();
-
   is_lspools_cmd = strcmp(args[0], "lspools") == 0;
   delete_mail_option = opts.find("to_delete") != opts.end();
   sort_type = (opts.find("sort") != opts.end()) ? opts["sort"] : "uid";

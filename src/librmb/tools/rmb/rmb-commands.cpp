@@ -242,7 +242,6 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     ++iter;
     mail_objects.push_back(mail);
   }
-  std::cout << "hallo welrt" << std::endl;
 
   if (sort_string.compare("uid") == 0) {
     std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
