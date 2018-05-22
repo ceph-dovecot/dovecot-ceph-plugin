@@ -19,6 +19,8 @@ rmb_SOURCES = \
 	mailbox_tools.h \
 	ls_cmd_parser.cpp \
 	ls_cmd_parser.h \
+	rmb-commands.cpp \
+	rmb-commands.h \
 	rmb.cpp \
 	rmb.h
 

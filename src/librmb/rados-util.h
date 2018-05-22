@@ -51,6 +51,16 @@ class RadosUtils {
   static int osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, long long value_to_add);
   static int osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
                      long long value_to_subtract);
+
+  static bool validate_metadata(
+      std::map<std::string, ceph::bufferlist>* metadata);
+
+  static std::string get_metadata(
+      librmb::rbox_metadata_key key,
+      std::map<std::string, ceph::bufferlist>* metadata);
+  static std::string get_metadata(
+      const string& key, std::map<std::string, ceph::bufferlist>* metadata);
+  static bool is_numeric(std::string &text);
   };
 
 }  // namespace librmb
