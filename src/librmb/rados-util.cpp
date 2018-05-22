@@ -56,6 +56,10 @@ bool RadosUtils::is_date_attribute(const rbox_metadata_key &key) {
 
 int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   char buffer[256];
+  if (t == -1) {
+    *ret_val = "invalid date";
+    return -1;
+  }
   struct tm timeinfo;
   localtime_r(&t, &timeinfo);
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);

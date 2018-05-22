@@ -154,19 +154,6 @@ TEST(rmb1, rmb_command_filter_result) {
   obj1.set_oid("oid_1");
   obj1.set_mail_size(200);
   obj1.set_rados_save_date(time(NULL));
-  /*std::map<std::string, ceph::bufferlist> *metadata = obj1.get_metadata();
-  (*metadata)[std::string("I")] = librados::bufferlist("V0.1");                 // Version
-  (*metadata)["G"] = librados::bufferlist("8eed840764b05359f12718004d2485ee");  // Mail guid
-  (*metadata)["R"] = librados::bufferlist("12345627");                          // Receive date
-  (*metadata)["S"] = librados::bufferlist("22222222");                          // save date
-  (*metadata)["P"] = librados::bufferlist("1");                                 // pop3 uidl
-  (*metadata)["O"] = librados::bufferlist("0");                                 // Pop3 order
-  (*metadata)["M"] = librados::bufferlist("9999840764b05359f12718004d2485ee");  // Mailbox GUID
-  (*metadata)["Z"] = librados::bufferlist("200");                               // Physical Size
-  (*metadata)["V"] = librados::bufferlist("250");                               // virtual size
-  (*metadata)["U"] = librados::bufferlist("1");                                 // Mail uid
-  (*metadata)["A"] = librados::bufferlist("");                                  // From Envelope
-  (*metadata)[std::string("F")] = librados::bufferlist("01");                   // Mail Flags*/
   {
     std::string key = "M";
     std::string val = "8eed840764b05359f12718004d2485ee";
@@ -212,6 +199,101 @@ TEST(rmb1, rmb_command_filter_result) {
   {
     std::string key = "Z";
     std::string val = "200";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "V";
+    std::string val = "250";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "U";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "A";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "F";
+    std::string val = "01";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "B";
+    std::string val = "DRAFTS";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  mails.push_back(&obj1);
+
+  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false));
+}
+
+TEST(rmb1, rmb_command_filter_result2) {
+  librmbtest::RadosStorageMock storage_mock;
+  librmbtest::RadosClusterMock cluster_mock;
+  std::map<std::string, std::string> opts;
+  opts["ls"] = "-";
+  librmb::CmdLineParser parser(opts["ls"]);
+  librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
+  std::vector<librmb::RadosMailObject *> mails;
+  librmb::RadosMailObject obj1;
+  obj1.set_oid("oid_1");
+  obj1.set_mail_size(200);
+  obj1.set_rados_save_date(time(NULL));
+  {
+    std::string key = "M";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "I";
+    std::string val = "v0.1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "G";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "R";
+    std::string val = "aafsadfasdfasdf";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "S";
+    std::string val = "adfhasdfhsfdkahsdf";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "P";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "O";
+    std::string val = "0";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "Z";
+    std::string val = "";
     librmb::RadosMetadata m(key, val);
     obj1.add_metadata(m);
   }
