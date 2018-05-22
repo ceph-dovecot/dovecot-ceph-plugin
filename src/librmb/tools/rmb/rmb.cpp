@@ -352,7 +352,7 @@ int main(int argc, const char **argv) {
   // connection to rados is established!
   rmb_commands = new librmb::RmbCommands(&storage, &cluster, &opts);
   if (is_config_option) {
-    if (rmb_commands->config_option(create_config, config_obj, confirmed, ceph_cfg) < 0) {
+    if (rmb_commands->configuration(create_config, config_obj, confirmed, ceph_cfg) < 0) {
       std::cerr << "error processing config option" << std::endl;
     }
     delete rmb_commands;

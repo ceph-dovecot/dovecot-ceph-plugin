@@ -30,9 +30,10 @@ RmbCommands::~RmbCommands() {
   // TODO Auto-generated destructor stub
 }
 
+// TODO:: currently untestable with  mocks.
 int RmbCommands::lspools() {
   librmb::RadosClusterImpl cluster;
-  librmb::RadosStorageImpl storage(&cluster);
+
   cluster.init();
   if (cluster.connect() < 0) {
     std::cout << " error opening rados connection" << std::endl;
@@ -116,9 +117,8 @@ int RmbCommands::rename_user(librmb::RadosDovecotCephCfg *cfg, bool confirmed,
     return ret;
 }
 
-int RmbCommands::config_option(bool create_config, const std::string &obj_, bool confirmed,
+int RmbCommands::configuration(bool create_config, const std::string &obj_, bool confirmed,
                                librmb::RadosCephConfig &ceph_cfg) {
-
   bool has_update = (*opts).find("update") != (*opts).end();
   bool has_ls = (*opts).find("print_cfg") != (*opts).end();
   if (has_update && has_ls) {
@@ -206,13 +206,13 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
   }
 
   // get load all objects metadata into memory
-  librados::NObjectIterator iter(storage->get_io_ctx().nobjects_begin());
-  while (iter != storage->get_io_ctx().nobjects_end()) {
+  librados::NObjectIterator iter(storage->find_mails(nullptr));
+  while (iter != librados::NObjectIterator::__EndObjectIterator) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
     std::string oid = iter->get_oid();
     uint64_t object_size = 0;
     time_t save_date_rados;
-    int ret = storage->get_io_ctx().stat(oid, &object_size, &save_date_rados);
+    int ret = storage->stat_mail(oid, &object_size, &save_date_rados);
     if (ret != 0 || object_size <= 0) {
       std::cout << " object '" << oid << "' is not a valid mail object, size = 0" << std::endl;
       ++iter;
@@ -242,6 +242,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     ++iter;
     mail_objects.push_back(mail);
   }
+  std::cout << "hallo welrt" << std::endl;
 
   if (sort_string.compare("uid") == 0) {
     std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);

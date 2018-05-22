@@ -39,7 +39,7 @@ class RmbCommands {
 
   int rename_user(librmb::RadosDovecotCephCfg *cfg, bool confirmed, const std::string &uid);
 
-  int config_option(bool create_config, const std::string &obj_, bool confirmed, librmb::RadosCephConfig &ceph_cfg);
+  int configuration(bool create_config, const std::string &obj_, bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
   int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
                    std::string &sort_string);

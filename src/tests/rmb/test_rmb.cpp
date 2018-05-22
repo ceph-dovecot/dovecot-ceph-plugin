@@ -19,6 +19,12 @@
 #include "../../librmb/rados-storage-impl.h"
 #include "../../librmb/tools/rmb/ls_cmd_parser.h"
 #include "../../librmb/tools/rmb/mailbox_tools.h"
+#include "../../librmb/tools/rmb/rmb-commands.h"
+#include "mock_test.h"
+
+using ::testing::Return;
+using ::testing::_;
+using ::testing::ReturnRef;
 
 TEST(rmb, test_cmd_parser) {
   std::string key = "M";
@@ -118,7 +124,24 @@ TEST(rmb1, path_tests) {
   librmb::MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
+TEST(rmb1, rmb_commands_no_objects_found) {
+  librmbtest::RadosStorageMock storage_mock;
+  librmbtest::RadosClusterMock cluster_mock;
+  librmbtest::RadosStorageMetadataMock ms_module_mock;
 
+  std::map<std::string, std::string> opts;
+  librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
+  std::vector<librmb::RadosMailObject *> mails;
+  std::string search_string = "uid";
+  const librados::NObjectIterator iter = librados::NObjectIterator::__EndObjectIterator;
+  librados::IoCtx test_ioctx;
+
+  EXPECT_CALL(storage_mock, find_mails(nullptr)).WillRepeatedly(Return(iter));
+  EXPECT_CALL(storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
+  EXPECT_CALL(storage_mock, stat_mail(_, _, _)).WillRepeatedly(Return(0));
+  int ret = rmb_cmd.load_objects(&ms_module_mock, mails, search_string);
+  EXPECT_EQ(ret, 0);
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

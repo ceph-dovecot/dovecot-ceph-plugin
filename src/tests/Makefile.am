@@ -51,7 +51,7 @@ gtest_shlibs = libgmockgtest.la
 
 TESTS = test_rmb
 test_rmb_SOURCES = rmb/test_rmb.cpp mocks/mock_test.h
-test_rmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
+test_rmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/rmb-commands.o   $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
     
 TESTS += test_storage_mock_rbox
 test_storage_mock_rbox_SOURCES = storage-mock-rbox/test_storage_mock_rbox.cpp storage-mock-rbox/TestCase.cpp storage-mock-rbox/TestCase.h mocks/mock_test.h test-utils/it_utils.cpp test-utils/it_utils.h 
