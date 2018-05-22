@@ -25,6 +25,8 @@
 #include "rados-metadata-storage.h"
 #include "rados-dovecot-ceph-cfg.h"
 #include "rados-ceph-config.h"
+#include "ls_cmd_parser.h"
+#include "mailbox_tools.h"
 namespace librmb {
 
 class RmbCommands {
@@ -39,10 +41,23 @@ class RmbCommands {
 
   int config_option(bool create_config, const std::string &obj_, bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
+  int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
+                   std::string &sort_string);
+
+  int print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir, bool download);
+  int query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
+                         bool download);
+
+  static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+  static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+  static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+  static bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+
  private:
   std::map<std::string, std::string> *opts;
   librmb::RadosStorage *storage;
   librmb::RadosCluster *cluster;
+  bool is_debug;
 };
 
 } /* namespace librmb */
