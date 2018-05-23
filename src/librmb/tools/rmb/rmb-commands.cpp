@@ -171,25 +171,43 @@ int RmbCommands::configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg
 bool RmbCommands::sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
-  long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_MAIL_UID), &sz);
-  return i_uid < j_uid;
+  try {
+    long i_uid = std::stol(t, &sz);
+    long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_MAIL_UID), &sz);
+    return i_uid < j_uid;
+  } catch (std::exception &e) {
+    std::cerr << " sort_uid: " << t << "(" << i->get_oid() << ") or " << j->get_metadata(librmb::RBOX_METADATA_MAIL_UID)
+              << " (" << j->get_oid() << ") is not a number" << std::endl;
+    return false;
+  }
 }
 
 bool RmbCommands::sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME);
-  long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), &sz);
-  return i_uid < j_uid;
+  try {
+    long i_uid = std::stol(t, &sz);
+    long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME), &sz);
+    return i_uid < j_uid;
+  } catch (std::exception &e) {
+    std::cerr << " sort_recv_date: " << t << " or " << j->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME)
+              << " is not a number" << std::endl;
+    return false;
+  }
 }
 
 bool RmbCommands::sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t = i->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE);
-  long i_uid = std::stol(t, &sz);
-  long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), &sz);
-  return i_uid < j_uid;
+  try {
+    long i_uid = std::stol(t, &sz);
+    long j_uid = std::stol(j->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE), &sz);
+    return i_uid < j_uid;
+  } catch (std::exception &e) {
+    std::cerr << " sort_physical_size: " << t << " or " << j->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE)
+              << " is not a number" << std::endl;
+    return false;
+  }
 }
 
 bool RmbCommands::sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j) {
@@ -273,7 +291,6 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
       std::cout << " error initializing output dir : " << output_dir << std::endl;
       break;
     }
-
     for (std::vector<librmb::RadosMailObject *>::iterator it_mail = it->second->get_mails().begin();
          it_mail != it->second->get_mails().end(); ++it_mail) {
       const std::string oid = (*it_mail)->get_oid();
