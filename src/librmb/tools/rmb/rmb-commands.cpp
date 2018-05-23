@@ -32,10 +32,9 @@ RmbCommands::RmbCommands(librmb::RadosStorage *storage_, librmb::RadosCluster *c
 }
 
 RmbCommands::~RmbCommands() {
-  // TODO Auto-generated destructor stub
 }
 
-// TODO:: currently untestable with  mocks.
+// TODO:: currently untestable with mocks.
 int RmbCommands::lspools() {
   librmb::RadosClusterImpl cluster;
 
@@ -348,7 +347,6 @@ RadosStorageMetadataModule *RmbCommands::init_metadata_storage_module(librmb::Ra
   }
 
   *uid = (*opts)["namespace"] + cfg.get_user_suffix();
-  std::cout << "uidl: " << *uid << std::endl;
   std::string ns;
   if (mgr.lookup_key(*uid, &ns)) {
     storage->set_namespace(ns);

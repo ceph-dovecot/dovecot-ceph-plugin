@@ -41,7 +41,12 @@ class Predicate {
       time_t query_date = 0;
       convert_str_to_time_t(this->value, &query_date);
 
-      uint64_t val2 = std::stol(_p_value);
+      uint64_t val2 = -1;
+      try {
+        val2 = std::stol(_p_value);
+      } catch (std::exception &e) {
+        std::cerr << "eval: search criteria: RBOX_METADATA_RECEIVED_TIME or RBOX_METADATA_OLDV1_SAVE_TIME '" << _p_value << "' is not a number " << std::endl;
+      }
       time_t obj_date = static_cast<time_t>(val2);
 
       double diff = difftime(obj_date, query_date);
@@ -57,8 +62,14 @@ class Predicate {
       return true;
     } else if (rbox_key == RBOX_METADATA_VIRTUAL_SIZE || rbox_key == RBOX_METADATA_PHYSICAL_SIZE ||
                rbox_key == RBOX_METADATA_MAIL_UID) {
-      uint64_t val = std::stol(_p_value);
-      uint64_t val2 = std::stol(this->value);
+      uint64_t val = -1;
+      uint64_t val2 = -1;
+      try {
+        val = std::stol(_p_value);
+        val2 = std::stol(this->value);
+      } catch (std::exception &e) {
+        std::cerr << "eval: search criteria: RBOX_METADATA_VIRTUAL_SIZE or RBOX_METADATA_PHYSICAL_SIZE or RBOX_METADATA_MAIL_UID: _p_value " << _p_value << " or " << this->value << " is not a number" << std::endl;
+      }
 
       if (this->op.compare("=") == 0) {
         // numeric

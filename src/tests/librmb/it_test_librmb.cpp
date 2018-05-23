@@ -1005,7 +1005,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
-  std::cout << " wait ok " << std::endl;
+
   std::vector<librmb::RadosMailObject *> mail_objects;
   std::string sort_string = "uid";
 
@@ -1146,12 +1146,12 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
-  std::cout << " wait ok " << std::endl;
+
   std::vector<librmb::RadosMailObject *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
-  // there needs to be one mail
+  // no mail
   EXPECT_EQ(0, mail_objects.size());
 
   storage.delete_mail(&obj2);
