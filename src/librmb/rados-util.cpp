@@ -56,6 +56,10 @@ bool RadosUtils::is_date_attribute(const rbox_metadata_key &key) {
 
 int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   char buffer[256];
+  if (t == -1) {
+    *ret_val = "invalid date";
+    return -1;
+  }
   struct tm timeinfo;
   localtime_r(&t, &timeinfo);
   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
@@ -146,6 +150,63 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
+std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata) {
+  string str_key(1, static_cast<char>(key));
+  return get_metadata(str_key, metadata);
+}
+
+std::string RadosUtils::get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata) {
+  std::string value;
+  if (metadata->find(key) != metadata->end()) {
+    value = (*metadata)[key].to_str();
+  }
+  return value;
+}
+
+bool RadosUtils::is_numeric(std::string &text) {
+  if (text.empty()) {
+    return false;
+  }
+  return text.find_first_not_of("0123456789") == std::string::npos;
+}
+bool RadosUtils::is_numeric_optional(std::string &text) {
+  if (text.empty()) {
+    return true;
+  }
+  return text.find_first_not_of("0123456789") == std::string::npos;
+}
+
+bool RadosUtils::validate_metadata(map<string, ceph::bufferlist>* metadata) {
+  string uid = get_metadata(RBOX_METADATA_MAIL_UID, metadata);
+  string recv_time_str = get_metadata(RBOX_METADATA_RECEIVED_TIME, metadata);
+  string p_size = get_metadata(RBOX_METADATA_PHYSICAL_SIZE, metadata);
+  string v_size = get_metadata(RBOX_METADATA_VIRTUAL_SIZE, metadata);
+
+  string rbox_version = get_metadata(RBOX_METADATA_VERSION, metadata);
+  string mailbox_guid = get_metadata(RBOX_METADATA_MAILBOX_GUID, metadata);
+  string mail_guid = get_metadata(RBOX_METADATA_GUID, metadata);
+  string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX, metadata);
+
+  string flags = get_metadata(RBOX_METADATA_OLDV1_FLAGS, metadata);
+  string pvt_flags = get_metadata(RBOX_METADATA_PVT_FLAGS, metadata);
+  string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE, metadata);
+
+  int test = 0;
+  test += is_numeric(uid) ? 0 : 1;
+  test += is_numeric(recv_time_str) ? 0 : 1;
+  test += is_numeric(p_size) ? 0 : 1;
+  test += is_numeric(v_size) ? 0 : 1;
+
+  test += is_numeric_optional(flags) ? 0 : 1;
+  test += is_numeric_optional(pvt_flags) ? 0 : 1;
+
+  test += rbox_version.empty() ? 1 : 0;
+  test += mailbox_guid.empty() ? 1 : 0;
+  test += mail_guid.empty() ? 1 : 0;
+  return test == 0;
+
+
+}
 // assumes that destination is open and initialized with uses namespace
 int RadosUtils::move_to_alt(std::string &oid, RadosStorage *primary, RadosStorage *alt_storage,
                             RadosMetadataStorage *metadata, bool inverse) {

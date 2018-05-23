@@ -19,6 +19,12 @@
 #include "../../librmb/rados-storage-impl.h"
 #include "../../librmb/tools/rmb/ls_cmd_parser.h"
 #include "../../librmb/tools/rmb/mailbox_tools.h"
+#include "../../librmb/tools/rmb/rmb-commands.h"
+#include "mock_test.h"
+#include "../../librmb/rados-types.h"
+using ::testing::Return;
+using ::testing::_;
+using ::testing::ReturnRef;
 
 TEST(rmb, test_cmd_parser) {
   std::string key = "M";
@@ -118,7 +124,213 @@ TEST(rmb1, path_tests) {
   librmb::MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
+TEST(rmb1, rmb_commands_no_objects_found) {
+  librmbtest::RadosStorageMock storage_mock;
+  librmbtest::RadosClusterMock cluster_mock;
+  librmbtest::RadosStorageMetadataMock ms_module_mock;
 
+  std::map<std::string, std::string> opts;
+  librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
+  std::vector<librmb::RadosMailObject *> mails;
+  std::string search_string = "uid";
+  const librados::NObjectIterator iter = librados::NObjectIterator::__EndObjectIterator;
+  librados::IoCtx test_ioctx;
+
+  EXPECT_CALL(storage_mock, find_mails(nullptr)).WillRepeatedly(Return(iter));
+  EXPECT_CALL(storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
+  EXPECT_CALL(storage_mock, stat_mail(_, _, _)).WillRepeatedly(Return(0));
+  int ret = rmb_cmd.load_objects(&ms_module_mock, mails, search_string);
+  EXPECT_EQ(ret, 0);
+}
+TEST(rmb1, rmb_command_filter_result) {
+  librmbtest::RadosStorageMock storage_mock;
+  librmbtest::RadosClusterMock cluster_mock;
+  std::map<std::string, std::string> opts;
+  opts["ls"] = "-";
+  librmb::CmdLineParser parser(opts["ls"]);
+  librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
+  std::vector<librmb::RadosMailObject *> mails;
+  librmb::RadosMailObject obj1;
+  obj1.set_oid("oid_1");
+  obj1.set_mail_size(200);
+  obj1.set_rados_save_date(time(NULL));
+  {
+    std::string key = "M";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "I";
+    std::string val = "v0.1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "G";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "R";
+    std::string val = "1234567";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "S";
+    std::string val = "1234561117";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "P";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "O";
+    std::string val = "0";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "Z";
+    std::string val = "200";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "V";
+    std::string val = "250";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "U";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "A";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "F";
+    std::string val = "01";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "B";
+    std::string val = "DRAFTS";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  mails.push_back(&obj1);
+
+  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false));
+}
+
+TEST(rmb1, rmb_command_filter_result2) {
+  librmbtest::RadosStorageMock storage_mock;
+  librmbtest::RadosClusterMock cluster_mock;
+  std::map<std::string, std::string> opts;
+  opts["ls"] = "-";
+  librmb::CmdLineParser parser(opts["ls"]);
+  librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
+  std::vector<librmb::RadosMailObject *> mails;
+  librmb::RadosMailObject obj1;
+  obj1.set_oid("oid_1");
+  obj1.set_mail_size(200);
+  obj1.set_rados_save_date(time(NULL));
+  {
+    std::string key = "M";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "I";
+    std::string val = "v0.1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "G";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "R";
+    std::string val = "aafsadfasdfasdf";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "S";
+    std::string val = "adfhasdfhsfdkahsdf";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "P";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "O";
+    std::string val = "0";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "Z";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "V";
+    std::string val = "250";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "U";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "A";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "F";
+    std::string val = "01";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  {
+    std::string key = "B";
+    std::string val = "DRAFTS";
+    librmb::RadosMetadata m(key, val);
+    obj1.add_metadata(m);
+  }
+  mails.push_back(&obj1);
+
+  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false));
+}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

@@ -390,8 +390,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     } else if (physical_size == 0) {
-      i_warning("trying to read a mail (size = 0) which is currently copied, moved or stored, returning with error. ");
+      i_error(
+          "trying to read a mail (size = 0) which is currently copied, moved or stored, returning with error. "
+          "expunging mail");
       FUNC_END_RET("ret == 0");
+      rbox_mail_set_expunged(rmail);
       return -1;
     } else if (physical_size == INT_MAX) {
       i_error("trying to read a mail with INT_MAX size. ");

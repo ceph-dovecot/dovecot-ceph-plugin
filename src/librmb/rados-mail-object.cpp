@@ -52,9 +52,12 @@ std::string RadosMailObject::to_string(const string &padding) {
   string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE);
 
   time_t ts = -1;
-
   if (!recv_time_str.empty()) {
-    ts = static_cast<time_t>(stol(recv_time_str));
+    try {
+      ts = static_cast<time_t>(stol(recv_time_str));
+    } catch (std::exception &ex) {
+      ts = -1;
+    }
   }
   ostringstream ss;
 
@@ -63,13 +66,22 @@ std::string RadosMailObject::to_string(const string &padding) {
   ss << padding << "        "
      << "oid = " << oid << endl;
   string recv_time;
-  RadosUtils::convert_time_t_to_str(ts, &recv_time);
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)=" << recv_time
-     << "\n";
+  if (RadosUtils::convert_time_t_to_str(ts, &recv_time) >= 0) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)=" << recv_time
+       << "\n";
+  } else {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)= INVALID DATE : '"
+       << recv_time_str << "'"
+       << "\n";
+  }
   string save_time;
-  RadosUtils::convert_time_t_to_str(save_date_rados, &save_time);
-  ss << padding << "        "
-     << "save_time=" << save_time << "\n";
+  if (RadosUtils::convert_time_t_to_str(save_date_rados, &save_time) >= 0) {
+    ss << padding << "        "
+       << "save_time=" << save_time << "\n";
+  } else {
+    ss << padding << "        "
+       << "save_time= INVALID DATE '" << save_date_rados << "'\n";
+  }
   ss << padding << "        " << static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE) << "(phy_size)=" << p_size << " "
      << static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE) << "(v_size) = " << v_size << " stat_size=" << object_size
      << endl;

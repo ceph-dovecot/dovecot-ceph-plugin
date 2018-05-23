@@ -265,7 +265,7 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     src_io_ctx.dup(dest_io_ctx);
     src_io_ctx.set_namespace(src_ns);
     dest_io_ctx.set_namespace(dest_ns);
-    write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+    write_op.copy_from(src_oid, src_io_ctx, 0);
 
     } else {
       src_io_ctx = dest_io_ctx;
@@ -317,7 +317,7 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   } else {
     src_io_ctx = dest_io_ctx;
   }
-  write_op.copy_from(src_oid, src_io_ctx, src_io_ctx.get_last_version());
+  write_op.copy_from(src_oid, src_io_ctx, 0);
 
   // because we create a copy, save date needs to be updated
   // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
@@ -346,11 +346,13 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
 bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail,
-                                 bool &save_async) {
+                                 bool save_async) {
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
-
+  if (write_op_xattr == nullptr || mail == nullptr) {
+    return false;
+  }
   write_op_xattr->mtime(mail->get_rados_save_date());
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);
