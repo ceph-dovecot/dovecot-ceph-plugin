@@ -21,9 +21,7 @@
 #include "../../librmb/rados-metadata-storage-ima.h"
 #include "../../librmb/rados-dovecot-ceph-cfg-impl.h"
 #include "../../librmb/rados-util.h"
-
-//#include "common/Formatter.h"
-//#include "common/ceph_json.h"
+#include "../../librmb/tools/rmb/rmb-commands.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -831,6 +829,57 @@ TEST(librmb, increment_sub_from_existing_key) {
   cluster.deinit();
 }
 
+TEST(librmb, rmb_load_objects) {
+  librados::IoCtx io_ctx;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+
+  EXPECT_EQ(0, open_connection);
+  librmb::RadosCephConfig ceph_cfg(&storage.get_io_ctx());
+  EXPECT_EQ(0, ceph_cfg.save_cfg());
+
+  std::map<std::string, std::string> opts;
+  opts["pool"] = pool_name;
+  opts["namespace"] = ns;
+  opts["print_cfg"] = "true";
+  opts["cfg_obj"] = ceph_cfg.get_cfg_object_name();
+
+  librmb::RmbCommands rmb_commands(&storage, &cluster, &opts);
+
+  /* update config
+  rmb_commands.configuration(false, ceph_cfg);
+  */
+  // load metadata info
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_commands.init_metadata_storage_module(ceph_cfg, &uid);
+  EXPECT_NE(nullptr, ms);
+
+  storage.set_namespace(ns);
+  std::string key = "my-key";
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject");
+
+  ceph::bufferlist mail_buf;
+  storage.save_mail(obj2.get_oid(), mail_buf);
+
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::string sort_string = "uid";
+
+  EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
+  EXPECT_EQ(0, mail_objects.size());
+
+  storage.delete_mail(&obj2);
+  storage.delete_mail(ceph_cfg.get_cfg_object_name());
+  delete ms;
+  // tear down
+  cluster.deinit();
+}
 
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

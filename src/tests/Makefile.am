@@ -60,13 +60,13 @@ test_storage_mock_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs)
 
 TESTS += test_librmb_utils
 test_librmb_utils_SOURCES = librmb/test_librmb_utils.cpp
-test_librmb_utils_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
+test_librmb_utils_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
     
 if BUILD_INTEGRATION_TESTS
 
 TESTS += it_test_librmb
 it_test_librmb_SOURCES = librmb/it_test_librmb.cpp 
-it_test_librmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
+it_test_librmb_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/rmb-commands.o $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
 
 TESTS += it_test_dict_rados
 it_test_dict_rados_SOURCES = dict-rados/it_test_dict_rados.cpp dict-rados/TestCase.cpp dict-rados/TestCase.h  

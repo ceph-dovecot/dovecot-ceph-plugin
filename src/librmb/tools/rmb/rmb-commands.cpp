@@ -15,6 +15,11 @@
 #include "../../rados-cluster-impl.h"
 #include "../../rados-storage-impl.h"
 #include "rados-util.h"
+#include "rados-dovecot-config.h"
+#include "rados-dovecot-ceph-cfg-impl.h"
+#include "rados-namespace-manager.h"
+#include "rados-metadata-storage-ima.h"
+#include "rados-metadata-storage-default.h"
 
 namespace librmb {
 
@@ -68,8 +73,7 @@ int RmbCommands::delete_mail(bool confirmed) {
   return ret;
 }
 
-int RmbCommands::rename_user(librmb::RadosDovecotCephCfg *cfg, bool confirmed,
-                             const std::string &uid) {
+int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid) {
   if (!cfg->is_user_mapping()) {
     std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
               << std::endl;
@@ -117,17 +121,11 @@ int RmbCommands::rename_user(librmb::RadosDovecotCephCfg *cfg, bool confirmed,
     return ret;
 }
 
-int RmbCommands::configuration(bool create_config, const std::string &obj_, bool confirmed,
-                               librmb::RadosCephConfig &ceph_cfg) {
+int RmbCommands::configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg) {
   bool has_update = (*opts).find("update") != (*opts).end();
   bool has_ls = (*opts).find("print_cfg") != (*opts).end();
   if (has_update && has_ls) {
     std::cerr << "create and ls is not supported, use separately" << std::endl;
-    return -1;
-  }
-
-  if (create_config) {
-    std::cout << "Error: there already exists a configuration " << obj_ << std::endl;
     return -1;
   }
 
@@ -216,24 +214,28 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     if (ret != 0 || object_size <= 0) {
       std::cout << " object '" << oid << "' is not a valid mail object, size = 0" << std::endl;
       ++iter;
+      delete mail;
       continue;
     }
     mail->set_oid(oid);
     if (ms->load_metadata(mail) < 0) {
       std::cout << " loading metadata of object '" << oid << "' faild " << std::endl;
       ++iter;
+      delete mail;
       continue;
     }
 
     if (mail->get_metadata()->size() == 0) {
       std::cout << " pool object " << oid << " is not a mail object" << std::endl;
       ++iter;
+      delete mail;
       continue;
     }
 
     if (!librmb::RadosUtils::validate_metadata(mail->get_metadata())) {
       std::cout << "object : " << oid << " metadata is not valid " << std::endl;
       ++iter;
+      delete mail;
       continue;
     }
 
@@ -321,6 +323,45 @@ int RmbCommands::query_mail_storage(std::vector<librmb::RadosMailObject *> *mail
     delete it.second;
   }
   return ret;
+}
+
+RadosStorageMetadataModule *RmbCommands::init_metadata_storage_module(librmb::RadosCephConfig &ceph_cfg,
+                                                                      std::string *uid) {
+  librmb::RadosConfig dovecot_cfg;
+  RadosStorageMetadataModule *ms;
+  dovecot_cfg.set_config_valid(true);
+  ceph_cfg.set_config_valid(true);
+  librmb::RadosDovecotCephCfgImpl cfg(dovecot_cfg, ceph_cfg);
+  librmb::RadosNamespaceManager mgr(&cfg);
+
+  if (uid == nullptr) {
+    std::cerr << "please set valid uid ptr" << std::endl;
+    return nullptr;
   }
+
+  // decide metadata storage!
+  std::string storage_module_name = ceph_cfg.get_metadata_storage_module();
+  if (storage_module_name.compare(librmb::RadosMetadataStorageIma::module_name) == 0) {
+    ms = new librmb::RadosMetadataStorageIma(&storage->get_io_ctx(), &cfg);
+  } else {
+    ms = new librmb::RadosMetadataStorageDefault(&storage->get_io_ctx());
+  }
+
+  *uid = (*opts)["namespace"] + cfg.get_user_suffix();
+  std::cout << "uidl: " << *uid << std::endl;
+  std::string ns;
+  if (mgr.lookup_key(*uid, &ns)) {
+    storage->set_namespace(ns);
+  } else {
+    // use
+    if (!mgr.lookup_key(*uid, &ns)) {
+      std::cout << " error unable to determine namespace" << std::endl;
+      delete ms;
+      return nullptr;
+    }
+    storage->set_namespace(ns);
+  }
+  return ms;
+}
 
 } /* namespace librmb */

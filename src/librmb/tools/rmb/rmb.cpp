@@ -350,7 +350,7 @@ int main(int argc, const char **argv) {
   // connection to rados is established!
   rmb_commands = new librmb::RmbCommands(&storage, &cluster, &opts);
   if (is_config_option) {
-    if (rmb_commands->configuration(create_config, config_obj, confirmed, ceph_cfg) < 0) {
+    if (rmb_commands->configuration(confirmed, ceph_cfg) < 0) {
       std::cerr << "error processing config option" << std::endl;
     }
     delete rmb_commands;
@@ -359,39 +359,19 @@ int main(int argc, const char **argv) {
     exit(0);
   }
 
-  // load metadata configuration
-  librmb::RadosConfig dovecot_cfg;
-  dovecot_cfg.set_config_valid(true);
-  librmb::RadosDovecotCephCfgImpl cfg(dovecot_cfg, ceph_cfg);
-  librmb::RadosNamespaceManager mgr(&cfg);
-
-  librmb::RadosStorageMetadataModule *ms;
-  // decide metadata storage!
-  std::string storage_module_name = ceph_cfg.get_metadata_storage_module();
-  if (storage_module_name.compare(librmb::RadosMetadataStorageIma::module_name) == 0) {
-    ms = new librmb::RadosMetadataStorageIma(&storage.get_io_ctx(), &cfg);
-  } else {
-    ms = new librmb::RadosMetadataStorageDefault(&storage.get_io_ctx());
-  }
-
   // namespace (user) needs to be set
   if (opts.find("namespace") == opts.end()) {
     usage_exit();
   }
 
-  std::string uid(opts["namespace"] + cfg.get_user_suffix());
-  std::string ns;
-  if (mgr.lookup_key(uid, &ns)) {
-    storage.set_namespace(ns);
-  } else {
-    // use
-    if (!mgr.lookup_key(uid, &ns)) {
-      std::cout << " error unable to determine namespace" << std::endl;
-      cluster.deinit();
-      delete ms;
-      return -1;
-    }
-    storage.set_namespace(ns);
+  std::string uid;
+  // load metadata configuration
+  librmb::RadosStorageMetadataModule *ms = rmb_commands->init_metadata_storage_module(ceph_cfg, &uid);
+  if (ms == nullptr) {
+    /// error exit!
+    std::cerr << " Error initializing metadata module " << std::endl;
+    delete rmb_commands;
+    release_exit(&mail_objects, &cluster, false);
   }
 
   if (delete_mail_option) {
@@ -399,8 +379,9 @@ int main(int argc, const char **argv) {
       std::cerr << "error deleting mail" << std::endl;
       cluster.deinit();
     }
+
   } else if (rename_user_option) {
-    if (rmb_commands->rename_user(&cfg, confirmed, uid) < 0) {
+    if (rmb_commands->rename_user(&ceph_cfg, confirmed, uid) < 0) {
       std::cerr << "error renaming user" << std::endl;
     }
   } else if (opts.find("ls") != opts.end()) {

@@ -27,6 +27,8 @@
 #include "rados-ceph-config.h"
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
+#include "rados-metadata-storage-module.h"
+
 namespace librmb {
 
 class RmbCommands {
@@ -37,9 +39,9 @@ class RmbCommands {
   static int lspools();
   int delete_mail(bool confirmed);
 
-  int rename_user(librmb::RadosDovecotCephCfg *cfg, bool confirmed, const std::string &uid);
+  int rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid);
 
-  int configuration(bool create_config, const std::string &obj_, bool confirmed, librmb::RadosCephConfig &ceph_cfg);
+  int configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
   int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
                    std::string &sort_string);
@@ -47,7 +49,7 @@ class RmbCommands {
   int print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir, bool download);
   int query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
                          bool download);
-
+  librmb::RadosStorageMetadataModule *init_metadata_storage_module(librmb::RadosCephConfig &ceph_cfg, std::string *uid);
   static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
   static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
   static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
