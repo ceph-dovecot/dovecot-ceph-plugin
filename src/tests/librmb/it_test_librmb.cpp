@@ -881,6 +881,286 @@ TEST(librmb, rmb_load_objects) {
   cluster.deinit();
 }
 
+TEST(librmb, rmb_load_objects_valid_metadata) {
+  librados::IoCtx io_ctx;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+
+  EXPECT_EQ(0, open_connection);
+  librmb::RadosCephConfig ceph_cfg(&storage.get_io_ctx());
+  EXPECT_EQ(0, ceph_cfg.save_cfg());
+
+  std::map<std::string, std::string> opts;
+  opts["pool"] = pool_name;
+  opts["namespace"] = ns;
+  opts["print_cfg"] = "true";
+  opts["cfg_obj"] = ceph_cfg.get_cfg_object_name();
+
+  librmb::RmbCommands rmb_commands(&storage, &cluster, &opts);
+
+  /* update config
+  rmb_commands.configuration(false, ceph_cfg);
+  */
+  // load metadata info
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_commands.init_metadata_storage_module(ceph_cfg, &uid);
+  EXPECT_NE(nullptr, ms);
+
+  storage.set_namespace(ns);
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject_valid");
+  obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
+  obj2.set_mail_size(obj2.get_mail_buffer()->length());
+  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
+  {
+    std::string key = "M";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "I";
+    std::string val = "v0.1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "G";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "R";
+    std::string val = "1234567";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "S";
+    std::string val = "1234561117";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "P";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "O";
+    std::string val = "0";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "Z";
+    std::string val = "200";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "V";
+    std::string val = "250";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "U";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "A";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "F";
+    std::string val = "01";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "B";
+    std::string val = "DRAFTS";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  // convert metadata to xattr. and add to write_op
+  ms->save_metadata(write_op, &obj2);
+  // save complete mail.
+  EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
+  std::vector<librmb::RadosMailObject *> list;
+  list.push_back(&obj2);
+
+  EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
+  std::cout << " wait ok " << std::endl;
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::string sort_string = "uid";
+
+  EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
+  // there needs to be one mail
+  EXPECT_EQ(1, mail_objects.size());
+
+  storage.delete_mail(&obj2);
+  storage.delete_mail(ceph_cfg.get_cfg_object_name());
+  delete ms;
+  delete mail_objects[0];
+  mail_objects.clear();
+  // tear down
+  cluster.deinit();
+}
+
+TEST(librmb, rmb_load_objects_invalid_metadata) {
+  librados::IoCtx io_ctx;
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+
+  EXPECT_EQ(0, open_connection);
+  librmb::RadosCephConfig ceph_cfg(&storage.get_io_ctx());
+  EXPECT_EQ(0, ceph_cfg.save_cfg());
+
+  std::map<std::string, std::string> opts;
+  opts["pool"] = pool_name;
+  opts["namespace"] = ns;
+  opts["print_cfg"] = "true";
+  opts["cfg_obj"] = ceph_cfg.get_cfg_object_name();
+
+  librmb::RmbCommands rmb_commands(&storage, &cluster, &opts);
+
+  /* update config
+  rmb_commands.configuration(false, ceph_cfg);
+  */
+  // load metadata info
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_commands.init_metadata_storage_module(ceph_cfg, &uid);
+  EXPECT_NE(nullptr, ms);
+
+  storage.set_namespace(ns);
+
+  librmb::RadosMailObject obj2;
+  obj2.set_oid("myobject_invalid");
+  obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
+  obj2.set_mail_size(obj2.get_mail_buffer()->length());
+  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
+  {
+    std::string key = "M";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "I";
+    std::string val = "v0.1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "G";
+    std::string val = "8eed840764b05359f12718004d2485ee";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "R";
+    std::string val = "abnahsijsksisis";  // <-- This should be numeric
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "S";
+    std::string val = "1234561117";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "P";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "O";
+    std::string val = "0";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "Z";
+    std::string val = "200";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "V";
+    std::string val = "250";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "U";
+    std::string val = "1";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "A";
+    std::string val = "";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "F";
+    std::string val = "01";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  {
+    std::string key = "B";
+    std::string val = "DRAFTS";
+    librmb::RadosMetadata m(key, val);
+    obj2.add_metadata(m);
+  }
+  // convert metadata to xattr. and add to write_op
+  ms->save_metadata(write_op, &obj2);
+  // save complete mail.
+  EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
+  std::vector<librmb::RadosMailObject *> list;
+  list.push_back(&obj2);
+
+  EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
+  std::cout << " wait ok " << std::endl;
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::string sort_string = "uid";
+
+  EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
+  // there needs to be one mail
+  EXPECT_EQ(0, mail_objects.size());
+
+  storage.delete_mail(&obj2);
+  storage.delete_mail(ceph_cfg.get_cfg_object_name());
+  delete ms;
+  mail_objects.clear();
+  // tear down
+  cluster.deinit();
+}
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

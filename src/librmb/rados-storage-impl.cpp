@@ -346,11 +346,13 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
 bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail,
-                                 bool &save_async) {
+                                 bool save_async) {
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
-
+  if (write_op_xattr == nullptr || mail == nullptr) {
+    return false;
+  }
   write_op_xattr->mtime(mail->get_rados_save_date());
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);

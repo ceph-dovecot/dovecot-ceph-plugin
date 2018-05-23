@@ -74,7 +74,7 @@ class RadosStorage {
                     std::list<RadosMetadata> &to_update) = 0;
   /* save the mail */
   virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
-  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool &save_async) = 0;
+  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool save_async) = 0;
   /* create a new RadosMailObject */
   virtual librmb::RadosMailObject *alloc_mail_object() = 0;
   /* free the Rados Mail Object */

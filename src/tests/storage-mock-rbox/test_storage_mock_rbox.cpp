@@ -189,7 +189,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock, save_mail(_, _, Matcher<bool &>(_))).Times(1).WillOnce(Return(false));
+  EXPECT_CALL(*storage_mock, save_mail(_, _, Matcher<bool>(_))).Times(1).WillOnce(Return(false));
   // EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
   // EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
 
