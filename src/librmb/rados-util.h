@@ -32,6 +32,7 @@ class RadosUtils {
 
   static bool convert_str_to_time_t(const std::string &date, time_t *val);
   static bool is_numeric(const std::string &s);
+  static bool is_numeric_optional(std::string &text);
   static bool is_date_attribute(const rbox_metadata_key &key);
 
   static bool convert_string_to_date(const std::string &date_string, std::string *date);

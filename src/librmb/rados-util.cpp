@@ -162,7 +162,14 @@ std::string RadosUtils::get_metadata(const std::string &key, std::map<std::strin
   }
   return value;
 }
+
 bool RadosUtils::is_numeric(std::string &text) {
+  if (text.empty()) {
+    return false;
+  }
+  return text.find_first_not_of("0123456789") == std::string::npos;
+}
+bool RadosUtils::is_numeric_optional(std::string &text) {
   if (text.empty()) {
     return true;
   }
@@ -189,8 +196,9 @@ bool RadosUtils::validate_metadata(map<string, ceph::bufferlist>* metadata) {
   test += is_numeric(recv_time_str) ? 0 : 1;
   test += is_numeric(p_size) ? 0 : 1;
   test += is_numeric(v_size) ? 0 : 1;
-  test += is_numeric(flags) ? 0 : 1;
-  test += is_numeric(pvt_flags) ? 0 : 1;
+
+  test += is_numeric_optional(flags) ? 0 : 1;
+  test += is_numeric_optional(pvt_flags) ? 0 : 1;
 
   test += rbox_version.empty() ? 1 : 0;
   test += mailbox_guid.empty() ? 1 : 0;
