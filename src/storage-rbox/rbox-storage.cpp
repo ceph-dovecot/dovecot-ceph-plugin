@@ -336,7 +336,7 @@ int read_plugin_configuration(struct mailbox *box) {
 
   if (!storage->config->is_config_valid()) {
     std::map<std::string, std::string> *map = storage->config->get_config();
-    for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); it++) {
+    for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); ++it) {
       std::string setting = it->first;
       storage->config->update_metadata(setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
     }

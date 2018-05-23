@@ -93,7 +93,6 @@ static int rbox_list_is_maildir_mailbox(struct mailbox_list *list, const char *d
       *flags_r |= MAILBOX_CHILDREN;
   }
   *flags_r |= MAILBOX_SELECT;
-  return 1;
   FUNC_END();
   return 1;
 }
@@ -251,7 +250,6 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
       else if (st.st_nlink > 2)
         *flags_r |= MAILBOX_CHILDREN;
     }
-    return 1;
   FUNC_END();
   return 1;
 }
