@@ -47,7 +47,6 @@ class RadosConfig {
   }
   void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
 
-
  private:
   bool string_contains_key(const std::string &str, enum rbox_metadata_key key);
 
@@ -60,6 +59,7 @@ class RadosConfig {
   std::string rados_username;
   std::string prefix_keyword;
   std::string bugfix_cephfs_posix_hardlinks;
+  std::string save_log;
   bool is_valid;
 };
 
