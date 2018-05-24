@@ -53,10 +53,10 @@ class RadosStorageImpl : public RadosStorage {
   bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list);
 
   int read_mail(const std::string &oid, librados::bufferlist *buffer);
-  bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-            std::list<RadosMetadata> &to_update, bool delete_source);
-  bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-            std::list<RadosMetadata> &to_update);
+  int move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+           std::list<RadosMetadata> &to_update, bool delete_source);
+  int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+           std::list<RadosMetadata> &to_update);
 
   int save_mail(const std::string &oid, librados::bufferlist &buffer);
   bool save_mail(RadosMailObject *mail, bool &save_async);

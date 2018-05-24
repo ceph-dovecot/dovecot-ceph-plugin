@@ -67,11 +67,11 @@ class RadosStorage {
   /* read the complete mail object into bufferlist */
   virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
   /* move a object from the given namespace to the other, updates the metadata given in to_update list */
-  virtual bool move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                    std::list<RadosMetadata> &to_update, bool delete_source) = 0;
+  virtual int move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                   std::list<RadosMetadata> &to_update, bool delete_source) = 0;
   /* copy a object from the given namespace to the other, updates the metadata given in to_update list */
-  virtual bool copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                    std::list<RadosMetadata> &to_update) = 0;
+  virtual int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                   std::list<RadosMetadata> &to_update) = 0;
   /* save the mail */
   virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
   virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool save_async) = 0;

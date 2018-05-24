@@ -56,7 +56,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   }
   guid_128_t guid;
   if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
-    i_error("guid_128 xattr_guid string %s", xattr_guid.c_str());
+    i_error("guid_128 xattr_guid string '%s'", xattr_guid.c_str());
 
     return -1;
   }
@@ -105,6 +105,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     if (!librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {
       i_error("metadata for object : %s is not valid, skipping object ", mail_object.get_oid().c_str());
       ++iter;
+      continue;
     }
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, alt_storage);

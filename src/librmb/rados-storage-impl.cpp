@@ -246,10 +246,10 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
 
 
 // assumes that destination io ctx is current io_ctx;
-bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                            std::list<RadosMetadata> &to_update, bool delete_source) {
+int RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                           std::list<RadosMetadata> &to_update, bool delete_source) {
   if (!cluster->is_connected() || !io_ctx_created) {
-    return false;
+    return -1;
   }
 
   int ret = 0;
@@ -267,40 +267,46 @@ bool RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::strin
     dest_io_ctx.set_namespace(dest_ns);
     write_op.copy_from(src_oid, src_io_ctx, 0);
 
-    } else {
-      src_io_ctx = dest_io_ctx;
+  } else {
+    src_io_ctx = dest_io_ctx;
+    time_t t;
+    uint64_t size;
+    ret = src_io_ctx.stat(src_oid, &size, &t);
+    if (ret < 0) {
+      return ret;
     }
+  }
 
-    // because we create a copy, save date needs to be updated
-    // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
-    // and restore it in read_metadata function. => save_date of copy/move will be same as source.
-    // write_op.mtime(&ctx->data.save_date);
-    time_t save_time = time(NULL);
-    write_op.mtime(&save_time);
+  // because we create a copy, save date needs to be updated
+  // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
+  // and restore it in read_metadata function. => save_date of copy/move will be same as source.
+  // write_op.mtime(&ctx->data.save_date);
+  time_t save_time = time(NULL);
+  write_op.mtime(&save_time);
 
-    // update metadata
-    for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
-      write_op.setxattr((*it).key.c_str(), (*it).bl);
+  // update metadata
+  for (std::list<RadosMetadata>::iterator it = to_update.begin(); it != to_update.end(); ++it) {
+    write_op.setxattr((*it).key.c_str(), (*it).bl);
+  }
+  ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
+  if (ret >= 0) {
+    completion->wait_for_complete();
+    ret = completion->get_return_value();
+    if (delete_source && strcmp(src_ns, dest_ns) != 0 && ret == 0) {
+      ret = src_io_ctx.remove(src_oid);
     }
-    ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
-    if (ret >= 0) {
-      completion->wait_for_complete();
-      ret = completion->get_return_value();
-      if (delete_source && strcmp(src_ns, dest_ns) != 0 && ret == 0) {
-        ret = src_io_ctx.remove(src_oid);
-      }
     }
     completion->release();
     // reset io_ctx
     dest_io_ctx.set_namespace(dest_ns);
-    return ret == 0;
+    return ret;
 }
 
 // assumes that destination io ctx is current io_ctx;
-bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                            std::list<RadosMetadata> &to_update) {
+int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                           std::list<RadosMetadata> &to_update) {
   if (!cluster->is_connected() || !io_ctx_created) {
-    return false;
+    return -1;
   }
 
   librados::ObjectWriteOperation write_op;
@@ -340,7 +346,7 @@ bool RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::strin
   completion->release();
   // reset io_ctx
   dest_io_ctx.set_namespace(dest_ns);
-  return ret == 0;
+  return ret;
 }
 
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete

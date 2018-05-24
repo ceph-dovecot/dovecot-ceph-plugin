@@ -466,7 +466,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*storage_mock_copy, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
 
   // TODO: EXPECT_CALL(*storage_mock_copy, set_metadata(_, _)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(false));
+  EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(-2));
   EXPECT_CALL(*storage_mock_copy, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
   storage->s = storage_mock_copy;

@@ -55,11 +55,11 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMailObject *> &object_list));
 
   MOCK_METHOD2(read_mail, int(const std::string &oid, librados::bufferlist *buffer));
-  MOCK_METHOD6(move, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                          std::list<RadosMetadata> &to_update, bool delete_source));
+  MOCK_METHOD6(move, int(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                         std::list<RadosMetadata> &to_update, bool delete_source));
 
-  MOCK_METHOD5(copy, bool(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
-                          std::list<RadosMetadata> &to_update));
+  MOCK_METHOD5(copy, int(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
+                         std::list<RadosMetadata> &to_update));
   MOCK_METHOD2(save_mail, int(const std::string &oid, librados::bufferlist &bufferlist));
   MOCK_METHOD2(save_mail, bool(RadosMailObject *mail, bool &save_async));
   MOCK_METHOD3(save_mail, bool(librados::ObjectWriteOperation *write_op, RadosMailObject *mail, bool save_async));
