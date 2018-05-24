@@ -200,7 +200,6 @@ bool RadosUtils::validate_metadata(map<string, ceph::bufferlist>* metadata) {
   test += is_numeric_optional(flags) ? 0 : 1;
   test += is_numeric_optional(pvt_flags) ? 0 : 1;
 
-  test += rbox_version.empty() ? 1 : 0;
   test += mailbox_guid.empty() ? 1 : 0;
   test += mail_guid.empty() ? 1 : 0;
   return test == 0;

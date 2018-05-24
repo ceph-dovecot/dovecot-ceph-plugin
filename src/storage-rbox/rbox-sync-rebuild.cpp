@@ -22,6 +22,7 @@ extern "C" {
 #include "rbox-mail.h"
 #include "encoding.h"
 #include "rados-mail-object.h"
+#include "rados-util.h"
 
 using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
@@ -38,17 +39,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   uint32_t seq;
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
   std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
-  // char *xattr_mail_uid = get_xattr_value(attrset, RBOX_METADATA_MAIL_UID);
-  if (xattr_mail_uid.empty()) {
-    i_error("xattr_mail_uid.empty");
-    return -1;
-  }
-
   std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
-  if (xattr_guid.empty()) {
-    i_error("xattr_guid empty");
-    return -1;
-  }
 
   uint32_t uid = stoui32(xattr_mail_uid);
   mail_index_append(ctx->trans, uid, &seq);
@@ -110,15 +101,11 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     } else {
       retx = r_storage->ms->get_storage()->load_metadata(&mail_object);
     }
-    /*std::string uid = mail_object->get_metadata(librmb::RBOX_METADATA_MAIL_UID);
 
-
-    if(std::find(vector.begin(), vector.end(), uid) != vector.end(){
-      uids.put_back(uid);
-    }else{
-      // ups we have a duplicate!!!
+    if (!librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {
+      i_error("metadata for object : %s is not valid, skipping object ", mail_object.get_oid().c_str());
+      ++iter;
     }
-    */
     if (retx >= 0) {
       ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, alt_storage);
       if (ret < 0) {
