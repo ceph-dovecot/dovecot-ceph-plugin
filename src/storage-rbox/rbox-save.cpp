@@ -77,6 +77,26 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   return t->save_ctx;
 }
 
+int setup_mail_object(struct mail_save_context *_ctx) {
+  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+  struct mail_save_data *mdata = &_ctx->data;
+
+  guid_128_generate(r_ctx->mail_oid);
+
+  r_ctx->current_object = r_storage->s->alloc_mail_object();
+  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+
+  if (mdata->guid != NULL) {
+    string str(mdata->guid);
+    librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
+    mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
+  } else {
+    guid_128_generate(r_ctx->mail_guid);
+  }
+  return 0;
+}
+
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   FUNC_START();
   struct mail_save_data *mdata = &_ctx->data;
@@ -104,6 +124,8 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   if (_ctx->data.min_modseq != 0) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
+
+  /*
   guid_128_generate(r_ctx->mail_oid);
 
   r_ctx->current_object = r_storage->s->alloc_mail_object();
@@ -117,6 +139,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   } else {
     guid_128_generate(r_ctx->mail_guid);
   }
+  */
 
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
@@ -125,6 +148,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
 
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
+  r_ctx->objects.push_back(r_ctx->current_object);
 
   FUNC_END();
 }
@@ -153,6 +177,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 #else
   struct rbox_mail *r_src_mail = (struct rbox_mail *)src_mail;
 #endif
+
   guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
 
   r_ctx->current_object = r_storage->s->alloc_mail_object();
@@ -200,7 +225,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
-
+  setup_mail_object(_ctx);
   rbox_add_to_index(_ctx);
 
   mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);

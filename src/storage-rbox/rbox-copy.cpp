@@ -186,8 +186,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     std::string src_oid = rmail->mail_object->get_oid();
 
     if (ctx->moving != TRUE) {
-      rbox_add_to_index(ctx);
-
+      setup_mail_object(ctx);
       std::string dest_oid = r_ctx->current_object->get_oid();
 
       set_mailbox_metadata(ctx, &metadata_update);
@@ -197,6 +196,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
           i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
                   ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
           FUNC_END_RET("ret == -1, rados_storage->copy failed");
+          r_storage->s->free_mail_object(r_ctx->current_object);
+          r_ctx->current_object = nullptr;
           return -1;
         }
       } else {
@@ -204,15 +205,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
           i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s", ns_src.c_str(),
                   ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str());
           FUNC_END_RET("ret == -1, rados_storage->copy failed");
+          r_storage->s->free_mail_object(r_ctx->current_object);
+          r_ctx->current_object = nullptr;
           return -1;
         }
       }
-
+      rbox_add_to_index(ctx);
       i_debug("copy successfully finished: from src %s to oid = %s", src_oid.c_str(), dest_oid.c_str());
     }
     if (ctx->moving) {
-      rbox_move_index(ctx, mail);
-
       std::string dest_oid = src_oid;
 
       set_mailbox_metadata(ctx, &metadata_update);
@@ -239,6 +240,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         }
       }
 
+      rbox_move_index(ctx, mail);
       i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(),
               src_oid.c_str(), ns_dest.c_str());
     }
@@ -294,7 +296,8 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   } else {
     if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {
       if (ctx != NULL) {
-        mailbox_save_cancel(&ctx);
+        //        mailbox_save_cancel(&ctx);
+        index_save_context_free(ctx);
       }
       FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
       return -1;
