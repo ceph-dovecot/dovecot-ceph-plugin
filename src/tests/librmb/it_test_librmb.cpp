@@ -22,6 +22,7 @@
 #include "../../librmb/rados-dovecot-ceph-cfg-impl.h"
 #include "../../librmb/rados-util.h"
 #include "../../librmb/tools/rmb/rmb-commands.h"
+#include "../../librmb/rados-save-log.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -1160,6 +1161,84 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   mail_objects.clear();
   // tear down
   cluster.deinit();
+}
+
+TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
+
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  EXPECT_EQ(0, open_connection);
+  storage.set_namespace(ns);
+
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
+  EXPECT_EQ(true, log_file.close());
+  librados::bufferlist bl;
+  EXPECT_EQ(0, storage.save_mail("abc", bl));
+  cluster.deinit();
+
+  EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin"));
+  std::remove(test_file_name.c_str());
+}
+TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
+  EXPECT_EQ(true, log_file.close());
+
+  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin"));
+  std::remove(test_file_name.c_str());
+}
+TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_file) {
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
+  EXPECT_EQ(true, log_file.close());
+
+  EXPECT_EQ(-1, librmb::RmbCommands::delete_with_save_log("test12.log", "ceph", "client.admin"));
+  std::remove(test_file_name.c_str());
+}
+TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  EXPECT_EQ(0, open_connection);
+  storage.set_namespace(ns);
+
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(
+      librmb::RadosSaveLogEntry("abc", "t1", "2,2,2rmb_tool_tests", "save"));  // -> stop processing (invalid entry)!
+  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
+  EXPECT_EQ(true, log_file.close());
+  librados::bufferlist bl;
+  EXPECT_EQ(0, storage.save_mail("abc", bl));
+  cluster.deinit();
+
+  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph",
+                                                         "client.admin"));  // -> due to invalid entry in object list
+  std::remove(test_file_name.c_str());
 }
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

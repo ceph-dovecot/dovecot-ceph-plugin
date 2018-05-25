@@ -159,6 +159,8 @@ static void usage(std::ostream &out) {
          "   -c    rados cluster name, default: 'ceph'\n"
          "   -u    rados user name, default: 'client.admin' \n"
          "   -D    debug output \n"
+         "   -r    save log with objects to delete => deletes all entries (save,mv,cp) from object store, use with "
+         "care!!!! \n "
          "\n"
          "\nMAIL COMMANDS\n"
          "    ls -    list all mails and mailbox statistic\n"
@@ -232,6 +234,8 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["rados_user"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-D", "--debug", static_cast<char>(NULL))) {
       (*opts)["debug"] = val;
+    } else if (ceph_argparse_witharg(args, &i, &val, "-r", "--remove", static_cast<char>(NULL))) {
+      (*opts)["remove_save_log"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
       (*opts)["ls"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "get", "--get", static_cast<char>(NULL))) {
@@ -285,6 +289,7 @@ int main(int argc, const char **argv) {
   bool is_lspools_cmd = false;
   bool delete_mail_option = false;
   bool rename_user_option = false;
+  std::string remove_save_log;
   std::string config_obj = "obj";
   std::string rados_user = "client.admin";
   std::string rados_cluster;
@@ -307,6 +312,20 @@ int main(int argc, const char **argv) {
   rename_user_option = opts.find("to_rename") != opts.end() ? true : false;
   rados_cluster = (opts.find("clustername") != opts.end()) ? opts["clustername"] : "ceph";
   rados_user = (opts.find("rados_user") != opts.end()) ? opts["rados_user"] : "client.admin";
+  remove_save_log = (opts.find("remove_save_log") != opts.end()) ? opts["remove_save_log"] : "";
+
+  if (!remove_save_log.empty()) {
+    if (confirmed) {
+      return librmb::RmbCommands::delete_with_save_log(remove_save_log, rados_cluster, rados_user);
+    } else {
+      std::cout << "WARNING:" << std::endl;
+      std::cout << "Performing this command, will delete all mail objects from ceph object store which are "
+                   "listed in the log file. This operation is Irreversible!!!!!!! Are you sure you want to do this?"
+                << std::endl;
+      std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
+      return 0;
+    }
+  }
   // set pool to default or given pool name
   std::string pool_name(opts.find("pool") == opts.end() ? "mail_storage" : opts["pool"]);
 

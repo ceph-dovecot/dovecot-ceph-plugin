@@ -14,6 +14,8 @@
 
 #include <fstream>  // std::ofstream
 #include <regex>
+#include <cstdio>
+
 namespace librmb {
 
 class RadosSaveLogEntry {
@@ -39,13 +41,13 @@ class RadosSaveLogEntry {
     std::vector<std::string> csv_items{std::sregex_token_iterator(item.begin(), item.end(), re, 1),
                                        std::sregex_token_iterator()};
     // read obj from stream
-    if (csv_items.size() < 4) {
-      is.setstate(std::ios::failbit);
-    } else {
+    if (csv_items.size() == 5) {
       obj.op = csv_items[0];
       obj.pool = csv_items[1];
       obj.ns = csv_items[2];
       obj.oid = csv_items[3];
+    } else {
+      is.setstate(std::ios::failbit);
     }
     return is;
   }

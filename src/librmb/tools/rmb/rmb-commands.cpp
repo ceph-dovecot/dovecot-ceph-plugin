@@ -11,6 +11,7 @@
 
 #include "rmb-commands.h"
 #include <algorithm>  // std::sort
+#include <cstdio>
 
 #include "../../rados-cluster-impl.h"
 #include "../../rados-storage-impl.h"
@@ -20,6 +21,7 @@
 #include "rados-namespace-manager.h"
 #include "rados-metadata-storage-ima.h"
 #include "rados-metadata-storage-default.h"
+#include "rados-save-log.h"
 
 namespace librmb {
 
@@ -34,6 +36,57 @@ RmbCommands::RmbCommands(librmb::RadosStorage *storage_, librmb::RadosCluster *c
 RmbCommands::~RmbCommands() {
 }
 
+int RmbCommands::delete_with_save_log(const std::string &save_log, const std::string &rados_cluster,
+                                      const std::string &rados_user) {
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+  int count = 0;
+
+  /** check content **/
+  std::ifstream read(save_log);
+  if (!read.is_open()) {
+    std::cerr << " path to log file not valid " << std::endl;
+    return -1;
+  }
+  int line_count = 0;
+  while (true) {
+    line_count++;
+    librmb::RadosSaveLogEntry entry;
+    read >> entry;
+    if (read.eof()) {
+      break;
+    }
+    if (read.fail()) {
+      std::cout << "Objectentry at line '" << line_count << "' is not valid: " << std::endl;
+      break;
+    }
+    std::cout << " size : " << entry.size << std::endl;
+    if (storage.get_pool_name().compare(entry.pool) != 0) {
+      // close connection before open a new one.
+      // TODO: worst case are alternating pool entries e.g. mail_storage ,
+      //       mail_storage_alt.... maybe we should group the entries by pool...
+      storage.close_connection();
+      int open_connection = storage.open_connection(entry.pool, rados_cluster, rados_user);
+      if (open_connection < 0) {
+        std::cerr << " error opening rados connection. Errorcode: " << open_connection << std::endl;
+        cluster.deinit();
+        return -1;
+      }
+    }
+    storage.set_namespace(entry.ns);
+    int ret_delete = storage.delete_mail(entry.oid);
+    if (ret_delete < 0) {
+      std::cout << "Object " << entry.oid << " not deleted: errorcode: " << ret_delete << std::endl;
+    } else {
+      std::cout << "Object " << entry.oid << " successfully deleted" << std::endl;
+      count++;
+    }
+  }
+  read.close();
+  storage.close_connection();
+  cluster.deinit();
+  return count;
+}
 // TODO:: currently untestable with mocks.
 int RmbCommands::lspools() {
   librmb::RadosClusterImpl cluster;
