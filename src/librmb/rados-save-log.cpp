@@ -20,7 +20,7 @@ bool RadosSaveLog::open() {
   }
   return true;
 }
-void RadosSaveLog::append(RadosSaveLogEntry &entry) {
+void RadosSaveLog::append(const RadosSaveLogEntry &entry) {
   if (this->log_active) {
     ofs << entry;
   }

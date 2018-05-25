@@ -13,24 +13,42 @@
 #define SRC_LIBRMB_RADOS_SAVE_LOG_H_
 
 #include <fstream>  // std::ofstream
-
+#include <regex>
 namespace librmb {
 
 class RadosSaveLogEntry {
  public:
-  RadosSaveLogEntry(std::string &oid_, std::string &ns_, std::string &pool_) {
+  RadosSaveLogEntry() {}
+  RadosSaveLogEntry(const std::string &oid_, const std::string &ns_, const std::string &pool_) {
     this->oid = oid_;
     this->ns = ns_;
     this->pool = pool_;
   }
-  ~RadosSaveLogEntry();
+  ~RadosSaveLogEntry(){};
 
-  friend std::ostream &operator<<(std::ofstream &os, const RadosSaveLogEntry &obj) {
+  friend std::ostream &operator<<(std::ostream &os, const RadosSaveLogEntry &obj) {
     os << obj.oid << "," << obj.ns << "," << obj.pool << std::endl;
     return os;
   }
 
- private:
+  friend std::istream &operator>>(std::istream &is, RadosSaveLogEntry &obj) {
+    std::string item;
+    const std::regex re{"((?:[^\\\\,]|\\\\.)*?)(?:,|$)"};
+    std::getline(is, item);
+    std::vector<std::string> csv_items{std::sregex_token_iterator(item.begin(), item.end(), re, 1),
+                                       std::sregex_token_iterator()};
+    // read obj from stream
+    if (csv_items.size() < 3) {
+      is.setstate(std::ios::failbit);
+    } else {
+      obj.oid = csv_items[0];
+      obj.ns = csv_items[1];
+      obj.pool = csv_items[2];
+    }
+    return is;
+  }
+
+ public:
   std::string oid;   // oid
   std::string ns;    // namespace
   std::string pool;  // storage pool
@@ -38,13 +56,13 @@ class RadosSaveLogEntry {
 
 class RadosSaveLog {
  public:
-  RadosSaveLog(std::string &logfile_) {
+  RadosSaveLog(const std::string &logfile_) {
     this->logfile = logfile_;
     log_active = !logfile.empty();
   }
   virtual ~RadosSaveLog(){};
   bool open();
-  void append(RadosSaveLogEntry &entry);
+  void append(const RadosSaveLogEntry &entry);
   bool close();
 
  private:
