@@ -34,6 +34,8 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD3(stat_mail, int(const std::string &oid, uint64_t *psize, time_t *pmtime));
   MOCK_METHOD1(set_namespace, void(const std::string &nspace));
   MOCK_METHOD0(get_namespace, std::string());
+  MOCK_METHOD0(get_pool_name, std::string());
+
   MOCK_METHOD0(get_max_write_size, int());
   MOCK_METHOD0(get_max_write_size_bytes, int());
 
@@ -133,6 +135,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   // dovecot configuration
   MOCK_METHOD0(get_rados_cluster_name, const std::string &());
   MOCK_METHOD0(get_rados_username, const std::string &());
+  MOCK_METHOD0(get_rados_save_log_file, const std::string &());
 
   // dovecot configuration
   MOCK_METHOD1(is_mail_attribute, bool(enum librmb::rbox_metadata_key key));

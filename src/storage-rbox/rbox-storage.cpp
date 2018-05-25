@@ -72,6 +72,10 @@ struct mail_storage *rbox_storage_alloc(void) {
   storage->ns_mgr = new librmb::RadosNamespaceManager(storage->config);
   storage->ms = new librmb::RadosMetadataStorageImpl();
   storage->alt = new librmb::RadosStorageImpl(storage->cluster);
+
+  // logfile is set when 90-plugin.conf param rados_save_cfg is evaluated.
+  storage->save_log = new librmb::RadosSaveLog();
+
   FUNC_END();
   return &storage->storage;
 }
@@ -192,7 +196,13 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
     delete storage->ms;
     storage->ms = nullptr;
   }
-
+  if (storage->save_log != nullptr) {
+    if (!storage->save_log->close()) {
+      i_warning("unable to close save log file");
+    }
+    delete storage->save_log;
+    storage->save_log = nullptr;
+  }
   index_storage_destroy(_storage);
 
   FUNC_END();
@@ -341,6 +351,10 @@ int read_plugin_configuration(struct mailbox *box) {
       storage->config->update_metadata(setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
     }
     storage->config->set_config_valid(true);
+    storage->save_log->set_save_log_file(storage->config->get_rados_save_log_file());
+    if (!storage->save_log->open()) {
+      i_warning("unable to open the rados save log file ", storage->config->get_rados_save_log_file().c_str());
+    }
   }
   FUNC_END();
   return 0;

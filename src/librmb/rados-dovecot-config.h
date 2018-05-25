@@ -31,7 +31,7 @@ class RadosConfig {
   std::map<std::string, std::string> *get_config() { return &config; }
 
   std::string &get_pool_name() { return config[pool_name]; }
-
+  const std::string &get_rados_save_log_file() { return config[save_log]; }
   bool is_config_valid() { return is_valid; }
   void set_config_valid(bool is_valid_) { this->is_valid = is_valid_; }
 

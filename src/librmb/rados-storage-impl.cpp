@@ -201,6 +201,8 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
   if (err == 0) {
     io_ctx_created = true;
   }
+  // set the poolname
+  pool_name = poolname;
   return 0;
 }
 

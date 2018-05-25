@@ -185,34 +185,32 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     std::list<librmb::RadosMetadata> metadata_update;  // metadata which needs to be unique goes here
     std::string src_oid = rmail->mail_object->get_oid();
 
+    librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
+
     if (ctx->moving != TRUE) {
       setup_mail_object(ctx);
       std::string dest_oid = r_ctx->current_object->get_oid();
 
       set_mailbox_metadata(ctx, &metadata_update);
 
-      if (!from_alt_storage) {
-        ret_val = r_storage->s->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update);
-        if (ret_val < 0) {
-          i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d",
-                  ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val);
-          FUNC_END_RET("ret == -1, rados_storage->copy failed");
-          r_storage->s->free_mail_object(r_ctx->current_object);
-          r_ctx->current_object = nullptr;
-          return -1;
-        }
-      } else {
-        ret_val = r_storage->alt->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update);
-        if (ret_val <0) {
-          i_error("copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d",
-                  ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val);
-          FUNC_END_RET("ret == -1, rados_storage->copy failed");
-          r_storage->s->free_mail_object(r_ctx->current_object);
-          r_ctx->current_object = nullptr;
-          return -1;
-        }
+      ret_val = rados_storage->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update);
+      if (ret_val < 0) {
+        i_error(
+            "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
+            "storage_pool: %s",
+            ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
+            rados_storage->get_pool_name().c_str());
+        FUNC_END_RET("ret == -1, rados_storage->copy failed");
+        rados_storage->free_mail_object(r_ctx->current_object);
+        r_ctx->current_object = nullptr;
+        return -1;
       }
+
       rbox_add_to_index(ctx);
+      if (r_storage->save_log->is_open()) {
+        r_storage->save_log->append(
+            librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(), "cpy"));
+      }
       i_debug("copy successfully finished: from src %s to oid = %s", src_oid.c_str(), dest_oid.c_str());
     }
     if (ctx->moving) {
@@ -221,24 +219,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       set_mailbox_metadata(ctx, &metadata_update);
 
       bool delete_source = true;
-      if (!from_alt_storage) {
-        ret_val =
-            r_storage->s->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source);
-        if (ret_val < 0) {
-          i_error("move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d",
-                  ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val);
-          FUNC_END_RET("ret == -1, rados_storage->move failed");
-          return -1;
-        }
-      } else {
-        ret_val =
-            r_storage->alt->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source);
-        if (ret_val < 0) {
-          i_error("move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d",
-                  ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val);
-          FUNC_END_RET("ret == -1, rados_storage->move failed");
-          return -1;
-        }
+      ret_val = rados_storage->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source);
+      if (ret_val < 0) {
+        i_error(
+            "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
+            "pool_name: %s",
+            ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
+            rados_storage->get_pool_name());
+        FUNC_END_RET("ret == -1, rados_storage->move failed");
+        return -1;
       }
 
       // set src as expunged
@@ -247,6 +236,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       array_append(&rmailbox->moved_items, &item, 1);
 
       rbox_move_index(ctx, mail);
+      if (r_storage->save_log->is_open()) {
+        r_storage->save_log->append(librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(), "mv"));
+      }
       i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(),
               src_oid.c_str(), ns_dest.c_str());
     }

@@ -32,6 +32,9 @@ class RadosStorage {
   virtual void set_namespace(const std::string &_nspace) = 0;
   /* get the object namespace */
   virtual std::string get_namespace() = 0;
+  /* get the pool name */
+  virtual std::string get_pool_name() = 0;
+
   /* get the max object size in mb */
   virtual int get_max_write_size() = 0;
   /* get the max object size in bytes */

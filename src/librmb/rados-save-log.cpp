@@ -14,19 +14,19 @@
 namespace librmb {
 
 bool RadosSaveLog::open() {
-  if (this->log_active) {
+  if (this->log_active && !ofs.is_open()) {
     ofs.open(this->logfile, std::ofstream::out | std::ofstream::app);
-    return ofs.is_open();
+    this->log_active = ofs.is_open();
   }
-  return true;
+  return this->log_active;
 }
 void RadosSaveLog::append(const RadosSaveLogEntry &entry) {
-  if (this->log_active) {
+  if (this->log_active && ofs.is_open()) {
     ofs << entry;
   }
 }
 bool RadosSaveLog::close() {
-  if (this->log_active) {
+  if (this->log_active && ofs.is_open()) {
     ofs.close();
     return !ofs.is_open();
   }

@@ -130,7 +130,7 @@ TEST(librmb, append_to_new_log_file) {
   std::string test_file_name = "test.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
-  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage"));
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
   EXPECT_EQ(true, log_file.close());
 
   int line_count = 0;
@@ -146,6 +146,7 @@ TEST(librmb, append_to_new_log_file) {
     EXPECT_EQ(entry.oid, "abc");
     EXPECT_EQ(entry.ns, "ns_1");
     EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
     line_count++;
   }
   EXPECT_EQ(1, line_count);
@@ -157,11 +158,11 @@ TEST(librmb, append_to_existing_file_log_file) {
   std::string test_file_name = "test.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
-  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage"));
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
   EXPECT_EQ(true, log_file.close());
 
   EXPECT_EQ(true, log_file.open());
-  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage"));
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
   EXPECT_EQ(true, log_file.close());
 
   int line_count = 0;
@@ -177,6 +178,7 @@ TEST(librmb, append_to_existing_file_log_file) {
     EXPECT_EQ(entry.oid, "abc");
     EXPECT_EQ(entry.ns, "ns_1");
     EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
     line_count++;
   }
   EXPECT_EQ(2, line_count);
@@ -189,7 +191,7 @@ void *write_to_save_file(void *threadid) {
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
   for (int i = 0; i < 5; i++) {
-    log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage"));
+    log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
   }
   EXPECT_EQ(true, log_file.close());
   std::cout << " exiting thread " << threadid << std::endl;
@@ -237,6 +239,7 @@ TEST(librmb, append_to_existing_file_multi_threading) {
     EXPECT_EQ(entry.oid, "abc");
     EXPECT_EQ(entry.ns, "ns_1");
     EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
     line_count++;
   }
   EXPECT_EQ(25, line_count);

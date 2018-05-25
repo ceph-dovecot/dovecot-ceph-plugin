@@ -28,6 +28,7 @@
 #include "../librmb/rados-namespace-manager.h"
 #include "../librmb/rados-dovecot-ceph-cfg.h"
 #include "../librmb/rados-metadata-storage-impl.h"
+#include "../librmb/rados-save-log.h"
 
 struct rbox_storage {
   struct mail_storage storage;
@@ -38,6 +39,7 @@ struct rbox_storage {
   librmb::RadosNamespaceManager *ns_mgr;
   librmb::RadosMetadataStorage *ms;
   librmb::RadosStorage *alt;
+  librmb::RadosSaveLog *save_log;
 };
 
 #endif

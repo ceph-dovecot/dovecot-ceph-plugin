@@ -33,7 +33,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   const std::string &get_rados_cluster_name() { return dovecot_cfg.get_rbox_cluster_name(); }
   const std::string &get_rados_username() { return dovecot_cfg.get_rados_username(); }
   void update_pool_name_metadata(const char *value) { dovecot_cfg.update_pool_name_metadata(value); }
-
+  const std::string &get_rados_save_log_file() { return dovecot_cfg.get_rados_save_log_file(); }
   const std::string &get_pool_name_metadata_key() { return dovecot_cfg.get_pool_name_metadata_key(); }
 
   std::string &get_pool_name() { return dovecot_cfg.get_pool_name(); }

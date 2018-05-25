@@ -467,6 +467,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());
       }
+      if (r_storage->save_log->is_open()) {
+        r_storage->save_log->append(librmb::RadosSaveLogEntry(
+            r_ctx->current_object->get_oid(), r_storage->s->get_namespace(), r_storage->s->get_pool_name(), "save"));
+      }
     }
   }
 
