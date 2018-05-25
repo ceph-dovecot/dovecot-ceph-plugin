@@ -352,7 +352,7 @@ int read_plugin_configuration(struct mailbox *box) {
     }
     storage->config->set_config_valid(true);
     storage->save_log->set_save_log_file(storage->config->get_rados_save_log_file());
-    if (!storage->save_log->open()) {
+    if (!storage->save_log->open() && !storage->config->get_rados_save_log_file().empty()) {
       i_warning("unable to open the rados save log file ", storage->config->get_rados_save_log_file().c_str());
     }
   }
