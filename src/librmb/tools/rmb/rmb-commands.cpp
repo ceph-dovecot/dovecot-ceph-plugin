@@ -60,7 +60,7 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
       std::cout << "Objectentry at line '" << line_count << "' is not valid: " << std::endl;
       break;
     }
-    std::cout << " size : " << entry.size << std::endl;
+
     if (storage.get_pool_name().compare(entry.pool) != 0) {
       // close connection before open a new one.
       // TODO: worst case are alternating pool entries e.g. mail_storage ,
