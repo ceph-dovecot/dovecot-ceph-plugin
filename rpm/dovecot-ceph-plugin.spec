@@ -1,5 +1,5 @@
 #
-# spec file for package dovecot-ceph-plugins
+# spec file for package dovecot-ceph-plugin
 #
 # Copyright (c) 2017-2018 Tallence AG and the authors
 #
@@ -45,10 +45,10 @@ Group:		Productivity/Networking/Email/Servers
 License:	LGPL-2.1
 Source:		%{name}-%{version}.tar.xz
 
-Provides:	dovecot-ceph-plugins = %{version}-%{release}
+Provides:	dovecot-ceph-plugin = %{version}-%{release}
 Requires:	librmb0 >= %{version}-%{release}
 Requires:	librados2 >= %{librados_version}
-Conflicts:	otherproviders(dovecot-ceph-plugins)
+Conflicts:	otherproviders(dovecot-ceph-plugin)
 
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
