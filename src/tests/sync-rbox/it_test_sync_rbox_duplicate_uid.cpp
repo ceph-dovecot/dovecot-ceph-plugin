@@ -21,7 +21,7 @@
 #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"  // turn off warnings for Dovecot :-(
 #endif
 
-extern "C" {
+    extern "C" {
 #include "lib.h"
 #include "mail-user.h"
 #include "mail-storage.h"
@@ -31,7 +31,7 @@ extern "C" {
 #include "ioloop.h"
 #include "istream.h"
 #include "mail-index.h"
-
+#include "mail-cache-private.h"
 #include "libdict-rados-plugin.h"
 }
 #include "rbox-storage.hpp"
@@ -102,16 +102,28 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   ASSERT_NE(ns, nullptr);
 
   struct mailbox *box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_IGNORE_ACLS);
-
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   } else {
     copy_object(ns, box);
+  }
+  mail_cache_file_close(box->cache);
+  mailbox_free(&box);
+
+
+  box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_IGNORE_ACLS);
+
+  if (mailbox_open(box) < 0) {
+    i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
+    FAIL() << " Forcing a resync on mailbox INBOX Failed";
+  } else {
     uint32_t msg_count_org = mail_index_view_get_messages_count(box->view);
     i_debug("Message count before = %u", msg_count_org);
     EXPECT_EQ((uint32_t)1, msg_count_org);
+    struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
 
+    guid_128_generate(rbox->mailbox_guid);
     if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
                                                           MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
@@ -119,7 +131,7 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
     }
     uint32_t msg_count = mail_index_view_get_messages_count(box->view);
     i_debug("Message count now = %u", msg_count);
-    EXPECT_EQ((uint32_t)1, msg_count);
+    EXPECT_EQ((uint32_t)2, msg_count);
   }
 
   mailbox_free(&box);
