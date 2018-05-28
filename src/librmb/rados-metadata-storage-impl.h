@@ -33,7 +33,7 @@ class RadosMetadataStorageImpl : public RadosMetadataStorage {
     }
   }
 
-  RadosStorageMetadataModule *create_metadata_storage(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_) {
+  RadosStorageMetadataModule *create_metadata_storage(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_) override {
     this->io_ctx = io_ctx_;
     this->cfg = cfg_;
     if (storage == nullptr) {
@@ -48,7 +48,7 @@ class RadosMetadataStorageImpl : public RadosMetadataStorage {
     return storage;
   }
 
-  RadosStorageMetadataModule *get_storage() {
+  RadosStorageMetadataModule *get_storage() override {
     assert(storage != nullptr);
     return storage;
   }

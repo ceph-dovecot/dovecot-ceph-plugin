@@ -48,7 +48,7 @@ using std::string;
 
 class RboxGuidGenerator : public librmb::RadosGuidGenerator {
  public:
-  void generate_guid(std::string *guid_) {
+  void generate_guid(std::string *guid_) override {
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
     *guid_ = guid_128_to_string(namespace_guid);

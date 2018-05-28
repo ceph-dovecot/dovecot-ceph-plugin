@@ -34,16 +34,16 @@ class RadosMetadataStorageIma : public RadosStorageMetadataModule {
  public:
   RadosMetadataStorageIma(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_);
   virtual ~RadosMetadataStorageIma();
-  void set_io_ctx(librados::IoCtx *io_ctx_) { this->io_ctx = io_ctx_; }
-  int load_metadata(RadosMailObject *mail);
-  int set_metadata(RadosMailObject *mail, RadosMetadata &xattr);
-  bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update);
-  void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail);
+  void set_io_ctx(librados::IoCtx *io_ctx_) override { this->io_ctx = io_ctx_; }
+  int load_metadata(RadosMailObject *mail) override;
+  int set_metadata(RadosMailObject *mail, RadosMetadata &xattr) override;
+  bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) override;
+  void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) override;
 
-  int update_keyword_metadata(std::string &oid, RadosMetadata *metadata);
-  int remove_keyword_metadata(std::string &oid, std::string &key);
+  int update_keyword_metadata(std::string &oid, RadosMetadata *metadata) override;
+  int remove_keyword_metadata(std::string &oid, std::string &key) override;
   int load_keyword_metadata(std::string &oid, std::set<std::string> &keys,
-                             std::map<std::string, ceph::bufferlist> *metadata);
+                             std::map<std::string, ceph::bufferlist> *metadata) override;
 
  public:
   static std::string module_name;

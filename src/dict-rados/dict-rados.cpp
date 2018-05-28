@@ -80,7 +80,7 @@ struct rados_dict {
 };
 
 class DictGuidGenerator : public librmb::RadosGuidGenerator {
-  void generate_guid(std::string *guid) {
+  void generate_guid(std::string *guid) override {
     guid_128_t namespace_guid;
     guid_128_generate(namespace_guid);
     *guid = guid_128_to_string(namespace_guid);
