@@ -39,7 +39,7 @@ class RmbCommands {
 
   static int delete_with_save_log(const std::string &save_log, const std::string &rados_cluster,
                                   const std::string &rados_user);
-
+  void print_debug(const std::string &msg);
   static int lspools();
   int delete_mail(bool confirmed);
 

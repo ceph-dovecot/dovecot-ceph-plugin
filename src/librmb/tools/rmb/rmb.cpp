@@ -232,8 +232,8 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["clustername"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-u", "--rados_user", static_cast<char>(NULL))) {
       (*opts)["rados_user"] = val;
-    } else if (ceph_argparse_witharg(args, &i, &val, "-D", "--debug", static_cast<char>(NULL))) {
-      (*opts)["debug"] = val;
+    } else if (ceph_argparse_flag(*args, i, "-D", "--debug", (char *)(NULL))) {
+      (*opts)["debug"] = "true";
     } else if (ceph_argparse_witharg(args, &i, &val, "-r", "--remove", static_cast<char>(NULL))) {
       (*opts)["remove_save_log"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "ls", "--ls", static_cast<char>(NULL))) {
