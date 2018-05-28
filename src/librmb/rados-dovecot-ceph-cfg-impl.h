@@ -24,7 +24,7 @@ namespace librmb {
 
 class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  public:
-  RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_);
+  explicit RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_);
   RadosDovecotCephCfgImpl(RadosConfig &dovecot_cfg_, RadosCephConfig &rados_cfg_);
   virtual ~RadosDovecotCephCfgImpl(){};
 

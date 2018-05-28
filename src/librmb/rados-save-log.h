@@ -61,7 +61,7 @@ class RadosSaveLogEntry {
 
 class RadosSaveLog {
  public:
-  RadosSaveLog(const std::string &logfile_) {
+  explicit RadosSaveLog(const std::string &logfile_) {
     this->logfile = logfile_;
     log_active = !logfile.empty();
   }

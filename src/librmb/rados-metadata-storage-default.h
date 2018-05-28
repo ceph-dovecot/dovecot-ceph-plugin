@@ -23,7 +23,7 @@ namespace librmb {
  */
 class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
  public:
-  RadosMetadataStorageDefault(librados::IoCtx *io_ctx_);
+  explicit RadosMetadataStorageDefault(librados::IoCtx *io_ctx_);
   virtual ~RadosMetadataStorageDefault();
   void set_io_ctx(librados::IoCtx *io_ctx_) override { this->io_ctx = io_ctx_; }
 
