@@ -17,10 +17,7 @@ RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_) {
   rados_cfg.set_io_ctx(io_ctx_);
 }
 
-RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(RadosConfig &dovecot_cfg_, RadosCephConfig &rados_cfg_) {
-  dovecot_cfg = dovecot_cfg_;
-  rados_cfg = rados_cfg_;
-}
+RadosDovecotCephCfgImpl::RadosDovecotCephCfgImpl(RadosConfig &dovecot_cfg_, RadosCephConfig &rados_cfg_) : dovecot_cfg(dovecot_cfg_), rados_cfg(rados_cfg_) {}
 
 
 int RadosDovecotCephCfgImpl::save_default_rados_config() {
