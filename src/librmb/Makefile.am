@@ -34,7 +34,8 @@ headers = \
 	rados-metadata-storage-impl.h \
 	rados-metadata-storage-module.h \
 	rados-metadata-storage-default.h \
-	rados-metadata-storage-ima.h 
+	rados-metadata-storage-ima.h \
+	rados-save-log.h 	
 	
 
 librmb_la_SOURCES = \
@@ -50,7 +51,8 @@ librmb_la_SOURCES = \
 	rados-dovecot-ceph-cfg-impl.cpp \
 	rados-ceph-json-config.cpp \
 	rados-metadata-storage-default.cpp \
-	rados-metadata-storage-ima.cpp
+	rados-metadata-storage-ima.cpp \
+	rados-save-log.cpp
 	
 AM_LDFLAGS = $(JANSSON_LIBS)
 AM_CFLAGS = $(JANSSON_CFLAGS)

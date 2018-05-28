@@ -125,22 +125,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
 
-  /*
-  guid_128_generate(r_ctx->mail_oid);
-
-  r_ctx->current_object = r_storage->s->alloc_mail_object();
-  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
-  r_ctx->objects.push_back(r_ctx->current_object);
-
-  if (mdata->guid != NULL) {
-    string str(mdata->guid);
-    librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
-    mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
-  } else {
-    guid_128_generate(r_ctx->mail_guid);
-  }
-  */
-
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
   i_zero(&rec);
@@ -466,6 +450,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
                 r_ctx->current_object->get_metadata()->size());
+      }
+      if (r_storage->save_log->is_open()) {
+        r_storage->save_log->append(librmb::RadosSaveLogEntry(
+            r_ctx->current_object->get_oid(), r_storage->s->get_namespace(), r_storage->s->get_pool_name(), "save"));
       }
     }
   }

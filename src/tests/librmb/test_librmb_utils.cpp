@@ -20,6 +20,9 @@
 #include "gmock/gmock.h"
 #include "rados-util.h"
 #include "rados-types.h"
+#include "rados-save-log.h"
+#include <cstdio>
+#include <pthread.h>
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -122,6 +125,129 @@ TEST(librmb, find_and_replace) {
   text = "hello;world;";
   librmb::RadosUtils::find_and_replace(&text, ";", " ");
   EXPECT_EQ(str_hello, text);
+}
+TEST(librmb, append_to_new_log_file) {
+  std::string test_file_name = "test.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
+  EXPECT_EQ(true, log_file.close());
+
+  int line_count = 0;
+  /** check content **/
+  std::ifstream read(test_file_name);
+  while (true) {
+    librmb::RadosSaveLogEntry entry;
+    read >> entry;
+
+    if (read.eof()) {
+      break;
+    }
+    EXPECT_EQ(entry.oid, "abc");
+    EXPECT_EQ(entry.ns, "ns_1");
+    EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
+    line_count++;
+  }
+  EXPECT_EQ(1, line_count);
+  read.close();
+  std::remove(test_file_name.c_str());
+}
+
+TEST(librmb, append_to_existing_file_log_file) {
+  std::string test_file_name = "test.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
+  EXPECT_EQ(true, log_file.close());
+
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
+  EXPECT_EQ(true, log_file.close());
+
+  int line_count = 0;
+  /** check content **/
+  std::ifstream read(test_file_name);
+  while (true) {
+    librmb::RadosSaveLogEntry entry;
+    read >> entry;
+
+    if (read.eof()) {
+      break;
+    }
+    EXPECT_EQ(entry.oid, "abc");
+    EXPECT_EQ(entry.ns, "ns_1");
+    EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
+    line_count++;
+  }
+  EXPECT_EQ(2, line_count);
+  read.close();
+  std::remove(test_file_name.c_str());
+}
+
+void *write_to_save_file(void *threadid) {
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  for (int i = 0; i < 5; i++) {
+    log_file.append(librmb::RadosSaveLogEntry("abc", "ns_1", "mail_storage", "save"));
+  }
+  EXPECT_EQ(true, log_file.close());
+  std::cout << " exiting thread " << threadid << std::endl;
+
+  pthread_exit(NULL);
+}
+TEST(librmb, append_to_existing_file_multi_threading) {
+  std::string test_file_name = "test1.log";
+  int rc;
+  void *status;
+  pthread_attr_t attr;
+  pthread_t threads[5];
+  // Initialize and set thread joinable
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  for (int i = 0; i < 5; i++) {
+    rc = pthread_create(&threads[i], NULL, write_to_save_file, (void *)i);
+  }
+  sleep(1);
+  std::cout << " threads created " << std::endl;
+  // free attribute and wait for the other threads
+  pthread_attr_destroy(&attr);
+  for (int i = 0; i < 5; i++) {
+    rc = pthread_join(threads[i], &status);
+    if (rc) {
+      std::cout << "Error:unable to join," << rc << std::endl;
+      exit(-1);
+    }
+
+    std::cout << "Main: completed thread id :" << i;
+    std::cout << "  exiting with status :" << status << std::endl;
+  }
+  sleep(1);
+  int line_count = 0;
+  /** check content **/
+  std::ifstream read(test_file_name);
+  while (true) {
+    librmb::RadosSaveLogEntry entry;
+    read >> entry;
+
+    if (read.eof()) {
+      break;
+    }
+    EXPECT_EQ(entry.oid, "abc");
+    EXPECT_EQ(entry.ns, "ns_1");
+    EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "save");
+    line_count++;
+  }
+  EXPECT_EQ(25, line_count);
+  read.close();
+  std::remove(test_file_name.c_str());
+
+  std::cout << " exiting main " << std::endl;
+  // pthread_exit(NULL);
 }
 
 TEST(librmb, mock_obj) {}

@@ -36,6 +36,10 @@ class RmbCommands {
   RmbCommands(librmb::RadosStorage *storage_, librmb::RadosCluster *cluster_,
               std::map<std::string, std::string> *opts_);
   virtual ~RmbCommands();
+
+  static int delete_with_save_log(const std::string &save_log, const std::string &rados_cluster,
+                                  const std::string &rados_user);
+
   static int lspools();
   int delete_mail(bool confirmed);
 
