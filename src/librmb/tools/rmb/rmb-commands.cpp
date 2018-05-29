@@ -322,7 +322,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
       continue;
     }
 
-    if (mail->get_metadata()->size() == 0) {
+    if (mail->get_metadata()->empty()) {
       std::cout << " pool object " << oid << " is not a mail object" << std::endl;
       ++iter;
       delete mail;
