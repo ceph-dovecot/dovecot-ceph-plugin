@@ -21,7 +21,8 @@ extern "C" {
 #include "index-rebuild.h"
 }
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
-                                librmb::RadosMailObject *mail_obj, bool alt_storage, uint32_t uid);
+                                librmb::RadosMailObject *mail_obj, bool alt_storage,
+				bool update_uid, uint32_t uid);
 
 extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
                                    bool alt_storage);
