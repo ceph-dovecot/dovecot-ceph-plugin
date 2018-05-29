@@ -225,7 +225,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
             "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
             "pool_name: %s",
             ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
-            rados_storage->get_pool_name());
+            rados_storage->get_pool_name().c_str());
         FUNC_END_RET("ret == -1, rados_storage->move failed");
         return -1;
       }
