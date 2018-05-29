@@ -21,10 +21,8 @@ namespace librmb {
 class RadosSaveLogEntry {
  public:
   RadosSaveLogEntry() {}
-  RadosSaveLogEntry(const std::string &oid_, const std::string &ns_, const std::string &pool_, const std::string &op_) : oid(oid_),
-															 ns(ns),
-															 pool(pool_),
-															 op(op_) {}
+  RadosSaveLogEntry(const std::string &oid_, const std::string &ns_, const std::string &pool_, const std::string &op_)
+      : oid(oid_), ns(ns_), pool(pool_), op(op_) {}
   ~RadosSaveLogEntry(){};
 
   friend std::ostream &operator<<(std::ostream &os, const RadosSaveLogEntry &obj) {
