@@ -82,7 +82,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     std::string s_oid = mail_obj->get_oid();
     std::list<librmb::RadosMetadata> to_update;
     to_update.push_back(mail_uid);
-    if (r_storage->ms->get_storage()->update_metadata(s_oid, to_update) < 0) {
+    if (!r_storage->ms->get_storage()->update_metadata(s_oid, to_update)) {
       i_warning("update of MAIL_UID failed: for object: %s , uid: %d", mail_obj->get_oid().c_str(), uid);
     }
   }
