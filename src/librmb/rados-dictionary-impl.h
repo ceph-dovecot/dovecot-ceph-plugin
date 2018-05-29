@@ -34,23 +34,23 @@ class RadosDictionaryImpl : public RadosDictionary {
                       const std::string& cfg_object_name_);
   virtual ~RadosDictionaryImpl();
 
-  const std::string get_full_oid(const std::string& key);
-  const std::string get_shared_oid();
-  const std::string get_private_oid();
+  const std::string get_full_oid(const std::string& key) override;
+  const std::string get_shared_oid() override;
+  const std::string get_private_oid() override;
 
-  const std::string& get_oid() { return oid; }
-  const std::string& get_username() { return username; }
-  const std::string& get_poolname() { return poolname; }
+  const std::string& get_oid() override { return oid; }
+  const std::string& get_username() override { return username; }
+  const std::string& get_poolname() override { return poolname; }
 
-  librados::IoCtx& get_io_ctx(const std::string& key);
-  librados::IoCtx& get_shared_io_ctx();
-  librados::IoCtx& get_private_io_ctx();
+  librados::IoCtx& get_io_ctx(const std::string& key) override;
+  librados::IoCtx& get_shared_io_ctx() override;
+  librados::IoCtx& get_private_io_ctx() override;
 
-  void remove_completion(librados::AioCompletion* c);
-  void push_back_completion(librados::AioCompletion* c);
-  void wait_for_completions();
+  void remove_completion(librados::AioCompletion* c) override;
+  void push_back_completion(librados::AioCompletion* c) override;
+  void wait_for_completions() override;
 
-  int get(const std::string& key, std::string* value_r);
+  int get(const std::string& key, std::string* value_r) override;
 
  private:
   bool load_configuration(librados::IoCtx* io_ctx);

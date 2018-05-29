@@ -20,7 +20,7 @@ namespace librmb {
 
 class RadosCephConfig {
  public:
-  RadosCephConfig(librados::IoCtx *io_ctx_);
+  explicit RadosCephConfig(librados::IoCtx *io_ctx_);
   RadosCephConfig() { io_ctx = nullptr; }
   virtual ~RadosCephConfig() {}
 

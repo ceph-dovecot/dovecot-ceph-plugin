@@ -25,18 +25,18 @@ class RadosClusterImpl : public RadosCluster {
   RadosClusterImpl();
   virtual ~RadosClusterImpl();
 
-  int init();
-  int init(const std::string &clustername, const std::string &rados_username);
+  int init() override;
+  int init(const std::string &clustername, const std::string &rados_username) override;
 
   int connect();
-  void deinit();
+  void deinit() override;
 
-  int pool_create(const std::string &pool);
-  int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx);
-  int get_config_option(const char *option, std::string *value);
+  int pool_create(const std::string &pool) override;
+  int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) override;
+  int get_config_option(const char *option, std::string *value) override;
   int dictionary_create(const std::string &pool, const std::string &username, const std::string &oid,
                         RadosDictionary **dictionary);
-  bool is_connected();
+  bool is_connected() override;
   librados::Rados &get_cluster() { return *cluster; }
 
  private:
