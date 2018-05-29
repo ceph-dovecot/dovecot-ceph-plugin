@@ -50,7 +50,7 @@ void RadosMetadataStorageDefault::save_metadata(librados::ObjectWriteOperation *
     write_op->omap_set(*mail->get_extended_metadata());
   }
 }
-bool RadosMetadataStorageDefault::update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) {
+bool RadosMetadataStorageDefault::update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) {
   librados::ObjectWriteOperation write_op;
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
@@ -64,7 +64,7 @@ bool RadosMetadataStorageDefault::update_metadata(std::string &oid, std::list<Ra
   completion->release();
   return ret == 0;
 }
-int RadosMetadataStorageDefault::update_keyword_metadata(std::string &oid, RadosMetadata *metadata) {
+int RadosMetadataStorageDefault::update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) {
   int ret = -1;
   if (metadata != nullptr) {
     std::map<std::string, librados::bufferlist> map;
@@ -73,13 +73,13 @@ int RadosMetadataStorageDefault::update_keyword_metadata(std::string &oid, Rados
   }
   return ret;
 }
-int RadosMetadataStorageDefault::remove_keyword_metadata(std::string &oid, std::string &key) {
+int RadosMetadataStorageDefault::remove_keyword_metadata(const std::string &oid, std::string &key) {
   std::set<std::string> keys;
   keys.insert(key);
   return io_ctx->omap_rm_keys(oid, keys);
 }
-int RadosMetadataStorageDefault::load_keyword_metadata(std::string &oid, std::set<std::string> &keys,
-                                                        std::map<std::string, ceph::bufferlist> *metadata) {
+int RadosMetadataStorageDefault::load_keyword_metadata(const std::string &oid, std::set<std::string> &keys,
+                                                       std::map<std::string, ceph::bufferlist> *metadata) {
   return io_ctx->omap_get_vals_by_keys(oid, keys, metadata);
 }
 

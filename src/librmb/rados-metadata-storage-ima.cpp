@@ -149,7 +149,7 @@ void RadosMetadataStorageIma::save_metadata(librados::ObjectWriteOperation *writ
   write_op->setxattr(cfg->get_metadata_storage_attribute().c_str(), bl);
 }
 
-bool RadosMetadataStorageIma::update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) {
+bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) {
   librados::ObjectWriteOperation write_op;
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
@@ -174,7 +174,7 @@ bool RadosMetadataStorageIma::update_metadata(std::string &oid, std::list<RadosM
   completion->release();
   return ret == 0;
 }
-int RadosMetadataStorageIma::update_keyword_metadata(std::string &oid, RadosMetadata *metadata) {
+int RadosMetadataStorageIma::update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) {
   int ret = -1;
   if (metadata != nullptr) {
     if (!cfg->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS) || !cfg->is_update_attributes()) {
@@ -186,14 +186,14 @@ int RadosMetadataStorageIma::update_keyword_metadata(std::string &oid, RadosMeta
   }
   return ret;
 }
-int RadosMetadataStorageIma::remove_keyword_metadata(std::string &oid, std::string &key) {
+int RadosMetadataStorageIma::remove_keyword_metadata(const std::string &oid, std::string &key) {
   std::set<std::string> keys;
   keys.insert(key);
   return io_ctx->omap_rm_keys(oid, keys);
 }
 
-int RadosMetadataStorageIma::load_keyword_metadata(std::string &oid, std::set<std::string> &keys,
-                                                    std::map<std::string, ceph::bufferlist> *metadata) {
+int RadosMetadataStorageIma::load_keyword_metadata(const std::string &oid, std::set<std::string> &keys,
+                                                   std::map<std::string, ceph::bufferlist> *metadata) {
   return io_ctx->omap_get_vals_by_keys(oid, keys, metadata);
 }
 

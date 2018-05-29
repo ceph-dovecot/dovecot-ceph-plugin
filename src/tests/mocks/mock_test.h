@@ -75,7 +75,7 @@ class RadosStorageMetadataMock : public RadosStorageMetadataModule {
   MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));
   MOCK_METHOD1(load_metadata, int(RadosMailObject *mail));
   MOCK_METHOD2(set_metadata, int(RadosMailObject *mail, RadosMetadata &xattr));
-  MOCK_METHOD2(update_metadata, bool(std::string &oid, std::list<RadosMetadata> &to_update));
+  MOCK_METHOD2(update_metadata, bool(const std::string &oid, std::list<RadosMetadata> &to_update));
   // MOCK_METHOD2(save_metadata, void(librados::ObjectWriteOperation *write_op, RadosMailObject *mail));
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) {
     // delete write_op to avoid memory leak in case mocks are used
@@ -85,10 +85,10 @@ class RadosStorageMetadataMock : public RadosStorageMetadataModule {
       write_op = nullptr;
     }
   }
-  MOCK_METHOD2(update_keyword_metadata, int(std::string &oid, librmb::RadosMetadata *metadata));
-  MOCK_METHOD2(remove_keyword_metadata, int(std::string &oid, std::string &key));
-  MOCK_METHOD3(load_keyword_metadata,
-               int(std::string &oid, std::set<std::string> &keys, std::map<std::string, ceph::bufferlist> *metadata));
+  MOCK_METHOD2(update_keyword_metadata, int(const std::string &oid, librmb::RadosMetadata *metadata));
+  MOCK_METHOD2(remove_keyword_metadata, int(const std::string &oid, std::string &key));
+  MOCK_METHOD3(load_keyword_metadata, int(const std::string &oid, std::set<std::string> &keys,
+                                          std::map<std::string, ceph::bufferlist> *metadata));
 };
 
 class RadosMetadataStorageProducerMock : public RadosMetadataStorage {

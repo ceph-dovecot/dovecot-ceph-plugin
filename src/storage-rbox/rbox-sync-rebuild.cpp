@@ -40,11 +40,16 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
   std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
   std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
+  bool update_uid = true;
+  struct mail_storage *storage = ctx->box->storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
 
   if (uid == -1) {
     // use xattr uid
     uid = stoui32(xattr_mail_uid);
+    update_uid = false;
   }
+
   mail_index_append(ctx->trans, uid, &seq);
   i_debug("added to index %d", seq);
 
@@ -60,20 +65,29 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   guid_128_t guid;
   if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
     i_error("guid_128 xattr_guid string '%s'", xattr_guid.c_str());
-
     return -1;
   }
   memcpy(rec.guid, guid, sizeof(guid));
   memcpy(rec.oid, oid, sizeof(oid));
 
   mail_index_update_ext(ctx->trans, seq, rbox_mailbox->ext_id, &rec, NULL);
-
   if (alt_storage) {
     mail_index_update_flags(ctx->trans, seq, MODIFY_ADD, (enum mail_flags)RBOX_INDEX_FLAG_ALT);
   }
 
   T_BEGIN { index_rebuild_index_metadata(ctx, seq, uid); }
   T_END;
+
+  if (update_uid) {
+    // update uid.
+    librmb::RadosMetadata mail_uid(librmb::RBOX_METADATA_MAIL_UID, uid);
+    std::string oid = mail_obj->get_oid();
+    std::list<librmb::RadosMetadata> to_update;
+    to_update.push_back(mail_uid);
+    if (r_storage->ms->get_storage()->update_metadata(oid, to_update) < 0) {
+      i_warning("update of MAIL_UID failed: for object: %s , uid: %d", mail_obj->get_oid().c_str(), uid);
+    }
+  }
   i_debug("rebuilding %s , with oid=%d", oi.c_str(), uid);
 
   return 0;

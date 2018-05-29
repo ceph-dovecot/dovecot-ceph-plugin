@@ -29,13 +29,13 @@ class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
 
   int load_metadata(RadosMailObject *mail) override;
   int set_metadata(RadosMailObject *mail, RadosMetadata &xattr) override;
-  bool update_metadata(std::string &oid, std::list<RadosMetadata> &to_update) override;
+  bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) override;
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) override;
 
-  int update_keyword_metadata(std::string &oid, RadosMetadata *metadata) override;
-  int remove_keyword_metadata(std::string &oid, std::string &key) override;
-  int load_keyword_metadata(std::string &oid, std::set<std::string> &keys,
-                             std::map<std::string, ceph::bufferlist> *metadata) override;
+  int update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) override;
+  int remove_keyword_metadata(const std::string &oid, std::string &key) override;
+  int load_keyword_metadata(const std::string &oid, std::set<std::string> &keys,
+                            std::map<std::string, ceph::bufferlist> *metadata) override;
 
  public:
   static std::string module_name;
