@@ -102,7 +102,7 @@ export LIBS="-pie"
 ./autogen.sh
 %configure \
 	--prefix=%{_prefix} \
-	--with-dovecot=%{_libdir}dovecot
+	--with-dovecot=%{_libdir}/dovecot
 %{__make}
 
 %install
