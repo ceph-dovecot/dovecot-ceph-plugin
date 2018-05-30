@@ -8,6 +8,11 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
+
+#ifdef HAVE_CONFIG_H
+#include "dovecot-ceph-plugin-config.h"
+#endif
+
 #include "rados-util.h"
 #include <string>
 #include <limits.h>
@@ -95,7 +100,7 @@ int RadosUtils::get_all_keys_and_values(librados::IoCtx *io_ctx, const std::stri
   int err = 0;
   librados::ObjectReadOperation first_read;
   std::set<std::string> extended_keys;
-#ifdef HAVE_OMAP_GET_KEYS_2
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_OMAP_GET_KEYS_2
   first_read.omap_get_keys2("", LONG_MAX, &extended_keys, nullptr, &err);
 #else
   first_read.omap_get_keys("", LONG_MAX, &extended_keys, &err);
