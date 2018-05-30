@@ -622,7 +622,7 @@ class kv_map {
   int rval = -1;
   string key;
   std::map<string, bufferlist> map;
-  typename map<string, bufferlist>::iterator map_iter;
+  typename std::map<string, bufferlist>::iterator map_iter;
 };
 
 class rados_dict_iterate_context {
