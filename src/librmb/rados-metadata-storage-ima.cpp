@@ -153,7 +153,7 @@ bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<
   librados::ObjectWriteOperation write_op;
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
-  if (to_update.size() == 0) {
+  if (to_update.empty()) {
     return true;
   }
 

@@ -186,7 +186,7 @@ TEST(librmb, append_to_existing_file_log_file) {
   std::remove(test_file_name.c_str());
 }
 
-void *write_to_save_file(void *threadid) {
+__attribute__((noreturn)) static void *write_to_save_file(void *threadid) {
   std::string test_file_name = "test1.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
@@ -208,7 +208,7 @@ TEST(librmb, append_to_existing_file_multi_threading) {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  for (int i = 0; i < 5; i++) {
+  for (uintptr_t i = 0; i < 5; i++) {
     rc = pthread_create(&threads[i], NULL, write_to_save_file, (void *)i);
   }
   sleep(1);

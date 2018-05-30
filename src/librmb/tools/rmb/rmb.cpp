@@ -293,7 +293,6 @@ int main(int argc, const char **argv) {
   std::string config_obj = "obj";
   std::string rados_user = "client.admin";
   std::string rados_cluster;
-  bool debug = false;
   argv_to_vec(argc, argv, &args);
 
   parse_cmd_line_args(&opts, is_config_option, &metadata, &args, create_config, show_usage, confirmed);

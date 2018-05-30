@@ -308,7 +308,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     uint64_t object_size = 0;
     time_t save_date_rados;
     int ret = storage->stat_mail(oid, &object_size, &save_date_rados);
-    if (ret != 0 || object_size <= 0) {
+    if (ret != 0 || object_size == 0) {
       std::cout << " object '" << oid << "' is not a valid mail object, size = 0" << std::endl;
       ++iter;
       delete mail;
@@ -322,7 +322,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
       continue;
     }
 
-    if (mail->get_metadata()->size() == 0) {
+    if (mail->get_metadata()->empty()) {
       std::cout << " pool object " << oid << " is not a mail object" << std::endl;
       ++iter;
       delete mail;

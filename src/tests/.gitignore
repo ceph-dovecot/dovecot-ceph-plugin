@@ -13,3 +13,10 @@
 /test_librmb_utils
 /test_rmb
 /test_storage_mock_rbox
+/it_test_copy_rbox_alt
+/it_test_copy_rbox_fail
+/it_test_move_rbox_alt
+/it_test_read_mail_failed_rbox
+/it_test_read_mail_rbox_alt
+/it_test_sync_rbox_alt
+/it_test_sync_rbox_duplicate_uid

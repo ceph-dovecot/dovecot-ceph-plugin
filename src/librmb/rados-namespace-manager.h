@@ -20,10 +20,7 @@ namespace librmb {
 
 class RadosNamespaceManager {
  public:
-  explicit RadosNamespaceManager(RadosDovecotCephCfg *config_) {
-    this->oid_suffix = "_namespace";
-    this->config = config_;
-  }
+  explicit RadosNamespaceManager(RadosDovecotCephCfg *config_) : oid_suffix("_namespace"), config(config_) {}
   virtual ~RadosNamespaceManager();
   void set_config(RadosDovecotCephCfg *config_) { config = config_; }
   RadosDovecotCephCfg *get_config() { return config; }
