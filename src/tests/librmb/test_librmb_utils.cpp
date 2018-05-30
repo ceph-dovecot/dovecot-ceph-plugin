@@ -208,7 +208,7 @@ TEST(librmb, append_to_existing_file_multi_threading) {
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  for (int i = 0; i < 5; i++) {
+  for (uintptr_t i = 0; i < 5; i++) {
     rc = pthread_create(&threads[i], NULL, write_to_save_file, (void *)i);
   }
   sleep(1);
