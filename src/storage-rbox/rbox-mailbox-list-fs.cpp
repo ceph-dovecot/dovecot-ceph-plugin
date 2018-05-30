@@ -194,7 +194,10 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
         return 0;
       }
       break;
-    default:
+   case MAILBOX_LIST_FILE_TYPE_UNKNOWN:
+   case MAILBOX_LIST_FILE_TYPE_SYMLINK:
+   case MAILBOX_LIST_FILE_TYPE_OTHER:
+   default:
       break;
     }
 
