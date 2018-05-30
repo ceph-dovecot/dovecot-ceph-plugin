@@ -190,7 +190,7 @@ static void usage(std::ostream &out) {
          "\n";
 }
 
-static void usage_exit() {
+__attribute__((noreturn)) static void usage_exit() {
   usage(std::cerr);
   exit(1);
 }
