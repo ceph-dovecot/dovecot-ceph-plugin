@@ -101,7 +101,6 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   FUNC_START();
   struct mail_save_data *mdata = &_ctx->data;
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
   uint8_t save_flags = 0x0;
 
 /* add to index */
