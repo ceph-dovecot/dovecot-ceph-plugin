@@ -12,6 +12,30 @@
 
 #include "rbox-mailbox-list-fs.h"
 
+// add some operators to handle this enum hell from dovecot
+// code as defined in the C++ standard '17.5.2.1.3 Bitmask types'
+inline constexpr mailbox_info_flags operator&(mailbox_info_flags X, mailbox_info_flags Y) {
+  return static_cast<mailbox_info_flags >(static_cast<int>(X) & static_cast<int>(Y));
+}
+inline constexpr mailbox_info_flags operator|(mailbox_info_flags X, mailbox_info_flags Y) {
+  return static_cast<mailbox_info_flags >(static_cast<int>(X) | static_cast<int>(Y));
+}
+inline constexpr mailbox_info_flags operator^(mailbox_info_flags X, mailbox_info_flags Y){
+  return static_cast<mailbox_info_flags >(static_cast<int>(X) ^ static_cast<int>(Y));
+}
+inline constexpr mailbox_info_flags operator~(mailbox_info_flags X){
+  return static_cast<mailbox_info_flags >(~static_cast<int>(X));
+}
+inline mailbox_info_flags & operator&=(mailbox_info_flags & X, mailbox_info_flags Y){
+  X = X & Y; return X;
+}
+inline mailbox_info_flags & operator|=(mailbox_info_flags & X, mailbox_info_flags Y) {
+  X = X | Y; return X;
+}
+inline mailbox_info_flags & operator^=(mailbox_info_flags & X, mailbox_info_flags Y) {
+  X = X ^ Y; return X;
+}
+
 static int rbox_list_is_maildir_mailbox(struct mailbox_list *list, const char *dir, const char *fname,
                                         enum mailbox_list_file_type type, enum mailbox_info_flags *flags_r) {
   FUNC_START();
@@ -118,7 +142,7 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
   struct stat st;
     const char *path;
 
-    *flags_r = 0;
+    *flags_r = static_cast<mailbox_info_flags>(0);
 #if DOVECOT_PREREQ(2, 3)
     if (*list->set.maildir_name != '\0' && !list->set.iter_from_index_dir) {
 #else
