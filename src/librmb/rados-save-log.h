@@ -13,8 +13,10 @@
 #define SRC_LIBRMB_RADOS_SAVE_LOG_H_
 
 #include <fstream>  // std::ofstream
-#include <regex>
+//#include <regex>
 #include <cstdio>
+#include <vector>
+#include <sstream>
 
 namespace librmb {
 
@@ -31,13 +33,18 @@ class RadosSaveLogEntry {
   }
 
   friend std::istream &operator>>(std::istream &is, RadosSaveLogEntry &obj) {
+    std::string line;
     std::string item;
-    const std::regex re{"((?:[^\\\\,]|\\\\.)*?)(?:,|$)"};
-    std::getline(is, item);
-    std::vector<std::string> csv_items{std::sregex_token_iterator(item.begin(), item.end(), re, 1),
-                                       std::sregex_token_iterator()};
+    std::vector<std::string> csv_items;
+    std::getline(is, line);
+
+    std::stringstream line_to_parse(line);
+    while (std::getline(line_to_parse, item, ',')) {
+      csv_items.push_back(item);
+    }
+
     // read obj from stream
-    if (csv_items.size() == 5) {
+    if (csv_items.size() == 4) {
       obj.op = csv_items[0];
       obj.pool = csv_items[1];
       obj.ns = csv_items[2];
