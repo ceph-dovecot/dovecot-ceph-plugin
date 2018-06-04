@@ -9,6 +9,10 @@
  * Foundation.  See file COPYING.
  */
 
+#ifdef HAVE_CONFIG_H
+ #include "dovecot-ceph-plugin-config.h"
+#endif
+
 #include <limits.h>
 
 #include <iostream>
@@ -622,7 +626,7 @@ class kv_map {
   int rval = -1;
   string key;
   std::map<string, bufferlist> map;
-  typename map<string, bufferlist>::iterator map_iter;
+  typename std::map<string, bufferlist>::iterator map_iter;
 };
 
 class rados_dict_iterate_context {
@@ -706,7 +710,7 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : private_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_OMAP_GET_VALS2
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_OMAP_GET_VALS2
           bool more;
           private_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, &more, &iter->results.back().rval);
 #else
@@ -733,7 +737,7 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         for (auto k : shared_keys) {
           iter->results.emplace_back();
           iter->results.back().key = k;
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_OMAP_GET_VALS2
+#ifdef DOVECOT_CEPH_PLUGIN_HAVE_OMAP_GET_VALS2
           bool more;
           shared_read_op.omap_get_vals2("", k, LONG_MAX, &iter->results.back().map, &more, &iter->results.back().rval);
 #else

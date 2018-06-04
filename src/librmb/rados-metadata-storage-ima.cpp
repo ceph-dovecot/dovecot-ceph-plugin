@@ -36,16 +36,16 @@ int RadosMetadataStorageIma::parse_attribute(RadosMailObject *mail, json_t *root
     value = json_object_iter_value(iter);
 
     if (key.compare(RadosMetadataStorageIma::keyword_key) == 0) {
-      std::string keyword_key;
+      std::string _keyword_key;
       json_t *keyword_value;
       void *keyword_iter = json_object_iter(value);
       while (keyword_iter) {
         librados::bufferlist bl;
-        keyword_key = json_object_iter_key(keyword_iter);
+        _keyword_key = json_object_iter_key(keyword_iter);
         keyword_value = json_object_iter_value(keyword_iter);
         bl.append(json_string_value(keyword_value));
 
-        (*mail->get_extended_metadata())[keyword_key] = bl;
+        (*mail->get_extended_metadata())[_keyword_key] = bl;
 
         keyword_iter = json_object_iter_next(value, keyword_iter);
       }
