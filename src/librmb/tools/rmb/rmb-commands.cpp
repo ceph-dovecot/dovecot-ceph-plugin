@@ -80,11 +80,19 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
       }
     }
     storage.set_namespace(entry.ns);
-    int ret_delete = storage.delete_mail(entry.oid);
-    if (ret_delete < 0) {
-      std::cout << "Object " << entry.oid << " not deleted: errorcode: " << ret_delete << std::endl;
+
+    if (entry.op.compare("save") == 0 || entry.op.compare("cpy") == 0) {
+      int ret_delete = storage.delete_mail(entry.oid);
+      if (ret_delete < 0) {
+        std::cout << "Object " << entry.oid << " not deleted: errorcode: " << ret_delete << std::endl;
+      } else {
+        std::cout << "Object " << entry.oid << " successfully deleted" << std::endl;
+        count++;
+      }
     } else {
-      std::cout << "Object " << entry.oid << " successfully deleted" << std::endl;
+      if (storage.move(entry.oid, entry.ns.c_str(), entry.src_oid, entry.src_ns.c_str(), entry.metadata, true) < 0) {
+        std::cerr << "moving : " << entry.oid << " to " << entry.src_oid << " failed !" << std::endl;
+      }
       count++;
     }
   }

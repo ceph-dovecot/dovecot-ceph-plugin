@@ -208,8 +208,8 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       rbox_add_to_index(ctx);
       if (r_storage->save_log->is_open()) {
-        r_storage->save_log->append(
-            librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(), "cpy"));
+        r_storage->save_log->append(librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(),
+                                                              librmb::RadosSaveLogEntry::op_cpy()));
       }
       i_debug("copy successfully finished: from src %s to oid = %s", src_oid.c_str(), dest_oid.c_str());
     }
@@ -237,7 +237,18 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       rbox_move_index(ctx, mail);
       if (r_storage->save_log->is_open()) {
-        r_storage->save_log->append(librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(), "mv"));
+        std::list<librmb::RadosMetadata *> metadata;
+        librmb::RadosMetadata guid(librmb::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(rmailbox->mailbox_guid));
+        librmb::RadosMetadata mb_name(librmb::RBOX_METADATA_ORIG_MAILBOX, rmailbox->box.name);
+
+        librmb::RadosMetadata uid(librmb::RBOX_METADATA_MAIL_UID, mail->uid);
+        metadata.push_back(&guid);
+        metadata.push_back(&mb_name);
+        metadata.push_back(&uid);
+
+        r_storage->save_log->append(
+            librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(),
+                                      librmb::RadosSaveLogEntry::op_mv(ns_src, src_oid, metadata)));
       }
       i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(),
               src_oid.c_str(), ns_dest.c_str());

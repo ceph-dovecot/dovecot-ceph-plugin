@@ -451,8 +451,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
                 r_ctx->current_object->get_metadata()->size());
       }
       if (r_storage->save_log->is_open()) {
-        r_storage->save_log->append(librmb::RadosSaveLogEntry(
-            r_ctx->current_object->get_oid(), r_storage->s->get_namespace(), r_storage->s->get_pool_name(), "save"));
+        r_storage->save_log->append(
+            librmb::RadosSaveLogEntry(r_ctx->current_object->get_oid(), r_storage->s->get_namespace(),
+                                      r_storage->s->get_pool_name(), librmb::RadosSaveLogEntry::op_save()));
       }
     }
   }

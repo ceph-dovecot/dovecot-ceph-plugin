@@ -250,6 +250,41 @@ TEST(librmb, append_to_existing_file_multi_threading) {
   // pthread_exit(NULL);
 }
 
+TEST(librmb, test_mvn_option) {
+  std::list<librmb::RadosMetadata *> metadata;
+  librmb::RadosMetadata guid(librmb::RBOX_METADATA_MAILBOX_GUID, "ABCDEFG");
+  librmb::RadosMetadata mb_name(librmb::RBOX_METADATA_ORIG_MAILBOX, "INBOX");
+  uint uid_ = 1;
+  librmb::RadosMetadata uid(librmb::RBOX_METADATA_MAIL_UID, uid_);
+  metadata.push_back(&guid);
+  metadata.push_back(&mb_name);
+  metadata.push_back(&uid);
+
+  std::string test_file_name = "test_1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("dest_oid", "ns_dest", "mail_storage",
+                                            librmb::RadosSaveLogEntry::op_mv("ns_src", "src_oid", metadata)));
+  std::ifstream read(test_file_name);
+  while (true) {
+    librmb::RadosSaveLogEntry entry;
+    read >> entry;
+
+    if (read.eof()) {
+      break;
+    }
+    EXPECT_EQ(entry.oid, "dest_oid");
+    EXPECT_EQ(entry.ns, "ns_dest");
+    EXPECT_EQ(entry.pool, "mail_storage");
+    EXPECT_EQ(entry.op, "mv:ns_src:src_oid;M=ABCDEFG:B=INBOX:U=1");
+    EXPECT_EQ(entry.metadata.size(), 3);
+  }
+
+  read.close();
+  // EXPECT_EQ(1, 0);
+  std::remove(test_file_name.c_str());
+}
+
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

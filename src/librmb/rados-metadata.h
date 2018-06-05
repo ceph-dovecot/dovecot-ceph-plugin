@@ -48,6 +48,25 @@ class RadosMetadata {
       stream >> *t;
     }
   }
+  static bool from_string(const std::string& str, RadosMetadata* metadata) {
+    std::stringstream ss(str);
+    std::string item;
+    std::vector<std::string> token;
+    while (std::getline(ss, item, '=')) {
+      token.push_back(item);
+    }
+    if (token.size() != 2 || metadata == nullptr) {
+      return false;
+    }
+    metadata->key = token[0];
+    metadata->bl.append(token[1]);
+    return true;
+  }
+  std::string to_string() {
+    std::stringstream str;
+    str << key << "=" << bl.to_str();
+    return str.str();
+  }
 
  public:
   ceph::bufferlist bl;
