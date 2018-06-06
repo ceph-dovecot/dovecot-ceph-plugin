@@ -251,6 +251,7 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   if (ret < 0) {
     metadata->get_storage()->set_io_ctx(&primary->get_io_ctx());
+    delete write_op;
     return ret;
   }
   mail.set_mail_size(mail.get_mail_buffer()->length());
@@ -258,6 +259,7 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
   // load the metadata;
   ret = metadata->get_storage()->load_metadata(&mail);
   if (ret < 0) {
+    delete write_op;
     return ret;
   }
 
