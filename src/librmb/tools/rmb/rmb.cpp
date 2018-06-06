@@ -9,7 +9,6 @@
  * Foundation.  See file COPYING.
  */
 
-#include "rmb.h"
 #include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 #include <errno.h>
 #include <stdlib.h>

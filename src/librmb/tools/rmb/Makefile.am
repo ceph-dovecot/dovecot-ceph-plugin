@@ -22,7 +22,7 @@ rmb_SOURCES = \
 	rmb-commands.cpp \
 	rmb-commands.h \
 	rmb.cpp \
-	rmb.h
+	rados-mail-box.h
 
 rmb_LDADD = $(shlibs)
 

@@ -22,9 +22,8 @@ namespace librmb {
 
 class RadosMailBox {
  public:
-  RadosMailBox(std::string _mailbox_guid, int _mail_count, std::string _mbox_orig_name) : mailbox_guid(_mailbox_guid),
-											  mail_count(_mail_count),
-											  mbox_orig_name(_mbox_orig_name) {
+  RadosMailBox(std::string _mailbox_guid, int _mail_count, std::string _mbox_orig_name)
+      : mailbox_guid(_mailbox_guid), mail_count(_mail_count), mbox_orig_name(_mbox_orig_name) {
     this->mailbox_size = 0;
     this->total_mails = 0;
     this->parser = nullptr;
