@@ -216,7 +216,7 @@ int RadosUtils::move_to_alt(std::string &oid, RadosStorage *primary, RadosStorag
                             RadosMetadataStorage *metadata, bool inverse) {
   int ret = 0;
   ret = copy_to_alt(oid, oid, primary, alt_storage, metadata, inverse);
-  if (ret >= 0) {
+  if (ret > 0) {
     if (inverse) {
       ret = alt_storage->get_io_ctx().remove(oid);
     } else {
@@ -230,28 +230,22 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
   int ret = 0;
 
   // TODO; check that storage is connected and open.
-  if (primary == nullptr) {
-    return false;
-  }
-  if (alt_storage == nullptr) {
-    return false;
+  if (primary == nullptr || alt_storage == nullptr) {
+    return 0;
   }
 
   RadosMailObject mail;
   mail.set_oid(src_oid);
-  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
 
   if (inverse) {
     ret = alt_storage->read_mail(src_oid, mail.get_mail_buffer());
     metadata->get_storage()->set_io_ctx(&alt_storage->get_io_ctx());
-
   } else {
     ret = primary->read_mail(src_oid, mail.get_mail_buffer());
   }
 
   if (ret < 0) {
     metadata->get_storage()->set_io_ctx(&primary->get_io_ctx());
-    delete write_op;
     return ret;
   }
   mail.set_mail_size(mail.get_mail_buffer()->length());
@@ -259,21 +253,25 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
   // load the metadata;
   ret = metadata->get_storage()->load_metadata(&mail);
   if (ret < 0) {
-    delete write_op;
     return ret;
   }
 
   mail.set_oid(dest_oid);
+
+  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
   metadata->get_storage()->save_metadata(write_op, &mail);
 
-  bool async = true;
+  bool success;
   if (inverse) {
-    ret = primary->save_mail(write_op, &mail, async);
+    success = primary->save_mail(write_op, &mail, true);
   } else {
-    ret = alt_storage->save_mail(write_op, &mail, async);
+    success = alt_storage->save_mail(write_op, &mail, true);
   }
 
-  bool success = false;
+  if (!success) {
+    return 0;
+  }
+
   std::vector<librmb::RadosMailObject *> objects;
   objects.push_back(&mail);
   if (inverse) {
