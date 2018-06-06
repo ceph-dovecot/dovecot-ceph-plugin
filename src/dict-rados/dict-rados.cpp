@@ -554,7 +554,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   ctx->deploy_unset_set();
   i_debug("commit !");
   bool failed = false;
-  int ret = RADOS_COMMIT_RET_OK;
+  int ret;
 
   ctx->context = context;
   ctx->callback = callback;
