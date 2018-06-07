@@ -47,6 +47,8 @@ class RadosConfig {
   }
   void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
 
+  std::string to_string();
+
  private:
   bool string_contains_key(const std::string &str, enum rbox_metadata_key key);
 

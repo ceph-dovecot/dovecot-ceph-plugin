@@ -13,5 +13,8 @@
 #define SRC_DOVEADM_RBOX_PLUGIN_H
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_config_create_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_config_show_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_config_update_alloc(void);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_

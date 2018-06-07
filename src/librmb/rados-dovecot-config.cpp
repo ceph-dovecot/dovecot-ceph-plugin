@@ -11,6 +11,9 @@
 
 #include "rados-dovecot-config.h"
 
+#include <iostream>
+#include <sstream>
+
 namespace librmb {
 
 std::string pool_name;
@@ -52,6 +55,17 @@ void RadosConfig::update_metadata(const std::string &key, const char *value_) {
     std::string value = value_;
     config[key] = value;
   }
+}
+
+std::string RadosConfig::to_string() {
+  std::stringstream ss;
+  ss << "Dovecot configuration: (90-plugin.conf)" << std::endl;
+  ss << "  " << rbox_cfg_object_name << "=" << config[rbox_cfg_object_name] << std::endl;
+  ss << "  " << rbox_cluster_name << "=" << config[rbox_cluster_name] << std::endl;
+  ss << "  " << rados_username << "=" << config[rados_username] << std::endl;
+  ss << "  " << bugfix_cephfs_posix_hardlinks << "=" << config[bugfix_cephfs_posix_hardlinks] << std::endl;
+  ss << "  " << save_log << "=" << config[save_log] << std::endl;
+  return ss.str();
 }
 
 RadosConfig::~RadosConfig() {}

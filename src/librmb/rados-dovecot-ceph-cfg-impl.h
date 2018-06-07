@@ -93,6 +93,8 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   int save_object(const std::string &oid, librados::bufferlist &buffer) override { return rados_cfg.save_object(oid, buffer); }
   int read_object(const std::string &oid, librados::bufferlist *buffer) override { return rados_cfg.read_object(oid, buffer); }
   void set_io_ctx_namespace(const std::string &namespace_) override { rados_cfg.set_io_ctx_namespace(namespace_); }
+  RadosConfig *get_dovecot_cfg() { return &dovecot_cfg; }
+  RadosCephConfig *get_rados_ceph_cfg() { return &rados_cfg; }
 
  private:
   RadosConfig dovecot_cfg;
