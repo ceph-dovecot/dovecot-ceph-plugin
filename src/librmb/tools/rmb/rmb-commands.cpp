@@ -22,6 +22,7 @@
 #include "rados-metadata-storage-ima.h"
 #include "rados-metadata-storage-default.h"
 #include "rados-save-log.h"
+#include "ls_cmd_parser.h"
 
 namespace librmb {
 
@@ -480,6 +481,49 @@ RadosStorageMetadataModule *RmbCommands::init_metadata_storage_module(librmb::Ra
   }
   print_debug("end: init_metadata_storage_module");
   return ms;
+}
+int RmbCommands::update_attributes(librmb::RadosStorageMetadataModule *ms,
+                                   std::map<std::string, std::string> *metadata) {
+  std::string oid = (*opts)["set"];
+  if (!oid.empty() && metadata->size() > 0) {
+    for (std::map<std::string, std::string>::iterator it = metadata->begin(); it != metadata->end(); ++it) {
+      std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
+      librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
+      std::string value = it->second;
+      if (librmb::RadosUtils::is_date_attribute(ke)) {
+        if (!librmb::RadosUtils::is_numeric(value)) {
+          std::string date;
+          if (librmb::RadosUtils::convert_string_to_date(value, &date)) {
+            value = date;
+          }
+        }
+      }
+      librmb::RadosMailObject obj;
+      obj.set_oid(oid);
+      ms->load_metadata(&obj);
+      librmb::RadosMetadata attr(ke, value);
+      ms->set_metadata(&obj, attr);
+      std::cout << " saving object ..." << std::endl;
+    }
+  } else {
+    std::cerr << " invalid number of arguments, check usage " << std::endl;
+    return -1;
+  }
+  return 0;
+}
+void RmbCommands::set_output_path(librmb::CmdLineParser *parser) {
+  if ((*opts).find("out") != (*opts).end()) {
+    parser->set_output_dir((*opts)["out"]);
+  } else {
+    char outpath[PATH_MAX];
+    char *home = getenv("HOME");
+    if (home != NULL) {
+      snprintf(outpath, sizeof(outpath), "%s/rmb", home);
+    } else {
+      snprintf(outpath, sizeof(outpath), "rmb");
+    }
+    parser->set_output_dir(outpath);
+  }
 }
 
 } /* namespace librmb */

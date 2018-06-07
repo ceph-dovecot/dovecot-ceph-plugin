@@ -410,18 +410,7 @@ int main(int argc, const char **argv) {
   } else if (opts.find("get") != opts.end()) {
     librmb::CmdLineParser parser(opts["get"]);
 
-    if (opts.find("out") != opts.end()) {
-      parser.set_output_dir(opts["out"]);
-    } else {
-      char outpath[PATH_MAX];
-      char *home = getenv("HOME");
-      if (home != NULL) {
-        snprintf(outpath, sizeof(outpath), "%s/rmb", home);
-      } else {
-        snprintf(outpath, sizeof(outpath), "rmb");
-      }
-      parser.set_output_dir(outpath);
-    }
+    rmb_commands->set_output_path(&parser);
 
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0 || parser.parse_ls_string()) {
       // get load all objects metadata into memory
@@ -429,29 +418,7 @@ int main(int argc, const char **argv) {
       rmb_commands->query_mail_storage(&mail_objects, &parser, true);
     }
   } else if (opts.find("set") != opts.end()) {
-    std::string oid = opts["set"];
-    if (!oid.empty() && metadata.size() > 0) {
-      for (std::map<std::string, std::string>::iterator it = metadata.begin(); it != metadata.end(); ++it) {
-        std::cout << oid << "=> " << it->first << " = " << it->second << '\n';
-        librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
-        std::string value = it->second;
-        if (librmb::RadosUtils::is_date_attribute(ke)) {
-          if (!librmb::RadosUtils::is_numeric(value)) {
-            std::string date;
-            if (librmb::RadosUtils::convert_string_to_date(value, &date)) {
-              value = date;
-            }
-          }
-        }
-        librmb::RadosMailObject obj;
-        obj.set_oid(oid);
-        ms->load_metadata(&obj);
-        librmb::RadosMetadata attr(ke, value);
-        ms->set_metadata(&obj, attr);
-      }
-    } else {
-      std::cerr << " invalid number of arguments, check usage " << std::endl;
-    }
+    rmb_commands->update_attributes(ms, &metadata);
   }
 
   delete rmb_commands;
