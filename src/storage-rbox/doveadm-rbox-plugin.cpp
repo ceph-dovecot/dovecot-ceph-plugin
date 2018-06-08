@@ -393,6 +393,20 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   delete ms;
   return ret;
 }
+
+static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *log_file = ctx->args[0];
+
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+  int open = plugin.open_connection();
+  if (open < 0) {
+    i_error("error opening rados connection, check config: %d", open);
+    return open;
+  }
+  return librmb::RmbCommands::delete_with_save_log(log_file, plugin.config->get_rados_cluster_name(),
+                                                   plugin.config->get_rados_username());
+}
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 0) {
     doveadm_mail_help_name("rmb lspools");
@@ -432,6 +446,11 @@ static void cmd_rmb_ls_mb_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED,
 static void cmd_rmb_rename_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 1) {
     doveadm_mail_help_name("rmb rename <username> -u <user> ");
+  }
+}
+static void cmd_rmb_save_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb save_log path to save_log");
   }
 }
 struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
@@ -504,5 +523,12 @@ struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void) {
   ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
   ctx->v.run = cmd_rmb_rename_run;
   ctx->v.init = cmd_rmb_rename_init;
+  return ctx;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_save_log_run;
+  ctx->v.init = cmd_rmb_save_log_init;
   return ctx;
 }
