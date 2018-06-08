@@ -158,7 +158,7 @@ static int cmd_rmb_config_show_run(struct doveadm_mail_cmd_context *ctx, struct 
 
 static int cmd_rmb_config_update_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *update = ctx->args[0];
-  i_debug("update param %s", update);
+
   if (update == NULL) {
     i_error("no update param given");
     return -1;
