@@ -19,5 +19,8 @@ extern struct doveadm_mail_cmd_context *cmd_rmb_config_update_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_get_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_delete_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_ls_mb_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_

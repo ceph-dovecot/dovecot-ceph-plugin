@@ -193,6 +193,45 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
 
   return 0;
 }
+static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *search_query = "mb";
+
+  std::string sort_type = "uid";
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+  int open = plugin.open_connection();
+  if (open < 0) {
+    i_error("error opening rados connection, check config: %d", open);
+    return open;
+  }
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+  int ret = cfg->load_cfg();
+  if (ret < 0) {
+    i_error("error accessing configuration");
+    return ret;
+  }
+  std::map<std::string, std::string> opts;
+  opts["ls"] = search_query;
+  opts["namespace"] = user->username;
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module ");
+    delete ms;
+    return -1;
+  }
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  librmb::CmdLineParser parser(opts["ls"]);
+  if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
+    rmb_cmds.load_objects(ms, mail_objects, sort_type);
+    rmb_cmds.query_mail_storage(&mail_objects, &parser, false);
+  }
+  delete ms;
+
+  return 0;
+}
 
 static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *search_query = ctx->args[0];
@@ -287,6 +326,73 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   delete ms;
   return ret;
 }
+
+static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *oid = ctx->args[0];
+
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+  int open = plugin.open_connection();
+  if (open < 0) {
+    i_error("error opening rados connection, check config: %d", open);
+    return open;
+  }
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+  int ret = cfg->load_cfg();
+  if (ret < 0) {
+    i_error("error accessing configuration");
+    return ret;
+  }
+  std::map<std::string, std::string> opts;
+  opts["to_delete"] = oid;
+  opts["namespace"] = user->username;
+
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module ");
+    delete ms;
+    return -1;
+  }
+
+  ret = rmb_cmds.delete_mail(true);
+  delete ms;
+  return ret;
+}
+static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *new_user_name = ctx->args[0];
+
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+  int open = plugin.open_connection();
+  if (open < 0) {
+    i_error("error opening rados connection, check config: %d", open);
+    return open;
+  }
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+  int ret = cfg->load_cfg();
+  if (ret < 0) {
+    i_error("error accessing configuration");
+    return ret;
+  }
+  std::map<std::string, std::string> opts;
+  opts["to_rename"] = new_user_name;
+  opts["namespace"] = user->username;
+
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module ");
+    delete ms;
+    return -1;
+  }
+
+  ret = rmb_cmds.rename_user(cfg, true, uid);
+  delete ms;
+  return ret;
+}
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 0) {
     doveadm_mail_help_name("rmb lspools");
@@ -307,9 +413,25 @@ static void cmd_rmb_get_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, c
     doveadm_mail_help_name("rmb get <-|key=value> <uid|recv_date|save_date|phy_size> <output path>");
   }
 }
+static void cmd_rmb_delete_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb delete <oid>");
+  }
+}
 static void cmd_rmb_set_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 3) {
     doveadm_mail_help_name("rmb set <oid> <key=value> ");
+  }
+}
+
+static void cmd_rmb_ls_mb_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb ls mb -u <user> ");
+  }
+}
+static void cmd_rmb_rename_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb rename <username> -u <user> ");
   }
 }
 struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
@@ -361,5 +483,26 @@ struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void) {
   ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
   ctx->v.run = cmd_rmb_set_run;
   ctx->v.init = cmd_rmb_set_init;
+  return ctx;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_delete_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_delete_run;
+  ctx->v.init = cmd_rmb_delete_init;
+  return ctx;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_ls_mb_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_ls_mb_run;
+  ctx->v.init = cmd_rmb_ls_mb_init;
+  return ctx;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_rename_run;
+  ctx->v.init = cmd_rmb_rename_init;
   return ctx;
 }

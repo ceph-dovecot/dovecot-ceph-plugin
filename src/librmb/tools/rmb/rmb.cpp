@@ -177,7 +177,6 @@ static void usage(std::ostream &out) {
          "\n"
          "    delete  deletes the ceph object, use oid attribute to identify mail.\n"
          "    rename  dovecot_user_name, rename a user\n"
-         "    lspools list pools\n"
 
          "\nMAILBOX COMMANDS\n"
          "    ls     mb  -N user        list all mailboxes\n"
