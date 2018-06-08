@@ -864,7 +864,6 @@ TEST(librmb, rmb_load_objects) {
   EXPECT_NE(nullptr, ms);
 
   storage.set_namespace(ns);
-  std::string key = "my-key";
   librmb::RadosMailObject obj2;
   obj2.set_oid("myobject");
 
