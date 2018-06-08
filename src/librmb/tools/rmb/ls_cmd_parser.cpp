@@ -39,7 +39,7 @@ Predicate *CmdLineParser::create_predicate(const std::string &_ls_value) {
   return p;
 }
 
-void CmdLineParser::set_output_dir(const std::string out) {
+void CmdLineParser::set_output_dir(const std::string& out) {
   if (out.length() > 0 && out.at(0) == '~') {
     // Convert tilde to $HOME path (if exists)
     char outpath[PATH_MAX];

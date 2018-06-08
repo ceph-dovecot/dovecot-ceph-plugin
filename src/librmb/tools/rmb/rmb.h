@@ -22,9 +22,9 @@ namespace librmb {
 
 class RadosMailBox {
  public:
-  RadosMailBox(std::string _mailbox_guid, int _mail_count, std::string _mbox_orig_name) : mailbox_guid(_mailbox_guid),
-											  mail_count(_mail_count),
-											  mbox_orig_name(_mbox_orig_name) {
+  RadosMailBox(const std::string& _mailbox_guid, int _mail_count, const std::string &_mbox_orig_name) : mailbox_guid(_mailbox_guid),
+													mail_count(_mail_count),
+													mbox_orig_name(_mbox_orig_name) {
     this->mailbox_size = 0;
     this->total_mails = 0;
     this->parser = nullptr;
@@ -77,7 +77,7 @@ class RadosMailBox {
     return ss.str();
   }
   inline void add_to_mailbox_size(const uint64_t &_mailbox_size) { this->mailbox_size += _mailbox_size; }
-  void set_mails(std::vector<RadosMailObject *> _mails) { this->mails = _mails; }
+  void set_mails(const std::vector<RadosMailObject *> &_mails) { this->mails = _mails; }
 
   CmdLineParser *get_xattr_filter() { return this->parser; }
   void set_xattr_filter(CmdLineParser *_parser) { this->parser = _parser; }
