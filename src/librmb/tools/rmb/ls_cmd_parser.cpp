@@ -42,9 +42,9 @@ Predicate *CmdLineParser::create_predicate(const std::string &_ls_value) {
 void CmdLineParser::set_output_dir(const std::string& out) {
   if (out.length() > 0 && out.at(0) == '~') {
     // Convert tilde to $HOME path (if exists)
-    char outpath[PATH_MAX];
     char *home = getenv("HOME");
     if (home != NULL) {
+      char outpath[PATH_MAX];
       snprintf(outpath, sizeof(outpath), "%s", home);
       out_dir.clear();
       out_dir.append(outpath);

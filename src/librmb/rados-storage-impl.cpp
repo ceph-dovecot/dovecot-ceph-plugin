@@ -46,10 +46,9 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
     return -1;
   }
 
-  uint64_t length = 0;
   librados::ObjectWriteOperation *op = nullptr;
   librados::AioCompletion *completion = nullptr;
-  int ret_val, offset = 0;
+  int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
   // split the buffer.
@@ -59,11 +58,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMailObject *current_object,
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; i++) {
-    offset = i * max_write;
+    int offset = i * max_write;
 
     op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
 
-    length = max_write;
+    uint64_t length = max_write;
     if (write_buffer_size < ((i + 1) * length)) {
       length = rest;
     }
