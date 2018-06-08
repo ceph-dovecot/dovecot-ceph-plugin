@@ -368,7 +368,7 @@ bool is_alternate_pool_valid(struct mailbox *_box) {
 
 int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
-  int ret = -1;
+  int ret;
 
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;

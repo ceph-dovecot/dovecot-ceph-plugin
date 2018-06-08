@@ -724,6 +724,7 @@ TEST(librmb, increment_add_to_non_existing_object) {
 
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ASSERT_EQ(0, ret);
   ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
   // get the value!
@@ -809,6 +810,7 @@ TEST(librmb, increment_sub_from_existing_key) {
 
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ASSERT_EQ(0, ret);
   long sub_val = 5;  // value to add
   ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), obj2.get_oid(), key, sub_val);
   // get the value!

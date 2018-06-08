@@ -342,6 +342,7 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
   ret = aio_operate(&dest_io_ctx, dest_oid, completion, &write_op);
   if (ret >= 0) {
     ret = completion->wait_for_complete();
+    // cppcheck-suppress redundantAssignment 
     ret = completion->get_return_value();
   }
   completion->release();

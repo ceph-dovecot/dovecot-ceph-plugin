@@ -298,7 +298,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 }
 
 static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_error) {
-  struct mail_index_view *view = NULL;
+  struct mail_index_view *view;
   struct sdbox_index_header hdr;
   bool need_resize = false;
   int ret = 0;
@@ -316,18 +316,19 @@ static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_e
 
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags) {
   FUNC_START();
-  struct rbox_sync_context *ctx = NULL;
+  struct rbox_sync_context *ctx;
   uint8_t sync_flags = 0x0;
 
   struct mail_storage *storage = mbox->box.storage;
 
   unsigned int i = 0;
-  bool rebuild, force_rebuild = false;
+  bool rebuild, force_rebuild;
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || mbox->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(mbox->box.view);
+  // cppcheck-suppress redundantAssignment
   rebuild = (hdr->flags & MAIL_INDEX_HDR_FLAG_FSCKD) != 0;
 #endif
 
