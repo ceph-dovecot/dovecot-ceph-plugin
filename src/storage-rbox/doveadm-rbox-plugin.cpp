@@ -83,51 +83,89 @@ static int cmd_rmb_lspools_run(struct doveadm_mail_cmd_context *ctx, struct mail
   return 0;
 }
 
-static int cmd_rmb_config_show_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
+static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_user *user) {
+  int ret = -1;
+
+  plugin->read_plugin_configuration(user);
+  int open = plugin->open_connection();
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  std::map<std::string, std::string> opts;
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin->config))->get_rados_ceph_cfg();
+  ret = cfg->load_cfg();
+  if (ret < 0) {
+    i_error("error accessing configuration");
+    return ret;
+  }
+  return ret;
+}
 
-  librmb::RadosConfig *dovecot_cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_dovecot_cfg();
-  std::cout << std::endl << dovecot_cfg->to_string() << std::endl;
-
-  opts["print_cfg"] = "true";
+static int cmd_rmb_config(std::map<std::string, std::string> &opts, struct mail_user *user) {
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+  int open = open_connection_load_config(&plugin, user);
+  if (open < 0) {
+    i_error("error opening rados connection, check config: %d", open);
+    return open;
+  }
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error loading config");
-    return -1;
-  }
   rmb_cmds.configuration(true, *cfg);
   return 0;
 }
-static int cmd_rmb_config_update_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  const char *update = ctx->args[0];
-  i_debug("update param %s", update);
+
+static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
+                              librmb::CmdLineParser &parser) {
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
+  int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  std::map<std::string, std::string> opts;
-  opts["update"] = update;
+
+  opts["namespace"] = user->username;
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+  std::string uid;
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error loading config");
+
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module ");
+    delete ms;
     return -1;
   }
-  rmb_cmds.configuration(true, *cfg);
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  rmb_cmds.load_objects(ms, mail_objects, opts["sort"]);
+
+  if (download) {
+    rmb_cmds.set_output_path(&parser);
+    rmb_cmds.query_mail_storage(&mail_objects, &parser, download);
+  } else {
+    rmb_cmds.query_mail_storage(&mail_objects, &parser, download);
+  }
+  delete ms;
+
   return 0;
+}
+
+static int cmd_rmb_config_show_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  std::map<std::string, std::string> opts;
+  opts["print_cfg"] = "true";
+  return cmd_rmb_config(opts, user);
+}
+
+static int cmd_rmb_config_update_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *update = ctx->args[0];
+  i_debug("update param %s", update);
+  if (update == NULL) {
+    i_error("no update param given");
+    return -1;
+  }
+  std::map<std::string, std::string> opts;
+  opts["update"] = update;
+  return cmd_rmb_config(opts, user);
 }
 static int cmd_rmb_config_create_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   RboxDoveadmPlugin plugin;
@@ -149,158 +187,93 @@ static int cmd_rmb_config_create_run(struct doveadm_mail_cmd_context *ctx, struc
   } else {
     std::cout << "config already exist" << std::endl;
   }
-
   return 0;
 }
 
 static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  int ret = 1;
   const char *search_query = ctx->args[0];
-
   const char *sort = ctx->args[1];
-  std::string sort_type = sort != NULL ? sort : "uid";
-  RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
-  if (open < 0) {
-    i_error("error opening rados connection, check config: %d", open);
-    return open;
-  }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
-  std::map<std::string, std::string> opts;
-  opts["ls"] = search_query;
-  opts["namespace"] = user->username;
-  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
 
-  std::string uid;
-  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-  if (ms == nullptr) {
-    i_error(" Error initializing metadata module ");
-    delete ms;
+  if (search_query == NULL) {
+    i_error("no search query given");
     return -1;
   }
-  std::vector<librmb::RadosMailObject *> mail_objects;
-  librmb::CmdLineParser parser(opts["ls"]);
-  if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    rmb_cmds.load_objects(ms, mail_objects, sort_type);
-    rmb_cmds.query_mail_storage(&mail_objects, &parser, false);
-  }
-  delete ms;
 
-  return 0;
+  std::map<std::string, std::string> opts;
+  opts["ls"] = search_query;
+  opts["sort"] = sort != NULL ? sort : "uid";
+  librmb::CmdLineParser parser(opts["ls"]);
+
+  if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
+    ret = cmd_rmb_search_run(opts, user, false, parser);
+  } else {
+    i_error("invalid ls search query, %s", search_query);
+  }
+  return ret;
 }
 static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  const char *search_query = "mb";
-
-  std::string sort_type = "uid";
-  RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
-  if (open < 0) {
-    i_error("error opening rados connection, check config: %d", open);
-    return open;
-  }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
+  int ret = -1;
   std::map<std::string, std::string> opts;
-  opts["ls"] = search_query;
-  opts["namespace"] = user->username;
-  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
-
-  std::string uid;
-  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-  if (ms == nullptr) {
-    i_error(" Error initializing metadata module ");
-    delete ms;
-    return -1;
-  }
-  std::vector<librmb::RadosMailObject *> mail_objects;
+  opts["ls"] = "mb";
+  opts["sort"] = "uid";
   librmb::CmdLineParser parser(opts["ls"]);
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    rmb_cmds.load_objects(ms, mail_objects, sort_type);
-    rmb_cmds.query_mail_storage(&mail_objects, &parser, false);
+    ret = cmd_rmb_search_run(opts, user, false, parser);
+  } else {
+    i_error("invalid ls search query");
   }
-  delete ms;
-
-  return 0;
+  return ret;
 }
 
 static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  int ret = -1;
   const char *search_query = ctx->args[0];
-  const char *sort = ctx->args[1];
-  const char *output_path = ctx->args[2];
-
-  std::string sort_type = sort != NULL ? sort : "uid";
-  RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
-  if (open < 0) {
-    i_error("error opening rados connection, check config: %d", open);
-    return open;
-  }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
-  std::map<std::string, std::string> opts;
-  opts["get"] = search_query;
-  opts["namespace"] = user->username;
-  opts["out"] = output_path;
-  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
-
-  std::string uid;
-  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-  if (ms == nullptr) {
-    i_error(" Error initializing metadata module ");
-    delete ms;
+  const char *output_path = ctx->args[1];
+  const char *sort = "uid";  // ctx->args[2];
+  if (search_query == NULL) {
+    i_error("no search query given");
     return -1;
   }
-  std::vector<librmb::RadosMailObject *> mail_objects;
-  librmb::CmdLineParser parser(opts["get"]);
-  rmb_cmds.set_output_path(&parser);
-  if (opts["get"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    rmb_cmds.load_objects(ms, mail_objects, sort_type);
-    rmb_cmds.query_mail_storage(&mail_objects, &parser, true);
+
+  std::map<std::string, std::string> opts;
+  opts["get"] = search_query;
+  if (output_path != NULL) {
+    opts["out"] = output_path;
   }
-  delete ms;
-  return 0;
+  opts["sort"] = "uid";
+
+  librmb::CmdLineParser parser(opts["get"]);
+  if (opts["get"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
+    ret = cmd_rmb_search_run(opts, user, true, parser);
+  } else {
+    i_error("invalid search query %s", search_query);
+  }
+  return ret;
 }
 static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *oid = ctx->args[0];
   const char *key_value_pair = ctx->args[1];
+  int ret = -1;
   if (oid == NULL || key_value_pair == NULL) {
     i_error("error check params: %s : %s ", oid, key_value_pair);
     return -1;
   }
 
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
+  int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
+
   std::map<std::string, std::string> opts;
   opts["set"] = oid;
   opts["namespace"] = user->username;
 
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
 
   std::string uid;
   librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
@@ -331,23 +304,19 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   const char *oid = ctx->args[0];
 
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
+  int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
+
   std::map<std::string, std::string> opts;
   opts["to_delete"] = oid;
   opts["namespace"] = user->username;
 
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+
   std::string uid;
   librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
   if (ms == nullptr) {
@@ -356,7 +325,7 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     return -1;
   }
 
-  ret = rmb_cmds.delete_mail(true);
+  int ret = rmb_cmds.delete_mail(true);
   delete ms;
   return ret;
 }
@@ -364,24 +333,19 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   const char *new_user_name = ctx->args[0];
 
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = plugin.open_connection();
+  int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = cfg->load_cfg();
-  if (ret < 0) {
-    i_error("error accessing configuration");
-    return ret;
-  }
+
   std::map<std::string, std::string> opts;
   opts["to_rename"] = new_user_name;
   opts["namespace"] = user->username;
 
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
   std::string uid;
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
   librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
   if (ms == nullptr) {
     i_error(" Error initializing metadata module ");
@@ -389,7 +353,7 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     return -1;
   }
 
-  ret = rmb_cmds.rename_user(cfg, true, uid);
+  int ret = rmb_cmds.rename_user(cfg, true, uid);
   delete ms;
   return ret;
 }
@@ -407,6 +371,7 @@ static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mai
   return librmb::RmbCommands::delete_with_save_log(log_file, plugin.config->get_rados_cluster_name(),
                                                    plugin.config->get_rados_username());
 }
+
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 0) {
     doveadm_mail_help_name("rmb lspools");
@@ -424,7 +389,7 @@ static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, co
 }
 static void cmd_rmb_get_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 3) {
-    doveadm_mail_help_name("rmb get <-|key=value> <uid|recv_date|save_date|phy_size> <output path>");
+    doveadm_mail_help_name("rmb get <-|key=value> <output path> <uid|recv_date|save_date|phy_size>");
   }
 }
 static void cmd_rmb_delete_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {

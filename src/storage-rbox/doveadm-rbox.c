@@ -29,7 +29,7 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_config_show_alloc, "rmb config show", NULL},
     {cmd_rmb_config_update_alloc, "rmb config update", "key=value"},
     {cmd_rmb_ls_alloc, "rmb ls", "-|key=value", "uid|recv_date|save_date|phy_size"},
-    {cmd_rmb_get_alloc, "rmb get", "-|key=value", "uid|recv_date|save_date|phy_size", "output path"},
+    {cmd_rmb_get_alloc, "rmb get", "-|key=value", "output path", "uid|recv_date|save_date|phy_size"},
     {cmd_rmb_set_alloc, "rmb set", "oid", "key=value"},
     {cmd_rmb_delete_alloc, "rmb delete", "oid"},
     {cmd_rmb_ls_mb_alloc, "rmb ls mb", NULL},
