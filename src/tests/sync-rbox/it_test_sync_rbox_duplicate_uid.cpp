@@ -75,6 +75,7 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   librados::bufferlist list;
   list.append("1");  // duplicate uid
   ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
+  EXPECT_EQ(ret, 0);
 
   const char *metadata_name_guid = "M";
   librados::bufferlist list2;

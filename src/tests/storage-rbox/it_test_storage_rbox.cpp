@@ -86,7 +86,6 @@ TEST_F(StorageTest, mail_save_to_inbox) {
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
-  ssize_t ret;
   bool save_failed = FALSE;
 
   if (mailbox_save_begin(&save_ctx, input) < 0) {
@@ -94,6 +93,7 @@ TEST_F(StorageTest, mail_save_to_inbox) {
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;
@@ -158,7 +158,6 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
   struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)save_ctx;
 
-  ssize_t ret;
   bool save_failed = FALSE;
   std::string test_oid;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
@@ -168,6 +167,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     struct mail_save_data *mdata = &r_ctx->ctx.data;
 
     test_oid = r_ctx->current_object->get_oid();

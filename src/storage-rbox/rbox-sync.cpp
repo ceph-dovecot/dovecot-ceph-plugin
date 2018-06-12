@@ -298,7 +298,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 }
 
 static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_error) {
-  struct mail_index_view *view = NULL;
+  struct mail_index_view *view;
   struct sdbox_index_header hdr;
   bool need_resize = false;
   int ret = 0;
@@ -316,19 +316,19 @@ static int rbox_refresh_header(struct rbox_mailbox *mbox, bool retry, bool log_e
 
 int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags) {
   FUNC_START();
-  struct rbox_sync_context *ctx = NULL;
+  struct rbox_sync_context *ctx;
   uint8_t sync_flags = 0x0;
 
-  int ret = 0;
   struct mail_storage *storage = mbox->box.storage;
 
   unsigned int i = 0;
-  bool rebuild, force_rebuild = false;
+  bool rebuild, force_rebuild;
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || mbox->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(mbox->box.view);
+  // cppcheck-suppress redundantAssignment
   rebuild = (hdr->flags & MAIL_INDEX_HDR_FLAG_FSCKD) != 0;
 #endif
 
@@ -346,7 +346,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
   for (i = 0;; i++) {
     // sync_ctx->flags werden gesetzt.
-    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
+    int ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<enum mail_index_sync_flags>(sync_flags));
 
     if (mail_index_reset_fscked(mbox->box.index))
@@ -430,7 +430,6 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
   unsigned int count, moved_count = 0;
-  unsigned int i, j = 0;
 
   /* NOTE: Index is no longer locked. Multiple processes may be deleting
      the objects at the same time. */
@@ -441,11 +440,11 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
 
   if (count > 0) {
     moved_items = array_get(&ctx->mbox->moved_items, &moved_count);
-    for (i = 0; i < count; i++) {
+    for (unsigned int i = 0; i < count; i++) {
       T_BEGIN {
         item = items[i];
         bool moved = FALSE;
-        for (j = 0; j < moved_count; j++) {
+        for (unsigned j = 0; j < moved_count; j++) {
           moved_item = moved_items[j];
           if (guid_128_equals(moved_item->oid, item->oid)) {
             moved = TRUE;
@@ -473,7 +472,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   struct rbox_sync_context *ctx = *_ctx;
   int ret = success ? 0 : -1;
   struct expunged_item *const *exp_items, *exp_item;
-  unsigned int count, i = 0;
+  unsigned int count =0 ;
 
   *_ctx = NULL;
   if (success) {
@@ -495,7 +494,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   if (array_is_created(&ctx->expunged_items)) {
     if (array_count(&ctx->expunged_items) > 0) {
       exp_items = array_get(&ctx->expunged_items, &count);
-      for (i = 0; i < count; i++) {
+      for (unsigned int i = 0; i < count; i++) {
         exp_item = exp_items[i];
         i_free(exp_item);
       }
@@ -525,7 +524,6 @@ int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags) {
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
   FUNC_START();
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
-  uint8_t rbox_sync_flags = 0x0;
   int ret = 0;
 
   if (!box->opened) {
@@ -538,6 +536,7 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     rbox_set_mailbox_corrupted(box);
   }
   if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->corrupted_rebuild_count != 0)) {
+    uint8_t rbox_sync_flags = 0x0;
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
     }

@@ -49,6 +49,7 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
                  strcmp(mail->box->storage->name, storage_name) == 0;
 
   int ret = rbox_mail_storage_copy(_ctx, mail);
+  // cppcheck-suppress redundantAssignment
   ctx->copying = FALSE;
 
   index_save_context_free(_ctx);
