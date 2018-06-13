@@ -86,8 +86,6 @@ class RboxDoveadmPlugin {
 };
 
 static int cmd_rmb_lspools_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  //  const char *ns_prefix = ctx->args[0];
-
   librmb::RmbCommands::RmbCommands::lspools();
   return 0;
 }
@@ -588,14 +586,16 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
     std::string guid = guid_128_to_string(obox_rec->guid);
     std::string oid = guid_128_to_string(obox_rec->oid);
 
-    std::vector<librmb::RadosMailObject *>::iterator it_mail =
-        std::find_if(mail_objects.begin(), mail_objects.end(),
-                     [oid](librmb::RadosMailObject const *m) { return m->get_oid() == oid; });
+    auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
+                                [oid](librmb::RadosMailObject const *m) { return m->get_oid() == oid; });
 
     if (it_mail == mail_objects.end()) {
-      std::cout << "   missing mail object .. " << mail->uid << " guid: " << guid << " oid : " << oid
+      std::cout << "   missing mail object: oid=" << mail->uid << " guid=" << guid << " oid : " << oid
                 << " available: " << (it_mail != mail_objects.end()) << std::endl;
       ++mail_count_missing;
+    } else {
+      mail_objects.erase(it_mail);
+      delete *it_mail;
     }
   }
   if (mailbox_search_deinit(&search_ctx) < 0) {
@@ -607,6 +607,9 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
   mailbox_free(&box);
   std::cout << "   mails total: " << mail_count << " missing mails (objectstore) " << mail_count_missing << std::endl;
 
+  if (mail_count_missing > 0) {
+    std::cout << "NOTE: you can fix the invalid index entries by using doveadm force-resync" << std::endl;
+  }
   return ret;
 }
 
@@ -618,8 +621,6 @@ static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<libr
   iter = mailbox_list_iter_init(ns->list, "*", MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS);
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
-      /*T_BEGIN { ret = rebuild_mailbox(ctx, ns, info->vname); }
-      T_END;*/
       ret = iterate_mailbox(ns, info, mail_objects);
       if (ret < 0) {
         ret = -1;
@@ -651,7 +652,14 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
     check_namespace_mailboxes(ns, mail_objects);
   }
 
-  return 0;
+  if (mail_objects.size() > 0) {
+    std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
+  }
+  for (auto mo : mail_objects) {
+    std::cout << mo->to_string("  ") << std::endl;
+    delete mo;
+  }
+
   return ret;
 }
 
