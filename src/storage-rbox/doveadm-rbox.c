@@ -23,7 +23,6 @@
 #define DOVEADM_EXPIRE_MAIL_CMD_CONTEXT(obj) MODULE_CONTEXT(obj, doveadm_expire_mail_cmd_module)
 const char *doveadm_rbox_plugin_version = DOVECOT_ABI_VERSION;
 
-
 static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_lspools_alloc, "rmb lspools", NULL},
     {cmd_rmb_config_create_alloc, "rmb config create", NULL},
@@ -35,7 +34,8 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_delete_alloc, "rmb delete", "oid"},
     {cmd_rmb_ls_mb_alloc, "rmb ls mb", NULL},
     {cmd_rmb_rename_alloc, "rmb rename", "new username"},
-    {cmd_rmb_save_log_alloc, "rmb save_log", "path to save_log"}};
+    {cmd_rmb_save_log_alloc, "rmb save_log", "path to save_log"},
+    {cmd_rmb_check_indices_alloc, "rmb check indices"}};
 
 void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;

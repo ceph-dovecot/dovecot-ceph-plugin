@@ -405,7 +405,7 @@ int main(int argc, const char **argv) {
     librmb::CmdLineParser parser(opts["ls"]);
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
       rmb_commands->load_objects(ms, mail_objects, sort_type);
-      rmb_commands->query_mail_storage(&mail_objects, &parser, false);
+      rmb_commands->query_mail_storage(&mail_objects, &parser, false, false);
     }
   } else if (opts.find("get") != opts.end()) {
     librmb::CmdLineParser parser(opts["get"]);
@@ -415,7 +415,7 @@ int main(int argc, const char **argv) {
     if (opts["get"].compare("all") == 0 || opts["get"].compare("-") == 0 || parser.parse_ls_string()) {
       // get load all objects metadata into memory
       rmb_commands->load_objects(ms, mail_objects, sort_type);
-      rmb_commands->query_mail_storage(&mail_objects, &parser, true);
+      rmb_commands->query_mail_storage(&mail_objects, &parser, true, false);
     }
   } else if (opts.find("set") != opts.end()) {
     rmb_commands->update_attributes(ms, &metadata);

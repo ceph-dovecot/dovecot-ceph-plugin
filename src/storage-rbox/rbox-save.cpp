@@ -485,7 +485,6 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
       r_ctx->current_object = *it;
       bool ret = seq_range_array_iter_nth(&iter, n++, &uid);
-      i_debug("seq rangearray _ ret = %d, uid = %ld", ret, uid);
       i_assert(ret);
       if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
         metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);

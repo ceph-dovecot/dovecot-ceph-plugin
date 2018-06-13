@@ -23,6 +23,9 @@ extern "C" {
 #include "mail-user.h"
 #include "guid.h"
 #include "mail-namespace.h"
+#include "mail-search-parser-private.h"
+#include "mail-search.h"
+#include "mail-search-build.h"
 }
 #include "tools/rmb/rmb-commands.h"
 #include "rados-cluster.h"
@@ -122,7 +125,8 @@ static int cmd_rmb_config(std::map<std::string, std::string> &opts, struct mail_
 }
 
 static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
-                              librmb::CmdLineParser &parser) {
+                              librmb::CmdLineParser &parser, std::vector<librmb::RadosMailObject *> &mail_objects,
+                              bool silent) {
   RboxDoveadmPlugin plugin;
   int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
@@ -142,14 +146,14 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
     delete ms;
     return -1;
   }
-  std::vector<librmb::RadosMailObject *> mail_objects;
+
   rmb_cmds.load_objects(ms, mail_objects, opts["sort"]);
 
   if (download) {
     rmb_cmds.set_output_path(&parser);
-    rmb_cmds.query_mail_storage(&mail_objects, &parser, download);
+    rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
   } else {
-    rmb_cmds.query_mail_storage(&mail_objects, &parser, download);
+    rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
   }
   delete ms;
 
@@ -212,7 +216,11 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
   librmb::CmdLineParser parser(opts["ls"]);
 
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    ret = cmd_rmb_search_run(opts, user, false, parser);
+    std::vector<librmb::RadosMailObject *> mail_objects;
+    ret = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
+    for (auto mo : mail_objects) {
+      delete mo;
+    }
   } else {
     i_error("invalid ls search query, %s", search_query);
   }
@@ -225,7 +233,11 @@ static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_u
   opts["sort"] = "uid";
   librmb::CmdLineParser parser(opts["ls"]);
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    ret = cmd_rmb_search_run(opts, user, false, parser);
+    std::vector<librmb::RadosMailObject *> mail_objects;
+    cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
+    for (auto mo : mail_objects) {
+      delete mo;
+    }
   } else {
     i_error("invalid ls search query");
   }
@@ -251,7 +263,12 @@ static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
 
   librmb::CmdLineParser parser(opts["get"]);
   if (opts["get"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    ret = cmd_rmb_search_run(opts, user, true, parser);
+    std::vector<librmb::RadosMailObject *> mail_objects;
+    ret = cmd_rmb_search_run(opts, user, true, parser, mail_objects, false);
+    for (auto mo : mail_objects) {
+      delete mo;
+    }
+
   } else {
     i_error("invalid search query %s", search_query);
   }
@@ -479,15 +496,13 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
     std::string key_guid(1, static_cast<char>(librmb::RBOX_METADATA_GUID));
     std::string key_mbox_name(1, static_cast<char>(librmb::RBOX_METADATA_ORIG_MAILBOX));
 
-    guid_128_t mail_guid, mail_oid;
-
     std::list<librmb::RadosMetadata>::iterator it_guid =
         std::find_if(it->metadata.begin(), it->metadata.end(),
                      [key_guid](librmb::RadosMetadata const &m) { return m.key == key_guid; });
     std::list<librmb::RadosMetadata>::iterator it_mb =
         std::find_if(it->metadata.begin(), it->metadata.end(),
                      [key_mbox_name](librmb::RadosMetadata const &m) { return m.key == key_mbox_name; });
-   
+
     restore_index_entry(cur_mail_user, (*it_mb).bl.to_str().c_str(), (*it_guid).bl.to_str(), it->src_oid);
   }
   mail_user_unref(&cur_mail_user);
@@ -524,6 +539,119 @@ static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mai
                                &iter->second);
   }
 
+  return ret;
+}
+
+static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info *info,
+                           std::vector<librmb::RadosMailObject *> &mail_objects) {
+  int ret = 0;
+  struct mailbox_transaction_context *mailbox_transaction;
+  struct mail_search_context *search_ctx;
+  struct mail_search_args *search_args;
+  struct mail_search_arg *sarg;
+  struct mail *mail;
+
+  struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
+
+  if (mailbox_open(box) < 0) {
+    return -1;
+  }
+#if DOVECOT_PREREQ(2, 3)
+  char reason[256];
+  memset(reason, '\0', sizeof(reason));
+  mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+
+#else
+  mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#endif
+
+  search_args = mail_search_build_init();
+  sarg = mail_search_build_add(search_args, SEARCH_ALL);
+
+  search_ctx = mailbox_search_init(mailbox_transaction, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
+  mail_search_args_unref(&search_args);
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  std::cout << "box: " << info->vname << std::endl;
+  int mail_count = 0;
+  int mail_count_missing = 0;
+  while (mailbox_search_next(search_ctx, &mail)) {
+    ++mail_count;
+    const struct obox_mail_index_record *obox_rec;
+    const void *rec_data;
+    mail_index_lookup_ext(mail->transaction->view, mail->seq, mbox->ext_id, &rec_data, NULL);
+    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+
+    if (obox_rec == nullptr) {
+      std::cerr << "no valid extended header for mail with uid: " << mail->uid << std::endl;
+      continue;
+    }
+    std::string guid = guid_128_to_string(obox_rec->guid);
+    std::string oid = guid_128_to_string(obox_rec->oid);
+
+    std::vector<librmb::RadosMailObject *>::iterator it_mail =
+        std::find_if(mail_objects.begin(), mail_objects.end(),
+                     [oid](librmb::RadosMailObject const *m) { return m->get_oid() == oid; });
+
+    if (it_mail == mail_objects.end()) {
+      std::cout << "   missing mail object .. " << mail->uid << " guid: " << guid << " oid : " << oid
+                << " available: " << (it_mail != mail_objects.end()) << std::endl;
+      ++mail_count_missing;
+    }
+  }
+  if (mailbox_search_deinit(&search_ctx) < 0) {
+    return -1;
+  }
+  if (mailbox_transaction_commit(&mailbox_transaction) < 0) {
+    return -1;
+  }
+  mailbox_free(&box);
+  std::cout << "   mails total: " << mail_count << " missing mails (objectstore) " << mail_count_missing << std::endl;
+
+  return ret;
+}
+
+static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects) {
+  struct mailbox_list_iterate_context *iter;
+  const struct mailbox_info *info;
+  int ret = 0;
+
+  iter = mailbox_list_iter_init(ns->list, "*", MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS);
+  while ((info = mailbox_list_iter_next(iter)) != NULL) {
+    if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
+      /*T_BEGIN { ret = rebuild_mailbox(ctx, ns, info->vname); }
+      T_END;*/
+      ret = iterate_mailbox(ns, info, mail_objects);
+      if (ret < 0) {
+        ret = -1;
+        break;
+      }
+    }
+  }
+  if (mailbox_list_iter_deinit(&iter) < 0)
+    ret = -1;
+  return ret;
+}
+
+static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  int ret = -1;
+
+  std::map<std::string, std::string> opts;
+  opts["ls"] = "-";  // search all objects
+  opts["sort"] = "uid";
+  librmb::CmdLineParser parser(opts["ls"]);
+  parser.parse_ls_string();
+  std::vector<librmb::RadosMailObject *> mail_objects;
+  ret = cmd_rmb_search_run(opts, user, false, parser, mail_objects, true);
+  if (ret < 0) {
+    return ret;
+  }
+
+  struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+  for (; ns != NULL; ns = ns->next) {
+    check_namespace_mailboxes(ns, mail_objects);
+  }
+
+  return 0;
   return ret;
 }
 
@@ -572,7 +700,11 @@ static void cmd_rmb_save_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUS
   if (str_array_length(args) > 1) {
     doveadm_mail_help_name("rmb save_log path to save_log");
   }
-
+}
+static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb check indices");
+  }
 }
 struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
   struct doveadm_mail_cmd_context *ctx;
@@ -651,5 +783,12 @@ struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void) {
   ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
   ctx->v.run = cmd_rmb_save_log_run;
   ctx->v.init = cmd_rmb_save_log_init;
+  return ctx;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_check_indices_run;
+  ctx->v.init = cmd_rmb_check_indices_init;
   return ctx;
 }

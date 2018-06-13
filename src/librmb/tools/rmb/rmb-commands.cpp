@@ -413,7 +413,7 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
 }
 
 int RmbCommands::query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
-                                    bool download) {
+                                    bool download, bool silent) {
   print_debug("entry: query_mail_storage");
   int ret = 0;
   std::map<std::string, librmb::RadosMailBox *> mailbox;
@@ -439,10 +439,11 @@ int RmbCommands::query_mail_storage(std::vector<librmb::RadosMailObject *> *mail
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_mail_size());
     }
   }
-  std::cout << "mailbox_count: " << mailbox.size() << std::endl;
+  if (!silent) {
+    std::cout << "mailbox_count: " << mailbox.size() << std::endl;
 
-  ret = print_mail(&mailbox, parser->get_output_dir(), download);
-
+    ret = print_mail(&mailbox, parser->get_output_dir(), download);
+  }
   for (auto &it : mailbox) {
     delete it.second;
   }
