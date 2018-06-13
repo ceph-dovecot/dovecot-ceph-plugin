@@ -45,7 +45,7 @@ class RadosSaveLogEntry {
     while (std::getline(left, item, ':')) {
       left_tokens.push_back(item);
     }
-    if (left_tokens.size() < 3) {
+    if (left_tokens.size() < 4) {
       return false;
     }
 
@@ -55,7 +55,7 @@ class RadosSaveLogEntry {
     // mv specific
     src_ns = left_tokens[1];
     src_oid = left_tokens[2];
-
+    src_user = left_tokens[3];
     // parsing metadata.
     std::stringstream right(op.substr(pos + 1, op.size()));
     std::vector<std::string> right_tokens;
@@ -70,10 +70,10 @@ class RadosSaveLogEntry {
   }
   static std::string op_save() { return "save"; }
   static std::string op_cpy() { return "cpy"; }
-  static std::string op_mv(const std::string &src_ns, const std::string &src_oid,
+  static std::string op_mv(const std::string &src_ns, const std::string &src_oid, const std::string &src_user,
                            std::list<librmb::RadosMetadata *> &metadata) {
     std::stringstream mv;
-    mv << "mv:" << src_ns << ":" << src_oid << ";" << convert_metadata(metadata, ":");
+    mv << "mv:" << src_ns << ":" << src_oid << ":" << src_user << ";" << convert_metadata(metadata, ":");
     return mv.str();
   }
 
@@ -131,6 +131,7 @@ class RadosSaveLogEntry {
   std::string op;    // operation: save, cp (copy), mv (move)
   std::string src_oid;
   std::string src_ns;
+  std::string src_user;
   std::list<librmb::RadosMetadata> metadata;
 };
 

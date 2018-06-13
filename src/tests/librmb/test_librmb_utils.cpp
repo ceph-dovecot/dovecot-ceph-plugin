@@ -264,7 +264,7 @@ TEST(librmb, test_mvn_option) {
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("dest_oid", "ns_dest", "mail_storage",
-                                            librmb::RadosSaveLogEntry::op_mv("ns_src", "src_oid", metadata)));
+                                            librmb::RadosSaveLogEntry::op_mv("ns_src", "src_oid", "user", metadata)));
   std::ifstream read(test_file_name);
   while (true) {
     librmb::RadosSaveLogEntry entry;
@@ -276,7 +276,7 @@ TEST(librmb, test_mvn_option) {
     EXPECT_EQ(entry.oid, "dest_oid");
     EXPECT_EQ(entry.ns, "ns_dest");
     EXPECT_EQ(entry.pool, "mail_storage");
-    EXPECT_EQ(entry.op, "mv:ns_src:src_oid;M=ABCDEFG:B=INBOX:U=1");
+    EXPECT_EQ(entry.op, "mv:ns_src:src_oid:user;M=ABCDEFG:B=INBOX:U=1");
     EXPECT_EQ(entry.metadata.size(), 3);
   }
 

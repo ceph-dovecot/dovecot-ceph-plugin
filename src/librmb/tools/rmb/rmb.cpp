@@ -313,7 +313,8 @@ int main(int argc, const char **argv) {
 
   if (!remove_save_log.empty()) {
     if (confirmed) {
-      return librmb::RmbCommands::delete_with_save_log(remove_save_log, rados_cluster, rados_user);
+      std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
+      return librmb::RmbCommands::delete_with_save_log(remove_save_log, rados_cluster, rados_user, &moved_items);
     } else {
       std::cout << "WARNING:" << std::endl;
       std::cout << "Performing this command, will delete all mail objects from ceph object store which are "

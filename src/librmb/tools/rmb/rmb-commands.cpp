@@ -21,7 +21,6 @@
 #include "rados-namespace-manager.h"
 #include "rados-metadata-storage-ima.h"
 #include "rados-metadata-storage-default.h"
-#include "rados-save-log.h"
 #include "ls_cmd_parser.h"
 
 namespace librmb {
@@ -44,7 +43,8 @@ void RmbCommands::print_debug(const std::string &msg) {
   }
 }
 int RmbCommands::delete_with_save_log(const std::string &save_log, const std::string &rados_cluster,
-                                      const std::string &rados_user) {
+                                      const std::string &rados_user,
+                                      std::map<std::string, std::list<librmb::RadosSaveLogEntry>> *moved_items) {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
   int count = 0;
@@ -81,7 +81,6 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
       }
     }
     storage.set_namespace(entry.ns);
-
     if (entry.op.compare("save") == 0 || entry.op.compare("cpy") == 0) {
       int ret_delete = storage.delete_mail(entry.oid);
       if (ret_delete < 0) {
@@ -91,8 +90,18 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
         count++;
       }
     } else {
-      if (storage.move(entry.oid, entry.ns.c_str(), entry.src_oid, entry.src_ns.c_str(), entry.metadata, true) < 0) {
-        std::cerr << "moving : " << entry.oid << " to " << entry.src_oid << " failed !" << std::endl;
+      int ret = storage.move(entry.oid, entry.ns.c_str(), entry.src_oid, entry.src_ns.c_str(), entry.metadata, true);
+      if (ret < 0) {
+        std::cerr << "moving : " << entry.oid << " to " << entry.src_oid << " failed ! ret code: " << ret << std::endl;
+      } else {
+        std::cerr << " ola: mr: " << entry.src_user << std::endl;
+        if (moved_items->find(entry.src_user) == moved_items->end()) {
+          std::list<librmb::RadosSaveLogEntry> entries;
+          entries.push_back(entry);
+          (*moved_items)[entry.src_user] = entries;
+        } else {
+          (*moved_items)[entry.src_user].push_back(entry);
+        }
       }
       count++;
     }

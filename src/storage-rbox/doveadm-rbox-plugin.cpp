@@ -17,9 +17,12 @@ extern "C" {
 #include "dict.h"
 #include "imap-match.h"
 #include "doveadm-settings.h"
+#include "mail-index-private.h"
 #include "doveadm-mail.h"
 #include "doveadm-rbox-plugin.h"
 #include "mail-user.h"
+#include "guid.h"
+#include "mail-namespace.h"
 }
 #include "tools/rmb/rmb-commands.h"
 #include "rados-cluster.h"
@@ -28,6 +31,9 @@ extern "C" {
 #include "rados-storage-impl.h"
 #include "rados-dovecot-ceph-cfg.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
+#include "rbox-storage.h"
+#include "rbox-save.h"
+#include <algorithm>
 
 class RboxDoveadmPlugin {
  public:
@@ -230,7 +236,7 @@ static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   int ret = -1;
   const char *search_query = ctx->args[0];
   const char *output_path = ctx->args[1];
-  const char *sort = "uid";  // ctx->args[2];
+
   if (search_query == NULL) {
     i_error("no search query given");
     return -1;
@@ -357,6 +363,142 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   delete ms;
   return ret;
 }
+static int restore_index_entry(struct mail_user *user, const char *mailbox_name, const std::string &str_mail_guid,
+                               const std::string &str_mail_oid) {
+  struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+  struct mailbox *box = mailbox_alloc(ns->list, mailbox_name, MAILBOX_FLAG_READONLY);
+  if (mailbox_open(box) < 0) {
+    return -1;
+  }
+#if DOVECOT_PREREQ(2, 3)
+  char reason[256];
+  memset(reason, '\0', sizeof(reason));
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
+#else
+  struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
+#endif
+
+  struct mail_save_context *save_ctx = mailbox_save_alloc(trans);
+
+  const struct mail_index_header *hdr = mail_index_get_header(save_ctx->transaction->view);
+  uint32_t next_uid, seq = 0;
+  // modify index
+  if (hdr->next_uid != 0) {
+    // found a uid;
+    next_uid = hdr->next_uid;
+  } else {
+    next_uid = 1;
+  }
+/* add to index */
+#if DOVECOT_PREREQ(2, 3)
+
+  if ((save_ctx->transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
+    mail_index_append(save_ctx->transaction->itrans, next_uid, &seq);
+  } else {
+    seq = save_ctx->data.stub_seq;
+  }
+#else
+  mail_index_append(save_ctx->transaction->itrans, next_uid, &seq);
+#endif
+
+  /* save the 128bit GUID/OID to index record */
+  struct obox_mail_index_record rec;
+  i_zero(&rec);
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)save_ctx;
+
+  guid_128_t mail_guid, mail_oid;
+  guid_128_from_string(str_mail_guid.c_str(), mail_guid);
+  guid_128_from_string(str_mail_oid.c_str(), mail_oid);
+
+  memcpy(rec.guid, mail_guid, sizeof(mail_guid));
+  memcpy(rec.oid, mail_oid, sizeof(mail_oid));
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+
+  mail_index_update_ext(save_ctx->transaction->itrans, seq, mbox->ext_id, &rec, NULL);
+
+  save_ctx->transaction->save_count++;
+  r_ctx->finished = TRUE;
+  save_ctx->finishing = FALSE;
+  save_ctx->unfinished = FALSE;
+  save_ctx->saving = FALSE;
+  if (mailbox_transaction_commit(&trans) < 0) {
+    return -1;
+  }
+
+  mailbox_free(&box);
+  return 0;
+}
+
+static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
+                                      const struct mail_storage_service_input *input,
+                                      struct mail_storage_service_user *cur_service_user,
+                                      struct mail_user *cur_mail_user, const char **error_r,
+                                      std::list<librmb::RadosSaveLogEntry> *entries) {
+  const char *error, *ip;
+  int ret;
+
+  ip = net_ip2addr(&input->remote_ip);
+  if (ip[0] == '\0')
+    i_set_failure_prefix("doveadm(%s): ", input->username);
+  else
+    i_set_failure_prefix("doveadm(%s,%s): ", ip, input->username);
+
+  /* see if we want to execute this command via (another)
+     doveadm server */
+  ret = doveadm_mail_server_user(ctx, input, error_r);
+  if (ret != 0) {
+    i_debug("doveadm_mail_server_user");
+    return ret;
+  }
+
+  ret = mail_storage_service_lookup(ctx->storage_service, input, &cur_service_user, &error);
+  if (ret <= 0) {
+    if (ret < 0) {
+      *error_r = t_strdup_printf("User lookup failed: %s", error);
+    }
+    return ret;
+  }
+#if DOVECOT_PREREQ(2, 3)
+  ret = mail_storage_service_next(ctx->storage_service, cur_service_user, &cur_mail_user, error_r);
+
+#else
+  ret = mail_storage_service_next(ctx->storage_service, cur_service_user, &cur_mail_user);
+#endif
+  if (ret < 0) {
+    *error_r = "User init failed";
+#if DOVECOT_PREREQ(2, 3)
+    mail_storage_service_user_unref(&cur_service_user);
+#else
+    mail_storage_service_user_free(&cur_service_user);
+#endif
+  return ret;
+  }
+  for (std::list<librmb::RadosSaveLogEntry>::iterator it = entries->begin(); it != entries->end(); ++it) {
+    // do something here!
+
+    std::string key_guid(1, static_cast<char>(librmb::RBOX_METADATA_GUID));
+    std::string key_mbox_name(1, static_cast<char>(librmb::RBOX_METADATA_ORIG_MAILBOX));
+
+    guid_128_t mail_guid, mail_oid;
+
+    std::list<librmb::RadosMetadata>::iterator it_guid =
+        std::find_if(it->metadata.begin(), it->metadata.end(),
+                     [key_guid](librmb::RadosMetadata const &m) { return m.key == key_guid; });
+    std::list<librmb::RadosMetadata>::iterator it_mb =
+        std::find_if(it->metadata.begin(), it->metadata.end(),
+                     [key_mbox_name](librmb::RadosMetadata const &m) { return m.key == key_mbox_name; });
+   
+    restore_index_entry(cur_mail_user, (*it_mb).bl.to_str().c_str(), (*it_guid).bl.to_str(), it->src_oid);
+  }
+  mail_user_unref(&cur_mail_user);
+
+#if DOVECOT_PREREQ(2, 3)
+  mail_storage_service_user_unref(&cur_service_user);
+#else
+  mail_storage_service_user_free(&cur_service_user);
+#endif
+  return 1;
+}
 
 static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *log_file = ctx->args[0];
@@ -368,8 +510,21 @@ static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mai
     i_error("error opening rados connection, check config: %d", open);
     return open;
   }
-  return librmb::RmbCommands::delete_with_save_log(log_file, plugin.config->get_rados_cluster_name(),
-                                                   plugin.config->get_rados_username());
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
+  int ret = librmb::RmbCommands::delete_with_save_log(log_file, plugin.config->get_rados_cluster_name(),
+                                                      plugin.config->get_rados_username(), &moved_items);
+
+  for (std::map<std::string, std::list<librmb::RadosSaveLogEntry>>::iterator iter = moved_items.begin();
+       iter != moved_items.end(); ++iter) {
+    const char *error;
+    struct mail_storage_service_user *cur_service_user;
+    struct mail_user *cur_mail_user;
+    ctx->storage_service_input.username = iter->first.c_str();
+    doveadm_rmb_mail_next_user(ctx, &ctx->storage_service_input, cur_service_user, cur_mail_user, &error,
+                               &iter->second);
+  }
+
+  return ret;
 }
 
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
@@ -417,6 +572,7 @@ static void cmd_rmb_save_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUS
   if (str_array_length(args) > 1) {
     doveadm_mail_help_name("rmb save_log path to save_log");
   }
+
 }
 struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
   struct doveadm_mail_cmd_context *ctx;

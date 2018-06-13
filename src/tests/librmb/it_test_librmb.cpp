@@ -11,7 +11,7 @@
 
 #include <ctime>
 #include <rados/librados.hpp>
-
+#include <algorithm>
 #include "../../librmb/rados-cluster-impl.h"
 #include "../../librmb/rados-storage-impl.h"
 #include "mock_test.h"
@@ -1183,8 +1183,8 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
   librados::bufferlist bl;
   EXPECT_EQ(0, storage.save_mail("abc", bl));
   cluster.deinit();
-
-  EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin"));
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
+  EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
 }
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
@@ -1197,8 +1197,9 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
   EXPECT_EQ(true, log_file.close());
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
 
-  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin"));
+  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
 }
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_file) {
@@ -1210,8 +1211,9 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_file) {
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
   EXPECT_EQ(true, log_file.close());
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
 
-  EXPECT_EQ(-1, librmb::RmbCommands::delete_with_save_log("test12.log", "ceph", "client.admin"));
+  EXPECT_EQ(-1, librmb::RmbCommands::delete_with_save_log("test12.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
 }
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
@@ -1235,9 +1237,50 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
   librados::bufferlist bl;
   EXPECT_EQ(0, storage.save_mail("abc", bl));
   cluster.deinit();
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
 
-  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph",
-                                                         "client.admin"));  // -> due to invalid entry in object list
+  EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin",
+                                                         &moved_items));  // -> due to invalid entry in object list
+  std::remove(test_file_name.c_str());
+}
+
+TEST(librmb, move_object_delete_with_save_log) {
+  librmb::RadosClusterImpl cluster;
+  librmb::RadosStorageImpl storage(&cluster);
+
+  std::string pool_name("rmb_tool_tests");
+  std::string ns("t1");
+
+  int open_connection = storage.open_connection(pool_name);
+  EXPECT_EQ(0, open_connection);
+  storage.set_namespace(ns);
+
+  std::string test_file_name = "test1.log";
+  librmb::RadosSaveLog log_file(test_file_name);
+  EXPECT_EQ(true, log_file.open());
+  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests",
+                                            "mv:t1:abc:t1;M=123:B=INBOX:U=1:G=0246da2269ac1f5b3e1700009c60b9f7"));
+  EXPECT_EQ(true, log_file.close());
+  librados::bufferlist bl;
+  EXPECT_EQ(0, storage.save_mail("abc", bl));
+  cluster.deinit();
+  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
+  EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
+  EXPECT_EQ(1, moved_items.size());
+  std::list<librmb::RadosSaveLogEntry> list = moved_items["t1"];
+  EXPECT_EQ(1, list.size());
+  librmb::RadosSaveLogEntry entry = list.front();
+
+  EXPECT_EQ(entry.src_oid, "abc");
+  EXPECT_EQ(entry.src_ns, "t1");
+  EXPECT_EQ(entry.src_user, "t1");
+
+  std::string key_guid(1, static_cast<char>(librmb::RBOX_METADATA_GUID));
+  std::list<librmb::RadosMetadata>::iterator it_guid =
+      std::find_if(entry.metadata.begin(), entry.metadata.end(),
+                   [key_guid](librmb::RadosMetadata const &m) { return m.key == key_guid; });
+  EXPECT_EQ("0246da2269ac1f5b3e1700009c60b9f7", (*it_guid).bl.to_str());
+
   std::remove(test_file_name.c_str());
 }
 TEST(librmb, mock_obj) {}
