@@ -35,7 +35,7 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_ls_mb_alloc, "rmb ls mb", NULL},
     {cmd_rmb_rename_alloc, "rmb rename", "new username"},
     {cmd_rmb_save_log_alloc, "rmb save_log", "path to save_log"},
-    {cmd_rmb_check_indices_alloc, "rmb check indices"}};
+    {cmd_rmb_check_indices_alloc, "rmb check indices", "delete_not_referenced_objects"}};
 
 void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;

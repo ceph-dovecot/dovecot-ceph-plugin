@@ -587,15 +587,14 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
     std::string oid = guid_128_to_string(obox_rec->oid);
 
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                                [oid](librmb::RadosMailObject const *m) { return m->get_oid() == oid; });
+                                [oid](librmb::RadosMailObject const *m) { return m->get_oid().compare(oid) == 0; });
 
     if (it_mail == mail_objects.end()) {
-      std::cout << "   missing mail object: oid=" << mail->uid << " guid=" << guid << " oid : " << oid
+      std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
                 << " available: " << (it_mail != mail_objects.end()) << std::endl;
       ++mail_count_missing;
     } else {
-      mail_objects.erase(it_mail);
-      delete *it_mail;
+      mail_objects.erase(it_mail);  // calls destructor of RadosMailObject*
     }
   }
   if (mailbox_search_deinit(&search_ctx) < 0) {
@@ -605,10 +604,11 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
     return -1;
   }
   mailbox_free(&box);
-  std::cout << "   mails total: " << mail_count << " missing mails (objectstore) " << mail_count_missing << std::endl;
+  std::cout << "   mails total: " << mail_count << ", missing mails in objectstore: " << mail_count_missing
+            << std::endl;
 
   if (mail_count_missing > 0) {
-    std::cout << "NOTE: you can fix the invalid index entries by using doveadm force-resync" << std::endl;
+    std::cout << "NOTE: you can fix(remove) the invalid index entries by using doveadm force-resync" << std::endl;
   }
   return ret;
 }
@@ -635,6 +635,7 @@ static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<libr
 
 static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   int ret = -1;
+  const char *delete_not_referenced_objects = ctx->args[0] != NULL ? ctx->args[0] : "";
 
   std::map<std::string, std::string> opts;
   opts["ls"] = "-";  // search all objects
@@ -654,10 +655,38 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   if (mail_objects.size() > 0) {
     std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
+    std::cout << "NOTE: you can fix(restore) the lost index entries by using doveadm force-resync or delete the "
+                 "unrefrenced objects from objectstore "
+                 "with the delete_not_referenced_objects option"
+              << std::endl;
   }
+
+  RboxDoveadmPlugin plugin;
+
+  int open = open_connection_load_config(&plugin, user);
+  if (open < 0) {
+    std::cout << " connection to rados cluster failed." << std::endl;
+  }
+  opts["namespace"] = user->username;
+
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+
+  std::string uid;
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module ");
+    delete ms;
+    open = -1;
+  }
+
   for (auto mo : mail_objects) {
     std::cout << mo->to_string("  ") << std::endl;
-    delete mo;
+    if (open >= 0 && strcmp(delete_not_referenced_objects, "delete_not_referenced_objects") == 0) {
+      std::cout << "mail object: " << mo->get_oid().c_str()
+                << " deleted: " << (plugin.storage->delete_mail(mo) < 0 ? " FALSE " : " TRUE") << std::endl;
+     }
+     delete mo;
   }
 
   return ret;
