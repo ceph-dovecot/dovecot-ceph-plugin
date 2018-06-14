@@ -376,7 +376,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
       } else {
         /* do a full resync and try again. */
         rebuild = FALSE;
-        ret = rbox_sync_index_rebuild(mbox, force_rebuild);
+        ret = rbox_storage_rebuild_in_context(mbox->storage, force_rebuild);
       }
     }
     mail_index_sync_rollback(&ctx->index_sync_ctx);

@@ -33,4 +33,5 @@ extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::
                                    bool alt_storage, bool generate_guid);
 extern int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force);
 extern int search_objects(struct index_rebuild_context *ctx, bool alt_storage);
+extern int rbox_storage_rebuild_in_context(struct rbox_storage *storage, bool force);
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_

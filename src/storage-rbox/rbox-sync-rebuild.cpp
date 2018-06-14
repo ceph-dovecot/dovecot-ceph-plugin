@@ -210,6 +210,49 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   return ret;
 }
 
+static int repair_namespace(struct mail_namespace *ns, bool force) {
+  FUNC_START();
+  struct mailbox_list_iterate_context *iter;
+  const struct mailbox_info *info;
+  int ret = 0;
+
+  iter = mailbox_list_iter_init(ns->list, "*", MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS);
+  while ((info = mailbox_list_iter_next(iter)) != NULL) {
+    if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
+      struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
+
+      if (mailbox_open(box) < 0) {
+        return -1;
+      }
+      struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+      ret = rbox_sync_index_rebuild(mbox, force);
+      if (ret < 0) {
+        i_error("error resync %s", info->vname);
+      }
+      mailbox_free(&box);
+    }
+  }
+  if (mailbox_list_iter_deinit(&iter) < 0) {
+    ret = -1;
+  }
+
+  FUNC_END();
+  return ret;
+}
+
+int rbox_storage_rebuild_in_context(struct rbox_storage *storage, bool force) {
+  FUNC_START();
+
+  struct mail_user *user = storage->storage.user;
+
+  struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+  for (; ns != NULL; ns = ns->next) {
+    repair_namespace(ns, force);
+  }
+
+  FUNC_END();
+}
+
 int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
   struct index_rebuild_context *ctx;
   struct mail_index_view *view;
