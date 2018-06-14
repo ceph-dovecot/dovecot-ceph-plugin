@@ -20,18 +20,24 @@
 extern "C" {
 #include "index-rebuild.h"
 }
+
+struct rbox_sync_rebuild_ctx {
+  bool alt_storage;
+  uint32_t next_uid;
+};
+
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
                                 librmb::RadosMailObject *mail_obj, bool alt_storage,
 				bool update_uid, uint32_t uid);
 
 extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
-                                   bool alt_storage);
+                                   struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern void rbox_sync_set_uidvalidity(struct index_rebuild_context *ctx);
 
 extern int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx);
 extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
-                                   bool alt_storage, bool generate_guid);
+                                   struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force);
-extern int search_objects(struct index_rebuild_context *ctx, bool alt_storage);
+extern int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern int rbox_storage_rebuild_in_context(struct rbox_storage *storage, bool force);
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
