@@ -498,7 +498,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
     return ret;
   }
 #if DOVECOT_PREREQ(2, 3)
-  ret = mail_storage_service_next(ctx->storage_service, cur_service_user, &cur_mail_user, error_r);
+  ret = mail_storage_service_next(ctx->storage_service, cur_service_user, cur_mail_user, error_r);
 
 #else
   ret = mail_storage_service_next(ctx->storage_service, cur_service_user, cur_mail_user);
