@@ -128,7 +128,7 @@ static int cmd_rmb_config(std::map<std::string, std::string> &opts, struct mail_
 
 static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
                               librmb::CmdLineParser &parser, std::vector<librmb::RadosMailObject *> &mail_objects,
-                              bool silent) {
+                              bool silent, bool load_metadata = true) {
   RboxDoveadmPlugin plugin;
   int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
@@ -149,7 +149,7 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
     return 0;
   }
 
-  int ret = rmb_cmds.load_objects(ms, mail_objects, opts["sort"]);
+  int ret = rmb_cmds.load_objects(ms, mail_objects, opts["sort"], load_metadata);
   if (ret < 0) {
     i_error("Error loading ceph objects. Errorcode: %d", ret);
     delete ms;
@@ -673,7 +673,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   librmb::CmdLineParser parser(opts["ls"]);
   parser.parse_ls_string();
   std::vector<librmb::RadosMailObject *> mail_objects;
-  ret = cmd_rmb_search_run(opts, user, false, parser, mail_objects, true);
+  ret = cmd_rmb_search_run(opts, user, false, parser, mail_objects, true, false);
   if (ret < 0) {
     return ret;
   }

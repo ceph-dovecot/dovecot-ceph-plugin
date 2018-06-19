@@ -50,7 +50,7 @@ class RmbCommands {
   int configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
   int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
-                   std::string &sort_string);
+                   std::string &sort_string, bool load_metadata = true);
   int update_attributes(librmb::RadosStorageMetadataModule *ms, std::map<std::string, std::string> *metadata);
   int print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir, bool download);
   int query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,

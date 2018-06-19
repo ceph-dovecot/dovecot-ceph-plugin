@@ -12,6 +12,7 @@
 #include "rmb-commands.h"
 #include <algorithm>  // std::sort
 #include <cstdio>
+#include <time.h>
 
 #include "../../rados-cluster-impl.h"
 #include "../../rados-storage-impl.h"
@@ -311,69 +312,105 @@ bool RmbCommands::sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailOb
   return *i->get_rados_save_date() < *j->get_rados_save_date();
 }
 
+struct AioStat {
+  librmb::RadosMailObject *mail;
+  std::vector<librmb::RadosMailObject *> *mail_objects;
+  uint64_t object_size = 0;
+  time_t save_date_rados;
+  librados::AioCompletion *completion;
+};
+
+static void aio_cb(rados_completion_t cb, void *arg) {
+  AioStat *stat = static_cast<AioStat *>(arg);
+  if (stat->completion->get_return_value() == 0) {
+    stat->mail->set_mail_size(stat->object_size);
+    stat->mail->set_rados_save_date(stat->save_date_rados);
+    stat->mail_objects->push_back(stat->mail);
+  } else {
+    std::cout << " object '" << stat->mail->get_oid() << "' is not a valid mail object, size = 0" << std::endl;
+    delete stat->mail;
+  }
+  delete stat;
+}
 int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
-                              std::vector<librmb::RadosMailObject *> &mail_objects, std::string &sort_string) {
+                              std::vector<librmb::RadosMailObject *> &mail_objects, std::string &sort_string,
+                              bool load_metadata) {
+  time_t begin = time(NULL);
+
   print_debug("entry: load_objects");
   if (ms == nullptr || storage == nullptr) {
     print_debug("end: load_objects");
     return -1;
   }
-  // get load all objects metadata into memory
+  std::list<librados::AioCompletion *> completions;
+  // load all objects metadata into memory
   librados::NObjectIterator iter(storage->find_mails(nullptr));
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     librmb::RadosMailObject *mail = new librmb::RadosMailObject();
+    AioStat *stat = new AioStat();
+    stat->mail = mail;
+    stat->mail_objects = &mail_objects;
+
     std::string oid = iter->get_oid();
-    uint64_t object_size = 0;
-    time_t save_date_rados;
-    int ret = storage->stat_mail(oid, &object_size, &save_date_rados);
-    if (ret != 0 || object_size == 0) {
+    stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), aio_cb, NULL);
+    int ret = storage->get_io_ctx().aio_stat(oid, stat->completion, &stat->object_size, &stat->save_date_rados);
+    if (ret != 0) {
       std::cout << " object '" << oid << "' is not a valid mail object, size = 0" << std::endl;
       ++iter;
       delete mail;
+      delete stat;
       continue;
     }
+    completions.push_back(stat->completion);
     mail->set_oid(oid);
-    if (ms->load_metadata(mail) < 0) {
-      std::cout << " loading metadata of object '" << oid << "' faild " << std::endl;
-      ++iter;
-      delete mail;
-      continue;
+    if (load_metadata) {
+      if (ms->load_metadata(mail) < 0) {
+        std::cout << " loading metadata of object '" << oid << "' faild " << std::endl;
+        ++iter;
+        delete mail;
+        continue;
+      }
+
+      if (mail->get_metadata()->empty()) {
+        std::cout << " pool object " << oid << " is not a mail object" << std::endl;
+        ++iter;
+        delete mail;
+        continue;
+      }
+
+      if (!librmb::RadosUtils::validate_metadata(mail->get_metadata())) {
+        std::cout << "object : " << oid << " metadata is not valid " << std::endl;
+        ++iter;
+        delete mail;
+        continue;
+      }
     }
 
-    if (mail->get_metadata()->empty()) {
-      std::cout << " pool object " << oid << " is not a mail object" << std::endl;
-      ++iter;
-      delete mail;
-      continue;
-    }
-
-    if (!librmb::RadosUtils::validate_metadata(mail->get_metadata())) {
-      std::cout << "object : " << oid << " metadata is not valid " << std::endl;
-      ++iter;
-      delete mail;
-      continue;
-    }
-
-    mail->set_mail_size(object_size);
-    mail->set_rados_save_date(save_date_rados);
     ++iter;
-    mail_objects.push_back(mail);
     if (is_debug) {
       std::cout << "added: mail " << mail->get_oid() << std::endl;
     }
   }
 
-  if (sort_string.compare("uid") == 0) {
-    std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
-  } else if (sort_string.compare("recv_date") == 0) {
-    std::sort(mail_objects.begin(), mail_objects.end(), sort_recv_date);
-  } else if (sort_string.compare("phy_size") == 0) {
-    std::sort(mail_objects.begin(), mail_objects.end(), sort_phy_size);
-  } else {
-    std::sort(mail_objects.begin(), mail_objects.end(), sort_save_date);
+  for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
+    (*it)->wait_for_complete_and_cb();
+    (*it)->release();
   }
+  if (load_metadata) {
+    if (sort_string.compare("uid") == 0) {
+      std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
+    } else if (sort_string.compare("recv_date") == 0) {
+      std::sort(mail_objects.begin(), mail_objects.end(), sort_recv_date);
+    } else if (sort_string.compare("phy_size") == 0) {
+      std::sort(mail_objects.begin(), mail_objects.end(), sort_phy_size);
+    } else {
+      std::sort(mail_objects.begin(), mail_objects.end(), sort_save_date);
+    }
+  }
+  time_t end = time(NULL);
 
   print_debug("end: load_objects");
+  std::cout << " time elapsed loading objects: " << (end - begin) << std::endl;
   return 0;
 }
 
