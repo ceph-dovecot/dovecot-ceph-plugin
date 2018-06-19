@@ -317,15 +317,40 @@ struct AioStat {
   std::vector<librmb::RadosMailObject *> *mail_objects;
   uint64_t object_size = 0;
   time_t save_date_rados;
+  librmb::RadosStorageMetadataModule *ms;
+  bool load_metadata;
   librados::AioCompletion *completion;
 };
 
 static void aio_cb(rados_completion_t cb, void *arg) {
   AioStat *stat = static_cast<AioStat *>(arg);
-  if (stat->completion->get_return_value() == 0) {
+  if (stat->completion->get_return_value() == 0 && stat->object_size > 0) {
     stat->mail->set_mail_size(stat->object_size);
     stat->mail->set_rados_save_date(stat->save_date_rados);
-    stat->mail_objects->push_back(stat->mail);
+    std::cout << " object '" << stat->mail->get_oid() << "' added size " << stat->object_size << std::endl;
+    bool valid = true;
+    if (stat->load_metadata) {
+      if (stat->ms->load_metadata(stat->mail) < 0) {
+        std::cout << " loading metadata of object '" << stat->mail->get_oid() << "' faild " << std::endl;
+        delete stat->mail;
+        valid = false;
+      }
+
+      if (stat->mail->get_metadata()->empty()) {
+        std::cout << " pool object " << stat->mail->get_oid() << " is not a mail object" << std::endl;
+        delete stat->mail;
+        valid = false;
+      }
+
+      if (!librmb::RadosUtils::validate_metadata(stat->mail->get_metadata())) {
+        std::cout << "object : " << stat->mail->get_oid() << " metadata is not valid " << std::endl;
+        delete stat->mail;
+        valid = false;
+      }
+    }
+    if (valid) {
+      stat->mail_objects->push_back(stat->mail);
+    }
   } else {
     std::cout << " object '" << stat->mail->get_oid() << "' is not a valid mail object, size = 0" << std::endl;
     delete stat->mail;
@@ -350,41 +375,20 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     AioStat *stat = new AioStat();
     stat->mail = mail;
     stat->mail_objects = &mail_objects;
-
+    stat->load_metadata = load_metadata;
+    stat->ms = ms;
     std::string oid = iter->get_oid();
     stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), aio_cb, NULL);
     int ret = storage->get_io_ctx().aio_stat(oid, stat->completion, &stat->object_size, &stat->save_date_rados);
     if (ret != 0) {
-      std::cout << " object '" << oid << "' is not a valid mail object, size = 0" << std::endl;
+      std::cout << " object '" << oid << "' is not a valid mail object, size = 0, ret code: " << ret << std::endl;
       ++iter;
       delete mail;
       delete stat;
       continue;
     }
-    completions.push_back(stat->completion);
     mail->set_oid(oid);
-    if (load_metadata) {
-      if (ms->load_metadata(mail) < 0) {
-        std::cout << " loading metadata of object '" << oid << "' faild " << std::endl;
-        ++iter;
-        delete mail;
-        continue;
-      }
-
-      if (mail->get_metadata()->empty()) {
-        std::cout << " pool object " << oid << " is not a mail object" << std::endl;
-        ++iter;
-        delete mail;
-        continue;
-      }
-
-      if (!librmb::RadosUtils::validate_metadata(mail->get_metadata())) {
-        std::cout << "object : " << oid << " metadata is not valid " << std::endl;
-        ++iter;
-        delete mail;
-        continue;
-      }
-    }
+    completions.push_back(stat->completion);
 
     ++iter;
     if (is_debug) {
