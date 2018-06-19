@@ -394,37 +394,51 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   return 0;
 }
 
-static void rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
+struct AioRemove {
+  struct rbox_sync_context *ctx;
+  struct expunged_item *item;
+  librados::AioCompletion *completion;
+};
+static int rbox_sync_object_expunge(AioRemove *stat) {
   FUNC_START();
   int ret_remove = -1;
-  struct mailbox *box = &ctx->mbox->box;
+  struct mailbox *box = &stat->ctx->mbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  const char *oid = guid_128_to_string(item->oid);
+  const char *oid = guid_128_to_string(stat->item->oid);
 
-  if (rbox_open_rados_connection(box, item->alt_storage) < 0) {
-    i_error("rbox_sync_object_expunge: connection to rados failed");
-    return;
-  }
-  if (!item->alt_storage) {
-    ret_remove = r_storage->s->delete_mail(oid);
-  } else {
-    ret_remove = r_storage->alt->delete_mail(oid);
-  }
-  // callback
-  /* do sync_notify only when the file was unlinked by us */
-  if (box->v.sync_notify != NULL) {
-    box->v.sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-  }
-
+  ret_remove = rbox_open_rados_connection(box, stat->item->alt_storage);
   if (ret_remove < 0) {
-    i_error("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d", guid_128_to_string(item->oid),
-            getpid(), ret_remove);
+    i_error("rbox_sync_object_expunge: connection to rados failed %d", ret_remove);
+    return ret_remove;
+  }
+  librmb::RadosStorage *rados_storage = stat->item->alt_storage ? r_storage->alt : r_storage->s;
+
+  ret_remove = rados_storage->get_io_ctx().aio_remove(oid, stat->completion);
+  if (ret_remove < 0) {
+    i_error("sync: aio_remove failed with %d", ret_remove);
   }
 
   FUNC_END();
+  return ret_remove;
 }
 
+
+static void aio_cb(rados_completion_t cb, void *arg) {
+  AioRemove *stat = static_cast<AioRemove *>(arg);
+  if (stat->completion->get_return_value() == 0) {
+    struct mailbox *box = &stat->ctx->mbox->box;
+    // callback
+    /* do sync_notify only when the file was unlinked by us */
+    if (box->v.sync_notify != NULL) {
+      box->v.sync_notify(box, stat->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+    }
+  } else {
+    i_error("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d",
+            guid_128_to_string(stat->item->oid), getpid(), stat->completion->get_return_value());
+  }
+  delete stat;
+}
 static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
@@ -440,6 +454,8 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   items = array_get(&ctx->expunged_items, &count);
 
   if (count > 0) {
+    std::list<librados::AioCompletion *> completions;
+
     moved_items = array_get(&ctx->mbox->moved_items, &moved_count);
     for (i = 0; i < count; i++) {
       T_BEGIN {
@@ -453,10 +469,20 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
           }
         }
         if (moved != TRUE) {
-          rbox_sync_object_expunge(ctx, item);
+          AioRemove *stat = new AioRemove();
+          stat->ctx = ctx;
+          stat->item = item;
+          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), aio_cb, NULL);
+          completions.push_back(stat->completion);
+          // make it async!
+          rbox_sync_object_expunge(stat);
         }
       }
       T_END;
+    }
+    for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
+      (*it)->wait_for_complete_and_cb();
+      (*it)->release();
     }
   }
 
