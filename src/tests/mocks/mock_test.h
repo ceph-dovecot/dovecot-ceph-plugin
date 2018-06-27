@@ -183,6 +183,8 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(set_io_ctx_namespace, void(const std::string &namespace_));
   MOCK_METHOD0(get_metadata_storage_module, std::string &());
   MOCK_METHOD0(get_metadata_storage_attribute, std::string &());
+
+  MOCK_METHOD0(is_rbox_check_empty_mailboxes, bool());
 };
 
 }  // namespace librmbtest

@@ -26,6 +26,10 @@ extern "C" {
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
 #include "mail-search-build.h"
+#include "doveadm-cmd.h"
+#include "doveadm-mail.h"
+#include "istream.h"
+#include "doveadm-print.h"
 }
 #include "tools/rmb/rmb-commands.h"
 #include "rados-cluster.h"
@@ -34,8 +38,11 @@ extern "C" {
 #include "rados-storage-impl.h"
 #include "rados-dovecot-ceph-cfg.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
+#include "rados-namespace-manager.h"
 #include "rbox-storage.h"
 #include "rbox-save.h"
+#include "rbox-storage.hpp"
+
 #include <algorithm>
 
 class RboxDoveadmPlugin {
@@ -724,6 +731,106 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   return ret;
 }
 
+struct delete_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+  bool recursive;
+  int argc;
+  char **argv;
+};
+
+static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  i_debug("wrapping doveadm mailbox delete command");
+  const struct doveadm_mail_cmd *cmd;
+  const char *error;
+  const char *cmd_name = "mailbox delete";
+  int ret = 0;
+  cmd = doveadm_mail_cmd_find(cmd_name);
+  if (cmd != NULL) {
+    i_debug("found a acommand");
+  }
+
+  struct delete_cmd_context *ctx_ = (struct delete_cmd_context *)ctx;
+
+  struct doveadm_mail_cmd_context *mail_delete_ctx = doveadm_mail_cmd_init(cmd, doveadm_settings);
+  mail_delete_ctx->full_args = ctx->full_args;
+  /* keep context's getopt_args first in case it contains '+' */
+  mail_delete_ctx->getopt_args = ctx->getopt_args;
+  mail_delete_ctx->cur_username = ctx->cur_username;
+  mail_delete_ctx->service_flags = ctx->service_flags;
+  mail_delete_ctx->args = ctx->args;
+  if (mail_delete_ctx->v.preinit != NULL)
+    mail_delete_ctx->v.preinit(ctx);
+
+  mail_delete_ctx->iterate_single_user = ctx->iterate_single_user;
+  // only support single user
+  if (ctx->iterate_single_user) {
+    struct mail_storage_service_input input;
+    memset(&input, 0, sizeof(input));
+    input.service = "doveadm";
+    input.username = mail_delete_ctx->cur_username;
+    mail_delete_ctx->cur_client_ip = ctx->cur_client_ip;
+    mail_delete_ctx->storage_service_input = input;
+    mail_delete_ctx->storage_service = ctx->storage_service;
+    mail_delete_ctx->cur_mail_user = ctx->cur_mail_user;
+    mail_delete_ctx->cur_service_user = ctx->cur_service_user;
+    mail_delete_ctx->v.init(mail_delete_ctx, mail_delete_ctx->args);
+
+    if (mail_delete_ctx->v.prerun != NULL) {
+      if (mail_delete_ctx->v.prerun(mail_delete_ctx, mail_delete_ctx->cur_service_user, &error) < 0) {
+        return -1;
+      }
+    }
+    if (mail_delete_ctx->v.run(mail_delete_ctx, mail_delete_ctx->cur_mail_user) < 0) {
+      i_assert(mail_delete_ctx->exit_code != 0);
+    }
+    // success!
+
+    // cleanup}
+    doveadm_mail_server_flush();
+    mail_delete_ctx->v.deinit(ctx);
+    doveadm_print_flush();
+
+    if (mail_delete_ctx->users_list_input != NULL)
+      i_stream_unref(&mail_delete_ctx->users_list_input);
+    if (mail_delete_ctx->cmd_input != NULL)
+      i_stream_unref(&mail_delete_ctx->cmd_input);
+
+  } else {
+    i_debug("bad we only support single user mailbox delete");
+    return -1;
+  }
+
+  i_debug("cleaning up rbox specific files and objects :ret=%d", ret);
+  if (ctx_->recursive) {
+    i_debug("recursive option set, freeing indirect object if existend");
+
+    RboxDoveadmPlugin plugin;
+    plugin.read_plugin_configuration(user);
+    int open = open_connection_load_config(&plugin, user);
+    if (open < 0) {
+      i_error("error opening rados connection, check config: %d", open);
+      return open;
+    }
+    std::map<std::string, std::string> opts;
+    opts["namespace"] = user->username;
+    librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+    std::string uid;
+    librmb::RadosCephConfig *cfg =
+        (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+    librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+
+    if (cfg->is_user_mapping()) {
+      // we need to delete the namespace object.
+      // iterate over all mailboxes, if we have no more mails, delete the user namespace object
+      // for the current user.
+      librmb::RadosNamespaceManager mgr(plugin.config);
+      check_users_mailbox_delete_ns_object(user, plugin.config, &mgr, plugin.storage);
+    }
+  }
+  return 0;
+}
+
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 0) {
     doveadm_mail_help_name("rmb lspools");
@@ -774,6 +881,15 @@ static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR
   if (str_array_length(args) > 1) {
     doveadm_mail_help_name("rmb check indices");
   }
+}
+static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  i_debug("ok");
+  /*if (str_array_length(args) > 1) {
+    doveadm_mail_help_name("rmb mailbox delete");
+  }*/
+  struct delete_cmd_context *ctx_ = (struct delete_cmd_context *)ctx;
+
+  // ctx_->argv = &args;
 }
 struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
   struct doveadm_mail_cmd_context *ctx;
@@ -860,4 +976,27 @@ struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {
   ctx->v.run = cmd_rmb_check_indices_run;
   ctx->v.init = cmd_rmb_check_indices_init;
   return ctx;
+}
+
+static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, int c) {
+  struct delete_cmd_context *ctx = (struct delete_cmd_context *)_ctx;
+
+  switch (c) {
+    case 'r':
+      ctx->recursive = TRUE;
+      break;
+    default:
+      return TRUE;
+  }
+  return TRUE;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void) {
+  struct delete_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct delete_cmd_context);
+  ctx->ctx.v.run = cmd_rmb_mailbox_delete_run;
+  ctx->ctx.v.init = cmd_rmb_mailbox_delete_init;
+  ctx->ctx.v.parse_arg = cmd_mailbox_delete_parse_arg;
+  ctx->ctx.getopt_args = "rs";
+  return &ctx->ctx;
 }

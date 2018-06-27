@@ -25,7 +25,8 @@ RadosConfig::RadosConfig()
       rados_username("rados_user_name"),
       prefix_keyword("k"),
       bugfix_cephfs_posix_hardlinks("rbox_bugfix_cephfs_21652"),
-      save_log("rados_save_log") {
+      save_log("rados_save_log"),
+      rbox_check_empty_mailboxes("rados_check_empty_mailboxes") {
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
@@ -33,6 +34,7 @@ RadosConfig::RadosConfig()
   config[rados_username] = "client.admin";
   config[bugfix_cephfs_posix_hardlinks] = "false";
   config[save_log] = "";
+  config[rbox_check_empty_mailboxes] = "false";
   is_valid = false;
 }
 
@@ -65,6 +67,7 @@ std::string RadosConfig::to_string() {
   ss << "  " << rados_username << "=" << config[rados_username] << std::endl;
   ss << "  " << bugfix_cephfs_posix_hardlinks << "=" << config[bugfix_cephfs_posix_hardlinks] << std::endl;
   ss << "  " << save_log << "=" << config[save_log] << std::endl;
+  ss << "  " << rbox_check_empty_mailboxes << "=" << config[rbox_check_empty_mailboxes] << std::endl;
   return ss.str();
 }
 

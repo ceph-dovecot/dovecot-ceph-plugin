@@ -70,7 +70,8 @@ extern int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header
 
 extern int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                        struct mail_index_transaction *trans);
-
+extern int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDovecotCephCfg *config,
+                                                librmb::RadosNamespaceManager *ns_mgr, librmb::RadosStorage *storage);
 /*
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);
 int rbox_save_begin(struct mail_save_context *ctx, struct istream *input);

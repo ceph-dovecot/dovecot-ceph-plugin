@@ -46,7 +46,9 @@ class RadosConfig {
     return config[bugfix_cephfs_posix_hardlinks].compare("true") == 0 ? true : false;
   }
   void set_rbox_cfg_object_name(const std::string &value) { config[rbox_cfg_object_name] = value; }
-
+  bool is_rbox_check_empty_mailboxes() {
+    return config[rbox_check_empty_mailboxes].compare("true") == 0 ? true : false;
+  }
   std::string to_string();
 
  private:
@@ -62,6 +64,7 @@ class RadosConfig {
   std::string prefix_keyword;
   std::string bugfix_cephfs_posix_hardlinks;
   std::string save_log;
+  std::string rbox_check_empty_mailboxes;
   bool is_valid;
 };
 
