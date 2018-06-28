@@ -758,15 +758,15 @@ static int get_child_mailboxes(struct mail_user *user, ARRAY_TYPE(const_string) 
   return mailbox_list_iter_deinit(&iter);
 }
 
-static int cmd_mailbox_delete_run2(struct doveadm_mail_cmd_context *_ctx, struct mail_user *user) {
+static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct mail_user *user) {
   struct delete_cmd_context *ctx = (struct delete_cmd_context *)_ctx;
   struct mail_namespace *ns;
   struct mailbox *box;
-  struct mail_storage *storage;
+
   const char *const *namep;
   ARRAY_TYPE(const_string) recursive_mailboxes;
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
-  enum mailbox_flags mailbox_flags = 0;
+  enum mailbox_flags mailbox_flags = static_cast<enum mailbox_flags>(0);
   int ret = 0, ret2;
 #if DOVECOT_PREREQ(2, 3)
   if (ctx->unsafe)
@@ -791,20 +791,30 @@ static int cmd_mailbox_delete_run2(struct doveadm_mail_cmd_context *_ctx, struct
   i_debug("iterating mailbox");
   array_foreach(mailboxes, namep) {
     const char *name = *namep;
-    i_debug("first box %s",name);	
+    i_debug("first box %s",name);
     ns = mail_namespace_find(user->namespaces, name);
     box = mailbox_alloc(ns->list, name, mailbox_flags);
+#if DOVECOT_PREREQ(2, 3)
     mailbox_set_reason(box, _ctx->cmd->name);
-    storage = mailbox_get_storage(box);
+#endif
+    struct mail_storage *storage = mailbox_get_storage(box);
     ret2 = ctx->require_empty ? mailbox_delete_empty(box) : mailbox_delete(box);
     if (ret2 < 0) {
+#if DOVECOT_PREREQ(2, 3)
       i_error("Can't delete mailbox %s: %s", name, mailbox_get_last_internal_error(box, NULL));
+#else
+      i_error("Can't delete mailbox %s %d", name, ret2);
+#endif
       doveadm_mail_failed_mailbox(_ctx, box);
       ret = -1;
     }
     if (ctx->subscriptions) {
       if (mailbox_set_subscribed(box, FALSE) < 0) {
+#if DOVECOT_PREREQ(2, 3)
         i_error("Can't unsubscribe mailbox %s: %s", name, mail_storage_get_last_internal_error(storage, NULL));
+#else
+        i_error("Can't unsubscribe mailbox %s ", name);
+#endif
         doveadm_mail_failed_mailbox(_ctx, box);
         ret = -1;
       }
@@ -816,11 +826,9 @@ static int cmd_mailbox_delete_run2(struct doveadm_mail_cmd_context *_ctx, struct
 
 
 static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  i_debug("wrapping doveadm mailbox delete command");
 
-  const char *error;
   int ret = 0;
-  ret = cmd_mailbox_delete_run2(ctx, user);
+  ret = cmd_mailbox_delete_run(ctx, user);
   if (ret == 0) {
     RboxDoveadmPlugin plugin;
     i_debug("cleaning up rbox specific files and objects :ret=%d", ret);
@@ -837,7 +845,6 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
     std::string uid;
     librmb::RadosCephConfig *cfg =
         (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-    librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
 
     if (cfg->is_user_mapping()) {
       // we need to delete the namespace object.
@@ -1021,7 +1028,7 @@ static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, 
     case 'Z':
       ctx->unsafe = TRUE;
       break;
-#endif;
+#endif
     default:
       i_debug("unkown iption");
       return FALSE;
@@ -1036,7 +1043,7 @@ struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void) {
   ctx->ctx.v.init = cmd_rmb_mailbox_delete_init;
   ctx->ctx.v.parse_arg = cmd_mailbox_delete_parse_arg;
   ctx->ctx.getopt_args = "rs";
-  ctx->pool = pool_alloconly_create("doveadm mailbox delete pool", 512); 
+  ctx->pool = pool_alloconly_create("doveadm mailbox delete pool", 512);
   p_array_init(&ctx->mailboxes, ctx->ctx.pool, 16);
   return &ctx->ctx;
 }
