@@ -788,10 +788,8 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     array_sort(&recursive_mailboxes, i_strcmp_reverse_p);
     mailboxes = &recursive_mailboxes;
   }
-  i_debug("iterating mailbox");
   array_foreach(mailboxes, namep) {
     const char *name = *namep;
-    i_debug("first box %s",name);
     ns = mail_namespace_find(user->namespaces, name);
     box = mailbox_alloc(ns->list, name, mailbox_flags);
 #if DOVECOT_PREREQ(2, 3)
@@ -918,7 +916,6 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
   }
   doveadm_mailbox_args_check(args);
   for (i = 0; args[i] != NULL; i++) {
-	  i_debug("ksksks");
     name = p_strdup(ctx->pool, args[i]);
     array_append(&ctx->mailboxes, &name, 1);
   }
