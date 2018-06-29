@@ -196,6 +196,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       ret_val = rados_storage->copy(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update);
       if (ret_val < 0) {
+        if (ret_val == -ENOENT) {
+          i_warning(
+              "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
+              "storage_pool: %s , most likely concurency issue",
+              ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
+              rados_storage->get_pool_name().c_str());
+          rbox_mail_set_expunged(rmail);
+          return 0;
+        }
         i_error(
             "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
             "storage_pool: %s",
@@ -222,6 +231,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       bool delete_source = true;
       ret_val = rados_storage->move(src_oid, ns_src.c_str(), dest_oid, ns_dest.c_str(), metadata_update, delete_source);
       if (ret_val < 0) {
+        if (ret_val == -ENOENT) {
+          i_warning(
+              "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
+              "pool_name: %s. most likely due to concurency issues",
+              ns_src.c_str(), ns_dest.c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
+              rados_storage->get_pool_name().c_str());
+          rbox_mail_set_expunged(rmail);
+          return 0;
+        }
         i_error(
             "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
             "pool_name: %s",
