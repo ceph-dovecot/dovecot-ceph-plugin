@@ -124,6 +124,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     if (ret == -ENOENT) {
       i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret,
                 rmail->mail_object->get_oid().c_str(), getpid());
+      rbox_mail_set_expunged(rmail);
     } else {
       i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(),
               getpid());
@@ -353,7 +354,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct istream *input = NULL;
   struct index_mail_data *data = &rmail->imail.data;
-  int ret, physical_size = -1;
+  int ret = -1;
   enum mail_flags flags = index_mail_get_flags(_mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
 
@@ -376,7 +377,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     rmail->mail_object->get_mail_buffer()->clear();
 
     _mail->transaction->stats.open_lookup_count++;
-    physical_size = rados_storage->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
+    int physical_size = rados_storage->read_mail(rmail->mail_object->get_oid(), rmail->mail_object->get_mail_buffer());
     if (physical_size < 0) {
       if (physical_size == -ENOENT) {
         i_warning("Mail not found. %s, ns='%s', process %d", rmail->mail_object->get_oid().c_str(),

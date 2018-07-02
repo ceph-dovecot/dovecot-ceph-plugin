@@ -18,7 +18,7 @@
 
 namespace librmb {
 
-MailboxTools::MailboxTools(librmb::RadosMailBox* mailbox, std::string base) : mbox(mailbox), base_path(base) {
+MailboxTools::MailboxTools(librmb::RadosMailBox* mailbox, const std::string& base) : mbox(mailbox), base_path(base) {
   if (base_path.empty()) {
     mailbox_path = this->mbox->get_mailbox_guid();
   } else if (base_path[base_path.length() - 1] == '/') {

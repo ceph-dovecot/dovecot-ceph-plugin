@@ -100,10 +100,10 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 
 static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
   bool debug = ns->mail_set->mail_debug;
-  const char *home, *path;
+  const char *home;
 
   if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
-    path = t_strconcat(home, "/rbox", NULL);
+    const char *path = t_strconcat(home, "/rbox", NULL);
     if (access(path, R_OK | W_OK | X_OK) == 0) {
       if (debug)
         i_debug("rbox: root exists (%s)", path);
@@ -368,7 +368,7 @@ bool is_alternate_pool_valid(struct mailbox *_box) {
 
 int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
-  int ret = -1;
+  int ret;
 
   /* rados cluster connection */
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
@@ -612,12 +612,12 @@ static void rbox_mailbox_close(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   struct expunged_item *const *moved_items, *moved_item;
-  unsigned int moved_count, i;
 
   if (array_is_created(&rbox->moved_items)) {
     if (array_count(&rbox->moved_items) > 0) {
+      unsigned int moved_count;
       moved_items = array_get(&rbox->moved_items, &moved_count);
-      for (i = 0; i < moved_count; i++) {
+      for (unsigned int i = 0; i < moved_count; i++) {
         moved_item = moved_items[i];
         i_free(moved_item);
       }

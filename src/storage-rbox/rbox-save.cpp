@@ -492,9 +492,9 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
         if (ret_val < 0) {
           return -1;
         }
+
       }
     }
-
     i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
   }
 
