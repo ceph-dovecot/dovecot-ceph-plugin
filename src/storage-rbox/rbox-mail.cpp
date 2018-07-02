@@ -124,6 +124,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     if (ret == -ENOENT) {
       i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret,
                 rmail->mail_object->get_oid().c_str(), getpid());
+      rbox_mail_set_expunged(rmail);
     } else {
       i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(),
               getpid());
