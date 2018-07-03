@@ -781,7 +781,6 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
           ++total_mails;  // make sure we do not delete anything due to invalid status query!!!
         } else {
           i_debug("mailbox %s, has %d messages", info->vname, status.messages);
-          std::cout << "mailbox " << info->vname << " has " << status.messages << " messages" << std::endl;
           total_mails += status.messages;
         }
         mailbox_free(&box_);

@@ -95,7 +95,6 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
       if (ret < 0) {
         std::cerr << "moving : " << entry.oid << " to " << entry.src_oid << " failed ! ret code: " << ret << std::endl;
       } else {
-        std::cerr << " ola: mr: " << entry.src_user << std::endl;
         if (moved_items->find(entry.src_user) == moved_items->end()) {
           std::list<librmb::RadosSaveLogEntry> entries;
           entries.push_back(entry);
