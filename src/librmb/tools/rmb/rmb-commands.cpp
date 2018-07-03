@@ -250,6 +250,7 @@ int RmbCommands::configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg
     print_debug("end: configuration");
     return -1;
   }
+  std::cout << "cfg: key " << key << " cfg_val: " << key_val << std::endl;
 
   if (ceph_cfg.save_cfg() < 0) {
     std::cout << " saving cfg failed" << std::endl;
