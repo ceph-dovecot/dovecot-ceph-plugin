@@ -856,12 +856,12 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
 }
 
 static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 0) {
+  if (str_array_length(args) > 1) {
     doveadm_mail_help_name("rmb lspools");
   }
 }
 static void cmd_rmb_config_update_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (str_array_length(args) > 2) {
     doveadm_mail_help_name("rmb config update key=value");
   }
 }
@@ -902,7 +902,7 @@ static void cmd_rmb_save_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUS
   }
 }
 static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (str_array_length(args) > 2) {
     doveadm_mail_help_name("rmb check indices");
   }
 }
@@ -911,11 +911,11 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
   const char *name;
   unsigned int i;
 
-  if (args[0] == NULL){
-    doveadm_mail_help_name("rmb mailbox delete");
+  if (args[1] == NULL) {
+    doveadm_mail_help_name("rmb mailbox delete [-r] <mailbox> [...]");
   }
   doveadm_mailbox_args_check(args);
-  for (i = 0; args[i] != NULL; i++) {
+  for (i = 1; args[i] != NULL; i++) {
     name = p_strdup(ctx->pool, args[i]);
     array_append(&ctx->mailboxes, &name, 1);
   }
