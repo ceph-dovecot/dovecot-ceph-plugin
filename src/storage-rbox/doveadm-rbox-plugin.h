@@ -27,5 +27,6 @@ extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
 extern void cmd_rmb_config_show(int argc, char *argv[]);
 extern void cmd_rmb_config_create(int argc, char *argv[]);
 extern void cmd_rmb_config_update(int argc, char *argv[]);
+extern void cmd_rmb_lspools(int argc, char *argv[]);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_

@@ -98,13 +98,7 @@ class RboxDoveadmPlugin {
   librmb::RadosDovecotCephCfg *config;
 };
 
-static int cmd_rmb_lspools_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  if (!ctx->iterate_single_user) {
-    assert(ctx->iterate_single_user);
-  }
-  librmb::RmbCommands::RmbCommands::lspools();
-  return 0;
-}
+
 
 static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_user *user) {
   int ret = -1;
@@ -829,12 +823,6 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
   return 0;
 }
 
-static void cmd_rmb_lspools_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
-    doveadm_mail_help_name("rmb lspools");
-  }
-}
-
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 2) {
     doveadm_mail_help_name("rmb ls <-|key=value> <uid|recv_date|save_date|phy_size>");
@@ -890,13 +878,6 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
     array_append(&ctx->mailboxes, &name, 1);
   }
   array_sort(&ctx->mailboxes, i_strcmp_reverse_p);
-}
-struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void) {
-  struct doveadm_mail_cmd_context *ctx;
-  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
-  ctx->v.run = cmd_rmb_lspools_run;
-  ctx->v.init = cmd_rmb_lspools_init;
-  return ctx;
 }
 
 struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void) {
@@ -1037,3 +1018,5 @@ void cmd_rmb_config_update(int argc, char *argv[]) {
   i_debug("success? : %d", ret);
   return;
 }
+
+void cmd_rmb_lspools(int argc, char *argv[]) { librmb::RmbCommands::RmbCommands::lspools(); }
