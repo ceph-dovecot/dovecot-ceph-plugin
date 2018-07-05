@@ -28,5 +28,6 @@ extern void cmd_rmb_config_show(int argc, char *argv[]);
 extern void cmd_rmb_config_create(int argc, char *argv[]);
 extern void cmd_rmb_config_update(int argc, char *argv[]);
 extern void cmd_rmb_lspools(int argc, char *argv[]);
+extern void cmd_rmb_rename(int argc, char *argv[]);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_

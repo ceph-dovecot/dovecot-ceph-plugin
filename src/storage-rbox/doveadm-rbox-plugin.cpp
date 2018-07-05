@@ -99,7 +99,6 @@ class RboxDoveadmPlugin {
 };
 
 
-
 static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_user *user) {
   int ret = -1;
 
@@ -259,6 +258,10 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   const char *oid = ctx->args[0];
   const char *key_value_pair = ctx->args[1];
   int ret = -1;
+  if (!ctx->iterate_single_user) {
+    i_error("set command is only available for single user!");
+    return 0;
+  }
   if (oid == NULL || key_value_pair == NULL) {
     i_error("error check params: %s : %s ", oid, key_value_pair);
     return 0;
@@ -343,6 +346,10 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   const char *new_user_name = ctx->args[0];
   if (new_user_name == NULL) {
     i_error("no username given");
+    return 0;
+  }
+  if (!ctx->iterate_single_user) {
+    i_error("rename command is only availble for single user");
     return 0;
   }
 
@@ -730,6 +737,11 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   struct mail_namespace *ns;
   struct mailbox *box;
 
+  if (!_ctx->iterate_single_user) {
+    i_error("delete command is only available for single user");
+    return 0;
+  }
+
   const char *const *namep;
   ARRAY_TYPE(const_string) recursive_mailboxes;
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
@@ -822,6 +834,7 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
   }
   return 0;
 }
+
 
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 2) {
@@ -1004,7 +1017,8 @@ void cmd_rmb_config_create(int argc, char *argv[]) {
 
 void cmd_rmb_config_update(int argc, char *argv[]) {
   if (argc < 1) {
-    i_debug("usage: dovecot rmb config update key=value");
+    i_error("usage: dovecot rmb config update key=value");
+    return;
   }
   char *update = argv[1];
   if (update == NULL) {

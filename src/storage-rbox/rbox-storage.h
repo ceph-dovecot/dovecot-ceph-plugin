@@ -34,6 +34,7 @@ extern bool is_alternate_pool_valid(struct mailbox *_box);
 extern struct mail_storage rbox_storage;
 extern int rbox_open_rados_connection(struct mailbox *box, bool alt_storage);
 extern int read_plugin_configuration(struct mailbox *box);
+extern int rbox_storage_mailbox_delete(struct mailbox *box);
 
 #ifdef __cplusplus
 }
