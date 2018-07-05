@@ -153,7 +153,7 @@ int RmbCommands::delete_mail(bool confirmed) {
 int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid) {
   print_debug("entry: rename_user");
   if (!cfg->is_user_mapping()) {
-    std::cout << "Error: The configuration option generate_namespace needs to be active, to be able to rename a user"
+    std::cout << "Error: To be able to rename a user, the configuration option generate_namespace needs to be active"
               << std::endl;
     print_debug("end: rename_user");
     return 0;
@@ -327,7 +327,7 @@ static void aio_cb(rados_completion_t cb, void *arg) {
   if (stat->completion->get_return_value() == 0 && stat->object_size > 0) {
     stat->mail->set_mail_size(stat->object_size);
     stat->mail->set_rados_save_date(stat->save_date_rados);
-    std::cout << " object '" << stat->mail->get_oid() << "' added size " << stat->object_size << std::endl;
+    // std::cout << " object '" << stat->mail->get_oid() << "' added size " << stat->object_size << std::endl;
     bool valid = true;
     if (stat->load_metadata) {
       if (stat->ms->load_metadata(stat->mail) < 0) {
