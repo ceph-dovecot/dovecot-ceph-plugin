@@ -517,8 +517,13 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
   return 1;
 }
 
-static int cmd_rmb_save_log_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *log_file = ctx->args[0];
+
+  if (!ctx->iterate_single_user) {
+    i_error("revert command is only available for single user");
+    return 0;
+  }
 
   if (log_file == NULL) {
     i_error("Error: no logfile given!");
@@ -838,38 +843,38 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
 
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 2) {
-    doveadm_mail_help_name("rmb ls <-|key=value> <uid|recv_date|save_date|phy_size>");
+    doveadm_mail_help_name("rmb ls");
   }
 }
 static void cmd_rmb_get_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 3) {
-    doveadm_mail_help_name("rmb get <-|key=value> <output path> <uid|recv_date|save_date|phy_size>");
+    doveadm_mail_help_name("rmb get");
   }
 }
 static void cmd_rmb_delete_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 1) {
-    doveadm_mail_help_name("rmb delete <oid>");
+    doveadm_mail_help_name("rmb delete");
   }
 }
 static void cmd_rmb_set_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 3) {
-    doveadm_mail_help_name("rmb set <oid> <key=value> ");
+    doveadm_mail_help_name("rmb set");
   }
 }
 
 static void cmd_rmb_ls_mb_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 1) {
-    doveadm_mail_help_name("rmb ls mb -u <user> ");
+    doveadm_mail_help_name("rmb ls mb");
   }
 }
 static void cmd_rmb_rename_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 1) {
-    doveadm_mail_help_name("rmb rename <username> -u <user> ");
+    doveadm_mail_help_name("rmb rename");
   }
 }
-static void cmd_rmb_save_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+static void cmd_rmb_revert_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 1) {
-    doveadm_mail_help_name("rmb save_log path to save_log");
+    doveadm_mail_help_name("rmb revert");
   }
 }
 static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
@@ -882,11 +887,11 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
   const char *name;
   unsigned int i;
 
-  if (args[1] == NULL) {
-    doveadm_mail_help_name("rmb mailbox delete [-r] <mailbox> [...]");
+  if (args[0] == NULL) {
+    doveadm_mail_help_name("rmb mailbox delete");
   }
   doveadm_mailbox_args_check(args);
-  for (i = 1; args[i] != NULL; i++) {
+  for (i = 0; args[i] != NULL; i++) {
     name = p_strdup(ctx->pool, args[i]);
     array_append(&ctx->mailboxes, &name, 1);
   }
@@ -936,11 +941,11 @@ struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void) {
   ctx->v.init = cmd_rmb_rename_init;
   return ctx;
 }
-struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void) {
+struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void) {
   struct doveadm_mail_cmd_context *ctx;
   ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
-  ctx->v.run = cmd_rmb_save_log_run;
-  ctx->v.init = cmd_rmb_save_log_init;
+  ctx->v.run = cmd_rmb_revert_log_run;
+  ctx->v.init = cmd_rmb_revert_log_init;
   return ctx;
 }
 struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {

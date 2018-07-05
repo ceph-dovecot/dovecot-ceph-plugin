@@ -20,7 +20,7 @@ extern struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_delete_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_mb_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void);
-extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
 
