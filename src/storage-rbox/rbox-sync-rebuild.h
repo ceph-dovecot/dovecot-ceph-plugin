@@ -24,7 +24,6 @@ extern "C" {
 struct rbox_sync_rebuild_ctx {
   bool alt_storage;
   uint32_t next_uid;
-  bool reset_next_uid;
 };
 
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,

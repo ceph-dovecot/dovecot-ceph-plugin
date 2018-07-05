@@ -88,9 +88,8 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
 
   const struct mail_index_header *hdr = mail_index_get_header(ctx->trans->view);
 
-  if (rebuild_ctx->reset_next_uid) {
+  if (rebuild_ctx->next_uid == INT_MAX) {
     rebuild_ctx->next_uid = hdr->next_uid != 0 ? hdr->next_uid : 1;
-    rebuild_ctx->reset_next_uid = false;
   }
 
   int found = 0;
@@ -188,8 +187,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
 
   rebuild_ctx = p_new(pool, struct rbox_sync_rebuild_ctx, 1);
   rebuild_ctx->alt_storage = false;
-  rebuild_ctx->next_uid = -1;
-  rebuild_ctx->reset_next_uid = true;
+  rebuild_ctx->next_uid = INT_MAX;
   search_objects(ctx, rebuild_ctx);
   if (alt_storage) {
     rebuild_ctx->alt_storage = true;
