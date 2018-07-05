@@ -260,7 +260,7 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   int ret = -1;
   if (!ctx->iterate_single_user) {
     i_error("set command is only available for single user!");
-    return 0;
+    return -1;
   }
   if (oid == NULL || key_value_pair == NULL) {
     i_error("error check params: %s : %s ", oid, key_value_pair);
@@ -313,6 +313,10 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     i_error("no oid given");
     return 0;
   }
+  if (!ctx->iterate_single_user) {
+    i_error("set command is only available for single user!");
+    return -1;
+  }
   RboxDoveadmPlugin plugin;
   int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
@@ -349,8 +353,8 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     return 0;
   }
   if (!ctx->iterate_single_user) {
-    i_error("rename command is only availble for single user");
-    return 0;
+    i_error("rename command is only available for single user");
+    return -1;
   }
 
   RboxDoveadmPlugin plugin;
@@ -522,7 +526,7 @@ static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct m
 
   if (!ctx->iterate_single_user) {
     i_error("revert command is only available for single user");
-    return 0;
+    return -1;
   }
 
   if (log_file == NULL) {
@@ -744,7 +748,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
 
   if (!_ctx->iterate_single_user) {
     i_error("delete command is only available for single user");
-    return 0;
+    return -1;
   }
 
   const char *const *namep;
