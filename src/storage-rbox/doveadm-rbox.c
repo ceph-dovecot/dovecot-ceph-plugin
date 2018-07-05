@@ -40,7 +40,7 @@ struct doveadm_cmd doveadm_cmd_rbox[] = {{cmd_rmb_config_show, "rmb config show"
                                          {cmd_rmb_config_update, "rmb config update", "key=value"},
                                          {cmd_rmb_lspools, "rmb lspools", ""}};
 
-static void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
+void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;
   for (i = 0; i < N_ELEMENTS(rmb_commands); i++) {
     doveadm_mail_register_cmd(&rmb_commands[i]);
@@ -49,4 +49,4 @@ static void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
     doveadm_register_cmd(&doveadm_cmd_rbox[i]);
 }
 
-static void doveadm_rbox_plugin_deinit(void) {}
+void doveadm_rbox_plugin_deinit(void) {}
