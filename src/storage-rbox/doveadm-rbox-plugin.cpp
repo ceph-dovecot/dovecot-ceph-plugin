@@ -88,7 +88,20 @@ class RboxDoveadmPlugin {
       }
     }
     config->set_config_valid(true);
-    i_debug("ok read pl conf");
+    return 0;
+  }
+  int read_doveadm_plugin_configuration() {
+    std::map<std::string, std::string> *map = config->get_config();
+    for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); ++it) {
+      std::string setting = it->first;
+
+      const char *value = doveadm_plugin_getenv(setting.c_str());
+      if (value != NULL) {
+        config->update_metadata(setting, value);
+      }
+    }
+    config->set_config_valid(true);
+
     return 0;
   }
 
@@ -117,10 +130,10 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_us
   return ret;
 }
 
-static int cmd_rmb_config(std::map<std::string, std::string> &opts, struct mail_user *user) {
+static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(user);
-  int open = open_connection_load_config(&plugin, user);
+  plugin.read_doveadm_plugin_configuration();
+  int open = open_connection_load_config(&plugin, NULL);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
     return 0;
@@ -996,15 +1009,20 @@ struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void) {
   p_array_init(&ctx->mailboxes, ctx->ctx.pool, 16);
   return &ctx->ctx;
 }
+struct config_options {
+  char *user_name;
+  char *pool_name;
+};
 
 void cmd_rmb_config_show(int argc, char *argv[]) {
+
   std::map<std::string, std::string> opts;
   opts["print_cfg"] = "true";
-  cmd_rmb_config(opts, NULL);
+  cmd_rmb_config(opts);
 }
 void cmd_rmb_config_create(int argc, char *argv[]) {
   RboxDoveadmPlugin plugin;
-  plugin.read_plugin_configuration(NULL);
+  plugin.read_doveadm_plugin_configuration();
   int open = plugin.open_connection();
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
@@ -1037,7 +1055,7 @@ void cmd_rmb_config_update(int argc, char *argv[]) {
   i_debug("param is: %s", update);
   std::map<std::string, std::string> opts;
   opts["update"] = update;
-  int ret = cmd_rmb_config(opts, NULL);
+  int ret = cmd_rmb_config(opts);
   i_debug("success? : %d", ret);
   return;
 }
