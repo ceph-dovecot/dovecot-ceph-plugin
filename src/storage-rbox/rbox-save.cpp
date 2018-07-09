@@ -451,8 +451,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
                 r_ctx->current_object->get_metadata()->size());
       }
       if (r_storage->save_log->is_open()) {
-        r_storage->save_log->append(librmb::RadosSaveLogEntry(
-            r_ctx->current_object->get_oid(), r_storage->s->get_namespace(), r_storage->s->get_pool_name(), "save"));
+        r_storage->save_log->append(
+            librmb::RadosSaveLogEntry(r_ctx->current_object->get_oid(), r_storage->s->get_namespace(),
+                                      r_storage->s->get_pool_name(), librmb::RadosSaveLogEntry::op_save()));
       }
     }
   }
@@ -476,24 +477,26 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   struct seq_range_iter iter;
   unsigned int n = 0;
   uint32_t uid = -1;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  seq_range_array_iter_init(&iter, uids);
-
-  RadosMetadata metadata;
-  for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    r_ctx->current_object = *it;
-    bool ret = seq_range_array_iter_nth(&iter, n++, &uid);
-    i_assert(ret);
-    if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
-      metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-      int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->current_object, metadata);
-      if (ret_val < 0) {
-        return -1;
+  if (r_ctx->objects.size() > 0) {
+    seq_range_array_iter_init(&iter, uids);
+    struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+    RadosMetadata metadata;
+    for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
+      r_ctx->current_object = *it;
+      bool ret = seq_range_array_iter_nth(&iter, n++, &uid);
+      i_assert(ret);
+      if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
+        metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
+        int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->current_object, metadata);
+        if (ret_val < 0) {
+          return -1;
+        }
       }
     }
-  }
-  i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
+    i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
+   }
+
   return 0;
 }
 

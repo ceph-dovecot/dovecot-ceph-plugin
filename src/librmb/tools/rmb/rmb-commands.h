@@ -28,6 +28,7 @@
 #include "ls_cmd_parser.h"
 #include "mailbox_tools.h"
 #include "rados-metadata-storage-module.h"
+#include "rados-save-log.h"
 
 namespace librmb {
 
@@ -38,7 +39,8 @@ class RmbCommands {
   virtual ~RmbCommands();
 
   static int delete_with_save_log(const std::string &save_log, const std::string &rados_cluster,
-                                  const std::string &rados_user);
+                                  const std::string &rados_user,
+                                  std::map<std::string, std::list<librmb::RadosSaveLogEntry>> *moved_items);
   void print_debug(const std::string &msg);
   static int lspools();
   int delete_mail(bool confirmed);
@@ -48,16 +50,18 @@ class RmbCommands {
   int configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
   int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
-                   std::string &sort_string);
-
+                   std::string &sort_string, bool load_metadata = true);
+  int update_attributes(librmb::RadosStorageMetadataModule *ms, std::map<std::string, std::string> *metadata);
   int print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir, bool download);
   int query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
-                         bool download);
+                         bool download, bool silent);
   librmb::RadosStorageMetadataModule *init_metadata_storage_module(librmb::RadosCephConfig &ceph_cfg, std::string *uid);
   static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
   static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
   static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
   static bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+
+  void set_output_path(librmb::CmdLineParser *parser);
 
  private:
   std::map<std::string, std::string> *opts;

@@ -17,6 +17,10 @@
 #include <cstdio>
 #include <vector>
 #include <sstream>
+#include <list>
+#include <iostream>
+
+#include "rados-metadata.h"
 
 namespace librmb {
 
@@ -24,8 +28,54 @@ class RadosSaveLogEntry {
  public:
   RadosSaveLogEntry() {}
   RadosSaveLogEntry(const std::string &oid_, const std::string &ns_, const std::string &pool_, const std::string &op_)
-      : oid(oid_), ns(ns_), pool(pool_), op(op_) {}
+      : oid(oid_), ns(ns_), pool(pool_), op(op_), metadata(0) {}
   ~RadosSaveLogEntry(){};
+
+  // format: mv|cp|save:src_ns,src_oid;metadata_key=metadata_value:metadata_key=metadata_value:....
+  //        e.g.: // mv:ns_src:src_oid;M=ABCDEFG:B=INBOX:U=1
+  bool parse_mv_op() {
+    int pos = op.find(";");
+    if (pos <= 0) {
+      return false;
+    }
+
+    std::stringstream left(op.substr(0, pos));
+    std::vector<std::string> left_tokens;
+    std::string item;
+    while (std::getline(left, item, ':')) {
+      left_tokens.push_back(item);
+    }
+    if (left_tokens.size() < 4) {
+      return false;
+    }
+
+    if (left_tokens[0].compare("mv") != 0) {
+      return true;  // not a move cmd.
+    }
+    // mv specific
+    src_ns = left_tokens[1];
+    src_oid = left_tokens[2];
+    src_user = left_tokens[3];
+    // parsing metadata.
+    std::stringstream right(op.substr(pos + 1, op.size()));
+    std::vector<std::string> right_tokens;
+    while (std::getline(right, item, ':')) {
+      librmb::RadosMetadata m;
+      if (!librmb::RadosMetadata::from_string(item, &m)) {
+        return false;
+      }
+      metadata.push_back(m);
+    }
+    return true;
+  }
+  static std::string op_save() { return "save"; }
+  static std::string op_cpy() { return "cpy"; }
+  static std::string op_mv(const std::string &src_ns, const std::string &src_oid, const std::string &src_user,
+                           std::list<librmb::RadosMetadata *> &metadata) {
+    std::stringstream mv;
+    mv << "mv:" << src_ns << ":" << src_oid << ":" << src_user << ";" << convert_metadata(metadata, ":");
+    return mv.str();
+  }
 
   friend std::ostream &operator<<(std::ostream &os, const RadosSaveLogEntry &obj) {
     os << obj.op << "," << obj.pool << "," << obj.ns << "," << obj.oid << std::endl;
@@ -49,10 +99,29 @@ class RadosSaveLogEntry {
       obj.pool = csv_items[1];
       obj.ns = csv_items[2];
       obj.oid = csv_items[3];
+
+      obj.parse_mv_op();
+
     } else {
       is.setstate(std::ios::failbit);
     }
     return is;
+  }
+
+  static std::string convert_metadata(std::list<librmb::RadosMetadata *> &metadata, const std::string &separator) {
+    std::stringstream metadata_str;
+    std::list<librmb::RadosMetadata *>::iterator list_it;
+    list_it = metadata.begin();
+    if (list_it != metadata.end()) {
+      metadata_str << (*list_it)->to_string();
+      list_it++;
+    }
+
+    for (; list_it != metadata.end(); list_it++) {
+      metadata_str << separator;
+      metadata_str << (*list_it)->to_string();
+    }
+    return metadata_str.str();
   }
 
  public:
@@ -60,6 +129,10 @@ class RadosSaveLogEntry {
   std::string ns;    // namespace
   std::string pool;  // storage pool
   std::string op;    // operation: save, cp (copy), mv (move)
+  std::string src_oid;
+  std::string src_ns;
+  std::string src_user;
+  std::list<librmb::RadosMetadata> metadata;
 };
 
 class RadosSaveLog {

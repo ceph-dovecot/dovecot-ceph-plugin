@@ -761,6 +761,87 @@ void rbox_notify_changes(struct mailbox *box) {
   FUNC_END();
 }
 
+int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDovecotCephCfg *config,
+                                         librmb::RadosNamespaceManager *ns_mgr, librmb::RadosStorage *storage) {
+  int ret = 0;
+  struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+  for (; ns != NULL; ns = ns->next) {
+    struct mailbox_list_iterate_context *iter;
+    const struct mailbox_info *info;
+    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+
+    int total_mails = 0;
+    while ((info = mailbox_list_iter_next(iter)) != NULL) {
+      if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
+        struct mailbox *box_ = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_IGNORE_ACLS);
+        struct mailbox_status status;
+        if (mailbox_get_status(box_, STATUS_MESSAGES, &status) < 0) {
+          i_error("cannot get status of %s", info->vname);
+          ++total_mails;  // make sure we do not delete anything due to invalid status query!!!
+        } else {
+          i_debug("mailbox %s, has %d messages", info->vname, status.messages);
+          std::cout << "mailbox " << info->vname << " has " << status.messages << " messages" << std::endl;
+          total_mails += status.messages;
+        }
+        mailbox_free(&box_);
+      }
+    }
+    if (mailbox_list_iter_deinit(&iter) < 0)
+      ret = -1;
+
+    if (total_mails == 0) {
+      std::string uid = ns->owner->username;
+      uid += config->get_user_suffix();
+      std::string ns_str;
+      ns_mgr->lookup_key(uid, &ns_str);
+      i_debug(
+          "total number of mails in all mailboxes is  %d, deleting indirect namespace object for user %s with "
+          "namespace: %s ",
+          total_mails, uid.c_str(), ns_str.c_str());
+      storage->set_namespace(config->get_user_ns());
+      ret = storage->delete_mail(uid);
+      if (ret < 0) {
+        if (ret == -2) {
+          i_debug("indirect ns object already deleted %d", ret);
+        } else {
+          i_error("Error deleting ns object %d", ret);
+        }
+      }
+    }
+  }
+  return ret;
+}
+
+int rbox_storage_mailbox_delete(struct mailbox *box) {
+  FUNC_START();
+  int ret = index_storage_mailbox_delete(box);
+  if (ret < 0) {
+    i_error("while processing index_storage_mailbox_delete: %d", ret);
+    return ret;
+  }
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
+  // 90 plugin konfigurierbar!
+  read_plugin_configuration(box);
+  if (!storage->config->is_rbox_check_empty_mailboxes()) {
+    return ret;
+  }
+
+  ret = rbox_open_rados_connection(box, false);
+  if (ret < 0) {
+    i_error("Opening rados connection : %d", ret);
+    return ret;
+  }
+  if (storage->config->is_user_mapping()) {  //
+
+    struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+    ret =
+        check_users_mailbox_delete_ns_object(mbox->storage->storage.user, storage->config, storage->ns_mgr, storage->s);
+  }
+  FUNC_END();
+  return ret;
+}
+
 struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
                                              index_storage_mailbox_enable,
                                              index_storage_mailbox_exists,
@@ -769,7 +850,7 @@ struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
                                              index_storage_mailbox_free,
                                              rbox_mailbox_create,
                                              rbox_mailbox_update,
-                                             index_storage_mailbox_delete,
+                                             rbox_storage_mailbox_delete,
                                              index_storage_mailbox_rename,
                                              index_storage_get_status,
                                              rbox_mailbox_get_metadata,
