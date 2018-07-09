@@ -168,6 +168,9 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 }
 
 void rados_dict_deinit(struct dict *_dict) {
+  if (!_dict)
+    return;
+
   struct rados_dict *dict = (struct rados_dict *)_dict;
 
   // wait for open operations
@@ -187,9 +190,7 @@ void rados_dict_deinit(struct dict *_dict) {
     dict->guid_generator = nullptr;
   }
 
-  if (_dict != NULL) {
-    i_free(_dict);
-  }
+  i_free(_dict);
 }
 
 static void rados_lookup_complete_callback(rados_completion_t comp, void *arg);
@@ -553,7 +554,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   ctx->deploy_unset_set();
   i_debug("commit !");
   bool failed = false;
-  int ret = RADOS_COMMIT_RET_OK;
+  int ret;
 
   ctx->context = context;
   ctx->callback = callback;

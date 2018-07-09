@@ -113,7 +113,7 @@ class CmdLineParser {
   Predicate *get_predicate(const std::string &key) { return predicates[key]; }
   Predicate *create_predicate(const std::string &ls_value);
 
-  void set_output_dir(const std::string out);
+  void set_output_dir(const std::string& out);
   std::string &get_output_dir() { return this->out_dir; }
 
  private:

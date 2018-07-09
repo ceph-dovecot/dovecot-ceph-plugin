@@ -19,7 +19,7 @@
 namespace librmb {
 class MailboxTools {
  public:
-  MailboxTools(librmb::RadosMailBox* mailbox, std::string base);
+  MailboxTools(librmb::RadosMailBox* mailbox, const std::string& base);
   ~MailboxTools() {}
 
   int init_mailbox_dir();

@@ -118,7 +118,6 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
 
 void ItUtils::add_mail(struct mail_save_context *save_ctx, struct istream *input, struct mailbox *box,
                        struct mailbox_transaction_context *trans) {
-  ssize_t ret;
   bool save_failed = FALSE;
 
   if (mailbox_save_begin(&save_ctx, input) < 0) {
@@ -126,6 +125,7 @@ void ItUtils::add_mail(struct mail_save_context *save_ctx, struct istream *input
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;

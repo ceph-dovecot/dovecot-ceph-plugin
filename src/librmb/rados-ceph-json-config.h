@@ -62,12 +62,12 @@ class RadosCephJsonConfig {
   bool is_updateable_attribute(enum rbox_metadata_key key);
   bool is_update_attributes() { return update_attributes.compare("true") == 0; }
 
-  void set_metadata_storage_module(const std::string metadata_storage_module_) {
+  void set_metadata_storage_module(const std::string& metadata_storage_module_) {
     metadata_storage_module = metadata_storage_module_;
   }
   const std::string& get_metadata_storage_module() { return metadata_storage_module; }
 
-  void set_metadata_storage_attribute(const std::string metadata_storage_attribute_) {
+  void set_metadata_storage_attribute(const std::string& metadata_storage_attribute_) {
     metadata_storage_attribute = metadata_storage_attribute_;
   }
   const std::string& get_metadata_storage_attribute() { return metadata_storage_attribute; }

@@ -118,7 +118,6 @@ bool RadosCephJsonConfig::from_json(librados::bufferlist *buffer) {
 }
 
 bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
-  char *s = NULL;
   json_t *root = json_object();
 
   json_object_set_new(root, key_user_mapping.c_str(), json_string(user_mapping.c_str()));
@@ -132,7 +131,7 @@ bool RadosCephJsonConfig::to_json(librados::bufferlist *buffer) {
   json_object_set_new(root, key_metadata_storage_module.c_str(), json_string(metadata_storage_module.c_str()));
   json_object_set_new(root, key_metadata_storage_attribute.c_str(), json_string(metadata_storage_attribute.c_str()));
 
-  s = json_dumps(root, 0);
+  char *s = json_dumps(root, 0);
   buffer->append(s);
   free(s);
   json_decref(root);

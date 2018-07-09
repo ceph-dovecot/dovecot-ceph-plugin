@@ -25,7 +25,7 @@ struct rbox_mail {
   librmb::RadosMailObject *mail_object;
   uint32_t last_seq;  // TODO(jrse): init with -1
 };
-
+extern void rbox_mail_set_expunged(struct rbox_mail *mail);
 extern int rbox_get_index_record(struct mail *_mail);
 extern struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fetch_field wanted_fields,
                                     struct mailbox_header_lookup_ctx *wanted_headers);

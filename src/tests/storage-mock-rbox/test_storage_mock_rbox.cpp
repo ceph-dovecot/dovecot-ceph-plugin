@@ -104,7 +104,6 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   EXPECT_CALL(*storage_mock, alloc_mail_object()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
   // storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
-  ssize_t ret;
 
   bool save_failed = FALSE;
 
@@ -113,6 +112,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;
@@ -224,7 +224,6 @@ TEST_F(StorageTest, exec_write_op_fails) {
 
   storage->config = cfg_mock;
   storage->s = storage_mock;
-  ssize_t ret;
 
   bool save_failed = FALSE;
 
@@ -233,6 +232,7 @@ TEST_F(StorageTest, exec_write_op_fails) {
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;
@@ -339,7 +339,6 @@ TEST_F(StorageTest, write_op_fails) {
 
   storage->config = cfg_mock;
   storage->s = storage_mock;
-  ssize_t ret;
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
@@ -356,6 +355,7 @@ TEST_F(StorageTest, write_op_fails) {
     mailbox_transaction_rollback(&trans);
     FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
+    ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;
@@ -466,7 +466,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*storage_mock_copy, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
 
   // TODO: EXPECT_CALL(*storage_mock_copy, set_metadata(_, _)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(-2));
+  EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(-1));
   EXPECT_CALL(*storage_mock_copy, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
   storage->s = storage_mock_copy;
@@ -517,6 +517,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
     mailbox_save_copy_flags(save_ctx, mail);
 
     int ret2 = mailbox_copy(&save_ctx, mail);
+    // mail should be marked as expunged!!!
     EXPECT_EQ(ret2, -1);
 
     break;  // only move one mail.
@@ -534,7 +535,6 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   delete test_object;
   delete test_object2;
-
 }
 
 TEST_F(StorageTest, copy_input_to_output_stream) {
