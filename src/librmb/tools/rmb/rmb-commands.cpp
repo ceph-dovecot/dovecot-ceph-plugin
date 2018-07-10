@@ -327,7 +327,6 @@ static void aio_cb(rados_completion_t cb, void *arg) {
   if (stat->completion->get_return_value() == 0 && stat->object_size > 0) {
     stat->mail->set_mail_size(stat->object_size);
     stat->mail->set_rados_save_date(stat->save_date_rados);
-    // std::cout << " object '" << stat->mail->get_oid() << "' added size " << stat->object_size << std::endl;
     bool valid = true;
     if (stat->load_metadata) {
       if (stat->ms->load_metadata(stat->mail) < 0) {

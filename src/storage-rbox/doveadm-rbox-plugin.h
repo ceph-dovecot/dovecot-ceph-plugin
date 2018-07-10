@@ -12,14 +12,13 @@
 #ifndef SRC_DOVEADM_RBOX_PLUGIN_H
 #define SRC_DOVEADM_RBOX_PLUGIN_H
 
-extern struct doveadm_mail_cmd_context *cmd_rmb_lspools_alloc(void);
-
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_get_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_delete_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_mb_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void);
+
 extern struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
@@ -29,5 +28,9 @@ extern void cmd_rmb_config_create(int argc, char *argv[]);
 extern void cmd_rmb_config_update(int argc, char *argv[]);
 extern void cmd_rmb_lspools(int argc, char *argv[]);
 extern void cmd_rmb_rename(int argc, char *argv[]);
+
+extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_

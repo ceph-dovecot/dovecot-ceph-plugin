@@ -101,7 +101,6 @@ class RboxDoveadmPlugin {
       }
     }
     config->set_config_valid(true);
-
     return 0;
   }
 
@@ -128,25 +127,6 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_us
     return 0;
   }
   return ret;
-}
-
-static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
-  RboxDoveadmPlugin plugin;
-  plugin.read_doveadm_plugin_configuration();
-  int open = open_connection_load_config(&plugin, NULL);
-  if (open < 0) {
-    i_error("Error opening rados connection. Errorcode: %d", open);
-    return 0;
-  }
-
-  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
-  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  int ret = rmb_cmds.configuration(true, *cfg);
-  if (ret < 0) {
-    i_error("Error processing ceph configuration. Errorcode: %d", ret);
-    return 0;
-  }
-  return 0;
 }
 
 static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
@@ -190,8 +170,6 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
 
   return 0;
 }
-
-
 
 static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   int ret = 1;
@@ -271,10 +249,12 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   const char *oid = ctx->args[0];
   const char *key_value_pair = ctx->args[1];
   int ret = -1;
+
   if (!ctx->iterate_single_user) {
     i_error("set command is only available for single user!");
     return -1;
   }
+
   if (oid == NULL || key_value_pair == NULL) {
     i_error("error check params: %s : %s ", oid, key_value_pair);
     return 0;
@@ -326,10 +306,12 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     i_error("no oid given");
     return 0;
   }
+
   if (!ctx->iterate_single_user) {
     i_error("set command is only available for single user!");
     return -1;
   }
+
   RboxDoveadmPlugin plugin;
   int open = open_connection_load_config(&plugin, user);
   if (open < 0) {
@@ -365,6 +347,7 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     i_error("no username given");
     return 0;
   }
+
   if (!ctx->iterate_single_user) {
     i_error("rename command is only available for single user");
     return -1;
@@ -561,7 +544,9 @@ static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct m
   for (std::map<std::string, std::list<librmb::RadosSaveLogEntry>>::iterator iter = moved_items.begin();
        iter != moved_items.end(); ++iter) {
     const char *error;
+
     struct mail_storage_service_user *cur_service_user = NULL;
+
     struct mail_user *cur_mail_user = NULL;
     ctx->storage_service_input.username = iter->first.c_str();
     doveadm_rmb_mail_next_user(ctx, &ctx->storage_service_input, cur_service_user, &cur_mail_user, &error,
@@ -797,7 +782,6 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     mailbox_set_reason(box, _ctx->cmd->name);
     struct mail_storage *storage = mailbox_get_storage(box);
 #endif
-
     ret2 = ctx->require_empty ? mailbox_delete_empty(box) : mailbox_delete(box);
     if (ret2 < 0) {
 #if DOVECOT_PREREQ(2, 3)
@@ -857,7 +841,6 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
   return 0;
 }
 
-
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (str_array_length(args) > 2) {
     doveadm_mail_help_name("rmb ls");
@@ -904,7 +887,7 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
   const char *name;
   unsigned int i;
 
-  if (args[0] == NULL) {
+  if (args[0] == NULL){
     doveadm_mail_help_name("rmb mailbox delete");
   }
   doveadm_mailbox_args_check(args);
