@@ -110,7 +110,6 @@ class RboxDoveadmPlugin {
   librmb::RadosDovecotCephCfg *config;
 };
 
-
 static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_user *user) {
   int ret = -1;
 
@@ -128,7 +127,23 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_us
   }
   return ret;
 }
-
+static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
+  RboxDoveadmPlugin plugin;
+  plugin.read_doveadm_plugin_configuration();
+  int open = open_connection_load_config(&plugin, NULL);
+  if (open < 0) {
+    i_error("Error opening rados connection. Errorcode: %d", open);
+    return 0;
+  }
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+  int ret = rmb_cmds.configuration(true, *cfg);
+  if (ret < 0) {
+    i_error("Error processing ceph configuration. Errorcode: %d", ret);
+    return 0;
+  }
+  return 0;
+}
 static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
                               librmb::CmdLineParser &parser, std::vector<librmb::RadosMailObject *> &mail_objects,
                               bool silent, bool load_metadata = true) {
