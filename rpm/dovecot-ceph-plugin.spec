@@ -97,6 +97,8 @@ find %{buildroot}%{_libdir}/dovecot/ -type f -name \*.a  -delete
 %defattr(-,root,root)
 %dir %{_libdir}/dovecot
 %{_libdir}/dovecot/lib*.so*
+%dir %{_libdir}/dovecot/doveadm
+%{_libdir}/dovecot/doveadm/lib10_doveadm_rbox_plugin.so
 
 %files -n librmb0
 %defattr(-,root,root)

@@ -62,17 +62,22 @@ std::string RadosMailObject::to_string(const string &padding) {
   ostringstream ss;
 
   ss << endl;
-  ss << padding << "MAIL:   " << static_cast<char>(RBOX_METADATA_MAIL_UID) << "(uid)=" << uid << endl;
-  ss << padding << "        "
-     << "oid = " << oid << endl;
+  ss << padding << "MAIL:   ";
+  if (!uid.empty()) {
+    ss << static_cast<char>(RBOX_METADATA_MAIL_UID) << "(uid)=" << uid << endl;
+    ss << padding << "        ";
+  }
+  ss << "oid = " << oid << endl;
   string recv_time;
   if (RadosUtils::convert_time_t_to_str(ts, &recv_time) >= 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)=" << recv_time
        << "\n";
   } else {
-    ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME) << "(receive_time)= INVALID DATE : '"
-       << recv_time_str << "'"
-       << "\n";
+    if (!recv_time_str.empty()) {
+      ss << padding << "        " << static_cast<char>(RBOX_METADATA_RECEIVED_TIME)
+         << "(receive_time)= INVALID DATE : '" << recv_time_str << "'"
+         << "\n";
+    }
   }
   string save_time;
   if (RadosUtils::convert_time_t_to_str(save_date_rados, &save_time) >= 0) {
@@ -82,18 +87,21 @@ std::string RadosMailObject::to_string(const string &padding) {
     ss << padding << "        "
        << "save_time= INVALID DATE '" << save_date_rados << "'\n";
   }
+
   ss << padding << "        " << static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE) << "(phy_size)=" << p_size << " "
      << static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE) << "(v_size) = " << v_size << " stat_size=" << object_size
      << endl;
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_MAILBOX_GUID) << "(mailbox_guid)=" << mailbox_guid
-     << endl;
-
+  if (!mailbox_guid.empty()) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_MAILBOX_GUID) << "(mailbox_guid)=" << mailbox_guid
+       << endl;
+  }
   if (mb_orig_name.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_ORIG_MAILBOX)
        << "(mailbox_orig_name)=" << mb_orig_name << endl;
   }
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_GUID) << "(mail_guid)=" << mail_guid << endl;
-
+  if (!mail_guid.empty()) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_GUID) << "(mail_guid)=" << mail_guid << endl;
+  }
   if (rbox_version.length() > 0) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_VERSION) << "(rbox_version): " << rbox_version
        << endl;

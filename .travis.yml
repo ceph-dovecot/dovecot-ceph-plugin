@@ -46,6 +46,8 @@ script:
 
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=150 output=/var/log/imaptest.log'
+
+- docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 users=100 clients=10 error_quit secs=60 copybox=INBOX.Drafts output=/var/log/imaptest.log'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'

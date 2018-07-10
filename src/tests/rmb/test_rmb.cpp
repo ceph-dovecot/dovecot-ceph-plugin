@@ -234,7 +234,7 @@ TEST(rmb1, rmb_command_filter_result) {
   }
   mails.push_back(&obj1);
 
-  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false));
+  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false, false));
 }
 
 TEST(rmb1, rmb_command_filter_result2) {
@@ -329,7 +329,7 @@ TEST(rmb1, rmb_command_filter_result2) {
   }
   mails.push_back(&obj1);
 
-  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false));
+  EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false, false));
 }
 
 int main(int argc, char **argv) {

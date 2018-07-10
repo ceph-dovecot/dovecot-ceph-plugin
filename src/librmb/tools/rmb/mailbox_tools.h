@@ -14,7 +14,7 @@
 
 #include <string>
 #include "rados-mail-object.h"
-#include "rmb.h"
+#include "rados-mail-box.h"
 
 namespace librmb {
 class MailboxTools {

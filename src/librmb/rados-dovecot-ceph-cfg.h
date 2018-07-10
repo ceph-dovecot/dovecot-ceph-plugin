@@ -66,6 +66,7 @@ class RadosDovecotCephCfg {
   virtual int save_object(const std::string &oid, librados::bufferlist &buffer) = 0;
   virtual int read_object(const std::string &oid, librados::bufferlist *buffer) = 0;
   virtual void set_io_ctx_namespace(const std::string &namespace_) = 0;
+  virtual bool is_rbox_check_empty_mailboxes() = 0;
 };
 
 } /* namespace librmb */
