@@ -477,7 +477,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   struct seq_range_iter iter;
   unsigned int n = 0;
   uint32_t uid = -1;
-
+  
   if (r_ctx->objects.size() > 0) {
     seq_range_array_iter_init(&iter, uids);
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;

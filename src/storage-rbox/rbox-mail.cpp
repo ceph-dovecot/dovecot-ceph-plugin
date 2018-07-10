@@ -42,7 +42,7 @@ extern "C" {
 using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
 
-static void rbox_mail_set_expunged(struct rbox_mail *mail) {
+void rbox_mail_set_expunged(struct rbox_mail *mail) {
   struct mail *_mail = &mail->imail.mail.mail;
 
   mail_index_refresh(_mail->box->index);
