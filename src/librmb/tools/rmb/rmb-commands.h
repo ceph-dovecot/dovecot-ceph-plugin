@@ -44,6 +44,8 @@ class RmbCommands {
   void print_debug(const std::string &msg);
   static int lspools();
   int delete_mail(bool confirmed);
+  int delete_namespace(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
+                       librmb::RadosCephConfig *cfg, bool confirmed);
 
   int rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid);
 

@@ -389,13 +389,24 @@ int main(int argc, const char **argv) {
     std::cerr << " Error initializing metadata module " << std::endl;
     delete rmb_commands;
     release_exit(&mail_objects, &cluster, false);
+    exit(0);
   }
 
   if (delete_mail_option) {
-    if (rmb_commands->delete_mail(confirmed) < 0) {
-      std::cerr << "error deleting mail" << std::endl;
-      cluster.deinit();
+    if (opts["to_delete"].size() == 1 && opts["to_delete"].compare("-") == 0) {
+      if (rmb_commands->delete_namespace(ms, mail_objects, &ceph_cfg, confirmed) < 0) {
+        std::cerr << "error deleting namespace " << std::endl;
+        release_exit(&mail_objects, &cluster, false);
+      }
+    } else {
+      if (rmb_commands->delete_mail(confirmed) < 0) {
+        std::cerr << "error deleting mail" << std::endl;
+      }
     }
+    release_exit(&mail_objects, &cluster, false);
+    delete rmb_commands;
+    delete ms;
+    exit(0);
 
   } else if (rename_user_option) {
     if (rmb_commands->rename_user(&ceph_cfg, confirmed, uid) < 0) {
@@ -423,6 +434,7 @@ int main(int argc, const char **argv) {
 
   delete rmb_commands;
   delete ms;
+
   // tear down.
   release_exit(&mail_objects, &cluster, false);
 }
