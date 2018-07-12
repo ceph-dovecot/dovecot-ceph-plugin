@@ -148,21 +148,21 @@ static int destroy_one_pool(const std::string &pool_name, rados_t *cluster) {
 }
 
 static struct mail_storage_service_ctx *mail_storage_service = nullptr;
-struct mail_user *SyncTest::s_test_mail_user = nullptr;
+struct mail_user *DoveadmTest::s_test_mail_user = nullptr;
 static struct mail_storage_service_user *test_service_user = nullptr;
 
-rados_t SyncTest::s_cluster = nullptr;
-rados_ioctx_t SyncTest::s_ioctx = nullptr;
+rados_t DoveadmTest::s_cluster = nullptr;
+rados_ioctx_t DoveadmTest::s_ioctx = nullptr;
 
-std::string SyncTest::pool_name;  // NOLINT
-std::string SyncTest::uri;        // NOLINT
-struct ioloop *SyncTest::s_test_ioloop = nullptr;
-pool_t SyncTest::s_test_pool = nullptr;
-char *SyncTest::mail_home = NULL;
+std::string DoveadmTest::pool_name;  // NOLINT
+std::string DoveadmTest::uri;        // NOLINT
+struct ioloop *DoveadmTest::s_test_ioloop = nullptr;
+pool_t DoveadmTest::s_test_pool = nullptr;
+char *DoveadmTest::mail_home = NULL;
 
 static const char *username = "user-rbox-test@localhost";
 
-void SyncTest::SetUpTestCase() {
+void DoveadmTest::SetUpTestCase() {
   // prepare Ceph
   pool_name = get_temp_pool_name("test-storage-rbox-");
   ASSERT_EQ("", create_one_pool(pool_name, &s_cluster));
@@ -228,10 +228,10 @@ void SyncTest::SetUpTestCase() {
       settings_parse_line(set_parser, t_strdup_printf("mail_attribute_dict=file:%s/dovecot-attributes", mail_home)), 0);
 
   ASSERT_GE(mail_storage_service_next(mail_storage_service, test_service_user, &s_test_mail_user, &error), 0);
-  set_user_env(s_test_mail_user, SyncTest::pool_name.c_str());
+	set_user_env(s_test_mail_user, DoveadmTest::pool_name.c_str());
 }
 
-void SyncTest::TearDownTestCase() {
+void DoveadmTest::TearDownTestCase() {
   if (array_is_created(&s_test_mail_user->set->plugin_envs)) {
     if (array_count(&s_test_mail_user->set->plugin_envs) > 0) {
       array_delete(&s_test_mail_user->set->plugin_envs, array_count(&s_test_mail_user->set->plugin_envs) - 1, 1);
@@ -260,6 +260,8 @@ void SyncTest::TearDownTestCase() {
   master_service_deinit(&master_service);
 }
 
-void SyncTest::SetUp() {}
+void DoveadmTest::SetUp() {
+}
 
-void SyncTest::TearDown() {}
+void DoveadmTest::TearDown() {
+}

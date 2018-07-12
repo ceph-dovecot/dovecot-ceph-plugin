@@ -28,12 +28,16 @@ typedef struct pool *pool_t;
  * Since pool creation and deletion is slow, this allows many tests to
  * run faster.
  */
-class SyncTest : public ::testing::Test {
+class DoveadmTest: public ::testing::Test {
  public:
-  SyncTest() {}
-  ~SyncTest() override {}
+	DoveadmTest() {
+	}
+	~DoveadmTest() override {
+	}
 
   static pool_t get_test_pool() { return s_test_pool; }
+  static const char *get_pool_name() { return pool_name.c_str(); }
+  static rados_ioctx_t get_io_ctx() { return s_ioctx; }
 
  protected:
   static void SetUpTestCase();

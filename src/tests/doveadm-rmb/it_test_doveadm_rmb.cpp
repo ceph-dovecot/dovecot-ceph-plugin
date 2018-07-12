@@ -42,11 +42,10 @@ extern "C" {
 #include "doveadm-mail.h"
 #include "doveadm-rbox-plugin.h"
 #include "libdict-rados-plugin.h"
-
+#include "master-service.h"
+#include "master-service-settings.h"
+#include "doveadm-settings.h"
 }
-
-
-
 
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
@@ -56,16 +55,15 @@ using ::testing::AtLeast;
 using ::testing::Return;
 
 void doveadm_register_cmd(const struct doveadm_cmd *cmd) {
-
 }
 const char *doveadm_plugin_getenv(const char *name) {
-	return NULL;
+  if (strcmp(name, "rbox_pool_name") == 0) {
+    return DoveadmTest::get_pool_name();
+  }
+  return NULL;
 }
 
-/* some bullshit wrapper */
 void doveadm_mail_help_name(const char *cmd_name) {
-  // doveadm_mail_try_help_name(cmd_name);
-  // i_fatal("Missing help for command %s", cmd_name);
 }
 
 void doveadm_mailbox_args_check(const char *const args[]) {}
@@ -89,16 +87,87 @@ void doveadm_mail_register_cmd(const struct doveadm_mail_cmd *cmd) {}
 void doveadm_mail_failed_mailbox(struct doveadm_mail_cmd_context *ctx, struct mailbox *box) {}
 void doveadm_mail_failed_error(struct doveadm_mail_cmd_context *ctx, enum mail_error error) {}
 
-TEST_F(SyncTest, init) {
+
+TEST_F(DoveadmTest, init) {
+/*  struct master_service *master_service;
+  enum master_service_flags service_flags = MASTER_SERVICE_FLAG_KEEP_CONFIG_OPEN;
+  const char *error;
+
+  int argc = 2;
+  char **argv = malloc(sizeof(char *) * 2);
+  argv[0] = static_cast<char *>(malloc(sizeof(char) * 10));
+  argv[1] = static_cast<char *>(malloc(sizeof(char) * 10));
+
+  master_service = master_service_init("doveadm", service_flags, &argc, &argv, "");
+
+  std::cout << " hallo service" << master_service << std::endl;
+  if (master_getopt(master_service) > 0) {
+    std::cout << " no opts" << std::endl;
+  }
+
+
+  master_service_init_finish(master_service);
+  master_service_deinit(&master_service);*/
 }
 
-TEST_F(SyncTest, test_doveadm) {
-	cmd_rmb_lspools(0, NULL);
+TEST_F(DoveadmTest, test_doveadm) { ASSERT_EQ(cmd_rmb_lspools(0, NULL), 0); }
+TEST_F(DoveadmTest, test_create_config) { ASSERT_EQ(cmd_rmb_config_create(0, NULL), 0); }
+TEST_F(DoveadmTest, test_show_config) { ASSERT_EQ(cmd_rmb_config_show(0, NULL), 0); }
 
+TEST_F(DoveadmTest, test_update_config_invalid_key) {
+  char *argv[] = {"rmb", "invalid_key=1"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, -1);
+}
+
+TEST_F(DoveadmTest, test_update_config_valid_key) {
+  char *argv[] = {"rmb", "user_mapping=false"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
 }
 
 
-TEST_F(SyncTest, deinit) {
+TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
+  char *argv[] = {"ls", "-"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
+  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
+  struct mail_user *user = p_new(pool, struct mail_user, 1);
+  user->username = "t1";
+  cmd_ctx->args = argv;
+  cmd_ctx->iterate_single_user = true;
+  int ret = cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(ret, 0);
+}
+
+TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
+  rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
+  ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw", "Hello World!", 12, 0), 0);
+  std::cout << "wrote: testmail: pool: " << DoveadmTest::get_pool_name() << std::endl;
+  char *argv[] = {"ls", "-"};
+
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
+  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
+  struct mail_user *user = p_new(pool, struct mail_user, 1);
+  user->username = "t1";
+  cmd_ctx->args = argv;
+  cmd_ctx->iterate_single_user = true;
+  int ret = cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(ret, 0);
+}
+
+TEST_F(DoveadmTest, cmd_rmb_delete) {
+  char *argv[] = {"rbox_cfg"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_delete_alloc();
+  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
+  struct mail_user *user = p_new(pool, struct mail_user, 1);
+  user->username = "";
+  cmd_ctx->args = argv;
+  cmd_ctx->iterate_single_user = true;
+  int ret = cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(ret, 0);
+}
+TEST_F(DoveadmTest, deinit) {
+
 }
 
 int main(int argc, char **argv) {

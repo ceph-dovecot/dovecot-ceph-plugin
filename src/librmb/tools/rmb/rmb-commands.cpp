@@ -139,6 +139,7 @@ int RmbCommands::delete_mail(bool confirmed) {
                  "may lead to corrupt mailbox\n"
               << " add --yes-i-really-really-mean-it to confirm the delete " << std::endl;
   } else {
+    std::cout << " deleting mail : " << storage->get_pool_name() << " ns: " << storage->get_namespace() << std::endl;
     ret = storage->delete_mail((*opts)["to_delete"]);
     if (ret < 0) {
       std::cout << "unable to delete e-mail object with oid: " << (*opts)["to_delete"] << std::endl;
@@ -327,32 +328,21 @@ static void aio_cb(rados_completion_t cb, void *arg) {
   if (stat->completion->get_return_value() == 0 && stat->object_size > 0) {
     stat->mail->set_mail_size(stat->object_size);
     stat->mail->set_rados_save_date(stat->save_date_rados);
-    bool valid = true;
     if (stat->load_metadata) {
       if (stat->ms->load_metadata(stat->mail) < 0) {
-        std::cout << " loading metadata of object '" << stat->mail->get_oid() << "' faild " << std::endl;
-        delete stat->mail;
-        valid = false;
+        stat->mail->set_valid(false);
       }
-
       if (stat->mail->get_metadata()->empty()) {
-        std::cout << " pool object " << stat->mail->get_oid() << " is not a mail object" << std::endl;
-        delete stat->mail;
-        valid = false;
+        stat->mail->set_valid(false);
       }
-
       if (!librmb::RadosUtils::validate_metadata(stat->mail->get_metadata())) {
-        std::cout << "object : " << stat->mail->get_oid() << " metadata is not valid " << std::endl;
-        delete stat->mail;
-        valid = false;
+        stat->mail->set_valid(false);
       }
     }
-    if (valid) {
-      stat->mail_objects->push_back(stat->mail);
-    }
+    stat->mail_objects->push_back(stat->mail);
+
   } else {
-    std::cout << " object '" << stat->mail->get_oid() << "' is not a valid mail object, size = 0" << std::endl;
-    delete stat->mail;
+    stat->mail->set_valid(false);
   }
   delete stat;
 }
@@ -420,9 +410,9 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
 int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir,
                             bool download) {
   print_debug("entry:: print_mail");
-
   for (std::map<std::string, librmb::RadosMailBox *>::iterator it = mailbox->begin(); it != mailbox->end(); ++it) {
     if (it->second->get_mail_count() == 0) {
+      std::cout << "mail count is null" << std::endl;
       continue;
     }
     std::cout << it->second->to_string() << std::endl;
@@ -514,8 +504,9 @@ RadosStorageMetadataModule *RmbCommands::init_metadata_storage_module(librmb::Ra
   } else {
     ms = new librmb::RadosMetadataStorageDefault(&storage->get_io_ctx());
   }
-
-  *uid = (*opts)["namespace"] + cfg.get_user_suffix();
+  if (!(*opts)["namespace"].empty()) {
+    *uid = (*opts)["namespace"] + cfg.get_user_suffix();
+  }
   std::string ns;
   if (mgr.lookup_key(*uid, &ns)) {
     storage->set_namespace(ns);

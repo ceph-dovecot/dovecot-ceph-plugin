@@ -65,6 +65,8 @@ string get_metadata(const string& key) {
   return value;
 }
 
+bool is_valid() { return valid; }
+void set_valid(bool valid_) { valid = valid_; }
 bool has_active_op() { return active_op; }
 string to_string(const string& padding);
 void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
@@ -92,6 +94,7 @@ const string get_extended_metadata(string& key) {
 
   map<string, ceph::bufferlist> attrset;
   map<string, ceph::bufferlist> extended_attrset;
+  bool valid;
 
  public:
   static const char X_ATTR_VERSION_VALUE[];

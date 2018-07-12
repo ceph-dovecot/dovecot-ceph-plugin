@@ -110,10 +110,10 @@ class RboxDoveadmPlugin {
   librmb::RadosDovecotCephCfg *config;
 };
 
-static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_user *user) {
+static int open_connection_load_config(RboxDoveadmPlugin *plugin) {
   int ret = -1;
 
-  plugin->read_plugin_configuration(user);
+  plugin->read_doveadm_plugin_configuration();
   int open = plugin->open_connection();
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
@@ -130,17 +130,17 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin, struct mail_us
 static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
   RboxDoveadmPlugin plugin;
   plugin.read_doveadm_plugin_configuration();
-  int open = open_connection_load_config(&plugin, NULL);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
-    return 0;
+    return -1;
   }
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
   int ret = rmb_cmds.configuration(true, *cfg);
   if (ret < 0) {
     i_error("Error processing ceph configuration. Errorcode: %d", ret);
-    return 0;
+    return -1;
   }
   return 0;
 }
@@ -148,7 +148,7 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
                               librmb::CmdLineParser &parser, std::vector<librmb::RadosMailObject *> &mail_objects,
                               bool silent, bool load_metadata = true) {
   RboxDoveadmPlugin plugin;
-  int open = open_connection_load_config(&plugin, user);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
     return 0;
@@ -276,7 +276,7 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
   }
 
   RboxDoveadmPlugin plugin;
-  int open = open_connection_load_config(&plugin, user);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("error opening rados connection, check config: %d", open);
     return open;
@@ -323,12 +323,12 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   }
 
   if (!ctx->iterate_single_user) {
-    i_error("set command is only available for single user!");
+    i_error("delete command is only available for single user!");
     return -1;
   }
 
   RboxDoveadmPlugin plugin;
-  int open = open_connection_load_config(&plugin, user);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
     return 0;
@@ -348,7 +348,7 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     delete ms;
     return 0;
   }
-
+  std::cout << " hallo : " << oid << " lkalala" << std::endl;
   int ret = rmb_cmds.delete_mail(true);
   if (ret < 0) {
     i_error("Error deleting mail. Errorcode: %d", ret);
@@ -369,7 +369,7 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   }
 
   RboxDoveadmPlugin plugin;
-  int open = open_connection_load_config(&plugin, user);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
     return 0;
@@ -695,7 +695,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   RboxDoveadmPlugin plugin;
 
-  int open = open_connection_load_config(&plugin, user);
+  int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error open connection to cluster %d", open);
     return 0;
@@ -832,7 +832,7 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
     RboxDoveadmPlugin plugin;
     i_debug("cleaning up rbox specific files and objects :ret=%d", ret);
     plugin.read_plugin_configuration(user);
-    int open = open_connection_load_config(&plugin, user);
+    int open = open_connection_load_config(&plugin);
     if (open < 0) {
       i_error("error opening rados connection, check config: %d", open);
       return open;
@@ -1012,19 +1012,18 @@ struct config_options {
   char *pool_name;
 };
 
-void cmd_rmb_config_show(int argc, char *argv[]) {
-
+int cmd_rmb_config_show(int argc, char *argv[]) {
   std::map<std::string, std::string> opts;
   opts["print_cfg"] = "true";
-  cmd_rmb_config(opts);
+  return cmd_rmb_config(opts);
 }
-void cmd_rmb_config_create(int argc, char *argv[]) {
+int cmd_rmb_config_create(int argc, char *argv[]) {
   RboxDoveadmPlugin plugin;
   plugin.read_doveadm_plugin_configuration();
   int open = plugin.open_connection();
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
-    return;
+		return -1;
   }
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
   int ret = cfg->load_cfg();
@@ -1032,30 +1031,30 @@ void cmd_rmb_config_create(int argc, char *argv[]) {
     ret = cfg->save_cfg();
     if (ret < 0) {
       i_error("error creating configuration %d", ret);
-      return;
+			return -1;
     }
     std::cout << "config created" << std::endl;
   } else {
     std::cout << "config already exist" << std::endl;
+    return 1;
   }
+  return 0;
 }
 
-void cmd_rmb_config_update(int argc, char *argv[]) {
+int cmd_rmb_config_update(int argc, char *argv[]) {
   if (argc < 1) {
     i_error("usage: dovecot rmb config update key=value");
-    return;
+    return -1;
   }
   char *update = argv[1];
   if (update == NULL) {
     i_error("no update param given");
-    return;
+    return -1;
   }
-  i_debug("param is: %s", update);
   std::map<std::string, std::string> opts;
   opts["update"] = update;
   int ret = cmd_rmb_config(opts);
-  i_debug("success? : %d", ret);
-  return;
+  return ret;
 }
 
-void cmd_rmb_lspools(int argc, char *argv[]) { librmb::RmbCommands::RmbCommands::lspools(); }
+int cmd_rmb_lspools(int argc, char *argv[]) { return librmb::RmbCommands::RmbCommands::lspools(); }

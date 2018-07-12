@@ -23,11 +23,10 @@ extern struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
 
-extern void cmd_rmb_config_show(int argc, char *argv[]);
-extern void cmd_rmb_config_create(int argc, char *argv[]);
-extern void cmd_rmb_config_update(int argc, char *argv[]);
-extern void cmd_rmb_lspools(int argc, char *argv[]);
-extern void cmd_rmb_rename(int argc, char *argv[]);
+extern int cmd_rmb_config_show(int argc, char *argv[]);
+extern int cmd_rmb_config_create(int argc, char *argv[]);
+extern int cmd_rmb_config_update(int argc, char *argv[]);
+extern int cmd_rmb_lspools(int argc, char *argv[]);
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
