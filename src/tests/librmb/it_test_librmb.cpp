@@ -874,7 +874,12 @@ TEST(librmb, rmb_load_objects) {
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
-  EXPECT_EQ(0, mail_objects.size());
+  EXPECT_EQ(1, mail_objects.size());
+
+  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMailObject *obj = *it;
+    delete obj;
+  }
 
   storage.delete_mail(&obj2);
   storage.delete_mail(ceph_cfg.get_cfg_object_name());
@@ -1017,8 +1022,13 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
 
   storage.delete_mail(&obj2);
   storage.delete_mail(ceph_cfg.get_cfg_object_name());
+  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMailObject *obj = *it;
+    delete obj;
+  }
+
   delete ms;
-  delete mail_objects[0];
+
   mail_objects.clear();
   // tear down
   cluster.deinit();
@@ -1154,7 +1164,12 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
   // no mail
-  EXPECT_EQ(0, mail_objects.size());
+  EXPECT_EQ(1, mail_objects.size());
+
+  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMailObject *obj = *it;
+    delete obj;
+  }
 
   storage.delete_mail(&obj2);
   storage.delete_mail(ceph_cfg.get_cfg_object_name());

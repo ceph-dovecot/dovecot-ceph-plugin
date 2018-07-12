@@ -339,11 +339,10 @@ static void aio_cb(rados_completion_t cb, void *arg) {
         stat->mail->set_valid(false);
       }
     }
-    stat->mail_objects->push_back(stat->mail);
-
   } else {
     stat->mail->set_valid(false);
   }
+  stat->mail_objects->push_back(stat->mail);
   delete stat;
 }
 int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,

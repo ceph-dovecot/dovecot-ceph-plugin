@@ -45,6 +45,7 @@ extern "C" {
 #include "master-service.h"
 #include "master-service-settings.h"
 #include "doveadm-settings.h"
+#include "mempool.h"
 }
 
 #include "rbox-storage.hpp"
@@ -126,17 +127,18 @@ TEST_F(DoveadmTest, test_update_config_valid_key) {
   ASSERT_EQ(ret, 0);
 }
 
-
 TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
   char *argv[] = {"ls", "-"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
-  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
-  struct mail_user *user = p_new(pool, struct mail_user, 1);
+  //  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
+  p_free(cmd_ctx->pool, cmd_ctx);
+  p_free(cmd_ctx->pool, user);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
@@ -146,25 +148,28 @@ TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
   char *argv[] = {"ls", "-"};
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
-  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
-  struct mail_user *user = p_new(pool, struct mail_user, 1);
+
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
+  p_free(cmd_ctx->pool, cmd_ctx);
+  p_free(cmd_ctx->pool, user);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {
   char *argv[] = {"rbox_cfg"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_delete_alloc();
-  pool_t pool = pool_alloconly_create(MEMPOOL_GROWING "mail user", 16 * 1024);
-  struct mail_user *user = p_new(pool, struct mail_user, 1);
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "";
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
+  p_free(cmd_ctx->pool, cmd_ctx);
+  p_free(cmd_ctx->pool, user);
 }
 TEST_F(DoveadmTest, deinit) {
 
