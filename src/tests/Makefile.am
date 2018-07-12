@@ -29,6 +29,10 @@ dict_shlibs = \
 storage_shlibs = \
 	$(top_builddir)/src/storage-rbox/libstorage_rbox_plugin.la $(LIBDOVECOT_STORAGE) $(LIBDOVECOT) $(rmb_shlibs)
 
+doveadm_rmb_shlibs = \
+	$(top_builddir)/src/storage-rbox/lib10_doveadm_rbox_plugin.la $(LIBDOVECOT_DEPS) 
+
+
 check_LTLIBRARIES = libgmockgtest.la
 
 libgmockgtest_la_CPPFLAGS = \
@@ -148,6 +152,14 @@ TESTS += it_test_sync_rbox_duplicate_uid
 it_test_sync_rbox_duplicate_uid_SOURCES = sync-rbox/it_test_sync_rbox_duplicate_uid.cpp sync-rbox/TestCase.cpp sync-rbox/TestCase.h test-utils/it_utils.cpp test-utils/it_utils.h
 it_test_sync_rbox_duplicate_uid_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 it_test_sync_rbox_duplicate_uid_LDADD = $(storage_shlibs) $(gtest_shlibs) 
+
+
+
+TESTS += it_test_doveadm_rmb
+it_test_doveadm_rmb_SOURCES = doveadm-rmb/it_test_doveadm_rmb.cpp doveadm-rmb/TestCase.cpp doveadm-rmb/TestCase.h test-utils/it_utils.cpp test-utils/it_utils.h
+it_test_doveadm_rmb_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)  
+it_test_doveadm_rmb_LDADD = $(storage_shlibs) $(gtest_shlibs) $(doveadm_rmb_shlibs) 
+
 
 endif
 
