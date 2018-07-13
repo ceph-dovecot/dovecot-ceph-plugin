@@ -157,7 +157,7 @@ int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const
     std::cout << "Error: To be able to rename a user, the configuration option generate_namespace needs to be active"
               << std::endl;
     print_debug("end: rename_user");
-    return 0;
+    return -1;
   }
   if (!confirmed) {
     std::cout << "WARNING: renaming a user may lead to data loss! Do you really really want to do this? \n add "

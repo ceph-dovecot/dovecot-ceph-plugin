@@ -250,8 +250,6 @@ TEST_F(DoveadmTest, cmd_rmb_rename_user) {
   int ret = cmd_rmb_config_update(2, argv);
   ASSERT_EQ(ret, 0);
 
-  std::cout << DoveadmTest::get_pool_name() << std::endl;
-
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "users");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "t1_u", "ABCDEFG", 12, 0), 0);
 
@@ -274,6 +272,38 @@ TEST_F(DoveadmTest, cmd_rmb_rename_user) {
   char read_res[100];
   ASSERT_EQ(rados_read(DoveadmTest::get_io_ctx(), "t_22_u", read_res, 7, 0), 7);
   ASSERT_EQ(strcmp(read_res, "ABCDEFG"), 0);
+}
+
+TEST_F(DoveadmTest, cmd_rmb_rename_user_no_indirect_user_mapping) {
+  char *argv[] = {"rmb", "user_mapping=false"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
+
+  char *argv2[] = {"t_22"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
+  user->username = "t1";
+  cmd_ctx->args = argv2;
+  cmd_ctx->iterate_single_user = true;
+  cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(cmd_ctx->exit_code, -1);
+  pool_unref(&cmd_ctx->pool);
+}
+
+TEST_F(DoveadmTest, cmd_rmb_rename_unknown_user) {
+  char *argv[] = {"rmb", "user_mapping=true"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
+
+  char *argv2[] = {"t_22"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
+  user->username = "t2222";  // unknown user!
+  cmd_ctx->args = argv2;
+  cmd_ctx->iterate_single_user = true;
+  cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(cmd_ctx->exit_code, -1);
+  pool_unref(&cmd_ctx->pool);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {
