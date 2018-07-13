@@ -235,7 +235,7 @@ static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_u
 static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *search_query = ctx->args[0];
   const char *output_path = ctx->args[1];
-  
+
   if (search_query == NULL) {
     i_error("no search query given");
     ctx->exit_code = -1;
@@ -311,9 +311,14 @@ static int cmd_rmb_set_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
     tokens.push_back(item);
   }
   if (tokens.size() == 2) {
-    metadata[tokens[0]] = tokens[1];
-    ctx->exit_code = rmb_cmds.update_attributes(ms, &metadata);
-    std::cout << " token " << tokens[0] << " : " << tokens[1] << std::endl;
+    if (tokens[0].size() > 1) {
+      ctx->exit_code = -1;
+      std::cerr << "check key " << tokens[0] << " is not a valid attribute" << std::endl;
+    } else {
+      metadata[tokens[0]] = tokens[1];
+      ctx->exit_code = rmb_cmds.update_attributes(ms, &metadata);
+      std::cerr << " token " << tokens[0] << " : " << tokens[1] << std::endl;
+    }
   } else {
     std::cerr << "check params: key_value_pair(" << key_value_pair << ") is not valid: use key=value" << std::endl;
     ctx->exit_code = -1;
