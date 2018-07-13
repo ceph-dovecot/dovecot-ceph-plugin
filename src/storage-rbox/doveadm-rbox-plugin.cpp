@@ -400,18 +400,12 @@ static int cmd_rmb_rename_run(struct doveadm_mail_cmd_context *ctx, struct mail_
   librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
   std::string uid;
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-  if (ms == nullptr) {
-    i_error(" Error initializing metadata module ");
-    delete ms;
-    return 0;
-  }
 
-  ctx->exit_code = rmb_cmds.rename_user(cfg, true, uid);
+  ctx->exit_code = rmb_cmds.rename_user(cfg, true, user->username);
   if (ctx->exit_code < 0) {
     i_error("Error renaming user. Errorcode: %d", ctx->exit_code);
   }
-  delete ms;
+
   return 0;
 }
 static int restore_index_entry(struct mail_user *user, const char *mailbox_name, const std::string &str_mail_guid,

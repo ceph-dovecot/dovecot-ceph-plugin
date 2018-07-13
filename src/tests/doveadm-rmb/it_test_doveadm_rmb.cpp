@@ -223,7 +223,7 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
-  char *argv[] = {"hw2", "B2=INBOX2"};
+  char *argv[] = {"hw2", "B2=INBOX2"};  // update invalid attribute
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
@@ -243,6 +243,37 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, -1);
   pool_unref(&cmd_ctx->pool);
+}
+
+TEST_F(DoveadmTest, cmd_rmb_rename_user) {
+  char *argv[] = {"rmb", "user_mapping=true"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
+
+  std::cout << DoveadmTest::get_pool_name() << std::endl;
+
+  rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "users");
+  ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "t1_u", "ABCDEFG", 12, 0), 0);
+
+  char *argv2[] = {"t_22"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
+  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
+  user->username = "t1";
+  cmd_ctx->args = argv2;
+  cmd_ctx->iterate_single_user = true;
+  cmd_ctx->v.run(cmd_ctx, user);
+  ASSERT_EQ(cmd_ctx->exit_code, 0);
+  pool_unref(&cmd_ctx->pool);
+
+  uint64_t size;
+  time_t tm;
+
+  ASSERT_EQ(rados_stat(DoveadmTest::get_io_ctx(), "t_22_u", &size, &tm), 0);
+  ASSERT_EQ(rados_stat(DoveadmTest::get_io_ctx(), "t1_u", &size, &tm), -2);
+
+  char read_res[100];
+  ASSERT_EQ(rados_read(DoveadmTest::get_io_ctx(), "t_22_u", read_res, 7, 0), 7);
+  ASSERT_EQ(strcmp(read_res, "ABCDEFG"), 0);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {

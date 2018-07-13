@@ -185,21 +185,21 @@ int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const
     std::cout << "Error there does not exist a configuration file for " << src_ << std::endl;
     print_debug("end: rename_user");
     return -1;
+  }
+  exist = storage->stat_mail(dest_, &size, &save_time);
+  if (exist >= 0) {
+    std::cout << "Error: there already exists a configuration file: " << dest_ << std::endl;
+    print_debug("end: rename_user");
+    return -1;
+  }
+  int ret = storage->copy(src_, cfg->get_user_ns().c_str(), dest_, cfg->get_user_ns().c_str(), list);
+  if (ret == 0) {
+    ret = storage->delete_mail(src_);
+    if (ret != 0) {
+      std::cout << "Error removing errorcode: " << ret << " oid: " << src_ << std::endl;
     }
-    exist = storage->stat_mail(dest_, &size, &save_time);
-    if (exist >= 0) {
-      std::cout << "Error: there already exists a configuration file: " << dest_ << std::endl;
-      print_debug("end: rename_user");
-      return -1;
-    }
-    int ret = storage->copy(src_, cfg->get_user_ns().c_str(), dest_, cfg->get_user_ns().c_str(), list);
-    if (ret == 0) {
-      ret = storage->delete_mail(src_);
-      if (ret != 0) {
-        std::cout << "Error removing errorcode: " << ret << " oid: " << src_ << std::endl;
-      }
-    } else {
-      std::cout << "Error renaming copy failed: return code:  " << ret << " oid: " << src_ << std::endl;
+  } else {
+    std::cout << "Error renaming copy failed: return code:  " << ret << " oid: " << src_ << std::endl;
     }
     print_debug("end: rename_user");
     return ret;
