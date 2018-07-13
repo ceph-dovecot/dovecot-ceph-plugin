@@ -137,8 +137,7 @@ TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
-  p_free(cmd_ctx->pool, cmd_ctx);
-  p_free(cmd_ctx->pool, user);
+  pool_unref(&cmd_ctx->pool);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
@@ -155,21 +154,21 @@ TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
-  p_free(cmd_ctx->pool, cmd_ctx);
-  p_free(cmd_ctx->pool, user);
+  pool_unref(&cmd_ctx->pool);
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {
   char *argv[] = {"rbox_cfg"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_delete_alloc();
+
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "";
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(ret, 0);
-  p_free(cmd_ctx->pool, cmd_ctx);
-  p_free(cmd_ctx->pool, user);
+
+  pool_unref(&cmd_ctx->pool);
 }
 TEST_F(DoveadmTest, deinit) {
 
