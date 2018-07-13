@@ -152,7 +152,7 @@ TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
-  ASSERT_EQ(ret, 0);
+  ASSERT_EQ(cmd_ctx->exit_code, 0);
   pool_unref(&cmd_ctx->pool);
 }
 
@@ -165,7 +165,7 @@ TEST_F(DoveadmTest, cmd_rmb_delete) {
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
-  ASSERT_EQ(ret, 0);
+  ASSERT_EQ(cmd_ctx->exit_code, 0);
   pool_unref(&cmd_ctx->pool);
 }
 TEST_F(DoveadmTest, cmd_rmb_delete_no_object) {
@@ -177,7 +177,7 @@ TEST_F(DoveadmTest, cmd_rmb_delete_no_object) {
   cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
   int ret = cmd_ctx->v.run(cmd_ctx, user);
-  ASSERT_EQ(ret, -2);
+  ASSERT_EQ(cmd_ctx->exit_code, -2);
   pool_unref(&cmd_ctx->pool);
 }
 TEST_F(DoveadmTest, deinit) {
