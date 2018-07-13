@@ -54,6 +54,8 @@ class RadosMailBox {
           mails.push_back(mail);
         }
         return;
+      } else if (it->first.compare("-") == 0) {
+        mails.push_back(mail);
       }
     }
   }

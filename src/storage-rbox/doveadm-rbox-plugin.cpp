@@ -235,7 +235,7 @@ static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_u
 static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *search_query = ctx->args[0];
   const char *output_path = ctx->args[1];
-
+  
   if (search_query == NULL) {
     i_error("no search query given");
     ctx->exit_code = -1;
@@ -879,7 +879,7 @@ static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, co
   }
 }
 static void cmd_rmb_get_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 3) {
+  if (str_array_length(args) < 2) {
     doveadm_mail_help_name("rmb get");
   }
 }

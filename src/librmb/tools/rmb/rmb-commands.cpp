@@ -411,14 +411,12 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
   print_debug("entry:: print_mail");
   for (std::map<std::string, librmb::RadosMailBox *>::iterator it = mailbox->begin(); it != mailbox->end(); ++it) {
     if (it->second->get_mail_count() == 0) {
-      std::cout << "mail count is null" << std::endl;
       continue;
     }
     std::cout << it->second->to_string() << std::endl;
     if (!download) {
       continue;
     }
-
     librmb::MailboxTools tools(it->second, output_dir);
     if (tools.init_mailbox_dir() < 0) {
       std::cout << " error initializing output dir : " << output_dir << std::endl;
@@ -435,9 +433,7 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
       }
     }
   }
-
   print_debug("end: print_mail");
-
   return 0;
 }
 
