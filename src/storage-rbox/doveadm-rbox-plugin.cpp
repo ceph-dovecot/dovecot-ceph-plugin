@@ -348,7 +348,6 @@ static int cmd_rmb_delete_run(struct doveadm_mail_cmd_context *ctx, struct mail_
     delete ms;
     return 0;
   }
-  std::cout << " hallo : " << oid << " lkalala" << std::endl;
   int ret = rmb_cmds.delete_mail(true);
   if (ret < 0) {
     i_error("Error deleting mail. Errorcode: %d", ret);
