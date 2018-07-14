@@ -48,6 +48,8 @@ extern "C" {
 #include "mempool.h"
 }
 
+#include <sstream>  // std::stringstream
+
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
 #include "../test-utils/it_utils.h"
@@ -310,12 +312,17 @@ TEST_F(DoveadmTest, cmd_rmb_rename_unknown_user) {
   pool_unref(&cmd_ctx->pool);
 }
 
-/*TEST_F(DoveadmTest, cmd_rmb_check_indices) {
+TEST_F(DoveadmTest, cmd_rmb_check_indices) {
   char *argv[] = {"rmb", "user_mapping=false"};
   int ret = cmd_rmb_config_update(2, argv);
   ASSERT_EQ(ret, 0);
+
+  std::stringstream ss;
+
+  ss << DoveadmTest::s_test_mail_user->username << "_u";
+  std::string ns = ss.str();
   // add new object
-  rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
+  rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), ns.c_str());
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk", 5), 0);
@@ -326,16 +333,48 @@ TEST_F(DoveadmTest, cmd_rmb_rename_unknown_user) {
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
 
-  char *argv2[] = {"t1"};
+  char *argv2[] = {DoveadmTest::s_test_mail_user->username};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_check_indices_alloc();
-  struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
-  user->username = "t1";  // unknown user!
+
   cmd_ctx->args = argv2;
   cmd_ctx->iterate_single_user = true;
-  cmd_ctx->v.run(cmd_ctx, user);
-  ASSERT_EQ(cmd_ctx->exit_code, -1);
+  cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
+  ASSERT_EQ(cmd_ctx->exit_code, 1);
   pool_unref(&cmd_ctx->pool);
-}*/
+
+}
+
+TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
+  char *argv[] = {"rmb", "user_mapping=false"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
+
+  std::stringstream ss;
+
+  ss << DoveadmTest::s_test_mail_user->username << "_u";
+  std::string ns = ss.str();
+  // add new object
+  rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), ns.c_str());
+  ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1", 3), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201", 10), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
+
+  char *argv2[] = {DoveadmTest::s_test_mail_user->username};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_check_indices_alloc();
+  struct check_indices_cmd_context *ctx_ = (struct check_indices_cmd_context *)cmd_ctx;
+  ctx_->delete_not_referenced_objects = true;
+  cmd_ctx->args = argv2;
+  cmd_ctx->iterate_single_user = true;
+  cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
+  ASSERT_EQ(cmd_ctx->exit_code, 2);
+  pool_unref(&cmd_ctx->pool);
+}
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {
   char *argv[] = {"rbox_cfg"};

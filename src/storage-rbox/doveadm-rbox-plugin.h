@@ -12,6 +12,23 @@
 #ifndef SRC_DOVEADM_RBOX_PLUGIN_H
 #define SRC_DOVEADM_RBOX_PLUGIN_H
 
+struct check_indices_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+  bool delete_not_referenced_objects;
+};
+
+struct delete_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+  ARRAY_TYPE(const_string) mailboxes;
+  bool recursive;
+  bool require_empty;
+#if DOVECOT_PREREQ(2, 3)
+  bool unsafe;
+#endif
+  bool subscriptions;
+  pool_t pool;
+};
+
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_get_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void);

@@ -45,22 +45,7 @@ extern "C" {
 
 #include <algorithm>
 
-struct check_indices_cmd_context {
-  struct doveadm_mail_cmd_context ctx;
-  bool delete_not_referenced_objects;
-};
 
-struct delete_cmd_context {
-  struct doveadm_mail_cmd_context ctx;
-  ARRAY_TYPE(const_string) mailboxes;
-  bool recursive;
-  bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
-  bool unsafe;
-#endif
-  bool subscriptions;
-  pool_t pool;
-};
 
 class RboxDoveadmPlugin {
  public:
@@ -738,13 +723,15 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
                  "unrefrenced objects from objectstore "
                  "with the delete_not_referenced_objects option"
               << std::endl;
+    ctx->exit_code = 1;
   }
 
   RboxDoveadmPlugin plugin;
 
-  ctx->exit_code = open_connection_load_config(&plugin);
-  if (ctx->exit_code < 0) {
+  int open = open_connection_load_config(&plugin);
+  if (open < 0) {
     i_error("Error open connection to cluster %d", open);
+    ctx->exit_code = open;
     return 0;
   }
   opts["namespace"] = user->username;
@@ -766,6 +753,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
     if (open >= 0 && ctx_->delete_not_referenced_objects) {
       std::cout << "mail object: " << mo->get_oid().c_str()
                 << " deleted: " << (plugin.storage->delete_mail(mo) < 0 ? " FALSE " : " TRUE") << std::endl;
+      ctx->exit_code = 2;
      }
      delete mo;
   }
