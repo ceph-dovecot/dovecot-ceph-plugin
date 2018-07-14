@@ -383,17 +383,22 @@ TEST_F(DoveadmTest, cmd_rmb_delete_mailbox) {
 
   std::stringstream ss;
 
-  char *argv2[] = {"INBOX"};
+  char *argv2[] = {"INBOX\0"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_mailbox_delete_alloc();
   struct delete_cmd_context *ctx = (struct delete_cmd_context *)cmd_ctx;
-  ctx->recursive = TRUE;
+  ctx->recursive = FALSE;
   cmd_ctx->args = argv2;
   cmd_ctx->iterate_single_user = true;
-  char *name = p_strdup(cmd_ctx->pool, argv2[0]);
+  std::string mailbox_name = "INBOX";
+  char *name = p_strdup(cmd_ctx->pool, mailbox_name.c_str());
+
   array_append(&ctx->mailboxes, &name, 1);
 
   cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
+
   ASSERT_EQ(cmd_ctx->exit_code, 0);
+  struct list_cmd_context *ctx2 = (struct list_cmd_context *)cmd_ctx;
+
   pool_unref(&cmd_ctx->pool);
 }
 

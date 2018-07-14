@@ -1,0 +1,64 @@
+{
+   <doveadm_test_extra_attributes_no_cleanup1>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:pool_system_malloc
+   fun:p_malloc
+   fun:buffer_create_dynamic
+   fun:array_create_i
+   fun:mailbox_attribute_iter_init
+   fun:mailbox_delete_all_attributes
+   fun:mailbox_expunge_all_data
+   fun:index_storage_mailbox_delete_pre
+   fun:index_storage_mailbox_delete
+   fun:rbox_storage_mailbox_delete
+   fun:mailbox_delete
+   fun:_ZL22cmd_mailbox_delete_runP24doveadm_mail_cmd_contextP9mail_user
+   fun:_ZL26cmd_rmb_mailbox_delete_runP24doveadm_mail_cmd_contextP9mail_user
+   fun:_ZN39DoveadmTest_cmd_rmb_delete_mailbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+
+{
+   <doveadm_test_extra_attributes_no_cleanup2>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:pool_system_malloc
+   fun:p_malloc
+   fun:buffer_create_dynamic
+   fun:array_create_i
+   fun:mailbox_attribute_iter_init
+   fun:mailbox_delete_all_attributes
+   fun:mailbox_expunge_all_data
+   fun:index_storage_mailbox_delete_pre
+   fun:index_storage_mailbox_delete
+   fun:rbox_storage_mailbox_delete
+   fun:mailbox_delete
+   fun:_ZL22cmd_mailbox_delete_runP24doveadm_mail_cmd_contextP9mail_user
+   fun:_ZL26cmd_rmb_mailbox_delete_runP24doveadm_mail_cmd_contextP9mail_user
+   fun:_ZN39DoveadmTest_cmd_rmb_delete_mailbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+

@@ -800,9 +800,8 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     mailbox_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
 #endif
 
-  i_debug("cmd_mailbox_delete_run");
-
   if (ctx->recursive) {
+    i_debug("not recursive !");
     t_array_init(&recursive_mailboxes, 32);
     array_foreach(&ctx->mailboxes, namep) {
       if (get_child_mailboxes(user, &recursive_mailboxes, *namep) < 0) {
@@ -934,7 +933,7 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
   }
   doveadm_mailbox_args_check(args);
   for (i = 0; args[i] != NULL; i++) {
-    name = p_strdup(ctx->pool, args[i]);
+    name = p_strdup(_ctx->pool, args[i]);
     array_append(&ctx->mailboxes, &name, 1);
   }
   array_sort(&ctx->mailboxes, i_strcmp_reverse_p);
@@ -1050,7 +1049,6 @@ struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void) {
   ctx->ctx.v.init = cmd_rmb_mailbox_delete_init;
   ctx->ctx.v.parse_arg = cmd_mailbox_delete_parse_arg;
   ctx->ctx.getopt_args = "rs";
-  ctx->pool = pool_alloconly_create("doveadm mailbox delete pool", 512);
   p_array_init(&ctx->mailboxes, ctx->ctx.pool, 16);
   return &ctx->ctx;
 }

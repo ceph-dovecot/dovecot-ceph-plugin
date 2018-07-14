@@ -26,7 +26,6 @@ struct delete_cmd_context {
   bool unsafe;
 #endif
   bool subscriptions;
-  pool_t pool;
 };
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void);

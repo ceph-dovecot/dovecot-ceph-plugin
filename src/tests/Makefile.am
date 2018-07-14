@@ -169,4 +169,4 @@ noinst_PROGRAMS = $(TESTS)
 @CODE_COVERAGE_RULES@
 
 @VALGRIND_CHECK_RULES@
-VALGRIND_SUPPRESSIONS_FILES = dict_rados.supp open_connection.supp
+VALGRIND_SUPPRESSIONS_FILES = dict_rados.supp open_connection.supp dovecot.supp
