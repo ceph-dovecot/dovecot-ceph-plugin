@@ -185,7 +185,7 @@ TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
   remove("test_get");
 }
 
-/*TEST_F(DoveadmTest, cmd_rmb_get_param_check) {
+TEST_F(DoveadmTest, cmd_rmb_get_param_check) {
   const char *const argv[] = {"-"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_get_alloc();
   cmd_ctx->args = argv;
@@ -193,7 +193,7 @@ TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
   cmd_ctx->v.init(cmd_ctx, argv);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
   pool_unref(&cmd_ctx->pool);
-}*/
+}
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
   char *argv[] = {"hw2", "B=INBOX2"};

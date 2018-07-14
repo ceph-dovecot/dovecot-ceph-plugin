@@ -45,6 +45,23 @@ extern "C" {
 
 #include <algorithm>
 
+struct check_indices_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+  bool delete_not_referenced_objects;
+};
+
+struct delete_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+  ARRAY_TYPE(const_string) mailboxes;
+  bool recursive;
+  bool require_empty;
+#if DOVECOT_PREREQ(2, 3)
+  bool unsafe;
+#endif
+  bool subscriptions;
+  pool_t pool;
+};
+
 class RboxDoveadmPlugin {
  public:
   RboxDoveadmPlugin() {
@@ -73,6 +90,22 @@ class RboxDoveadmPlugin {
     ret = storage->open_connection(config->get_pool_name(), config->get_rados_cluster_name(),
                                    config->get_rados_username());
     return ret;
+    struct check_indices_cmd_context {
+      struct doveadm_mail_cmd_context ctx;
+      bool delete_not_referenced_objects;
+    };
+
+    struct delete_cmd_context {
+      struct doveadm_mail_cmd_context ctx;
+      ARRAY_TYPE(const_string) mailboxes;
+      bool recursive;
+      bool require_empty;
+#if DOVECOT_PREREQ(2, 3)
+      bool unsafe;
+#endif
+      bool subscriptions;
+      pool_t pool;
+    };
   }
   int read_plugin_configuration(struct mail_user *user) {
     if (user == NULL) {
@@ -681,7 +714,7 @@ static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<libr
 }
 
 static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
-  const char *delete_not_referenced_objects = ctx->args[0] != NULL ? ctx->args[0] : "";
+  struct check_indices_cmd_context *ctx_ = (struct check_indices_cmd_context *)ctx;
 
   std::map<std::string, std::string> opts;
   opts["ls"] = "-";  // search all objects
@@ -730,7 +763,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   for (auto mo : mail_objects) {
     std::cout << mo->to_string("  ") << std::endl;
-    if (open >= 0 && strcmp(delete_not_referenced_objects, "delete_not_referenced_objects") == 0) {
+    if (open >= 0 && ctx_->delete_not_referenced_objects) {
       std::cout << "mail object: " << mo->get_oid().c_str()
                 << " deleted: " << (plugin.storage->delete_mail(mo) < 0 ? " FALSE " : " TRUE") << std::endl;
      }
@@ -741,17 +774,6 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   return 0;
 }
 
-struct delete_cmd_context {
-  struct doveadm_mail_cmd_context ctx;
-  ARRAY_TYPE(const_string) mailboxes;
-  bool recursive;
-  bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
-  bool unsafe;
-#endif
-  bool subscriptions;
-  pool_t pool;
-};
 static int i_strcmp_reverse_p(const char *const *s1, const char *const *s2) { return -strcmp(*s1, *s2); }
 static int get_child_mailboxes(struct mail_user *user, ARRAY_TYPE(const_string) * mailboxes, const char *name) {
   struct mailbox_list_iterate_context *iter;
@@ -873,43 +895,44 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
 }
 
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 2) {
+  if (args[0] == NULL) {
     doveadm_mail_help_name("rmb ls");
   }
 }
 static void cmd_rmb_get_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) < 2) {
+  if (args[0] == NULL || args[1] == NULL) {
     doveadm_mail_help_name("rmb get");
   }
 }
 static void cmd_rmb_delete_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (args[0] == NULL) {
     doveadm_mail_help_name("rmb delete");
   }
 }
 static void cmd_rmb_set_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 3) {
+  if (args[0] == NULL || args[1] == NULL) {
     doveadm_mail_help_name("rmb set");
   }
 }
 
 static void cmd_rmb_ls_mb_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (args[0] != NULL) {
     doveadm_mail_help_name("rmb ls mb");
   }
 }
 static void cmd_rmb_rename_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (args[0] == NULL) {
     doveadm_mail_help_name("rmb rename");
   }
 }
 static void cmd_rmb_revert_log_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 1) {
+  if (args[0] == NULL) {
     doveadm_mail_help_name("rmb revert");
   }
 }
+
 static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
-  if (str_array_length(args) > 2) {
+  if (args[0] != NULL) {
     doveadm_mail_help_name("rmb check indices");
   }
 }
@@ -979,12 +1002,30 @@ struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void) {
   ctx->v.init = cmd_rmb_revert_log_init;
   return ctx;
 }
+
+
+
+static bool cmd_check_indices_parse_arg(struct doveadm_mail_cmd_context *_ctx, int c) {
+  struct check_indices_cmd_context *ctx = (struct check_indices_cmd_context *)_ctx;
+
+  switch (c) {
+    case 'd':
+      ctx->delete_not_referenced_objects = true;
+      break;
+    default:
+      break;
+  }
+  return true;
+}
+
 struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {
-  struct doveadm_mail_cmd_context *ctx;
-  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
-  ctx->v.run = cmd_rmb_check_indices_run;
-  ctx->v.init = cmd_rmb_check_indices_init;
-  return ctx;
+  struct check_indices_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct check_indices_cmd_context);
+  ctx->ctx.v.run = cmd_rmb_check_indices_run;
+  ctx->ctx.v.init = cmd_rmb_check_indices_init;
+  ctx->ctx.v.parse_arg = cmd_check_indices_parse_arg;
+  ctx->ctx.getopt_args = "d";
+  return &ctx->ctx;
 }
 
 static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, int c) {
@@ -1011,6 +1052,8 @@ static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, 
   }
   return TRUE;
 }
+
+
 
 struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void) {
   struct delete_cmd_context *ctx;

@@ -32,7 +32,7 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_ls_mb_alloc, "rmb ls", "mb"},
     {cmd_rmb_rename_alloc, "rmb rename", "new username"},
     {cmd_rmb_revert_log_alloc, "rmb revert", "path to save_log"},
-    {cmd_rmb_check_indices_alloc, "rmb check indices", "inbox"},
+    {cmd_rmb_check_indices_alloc, "rmb check indices", "-d"},
     {cmd_rmb_mailbox_delete_alloc, "rmb mailbox delete", "-r <mailbox> [...]"}};
 
 struct doveadm_cmd doveadm_cmd_rbox[] = {{cmd_rmb_config_show, "rmb config show", NULL},
