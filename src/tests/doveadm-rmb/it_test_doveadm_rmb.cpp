@@ -376,6 +376,27 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
   pool_unref(&cmd_ctx->pool);
 }
 
+TEST_F(DoveadmTest, cmd_rmb_delete_mailbox) {
+  char *argv[] = {"rmb", "user_mapping=false"};
+  int ret = cmd_rmb_config_update(2, argv);
+  ASSERT_EQ(ret, 0);
+
+  std::stringstream ss;
+
+  char *argv2[] = {"INBOX"};
+  struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_mailbox_delete_alloc();
+  struct delete_cmd_context *ctx = (struct delete_cmd_context *)cmd_ctx;
+  ctx->recursive = TRUE;
+  cmd_ctx->args = argv2;
+  cmd_ctx->iterate_single_user = true;
+  char *name = p_strdup(cmd_ctx->pool, argv2[0]);
+  array_append(&ctx->mailboxes, &name, 1);
+
+  cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
+  ASSERT_EQ(cmd_ctx->exit_code, 0);
+  pool_unref(&cmd_ctx->pool);
+}
+
 TEST_F(DoveadmTest, cmd_rmb_delete) {
   char *argv[] = {"rbox_cfg"};
 

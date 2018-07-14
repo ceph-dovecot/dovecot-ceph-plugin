@@ -1035,7 +1035,7 @@ static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, 
       break;
 #endif
     default:
-      i_debug("unkown iption");
+      i_debug("unkown option");
       return FALSE;
   }
   return TRUE;
