@@ -819,7 +819,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     ns = mail_namespace_find(user->namespaces, name);
     box = mailbox_alloc(ns->list, name, mailbox_flags);
 #if DOVECOT_PREREQ(2, 3)
-    mailbox_set_reason(box, _ctx->cmd->name);
+    mailbox_set_reason(box, "doveadm rmb mailbox delete");
     struct mail_storage *storage = mailbox_get_storage(box);
 #endif
     ret2 = ctx->require_empty ? mailbox_delete_empty(box) : mailbox_delete(box);
