@@ -31,6 +31,8 @@ extern "C" {
 #include "istream.h"
 #include "doveadm-print.h"
 }
+#include <algorithm>
+
 #include "tools/rmb/rmb-commands.h"
 #include "rados-cluster.h"
 #include "rados-cluster-impl.h"
@@ -43,9 +45,7 @@ extern "C" {
 #include "rbox-save.h"
 #include "rbox-storage.hpp"
 
-#include <algorithm>
-
-
+int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects);
 
 class RboxDoveadmPlugin {
  public:
@@ -169,7 +169,7 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
   int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
-    return 0;
+    return open;
   }
 
   opts["namespace"] = user->username;
@@ -221,7 +221,65 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
 
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
     std::vector<librmb::RadosMailObject *> mail_objects;
-    ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
+
+    // open connection
+    RboxDoveadmPlugin plugin;
+    int open = open_connection_load_config(&plugin);
+    if (open < 0) {
+      i_error("Error opening rados connection. Errorcode: %d", open);
+      ctx->exit_code = open;
+      return 0;
+    }
+
+    opts["namespace"] = user->username;
+    librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+    std::string uid;
+    librmb::RadosCephConfig *cfg =
+        (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+
+    librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+    if (ms == nullptr) {
+      i_error(" Error initializing metadata module");
+      delete ms;
+      ctx->exit_code = -1;
+      return 0;
+    }
+
+    int ret = rmb_cmds.load_objects(ms, mail_objects, opts["sort"], true);
+    if (ret < 0) {
+      i_error("Error loading ceph objects. Errorcode: %d", ret);
+      delete ms;
+      ctx->exit_code = ret;
+      return 0;
+    }
+
+    // ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
+
+    if (user->namespaces != NULL) {
+      struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+      for (; ns != NULL; ns = ns->next) {
+        check_namespace_mailboxes(ns, mail_objects);
+      }
+    }
+    // print objects.
+    ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, false, false);
+    if (ret < 0) {
+      i_error("Error query mail storage. Errorcode: %d", ret);
+      ctx->exit_code = ret;
+      delete ms;
+      return 0;
+    }
+    delete ms;
+
+    // TODO: check for mails with
+    auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
+                                [](librmb::RadosMailObject const *n) -> bool { return !n->is_index_ref(); });
+
+    if (it_mail != mail_objects.end()) {
+      std::cout << "There are unreference objects " << std::endl;
+    }
+
     for (auto mo : mail_objects) {
       delete mo;
     }
@@ -654,11 +712,12 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
                                 [oid](librmb::RadosMailObject *m) { return m->get_oid().compare(oid) == 0; });
 
     if (it_mail == mail_objects.end()) {
-      std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
-                << " available: " << (it_mail != mail_objects.end()) << std::endl;
+      /*  std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
+                  << " available: " << (it_mail != mail_objects.end()) << std::endl;*/
       ++mail_count_missing;
     } else {
-      mail_objects.erase(it_mail);  // calls destructor of RadosMailObject*
+      (*it_mail)->set_index_ref(true);
+      // mail_objects.erase(it_mail);  // calls destructor of RadosMailObject*
     }
   }
   if (mailbox_search_deinit(&search_ctx) < 0) {
@@ -681,7 +740,7 @@ static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<libr
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
-
+  std::cout << "INDEX: Check" << std::endl;
   iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
                                                    MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
@@ -717,7 +776,11 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
     check_namespace_mailboxes(ns, mail_objects);
   }
 
-  if (mail_objects.size() > 0) {
+  // TODO: check for mails with
+  auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
+                              [](librmb::RadosMailObject *m) { return !m->is_index_ref(); });
+
+  if (it_mail != mail_objects.end()) {
     std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
     std::cout << "NOTE: you can fix(restore) the lost index entries by using doveadm force-resync or delete the "
                  "unrefrenced objects from objectstore "
@@ -750,7 +813,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   for (auto mo : mail_objects) {
     std::cout << mo->to_string("  ") << std::endl;
-    if (open >= 0 && ctx_->delete_not_referenced_objects) {
+    if (open >= 0 && ctx_->delete_not_referenced_objects && !mo->is_index_ref()) {
       std::cout << "mail object: " << mo->get_oid().c_str()
                 << " deleted: " << (plugin.storage->delete_mail(mo) < 0 ? " FALSE " : " TRUE") << std::endl;
       ctx->exit_code = 2;

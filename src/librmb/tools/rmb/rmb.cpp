@@ -417,6 +417,9 @@ int main(int argc, const char **argv) {
     if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
       rmb_commands->load_objects(ms, mail_objects, sort_type);
       rmb_commands->query_mail_storage(&mail_objects, &parser, false, false);
+      std::cout << " NOTE: rmb tool does not have access to dovecot index. so all objects are set  <<<   MAIL OBJECT "
+                   "HAS NO INDEX REFERENCE <<<< use doveadm rmb ls - instead "
+                << std::endl;
     }
   } else if (opts.find("get") != opts.end()) {
     librmb::CmdLineParser parser(opts["get"]);
