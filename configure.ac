@@ -171,8 +171,10 @@ AS_IF([$GREP -A 1 'mailbox_transaction_begin(struct mailbox \*box' $dovecot_pkgi
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 
-AC_MSG_NOTICE([$gcc_debug])
-if test "$gcc_debug" = yes; then
+
+
+AC_MSG_NOTICE([DEBUG is enabled ......: $enable_debug])
+if test "$enable_debug" = yes; then
   AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
   AC_DEFINE([DEBUG],[],[Debug Mode])
 else
