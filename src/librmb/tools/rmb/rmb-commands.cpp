@@ -131,11 +131,39 @@ int RmbCommands::lspools() {
   return 0;
 }
 
+int RmbCommands::delete_namespace(librmb::RadosStorageMetadataModule *ms,
+                                  std::vector<librmb::RadosMailObject *> &mail_objects, librmb::RadosCephConfig *cfg,
+                                  bool confirmed) {
+  librmb::CmdLineParser parser("-");
+  if(parser.parse_ls_string()){
+    std::string sort_type = "uid";
+    int ret = load_objects(ms, mail_objects, sort_type);
+    if (ret < 0 || mail_objects.size() == 0) {
+      return ret;
+    }
+
+    for (std::vector<librmb::RadosMailObject *>::iterator it_mail = mail_objects.begin(); it_mail != mail_objects.end();
+         ++it_mail) {
+      (*opts)["to_delete"] = (*it_mail)->get_oid();
+      delete_mail(confirmed);
+    }
+    if (cfg->is_user_mapping()) {
+      // delete namespace object also.
+      std::cout << "user mapping active " << std::endl;
+      std::string indirect_ns = (*opts)["namespace"] + cfg->get_user_suffix();
+      (*opts)["to_delete"] = indirect_ns;
+      storage->set_namespace("users");
+      delete_mail(confirmed);
+    }
+  }
+  return 0;
+}
 int RmbCommands::delete_mail(bool confirmed) {
   int ret = -1;
   print_debug("entry: delete_mail");
   if (!confirmed) {
-    std::cout << "WARNING: Deleting a mail object will remove the object from ceph, but not from dovecot index, this "
+    std::cout << "WARNING: Deleting a mail object will remove the "
+        "object from ceph, but not from dovecot index, this "
                  "may lead to corrupt mailbox\n"
               << " add --yes-i-really-really-mean-it to confirm the delete " << std::endl;
   } else {
