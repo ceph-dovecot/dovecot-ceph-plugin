@@ -65,6 +65,8 @@ string get_metadata(const string& key) {
   return value;
 }
 
+bool is_index_ref() { return index_ref; }
+void set_index_ref(bool ref) { this->index_ref = ref; }
 bool is_valid() { return valid; }
 void set_valid(bool valid_) { valid = valid_; }
 bool has_active_op() { return active_op; }
@@ -95,10 +97,11 @@ const string get_extended_metadata(string& key) {
   map<string, ceph::bufferlist> attrset;
   map<string, ceph::bufferlist> extended_attrset;
   bool valid;
-
+  bool index_ref;
  public:
   static const char X_ATTR_VERSION_VALUE[];
   static const char DATA_BUFFER_NAME[];
+
 };
 
 }  // namespace librmb

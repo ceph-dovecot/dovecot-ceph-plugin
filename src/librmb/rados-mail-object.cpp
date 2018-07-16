@@ -26,12 +26,9 @@ using librmb::RadosMailObject;
 const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
 const char RadosMailObject::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
 
-RadosMailObject::RadosMailObject() {
-  this->object_size = -1;
-  this->active_op = false;
-  this->save_date_rados = -1;
-  this->valid = true;
-}
+RadosMailObject::RadosMailObject()
+    : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
+
 RadosMailObject::~RadosMailObject() {}
 
 void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
@@ -65,7 +62,9 @@ std::string RadosMailObject::to_string(const string &padding) {
   if (!valid) {
     ss << padding << "<<<   MAIL OBJECT IS NOT VALID <<<<" << endl;
   }
-
+  if (!index_ref) {
+    ss << padding << "<<<   MAIL OBJECT HAS NO INDEX REFERENCE <<<<" << endl;
+  }
   ss << padding << "MAIL:   ";
   if (!uid.empty()) {
     ss << static_cast<char>(RBOX_METADATA_MAIL_UID) << "(uid)=" << uid << endl;
