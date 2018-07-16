@@ -66,8 +66,7 @@ const char *doveadm_plugin_getenv(const char *name) {
   return NULL;
 }
 
-void doveadm_mail_help_name(const char *cmd_name) {
-}
+void doveadm_mail_help_name(const char *cmd_name) { return; }
 
 void doveadm_mailbox_args_check(const char *const args[]) {}
 struct doveadm_mail_cmd_context *doveadm_mail_cmd_alloc_size(size_t size) {

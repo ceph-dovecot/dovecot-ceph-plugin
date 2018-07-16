@@ -231,7 +231,7 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
 
     // TODO: check for mails without reference
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                                [](librmb::RadosMailObject const *n) -> bool { return !n->is_index_ref(); });
+                                [](librmb::RadosMailObject const *n) -> bool { return n->is_index_ref() == false; });
 
     if (it_mail != mail_objects.end()) {
       std::cout << "There are unreference objects " << std::endl;
@@ -690,7 +690,7 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
   return ret;
 }
 
-static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects) {
+int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects) {
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
@@ -732,8 +732,8 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   // TODO: check for mails with
   auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                              [](librmb::RadosMailObject *m) { return !m->is_index_ref(); });
-
+                              [](librmb::RadosMailObject *m) { return m->is_index_ref() == false; });
+ 
   if (it_mail != mail_objects.end()) {
     std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
     std::cout << "NOTE: you can fix(restore) the lost index entries by using doveadm force-resync or delete the "

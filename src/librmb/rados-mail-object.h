@@ -65,9 +65,9 @@ string get_metadata(const string& key) {
   return value;
 }
 
-bool is_index_ref() { return index_ref; }
+const bool is_index_ref() { return index_ref; }
 void set_index_ref(bool ref) { this->index_ref = ref; }
-bool is_valid() { return valid; }
+const bool is_valid() { return valid; }
 void set_valid(bool valid_) { valid = valid_; }
 bool has_active_op() { return active_op; }
 string to_string(const string& padding);
