@@ -173,9 +173,7 @@ AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])
 
 
 
-AC_MSG_NOTICE([DEBUG is enabled ......: $enable_debug])
 if test "$enable_debug" = yes; then
-  AC_SUBST([CXXFLAGS],"$GCC_DEBUG_CXXFLAGS")
   AC_DEFINE([DEBUG],[],[Debug Mode])
 else
   AC_DEFINE([NDEBUG],[],[Release Mode])
@@ -223,6 +221,7 @@ src/tests/Makefile
 AC_OUTPUT
 
 echo
+AC_MSG_NOTICE([DEBUG is enabled .............. : $enable_debug])
 AC_MSG_NOTICE([Install prefix ................ : $prefix])
 AC_MSG_NOTICE([Dovecot directory ............. : $dovecotdir])
 AC_MSG_NOTICE([With dictionary ............... : $want_dict])

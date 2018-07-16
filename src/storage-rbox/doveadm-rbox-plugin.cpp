@@ -231,7 +231,7 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
 
     // TODO: check for mails without reference
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                                [](librmb::RadosMailObject const *n) -> bool { return n->is_index_ref() == false; });
+                                [](librmb::RadosMailObject *n) -> bool { return n->is_index_ref() == false; });
 
     if (it_mail != mail_objects.end()) {
       std::cout << "There are unreference objects " << std::endl;
@@ -733,7 +733,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   // TODO: check for mails with
   auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
                               [](librmb::RadosMailObject *m) { return m->is_index_ref() == false; });
- 
+
   if (it_mail != mail_objects.end()) {
     std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
     std::cout << "NOTE: you can fix(restore) the lost index entries by using doveadm force-resync or delete the "
@@ -810,11 +810,11 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   const char *const *namep;
   ARRAY_TYPE(const_string) recursive_mailboxes;
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
-  enum mailbox_flags mailbox_flags = static_cast<enum mailbox_flags>(0);
+  uint8_t m_flags = 0;
   int ret = 0, ret2;
 #if DOVECOT_PREREQ(2, 3)
   if (ctx->unsafe)
-    mailbox_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
+    m_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
 #endif
 
   if (ctx->recursive) {
@@ -834,7 +834,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   array_foreach(mailboxes, namep) {
     const char *name = *namep;
     ns = mail_namespace_find(user->namespaces, name);
-    box = mailbox_alloc(ns->list, name, mailbox_flags);
+    box = mailbox_alloc(ns->list, name, static_cast<enum mailbox_flags>(m_flags));
 #if DOVECOT_PREREQ(2, 3)
     mailbox_set_reason(box, "doveadm rmb mailbox delete");
     struct mail_storage *storage = mailbox_get_storage(box);
