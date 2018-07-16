@@ -30,6 +30,7 @@ RadosMailObject::RadosMailObject() {
   this->object_size = -1;
   this->active_op = false;
   this->save_date_rados = -1;
+  this->valid = true;
 }
 RadosMailObject::~RadosMailObject() {}
 
@@ -60,8 +61,11 @@ std::string RadosMailObject::to_string(const string &padding) {
     }
   }
   ostringstream ss;
-
   ss << endl;
+  if (!valid) {
+    ss << padding << "<<<   MAIL OBJECT IS NOT VALID <<<<" << endl;
+  }
+
   ss << padding << "MAIL:   ";
   if (!uid.empty()) {
     ss << static_cast<char>(RBOX_METADATA_MAIL_UID) << "(uid)=" << uid << endl;

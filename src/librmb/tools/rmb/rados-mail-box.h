@@ -34,6 +34,10 @@ class RadosMailBox {
 
   void add_mail(RadosMailObject *mail) {
     total_mails++;
+    if (!mail->is_valid()) {
+      mails.push_back(mail);
+      return;
+    }
     if (parser == nullptr) {
       mails.push_back(mail);
       return;
@@ -44,18 +48,14 @@ class RadosMailBox {
     }
     for (std::map<std::string, Predicate *>::iterator it = parser->get_predicates().begin();
          it != parser->get_predicates().end(); ++it) {
-      // std::cout << " looking for: " << it->first << std::endl;
       if (mail->get_metadata()->find(it->first) != mail->get_metadata()->end()) {
-        /*  std::cout << "comparing: " << it->second
-                    << " with : " << mail->get_xvalue(it->first).substr(0, mail->get_xvalue(it->first).length() - 1)
-                    << " org: " << mail->get_xvalue(it->first) << std::endl;*/
-        //   std::cout << " found : " << it->first << std::endl;
-
         std::string key = it->first;
         if (it->second->eval(mail->get_metadata(key))) {
           mails.push_back(mail);
         }
         return;
+      } else if (it->first.compare("-") == 0) {
+        mails.push_back(mail);
       }
     }
   }
