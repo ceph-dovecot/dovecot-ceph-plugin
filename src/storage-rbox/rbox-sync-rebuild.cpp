@@ -37,8 +37,9 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   uint32_t seq;
 
   mail_index_append(ctx->trans, next_uid, &seq);
+#ifdef DEBUG
   i_debug("added to index %d", next_uid);
-
+#endif
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
   i_zero(&rec);
@@ -72,9 +73,9 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   if (!r_storage->ms->get_storage()->update_metadata(s_oid, to_update)) {
     i_warning("update of MAIL_UID failed: for object: %s , uid: %d", mail_obj->get_oid().c_str(), next_uid);
   }
-
+#ifdef DEBUG
   i_debug("rebuilding %s , with oid=%d", oi.c_str(), next_uid);
-
+#endif
   return 0;
 }
 // find objects with mailbox_guid 'U' attribute
@@ -87,7 +88,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
   // if non is found : set mailbox_deleted and mail_storage_set_critical...
 
   const struct mail_index_header *hdr = mail_index_get_header(ctx->trans->view);
-  
+
   if (rebuild_ctx->next_uid == INT_MAX) {
     rebuild_ctx->next_uid = hdr->next_uid != 0 ? hdr->next_uid : 1;
   }
@@ -129,7 +130,9 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
   }
 
   if (found == 0) {
+#ifdef DEBUG
     i_debug("no entry to restore can be found for mailbox %s", ctx->box->name);
+#endif
     mailbox_set_deleted(ctx->box);
     return 0;
   }
@@ -162,7 +165,9 @@ int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_c
   if (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
     ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
   } else {
+#ifdef DEBUG
     i_debug("guid is empty, using mailbox name to detect mail objects ");
+#endif
     librmb::RadosMetadata attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
     // rebuild index.
     librados::NObjectIterator iter_name(storage->find_mails(&attr_name));
@@ -188,11 +193,13 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   rebuild_ctx = p_new(pool, struct rbox_sync_rebuild_ctx, 1);
   rebuild_ctx->alt_storage = false;
   rebuild_ctx->next_uid = INT_MAX;
-  
+
   search_objects(ctx, rebuild_ctx);
   if (alt_storage) {
     rebuild_ctx->alt_storage = true;
+#ifdef DEBUG
     i_debug("ALT_STORAGE ACTIVE: '%s' ", rbox->box.list->set.alt_dir);
+#endif
     search_objects(ctx, rebuild_ctx);
   }
 
@@ -259,7 +266,9 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
       /* already rebuilt by someone else */
       return 0;
     }
+#ifdef DEBUG
     i_debug("index could not be opened");
+#endif
     // try to determine mailbox guid via xattr.
   }
   i_warning("rbox %s: Rebuilding index, guid: %s , mailbox_name: %s, alt_storage: %s", mailbox_get_path(&mbox->box),
@@ -272,8 +281,9 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force) {
   ctx = index_index_rebuild_init(&mbox->box, view, trans);
 
   ret = rbox_sync_index_rebuild_objects(ctx);
-
+#ifdef DEBUG
   i_debug("rebuild finished");
+#endif
   index_index_rebuild_deinit(&ctx, rbox_get_uidvalidity_next);
 
   if (ret < 0) {

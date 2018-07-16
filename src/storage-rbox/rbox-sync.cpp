@@ -140,7 +140,9 @@ static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t se
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)&ctx->mbox->box)->ext_id, &index_oid) >=
         0) {
       std::string oid = guid_128_to_string(index_oid);
+#ifdef DEBUG
       i_debug("found oid: %s", oid.c_str());
+#endif
       ret = librmb::RadosUtils::move_to_alt(oid, r_storage->s, r_storage->alt, r_storage->ms, inverse);
       if (inverse) {
         mail_index_update_flags(ctx->trans, seq1, MODIFY_REMOVE, (enum mail_flags)RBOX_INDEX_FLAG_ALT);
@@ -250,12 +252,16 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 
           // move object from mail_storage to apternative_storage.
           int ret = move_to_alt(ctx, seq1, seq2, false);
+#ifdef DEBUG
           i_debug("setting move to alt flag! %d", ret);
+#endif
         } else if (is_alternate_storage_set(sync_rec.remove_flags) && is_alternate_pool_valid(box)) {
           // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_FROM_ALT;
 
           int ret = move_to_alt(ctx, seq1, seq2, true);
+#ifdef DEBUG
           i_debug("removeing  alt flag! %d", ret);
+#endif
         }
 
         else if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS) &&
