@@ -191,7 +191,12 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
     delete ms;
     return ret;
   }
-
+  if (user->namespaces != NULL) {
+    struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+    for (; ns != NULL; ns = ns->next) {
+      check_namespace_mailboxes(ns, mail_objects);
+    }
+  }
   if (download) {
     rmb_cmds.set_output_path(&parser);
   }
@@ -222,57 +227,9 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
     std::vector<librmb::RadosMailObject *> mail_objects;
 
-    // open connection
-    RboxDoveadmPlugin plugin;
-    int open = open_connection_load_config(&plugin);
-    if (open < 0) {
-      i_error("Error opening rados connection. Errorcode: %d", open);
-      ctx->exit_code = open;
-      return 0;
-    }
+    ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
 
-    opts["namespace"] = user->username;
-    librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
-
-    std::string uid;
-    librmb::RadosCephConfig *cfg =
-        (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-
-    librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-    if (ms == nullptr) {
-      i_error(" Error initializing metadata module");
-      delete ms;
-      ctx->exit_code = -1;
-      return 0;
-    }
-
-    int ret = rmb_cmds.load_objects(ms, mail_objects, opts["sort"], true);
-    if (ret < 0) {
-      i_error("Error loading ceph objects. Errorcode: %d", ret);
-      delete ms;
-      ctx->exit_code = ret;
-      return 0;
-    }
-
-    // ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
-
-    if (user->namespaces != NULL) {
-      struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
-      for (; ns != NULL; ns = ns->next) {
-        check_namespace_mailboxes(ns, mail_objects);
-      }
-    }
-    // print objects.
-    ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, false, false);
-    if (ret < 0) {
-      i_error("Error query mail storage. Errorcode: %d", ret);
-      ctx->exit_code = ret;
-      delete ms;
-      return 0;
-    }
-    delete ms;
-
-    // TODO: check for mails with
+    // TODO: check for mails without reference
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
                                 [](librmb::RadosMailObject const *n) -> bool { return !n->is_index_ref(); });
 
@@ -298,9 +255,6 @@ static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_u
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
     std::vector<librmb::RadosMailObject *> mail_objects;
     ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
-    for (auto mo : mail_objects) {
-      delete mo;
-    }
   } else {
     i_error("invalid ls search query");
     ctx->exit_code = -1;
