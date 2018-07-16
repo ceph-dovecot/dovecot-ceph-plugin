@@ -20,7 +20,7 @@ before_script:
 - docker exec build sh -c 'cd /usr/local/src/dovecot; make install'
 script:
 - docker exec build sh -c 'cd repo; ./autogen.sh'
-- docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind'
+- docker exec build sh -c 'cd repo; ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug'
 - docker exec build sh -c 'cd repo; make clean install'
 - docker logs ceph_demo
 - docker exec ceph_demo sh -c 'cp -r /etc/ceph/* /root/cfg'
