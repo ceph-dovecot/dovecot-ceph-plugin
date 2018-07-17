@@ -1024,6 +1024,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   storage.delete_mail(ceph_cfg.get_cfg_object_name());
   for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     librmb::RadosMailObject *obj = *it;
+    storage.delete_mail(obj);
     delete obj;
   }
 
@@ -1198,10 +1199,12 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
   EXPECT_EQ(true, log_file.close());
   librados::bufferlist bl;
   EXPECT_EQ(0, storage.save_mail("abc", bl));
-  cluster.deinit();
+
   std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
   EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
+
+  cluster.deinit();
 }
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
 
@@ -1247,17 +1250,25 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
   log_file.append(
-      librmb::RadosSaveLogEntry("abc", "t1", "2,2,2rmb_tool_tests", "save"));  // -> stop processing (invalid entry)!
-  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
+      librmb::RadosSaveLogEntry("abc2", "t1", "2,2,2rmb_tool_tests", "save"));  // -> stop processing (invalid entry)!
+  log_file.append(librmb::RadosSaveLogEntry("abc2", "t1", "rmb_tool_tests", "save"));
   EXPECT_EQ(true, log_file.close());
   librados::bufferlist bl;
-  EXPECT_EQ(0, storage.save_mail("abc", bl));
+
+  EXPECT_EQ(0, storage.save_mail("abc2", bl));
   cluster.deinit();
+
   std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
 
   EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin",
                                                          &moved_items));  // -> due to invalid entry in object list
   std::remove(test_file_name.c_str());
+
+  open_connection = storage.open_connection(pool_name);
+  EXPECT_EQ(0, open_connection);
+  storage.set_namespace(ns);
+  EXPECT_EQ(storage.delete_mail("abc2"), 0);  // check that save log processing does stop at invalid line!
+  cluster.deinit();
 }
 
 TEST(librmb, move_object_delete_with_save_log) {
@@ -1274,12 +1285,13 @@ TEST(librmb, move_object_delete_with_save_log) {
   std::string test_file_name = "test1.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
-  log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests",
-                                            "mv:t1:abc:t1;M=123:B=INBOX:U=1:G=0246da2269ac1f5b3e1700009c60b9f7"));
+  log_file.append(librmb::RadosSaveLogEntry("abc3", "t1", "rmb_tool_tests",
+                                            "mv:t1:abc3:t1;M=123:B=INBOX:U=1:G=0246da2269ac1f5b3e1700009c60b9f7"));
   EXPECT_EQ(true, log_file.close());
   librados::bufferlist bl;
-  EXPECT_EQ(0, storage.save_mail("abc", bl));
+  EXPECT_EQ(0, storage.save_mail("abc3", bl));
   cluster.deinit();
+
   std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
   EXPECT_EQ(1, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
   EXPECT_EQ(1, moved_items.size());
@@ -1287,7 +1299,7 @@ TEST(librmb, move_object_delete_with_save_log) {
   EXPECT_EQ(1, list.size());
   librmb::RadosSaveLogEntry entry = list.front();
 
-  EXPECT_EQ(entry.src_oid, "abc");
+  EXPECT_EQ(entry.src_oid, "abc3");
   EXPECT_EQ(entry.src_ns, "t1");
   EXPECT_EQ(entry.src_user, "t1");
 
@@ -1298,6 +1310,11 @@ TEST(librmb, move_object_delete_with_save_log) {
   EXPECT_EQ("0246da2269ac1f5b3e1700009c60b9f7", (*it_guid).bl.to_str());
 
   std::remove(test_file_name.c_str());
+  open_connection = storage.open_connection(pool_name);
+  EXPECT_EQ(0, open_connection);
+  storage.set_namespace(ns);
+  EXPECT_EQ(storage.delete_mail("abc3"), 0);  // move does not delete the object
+  cluster.deinit();
 }
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {

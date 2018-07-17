@@ -75,22 +75,6 @@ class RboxDoveadmPlugin {
     ret = storage->open_connection(config->get_pool_name(), config->get_rados_cluster_name(),
                                    config->get_rados_username());
     return ret;
-    struct check_indices_cmd_context {
-      struct doveadm_mail_cmd_context ctx;
-      bool delete_not_referenced_objects;
-    };
-
-    struct delete_cmd_context {
-      struct doveadm_mail_cmd_context ctx;
-      ARRAY_TYPE(const_string) mailboxes;
-      bool recursive;
-      bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
-      bool unsafe;
-#endif
-      bool subscriptions;
-      pool_t pool;
-    };
   }
   int read_plugin_configuration(struct mail_user *user) {
     if (user == NULL) {

@@ -99,7 +99,6 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 }
 
 static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
-  bool debug = ns->mail_set->mail_debug;
   const char *home;
 
   if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
@@ -118,7 +117,6 @@ static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
 }
 bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set) {
   FUNC_START();
-  bool debug = ns->mail_set->mail_debug;
   struct stat st;
   const char *path, *root_dir;
 

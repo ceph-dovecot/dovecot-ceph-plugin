@@ -179,7 +179,6 @@ int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_c
 int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   int ret = 0;
   pool_t pool;
-  struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
   rbox_sync_set_uidvalidity(ctx);
   struct rbox_sync_rebuild_ctx *rebuild_ctx;
   bool alt_storage = is_alternate_pool_valid(ctx->box);
@@ -198,6 +197,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   if (alt_storage) {
     rebuild_ctx->alt_storage = true;
 #ifdef DEBUG
+    struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
     i_debug("ALT_STORAGE ACTIVE: '%s' ", rbox->box.list->set.alt_dir);
 #endif
     search_objects(ctx, rebuild_ctx);
