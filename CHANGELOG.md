@@ -5,8 +5,12 @@
 
 **Implemented enhancements:**
 
+- doveadm rmb unit tests [\#174](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/174)
 - doveadm rmb ls  shows orphaned objects [\#172](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/172)
 - create delete all objects command for rmb CLI [\#171](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/171)
+- Ls orphaned objects \#172 [\#177](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/177) ([jrse](https://github.com/jrse))
+- Doveadm rmb unit tests \#174 [\#176](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/176) ([jrse](https://github.com/jrse))
+- \#171: supports rmb -u \<user\> delete - --yes-i-really-really-mean-it [\#173](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/173) ([jrse](https://github.com/jrse))
 
 **Fixed bugs:**
 
@@ -15,15 +19,11 @@
 **Closed issues:**
 
 - cleanup log messages and disable entry-exit function log by default [\#178](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/178)
-- doveadm rmb unit tests [\#174](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/174)
 
 **Merged pull requests:**
 
 - release version 0.0.12 [\#180](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/180) ([jrse](https://github.com/jrse))
 - Jrse cleanup log \#178 [\#179](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/179) ([jrse](https://github.com/jrse))
-- Ls orphaned objects \#172 [\#177](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/177) ([jrse](https://github.com/jrse))
-- Doveadm rmb unit tests \#174 [\#176](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/176) ([jrse](https://github.com/jrse))
-- \#171: supports rmb -u \<user\> delete - --yes-i-really-really-mean-it [\#173](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/173) ([jrse](https://github.com/jrse))
 
 ## [0.0.11](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.11) (2018-07-10)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.10...0.0.11)
