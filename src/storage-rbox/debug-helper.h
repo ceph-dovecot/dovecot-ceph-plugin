@@ -8,7 +8,7 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-
+#include "config-local.h"
 #ifndef SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 #define SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 
