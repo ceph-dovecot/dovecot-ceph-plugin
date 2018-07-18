@@ -75,22 +75,6 @@ class RboxDoveadmPlugin {
     ret = storage->open_connection(config->get_pool_name(), config->get_rados_cluster_name(),
                                    config->get_rados_username());
     return ret;
-    struct check_indices_cmd_context {
-      struct doveadm_mail_cmd_context ctx;
-      bool delete_not_referenced_objects;
-    };
-
-    struct delete_cmd_context {
-      struct doveadm_mail_cmd_context ctx;
-      ARRAY_TYPE(const_string) mailboxes;
-      bool recursive;
-      bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
-      bool unsafe;
-#endif
-      bool subscriptions;
-      pool_t pool;
-    };
   }
   int read_plugin_configuration(struct mail_user *user) {
     if (user == NULL) {
@@ -231,7 +215,7 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
 
     // TODO: check for mails without reference
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                                [](librmb::RadosMailObject const *n) -> bool { return !n->is_index_ref(); });
+                                [](librmb::RadosMailObject *n) -> bool { return n->is_index_ref() == false; });
 
     if (it_mail != mail_objects.end()) {
       std::cout << "There are unreference objects " << std::endl;
@@ -690,7 +674,7 @@ static int iterate_mailbox(struct mail_namespace *ns, const struct mailbox_info 
   return ret;
 }
 
-static int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects) {
+int check_namespace_mailboxes(struct mail_namespace *ns, std::vector<librmb::RadosMailObject *> &mail_objects) {
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
@@ -732,7 +716,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
 
   // TODO: check for mails with
   auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                              [](librmb::RadosMailObject *m) { return !m->is_index_ref(); });
+                              [](librmb::RadosMailObject *m) { return m->is_index_ref() == false; });
 
   if (it_mail != mail_objects.end()) {
     std::cout << std::endl << "There are mail objects without a index reference: " << std::endl;
@@ -810,11 +794,11 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   const char *const *namep;
   ARRAY_TYPE(const_string) recursive_mailboxes;
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
-  enum mailbox_flags mailbox_flags = static_cast<enum mailbox_flags>(0);
+  uint8_t m_flags = 0;
   int ret = 0, ret2;
 #if DOVECOT_PREREQ(2, 3)
   if (ctx->unsafe)
-    mailbox_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
+    m_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
 #endif
 
   if (ctx->recursive) {
@@ -834,7 +818,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   array_foreach(mailboxes, namep) {
     const char *name = *namep;
     ns = mail_namespace_find(user->namespaces, name);
-    box = mailbox_alloc(ns->list, name, mailbox_flags);
+    box = mailbox_alloc(ns->list, name, static_cast<enum mailbox_flags>(m_flags));
 #if DOVECOT_PREREQ(2, 3)
     mailbox_set_reason(box, "doveadm rmb mailbox delete");
     struct mail_storage *storage = mailbox_get_storage(box);

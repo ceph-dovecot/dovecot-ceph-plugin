@@ -166,8 +166,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     i_error("not_initialized : ns_dest");
     return -1;
   }
-
+#ifdef DEBUG
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
+#endif
 
   int ret_val = 0;
 
@@ -221,7 +222,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
         r_storage->save_log->append(librmb::RadosSaveLogEntry(dest_oid, ns_dest, rados_storage->get_pool_name(),
                                                               librmb::RadosSaveLogEntry::op_cpy()));
       }
+#ifdef DEBUG
       i_debug("copy successfully finished: from src %s to oid = %s", src_oid.c_str(), dest_oid.c_str());
+#endif
     }
     if (ctx->moving) {
       std::string dest_oid = src_oid;
@@ -272,8 +275,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
             dest_oid, ns_dest, rados_storage->get_pool_name(),
             librmb::RadosSaveLogEntry::op_mv(ns_src, src_oid, dest_mbox->list->ns->owner->username, metadata)));
       }
+#ifdef DEBUG
       i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(),
               src_oid.c_str(), ns_dest.c_str());
+#endif
     }
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     if (ctx->dest_mail != NULL) {
@@ -320,9 +325,12 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     if (mail_storage_copy(ctx, mail) < 0) {
       FUNC_END_RET("ret == -1, mail_storage_copy failed");
       return -1;
-    } else {
+    }
+#ifdef DEBUG
+    else {
       i_debug("Mail saved without ceph copy, uid = %u, oid = %s", mail->uid, guid_128_to_string(r_ctx->mail_oid));
     }
+#endif
 
   } else {
     if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {

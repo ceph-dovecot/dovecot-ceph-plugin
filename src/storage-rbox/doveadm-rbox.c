@@ -49,6 +49,5 @@ void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
 
   for (i = 0; i < N_ELEMENTS(doveadm_cmd_rbox); i++)
     doveadm_register_cmd(&doveadm_cmd_rbox[i]);
-  }
-
+}
 void doveadm_rbox_plugin_deinit(void) {}

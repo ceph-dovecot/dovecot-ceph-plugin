@@ -99,24 +99,24 @@ void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED,
 }
 
 static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
-  bool debug = ns->mail_set->mail_debug;
   const char *home;
 
   if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
     const char *path = t_strconcat(home, "/rbox", NULL);
     if (access(path, R_OK | W_OK | X_OK) == 0) {
-      if (debug)
+#ifdef DEBUG
         i_debug("rbox: root exists (%s)", path);
+#endif
       return path;
     }
-    if (debug)
-      i_debug("rbox: access(%s, rwx): failed: %m", path);
+#ifdef DEBUG
+    i_debug("rbox: access(%s, rwx): failed: %m", path);
+#endif
   }
   return NULL;
 }
 bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set) {
   FUNC_START();
-  bool debug = ns->mail_set->mail_debug;
   struct stat st;
   const char *path, *root_dir;
 
@@ -125,22 +125,25 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
   else {
     root_dir = rbox_storage_find_root_dir(ns);
     if (root_dir == NULL) {
-      if (debug)
-        i_debug("rbox: couldn't find root dir");
+#ifdef DEBUG
+      i_debug("rbox: couldn't find root dir");
+#endif
       return FALSE;
     }
   }
 
   path = t_strconcat(root_dir, "/" RBOX_MAILBOX_DIR_NAME, NULL);
   if (stat(path, &st) < 0) {
-    if (debug)
-      i_debug("rbox autodetect: stat(%s) failed: %m", path);
+#ifdef DEBUG
+    i_debug("rbox autodetect: stat(%s) failed: %m", path);
+#endif
     return FALSE;
   }
 
   if (!S_ISDIR(st.st_mode)) {
-    if (debug)
-      i_debug("rbox autodetect: %s not a directory", path);
+#ifdef DEBUG
+    i_debug("rbox autodetect: %s not a directory", path);
+#endif
     return FALSE;
   }
 
@@ -704,9 +707,10 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
     }
     /* dir is empty, ignore it */
   }
-
+#ifdef DEBUG
   i_debug("rbox_mailbox_create: mailbox update guid = %s",
           update != NULL ? guid_128_to_string(update->mailbox_guid) : "Invalid update");
+#endif
   FUNC_END();
   return rbox_mailbox_create_indexes(box, update, NULL);
 }
@@ -742,9 +746,11 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
     memcpy(metadata_r->guid, mbox->mailbox_guid, sizeof(metadata_r->guid));
   }
 
+#ifdef DEBUG
   if (metadata_r != NULL && metadata_r->cache_fields != NULL) {
     i_debug("metadata size = %lu", metadata_r->cache_fields->arr.element_size);
   }
+#endif
 
   FUNC_END();
   return 0;
@@ -780,7 +786,9 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
           i_error("cannot get status of %s", info->vname);
           ++total_mails;  // make sure we do not delete anything due to invalid status query!!!
         } else {
+#ifdef DEBUG
           i_debug("mailbox %s, has %d messages", info->vname, status.messages);
+#endif
           total_mails += status.messages;
         }
         mailbox_free(&box_);
@@ -794,15 +802,19 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
       uid += config->get_user_suffix();
       std::string ns_str;
       ns_mgr->lookup_key(uid, &ns_str);
+#ifdef DEBUG
       i_debug(
           "total number of mails in all mailboxes is  %d, deleting indirect namespace object for user %s with "
           "namespace: %s ",
           total_mails, uid.c_str(), ns_str.c_str());
+#endif
       storage->set_namespace(config->get_user_ns());
       ret = storage->delete_mail(uid);
       if (ret < 0) {
         if (ret == -2) {
+#ifdef DEBUG
           i_debug("indirect ns object already deleted %d", ret);
+#endif
         } else {
           i_error("Error deleting ns object %d", ret);
         }
