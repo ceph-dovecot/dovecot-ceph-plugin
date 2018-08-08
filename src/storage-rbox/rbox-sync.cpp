@@ -327,16 +327,34 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
 
   struct mail_storage *storage = mbox->box.storage;
 
-  unsigned int i = 0;
+  // unsigned int i = 0;
   bool rebuild, force_rebuild;
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
-  rebuild = force_rebuild || mbox->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
+  rebuild = force_rebuild || mbox->storage->corrupted_rebuild_count != 0 || rbox_refresh_header(mbox, TRUE, FALSE) < 0;
+  i_debug("RBOX storage currupted rebuild count = %d", mbox->storage->corrupted_rebuild_count);
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(mbox->box.view);
   // cppcheck-suppress redundantAssignment
   rebuild = (hdr->flags & MAIL_INDEX_HDR_FLAG_FSCKD) != 0;
 #endif
+
+  int ret = 0;
+  if (rebuild) {
+    for (int i = 0; i < RBOX_REBUILD_COUNT; i++) {
+      /* do a full resync and try again. */
+      rebuild = FALSE;
+      ret = rbox_storage_rebuild_in_context(mbox->storage, force_rebuild);
+      if (ret >= 0) {
+        mailbox_recent_flags_reset(&mbox->box);
+        break;
+      }
+    }
+    if (rebuild || ret < 0) {
+      mail_storage_set_critical(storage, "bbox %s: Index keeps breaking", mailbox_get_path(&ctx->mbox->box));
+      ret = -1;
+    }
+  }
 
   ctx = i_new(struct rbox_sync_context, 1);
   ctx->mbox = mbox;
@@ -350,54 +368,38 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   /* don't write unnecessary dirty flag updates */
   sync_flags |= MAIL_INDEX_SYNC_FLAG_AVOID_FLAG_UPDATES;
 
-  for (i = 0;; i++) {
+  if (ret >= 0) {
     // sync_ctx->flags werden gesetzt.
-    int ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
-                                            static_cast<enum mail_index_sync_flags>(sync_flags));
-
+    ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
+                                           static_cast<enum mail_index_sync_flags>(sync_flags));
     if (mail_index_reset_fscked(mbox->box.index))
       rbox_set_mailbox_corrupted(&mbox->box);
-
-    if (ret <= 0) {
-      array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
-      array_free(&ctx->expunged_items);
-      i_free(ctx);
-      *ctx_r = NULL;
-      FUNC_END_RET("ret <= 0");
-      return ret;
-    }
-    if (rebuild) {
-      ret = 0;
-    } else {
-      if ((ret = rbox_sync_index(ctx)) > 0)
-        break;
-    }
-
-    /* failure. keep the index locked while we're doing a
-           rebuild. */
-    if (ret == 0) {
-      if (i >= RBOX_REBUILD_COUNT) {
-        mail_storage_set_critical(storage, "bbox %s: Index keeps breaking", mailbox_get_path(&ctx->mbox->box));
-        ret = -1;
-      } else {
-        /* do a full resync and try again. */
-        rebuild = FALSE;
-        ret = rbox_storage_rebuild_in_context(mbox->storage, force_rebuild);
-      }
-    }
-    mail_index_sync_rollback(&ctx->index_sync_ctx);
-    if (ret < 0) {
-      index_storage_expunging_deinit(&ctx->mbox->box);
-      array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
-      array_free(&ctx->expunged_items);
-      i_free(ctx);
-      return -1;
-    }
   }
+  if (ret <= 0) {
+    array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
+    array_free(&ctx->expunged_items);
+    i_free(ctx);
+    *ctx_r = NULL;
+    FUNC_END_RET("ret <= 0");
+    return ret;
+}
+if (!rebuild) {
+  ret = rbox_sync_index(ctx);
+}
+if (ret <= 0) {
+  mail_index_sync_rollback(&ctx->index_sync_ctx);
+  if (ret < 0) {
+    index_storage_expunging_deinit(&ctx->mbox->box);
+    array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
+    array_free(&ctx->expunged_items);
+    i_free(ctx);
+    return -1;
+  }
+}
 
-  *ctx_r = ctx;
-  FUNC_END();
-  return 0;
+*ctx_r = ctx;
+FUNC_END();
+return 0;
 }
 
 struct AioRemove {
@@ -451,7 +453,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   struct expunged_item *const *moved_items, *moved_item;
   unsigned int count, moved_count = 0;
 
-  /* NOTE: Index is no longer locked. Multiple processes may be deleting
+  /* NOTE: Index is no longer locked. Mrbox_storage_sync_initultiple processes may be deleting
      the objects at the same time. */
   ctx->mbox->box.tmp_sync_view = ctx->sync_view;
 
@@ -564,15 +566,20 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     }
   }
 
-  if (ret == 0 && mail_index_reset_fscked(box->index)) {
+  if (mail_index_reset_fscked(box->index)) {
     rbox_set_mailbox_corrupted(box);
   }
-  if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->corrupted_rebuild_count != 0)) {
+  if (ret == 0 && (index_mailbox_want_full_sync(&mbox->box, flags) || mbox->storage->corrupted_rebuild_count != 0)) {
     uint8_t rbox_sync_flags = 0x0;
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
+      i_debug("setting FORCE_REBUILD FLAG");
+    } else {
+      i_debug("FLAG DOES NOT HAVE FORCE_REBUILD FLAG");
     }
     ret = rbox_sync(mbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
+  } else {
+    i_debug("NO FLAG EVALUATION");
   }
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);

@@ -17,10 +17,6 @@
 
 #include <rados/librados.hpp>
 
-const char *SETTINGS_RBOX_POOL_NAME = "rbox_pool_name";
-const char *SETTINGS_DEF_RADOS_POOL = "mail_storage";
-const char *DEF_USERNAME = "unknown";
-
 extern "C" {
 
 #include "dovecot-all.h"
@@ -288,10 +284,11 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, 
     }
     ret = -1;
   } else {
-    i_zero(hdr);
+    memset(hdr, 0, sizeof(*hdr));
     memcpy(hdr, data, I_MIN(data_size, sizeof(*hdr)));
     if (guid_128_is_empty(hdr->mailbox_guid)) {
       ret = -1;
+      i_debug("mailbox guid is null");
     } else {
       /* data is valid. remember it in case mailbox
          is being reset */
@@ -301,6 +298,7 @@ int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, 
   mail_index_view_close(&view);
   *need_resize_r = data_size < sizeof(*hdr);
   FUNC_END();
+  i_debug("rbox_read_header :%d", ret);
   return ret;
 }
 
@@ -352,6 +350,8 @@ int read_plugin_configuration(struct mailbox *box) {
     for (std::map<std::string, std::string>::iterator it = map->begin(); it != map->end(); ++it) {
       std::string setting = it->first;
       storage->config->update_metadata(setting, mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
+      i_debug("reading plugin conf: %s=%s", setting.c_str(),
+              mail_user_plugin_getenv(mbox->storage->storage.user, setting.c_str()));
     }
     storage->config->set_config_valid(true);
     storage->save_log->set_save_log_file(storage->config->get_rados_save_log_file());
@@ -433,22 +433,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   return ret;
 }
 
-void rbox_sync_update_header(struct index_rebuild_context *ctx) {
-  FUNC_START();
-  struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
-  struct sdbox_index_header hdr;
-  bool need_resize;
 
-  if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0)
-    i_zero(&hdr);
-  if (guid_128_is_empty(hdr.mailbox_guid))
-    guid_128_generate(hdr.mailbox_guid);
-  if (++hdr.rebuild_count == 0)
-    hdr.rebuild_count = 1;
-  /* mailbox is being reset. this gets written directly there */
-  mail_index_set_ext_init_data(ctx->box->index, rbox->hdr_ext_id, &hdr, sizeof(hdr));
-  FUNC_END();
-}
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
                                const struct mailbox_update *update) {
@@ -458,7 +443,7 @@ static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_tran
   bool need_resize;
 
   if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0) {
-    i_zero(&hdr);
+    memset(&hdr, 0, sizeof(hdr));
     need_resize = TRUE;
   }
 
@@ -605,9 +590,13 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
   bool need_resize;
 
   if (rbox_read_header(mbox, &hdr, TRUE, &need_resize) < 0 || hdr.rebuild_count == 0)
-    mbox->corrupted_rebuild_count = 1;
+    mbox->storage->corrupted_rebuild_count = 1;
   else
-    mbox->corrupted_rebuild_count = hdr.rebuild_count;
+    mbox->storage->corrupted_rebuild_count = hdr.rebuild_count;
+
+  mbox->storage->corrupted = TRUE;
+
+  i_debug("setting currupted rebuild count to : %d", mbox->storage->corrupted_rebuild_count);
   FUNC_END();
 }
 
@@ -629,9 +618,11 @@ static void rbox_mailbox_close(struct mailbox *box) {
     array_free(&rbox->moved_items);
   }
 
-  /*if (rbox->corrupted_rebuild_count != 0) {
-    (void)rbox_sync(rbox);
-  }*/
+  if (rbox->storage->corrupted_rebuild_count != 0) {
+    i_debug("storage corrupted rebuild count != 0 calling sync");
+    (void)rbox_sync(rbox, 0);
+  }
+
   index_storage_mailbox_close(box);
   FUNC_END();
 }

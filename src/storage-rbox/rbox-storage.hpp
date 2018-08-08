@@ -40,12 +40,14 @@ struct rbox_storage {
   librmb::RadosMetadataStorage *ms;
   librmb::RadosStorage *alt;
   librmb::RadosSaveLog *save_log;
+
+  uint32_t corrupted_rebuild_count;
+  bool corrupted;
 };
 
 #endif
 
 struct index_rebuild_context;
-extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 extern struct mail_vfuncs rbox_mail_vfuncs;
 extern uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list);
 extern struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *_t);

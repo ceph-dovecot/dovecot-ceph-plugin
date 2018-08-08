@@ -48,12 +48,13 @@ void rbox_mail_set_expunged(struct rbox_mail *mail) {
   mail_index_refresh(_mail->box->index);
   if (mail_index_is_expunged(_mail->transaction->view, _mail->seq)) {
     mail_set_expunged(_mail);
-    return;
+  } else {
+    mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
+                              _mail->uid);
+    /* the message was probably just purged */
+    mail_storage_set_error(_mail->box->storage, MAIL_ERROR_EXPUNGED, "requested messages no longer exist.");
+    rbox_set_mailbox_corrupted(_mail->box);
   }
-
-  mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
-                            _mail->uid);
-  rbox_set_mailbox_corrupted(_mail->box);
 }
 
 int rbox_get_index_record(struct mail *_mail) {
@@ -129,7 +130,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(),
               getpid());
     }
-    return ret;
+    return -1;
   }
   std::string value = rmail->mail_object->get_metadata(key);
   if (!value.empty()) {
@@ -156,11 +157,10 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   if (ret < 0) {
     if (ret == -ENOENT) {
       rbox_mail_set_expunged(rmail);
-      return -1;
     } else {
       FUNC_END_RET("ret == -1; cannot get received date");
-      return -1;
     }
+    return -1;
   }
 
   if (value == NULL) {

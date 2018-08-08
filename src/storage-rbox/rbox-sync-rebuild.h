@@ -25,6 +25,7 @@ struct rbox_sync_rebuild_ctx {
   bool alt_storage;
   uint32_t next_uid;
 };
+extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
                                 librmb::RadosMailObject *mail_obj, bool alt_storage, uint32_t next_uid);
@@ -39,4 +40,5 @@ extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::
 extern int rbox_sync_index_rebuild(struct rbox_mailbox *mbox, bool force);
 extern int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern int rbox_storage_rebuild_in_context(struct rbox_storage *storage, bool force);
+extern int repair_namespace(struct mail_namespace *ns, bool force);
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
