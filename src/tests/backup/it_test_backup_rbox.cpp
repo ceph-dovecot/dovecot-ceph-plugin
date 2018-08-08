@@ -78,10 +78,10 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
 
   // sleep(10);
-  rados_list_ctx_t listh;
+  // rados_list_ctx_t listh;
   std::cout << "POOL: " << BackupTest::pool_name << std::endl;
   rados_ioctx_set_namespace(BackupTest::s_ioctx, "user-rbox-test@localhost_u");
-  rados_nobjects_list_open(BackupTest::s_ioctx, &listh);
+  // rados_nobjects_list_open(BackupTest::s_ioctx, &listh);
 
   rados_list_ctx_t ctx;
   std::string to_delete;
