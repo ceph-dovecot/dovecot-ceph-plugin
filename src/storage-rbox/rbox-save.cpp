@@ -498,7 +498,26 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   FUNC_END();
   return 0;
 }
+void rbox_save_update_header_flags(struct rbox_save_context *ctx, struct mail_index_view *sync_view, uint32_t ext_id,
+                                   unsigned int flags_offset) {
+  const void *data;
+  size_t data_size;
+  uint8_t old_flags = 0, flags;
 
+  mail_index_get_header_ext(sync_view, ext_id, &data, &data_size);
+  if (flags_offset < data_size) {
+    old_flags = *((const uint8_t *)data + flags_offset);
+  } else {
+    /* grow old dbox header */
+    mail_index_ext_resize_hdr(ctx->trans, ext_id, flags_offset + 1);
+  }
+
+  flags = old_flags;
+  if (flags != old_flags) {
+    /* flags changed, update them */
+    mail_index_update_header_ext(ctx->trans, ext_id, flags_offset, &flags, 1);
+  }
+}
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
@@ -518,17 +537,20 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     return -1;
   }
 
-  uint8_t sync_flags = RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC;
-  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx, static_cast<enum rbox_sync_flags>(sync_flags)) < 0) {
+  if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx,
+                      static_cast<enum rbox_sync_flags>(RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC)) < 0) {
     r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
     FUNC_END_RET("ret == -1");
     return -1;
   }
+  /* update rbox header flags */
+  rbox_save_update_header_flags(r_ctx, r_ctx->sync_ctx->sync_view, r_ctx->mbox->hdr_ext_id,
+                                offsetof(struct sdbox_index_header, flags));
 
+  /* assign UIDs for new messages */
   const struct mail_index_header *hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_ctx->transaction->changes->saved_uids);
-  _ctx->transaction->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
 
   struct seq_range_iter iter;
   seq_range_array_iter_init(&iter, &_ctx->transaction->changes->saved_uids);
