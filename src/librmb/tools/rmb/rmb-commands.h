@@ -11,10 +11,11 @@
 
 #ifndef SRC_LIBRMB_TOOLS_RMB_RMB_COMMANDS_H_
 #define SRC_LIBRMB_TOOLS_RMB_RMB_COMMANDS_H_
+#include <stdlib.h>
+
 #include <iostream>
 #include <map>
 #include <string>
-#include <stdlib.h>
 #include <vector>
 #include <sstream>
 #include <iterator>

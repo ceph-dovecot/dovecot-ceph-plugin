@@ -9,6 +9,7 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
+#include <string>
 
 extern "C" {
 #include "lib.h"
