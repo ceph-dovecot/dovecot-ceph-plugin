@@ -254,6 +254,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
       // set src as expunged
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      i_zero(item);
       guid_128_from_string(src_oid.c_str(), item->oid);
       array_append(&rmailbox->moved_items, &item, 1);
 

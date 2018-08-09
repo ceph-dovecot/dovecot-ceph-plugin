@@ -62,14 +62,13 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
     r_ctx->trans = t->itrans;
-    r_ctx->current_object = nullptr;
-  }else {
-    r_ctx->current_object = nullptr;
+  } else {
     r_ctx->failed = FALSE;
     r_ctx->finished = FALSE;
     r_ctx->output_stream = NULL;
     r_ctx->input = NULL;
   }
+  r_ctx->current_object = nullptr;
 
   t->save_ctx = &r_ctx->ctx;
 
@@ -78,17 +77,14 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 }
 
 int setup_mail_object(struct mail_save_context *_ctx) {
-  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  struct mail_save_data *mdata = &_ctx->data;
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   guid_128_generate(r_ctx->mail_oid);
-
-  r_ctx->current_object = r_storage->s->alloc_mail_object();
+  r_ctx->current_object = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s->alloc_mail_object();
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
 
-  if (mdata->guid != NULL) {
-    string str(mdata->guid);
+  if (_ctx->data.guid != NULL) {
+    string str(_ctx->data.guid);
     librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
     mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
@@ -99,9 +95,8 @@ int setup_mail_object(struct mail_save_context *_ctx) {
 
 void rbox_add_to_index(struct mail_save_context *_ctx) {
   FUNC_START();
-  struct mail_save_data *mdata = &_ctx->data;
-  rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  uint8_t save_flags = 0x0;
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+  uint8_t save_flags = _ctx->data.flags & ~MAIL_RECENT;
 
 /* add to index */
 #if DOVECOT_PREREQ(2, 3)
@@ -111,10 +106,9 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
     r_ctx->seq = mdata->stub_seq;
   }
 #else
-  mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
+  mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
 #endif
 
-  save_flags = mdata->flags & ~MAIL_RECENT;
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
   if (_ctx->data.keywords != NULL) {
@@ -137,14 +131,13 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
 }
 
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
-  struct mail_save_data *mdata = &_ctx->data;
+  FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  uint8_t save_flags = 0x0;
+  uint8_t save_flags = _ctx->data.flags & ~MAIL_RECENT;
 
   /* add to index */
-  save_flags = mdata->flags & ~MAIL_RECENT;
-  mail_index_append(r_ctx->trans, mdata->uid, &r_ctx->seq);
+  mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
 
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
 
@@ -167,8 +160,8 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
   r_ctx->objects.push_back(r_ctx->current_object);
 
-  if (mdata->guid != NULL) {
-    string str(mdata->guid);
+  if (_ctx->data.guid != NULL) {
+    string str(_ctx->data.guid);
     librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
     mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
@@ -185,6 +178,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   if (_ctx->dest_mail != NULL) {
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
   }
+  FUNC_END();
 }
 void init_output_stream(mail_save_context *_ctx) {
   FUNC_START();
@@ -343,7 +337,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     unsigned int count_keywords;
     const char *const *keywords = array_get(&rmail->imail.data.keywords, &count_keywords);
 
-    for (unsigned int i = 0; i < count_keyword_indexes; i++) {
+    for (unsigned int i = 0; i < count_keyword_indexes; ++i) {
       // set keyword_idx : keyword_value
       std::string key_idx = std::to_string(keyword_indexes[i]);
       std::string keyword_value = keywords[i];
@@ -359,9 +353,13 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
 }
 
 static void clean_up_failed(struct rbox_save_context *r_ctx) {
+  FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  r_storage->s->wait_for_rados_operations(r_ctx->objects);
+  if (r_storage->s->wait_for_rados_operations(r_ctx->objects)) {
+    i_error("Librados waiting for rados operations failed");
+    // try to clean up!
+  }
 
   for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin(); it_cur_obj != r_ctx->objects.end();
        ++it_cur_obj) {
@@ -382,9 +380,11 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
 
   clean_up_mail_object_list(r_ctx, r_storage);
   r_ctx->mail_count--;
+  FUNC_END();
 }
 
 static void clean_up_write_finish(struct mail_save_context *_ctx) {
+  FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   r_ctx->finished = TRUE;
@@ -398,7 +398,7 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   }
 
   index_save_context_free(_ctx);
-
+  FUNC_END();
 }
 
 int rbox_save_finish(struct mail_save_context *_ctx) {
@@ -406,34 +406,32 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-
   if (!r_ctx->failed) {
     if (_ctx->data.save_date != (time_t)-1) {
-      uint32_t save_date = _ctx->data.save_date;
-      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &save_date, sizeof(save_date));
+      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &_ctx->data.save_date,
+                           sizeof(_ctx->data.save_date));
     }
 
-    struct mail_save_data *mdata = &r_ctx->ctx.data;
-    if (mdata->output != r_ctx->output_stream) {
+    if (r_ctx->ctx.data.output != r_ctx->output_stream) {
 #if DOVECOT_PREREQ(2, 3)
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */
-      o_stream_finish(mdata->output);
+      o_stream_finish(r_ctx->ctx.data.output);
 #else
-      if (o_stream_nfinish(mdata->output) < 0) {
+      if (o_stream_nfinish(r_ctx->ctx.data.output) < 0) {
         mail_storage_set_critical(r_ctx->ctx.transaction->box->storage, "write(%s) failed: %m",
-                                  o_stream_get_name(mdata->output));
+                                  o_stream_get_name(r_ctx->ctx.data.output));
         r_ctx->failed = TRUE;
       }
 #endif
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
-      o_stream_destroy(&mdata->output);
-      mdata->output = r_ctx->output_stream;
+      o_stream_destroy(&r_ctx->ctx.data.output);
+      r_ctx->ctx.data.output = r_ctx->output_stream;
     }
     // reset virtual size
     index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
-	// always save to primary storage
+    // always save to primary storage
     if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
       i_error("ERROR, cannot open rados connection (rbox_save_finish)");
       r_ctx->failed = true;
@@ -474,10 +472,11 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
 }
 
 static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TYPE(seq_range) * uids) {
+  FUNC_START();
   struct seq_range_iter iter;
   unsigned int n = 0;
   uint32_t uid = -1;
-  
+
   if (r_ctx->objects.size() > 0) {
     seq_range_array_iter_init(&iter, uids);
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
@@ -495,22 +494,19 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
       }
     }
     i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
-   }
-
+  }
+  FUNC_END();
   return 0;
 }
 
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct mailbox_transaction_context *_t = _ctx->transaction;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  const struct mail_index_header *hdr;
-  struct seq_range_iter iter;
+  librmb::RadosStorage *storage = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s;
 
   i_assert(r_ctx->finished);
 
-  r_ctx->failed = r_storage->s->wait_for_rados_operations(r_ctx->objects);
+  r_ctx->failed = storage->wait_for_rados_operations(r_ctx->objects);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
   if (r_ctx->failed) {
@@ -530,12 +526,13 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     return -1;
   }
 
-  hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
-  mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_t->changes->saved_uids);
-  _t->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
+  const struct mail_index_header *hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
+  mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_ctx->transaction->changes->saved_uids);
+  _ctx->transaction->changes->uid_validity = r_ctx->sync_ctx->uid_validity;
 
-  seq_range_array_iter_init(&iter, &_t->changes->saved_uids);
-  if (rbox_save_assign_uids(r_ctx, &_t->changes->saved_uids) < 0) {
+  struct seq_range_iter iter;
+  seq_range_array_iter_init(&iter, &_ctx->transaction->changes->saved_uids);
+  if (rbox_save_assign_uids(r_ctx, &_ctx->transaction->changes->saved_uids) < 0) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }
@@ -548,7 +545,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
       _ctx->dest_mail = NULL;
     }
   }
-  _t->changes->uid_validity = hdr->uid_validity;
+  _ctx->transaction->changes->uid_validity = hdr->uid_validity;
 
   FUNC_END();
   return 0;
@@ -570,18 +567,19 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
 }
 
 void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_storage *r_storage) {
+  FUNC_START();
   for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
     r_storage->s->free_mail_object(*it);
     *it = nullptr;
   }
   r_ctx->objects.clear();
+  FUNC_END();
 }
 
 void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (!r_ctx->finished) {
     rbox_save_cancel(&r_ctx->ctx);
@@ -598,7 +596,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
     }
   }
 
-  clean_up_mail_object_list(r_ctx, r_storage);
+  clean_up_mail_object_list(r_ctx, (struct rbox_storage *)&r_ctx->mbox->storage->storage);
 
   guid_128_empty(r_ctx->mail_guid);
   guid_128_empty(r_ctx->mail_oid);

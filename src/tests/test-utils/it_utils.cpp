@@ -7,12 +7,15 @@
  * Foundation.  See file COPYING.
  */
 
-#include "../test-utils/it_utils.h"
+#include "it_utils.h"
+
+#include <string>
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "../mocks/mock_test.h"
 #include "istream-bufferlist.h"
+
 using ::testing::AtLeast;
 using ::testing::Return;
 using ::testing::_;

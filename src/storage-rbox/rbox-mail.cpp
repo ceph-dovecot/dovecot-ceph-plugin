@@ -43,6 +43,7 @@ using librmb::RadosMailObject;
 using librmb::rbox_metadata_key;
 
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
+  FUNC_START();
   struct mail *_mail = &mail->imail.mail.mail;
 
   mail_index_refresh(_mail->box->index);
@@ -55,6 +56,7 @@ void rbox_mail_set_expunged(struct rbox_mail *mail) {
     mail_storage_set_error(_mail->box->storage, MAIL_ERROR_EXPUNGED, "requested messages no longer exist.");
     rbox_set_mailbox_corrupted(_mail->box);
   }
+  FUNC_END();
 }
 
 int rbox_get_index_record(struct mail *_mail) {
@@ -63,10 +65,9 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
   if (rmail->last_seq != _mail->seq) {
-    const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
-    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+    const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
       i_error("no index entry for %d, ext_id=%d ,mail_object->oid='%s'", _mail->seq, rbox->ext_id,
@@ -81,7 +82,6 @@ int rbox_get_index_record(struct mail *_mail) {
 
     rmail->mail_object->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
-
   }
   FUNC_END();
   return 0;
@@ -104,13 +104,15 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
 }
 
 static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_key key, char **value_r) {
+  FUNC_START();
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
-  int ret = -1;
+
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
   if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
+    FUNC_END();
     return -1;
   }
 
@@ -120,23 +122,25 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   } else {
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
   }
-  ret = r_storage->ms->get_storage()->load_metadata(rmail->mail_object);
-  if (ret < 0) {
-    if (ret == -ENOENT) {
-      i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret,
+  int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->mail_object);
+  if (ret_load_metadata < 0) {
+    if (ret_load_metadata == -ENOENT) {
+      i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret_load_metadata,
                 rmail->mail_object->get_oid().c_str(), getpid());
       rbox_mail_set_expunged(rmail);
     } else {
-      i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret, rmail->mail_object->get_oid().c_str(),
-              getpid());
+      i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret_load_metadata,
+              rmail->mail_object->get_oid().c_str(), getpid());
     }
+    FUNC_END();
     return -1;
   }
-  std::string value = rmail->mail_object->get_metadata(key);
+  std::string value;
+  rmail->mail_object->get_metadata(key, &value);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
   }
-
+  FUNC_END();
   return 0;
 }
 
@@ -363,7 +367,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
-    librmb::RadosStorage *rados_storage = alt_storage ? ((struct rbox_storage *)_mail->box->storage)->alt : ((struct rbox_storage *)_mail->box->storage)->s;
+    librmb::RadosStorage *rados_storage = alt_storage ? ((struct rbox_storage *)_mail->box->storage)->alt
+                                                      : ((struct rbox_storage *)_mail->box->storage)->s;
     if (alt_storage) {
       rados_storage->set_namespace(rados_storage->get_namespace());
     }
@@ -420,7 +425,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
                                     enum index_cache_field cache_field, const char **value_r) {
   struct index_mail *imail = &mail->imail;
-  struct index_mailbox_context *ibox = reinterpret_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
+  struct index_mailbox_context *ibox =
+      reinterpret_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
 
   char *value = NULL;
   string_t *str;
@@ -545,7 +551,6 @@ static void rbox_mail_close(struct mail *_mail) {
   if (rmail_->mail_object != nullptr) {
     r_storage->s->free_mail_object(rmail_->mail_object);
     rmail_->mail_object = nullptr;
-
   }
 
   index_mail_close(_mail);
@@ -566,23 +571,46 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
 /*ebd if old version */
 // rbox_mail_free,
-struct mail_vfuncs rbox_mail_vfuncs = {
-    rbox_mail_close, index_mail_free, rbox_index_mail_set_seq, index_mail_set_uid, index_mail_set_uid_cache_updates,
-    index_mail_prefetch, index_mail_precache, index_mail_add_temp_wanted_fields,
+struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
+                                       index_mail_free,
+                                       rbox_index_mail_set_seq,
+                                       index_mail_set_uid,
+                                       index_mail_set_uid_cache_updates,
+                                       index_mail_prefetch,
+                                       index_mail_precache,
+                                       index_mail_add_temp_wanted_fields,
 
-    index_mail_get_flags, index_mail_get_keywords, index_mail_get_keyword_indexes, index_mail_get_modseq,
-    index_mail_get_pvt_modseq, index_mail_get_parts, index_mail_get_date, rbox_mail_get_received_date,
-    rbox_mail_get_save_date, rbox_mail_get_virtual_size, rbox_mail_get_physical_size, index_mail_get_first_header,
-    index_mail_get_headers, index_mail_get_header_stream, rbox_mail_get_stream, index_mail_get_binary_stream,
-    rbox_mail_get_special,
+                                       index_mail_get_flags,
+                                       index_mail_get_keywords,
+                                       index_mail_get_keyword_indexes,
+                                       index_mail_get_modseq,
+                                       index_mail_get_pvt_modseq,
+                                       index_mail_get_parts,
+                                       index_mail_get_date,
+                                       rbox_mail_get_received_date,
+                                       rbox_mail_get_save_date,
+                                       rbox_mail_get_virtual_size,
+                                       rbox_mail_get_physical_size,
+                                       index_mail_get_first_header,
+                                       index_mail_get_headers,
+                                       index_mail_get_header_stream,
+                                       rbox_mail_get_stream,
+                                       index_mail_get_binary_stream,
+                                       rbox_mail_get_special,
 #if DOVECOT_PREREQ(2, 3)
-    index_mail_get_backend_mail,
+                                       index_mail_get_backend_mail,
 #else
     index_mail_get_real_mail,
 #endif
-    index_mail_update_flags, index_mail_update_keywords, index_mail_update_modseq, index_mail_update_pvt_modseq, NULL,
-    index_mail_expunge, index_mail_set_cache_corrupted, index_mail_opened,
+                                       index_mail_update_flags,
+                                       index_mail_update_keywords,
+                                       index_mail_update_modseq,
+                                       index_mail_update_pvt_modseq,
+                                       NULL,
+                                       index_mail_expunge,
+                                       index_mail_set_cache_corrupted,
+                                       index_mail_opened,
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_MAIL_SET_CACHE_CORRUPTED_REASON
-    index_mail_set_cache_corrupted_reason
+                                       index_mail_set_cache_corrupted_reason
 #endif
 };

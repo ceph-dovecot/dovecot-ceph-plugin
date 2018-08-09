@@ -31,8 +31,10 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
                          bool alt_storage, uint32_t next_uid) {
   FUNC_START();
   struct rbox_mailbox *rbox_mailbox = (struct rbox_mailbox *)ctx->box;
-  std::string xattr_mail_uid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID);
-  std::string xattr_guid = mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID);
+  std::string xattr_mail_uid;
+  mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID, &xattr_mail_uid);
+  std::string xattr_guid;
+  mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID, &xattr_guid);
   struct mail_storage *storage = ctx->box->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   uint32_t seq;
@@ -219,6 +221,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   pool = pool_alloconly_create("rbox rebuild pool", 256);
 
   rebuild_ctx = p_new(pool, struct rbox_sync_rebuild_ctx, 1);
+  i_zero(rebuild_ctx);
   rebuild_ctx->alt_storage = false;
   rebuild_ctx->next_uid = INT_MAX;
 

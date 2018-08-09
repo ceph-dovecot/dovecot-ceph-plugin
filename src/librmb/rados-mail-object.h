@@ -33,54 +33,50 @@ class RadosMailObject {
   RadosMailObject();
   virtual ~RadosMailObject();
 
-  void set_oid(const char* _oid) {
-  this->oid = _oid;
-}
-void set_oid(const string& _oid) { this->oid = _oid; }
-void set_guid(const uint8_t* guid);
-void set_mail_size(const uint64_t& _size) { object_size = _size; }
-void set_active_op(bool _active) { this->active_op = _active; }
-void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
+  void set_oid(const char* _oid) { this->oid = _oid; }
+  void set_oid(const string& _oid) { this->oid = _oid; }
+  void set_guid(const uint8_t* guid);
+  void set_mail_size(const uint64_t& _size) { object_size = _size; }
+  void set_active_op(bool _active) { this->active_op = _active; }
+  void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
 
-const string& get_oid() { return this->oid; }
-const uint64_t& get_mail_size() { return this->object_size; }
+  const string& get_oid() { return this->oid; }
+  const uint64_t& get_mail_size() { return this->object_size; }
 
-time_t* get_rados_save_date() { return &this->save_date_rados; }
-uint8_t* get_guid_ref() { return this->guid; }
-librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
-map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
+  time_t* get_rados_save_date() { return &this->save_date_rados; }
+  uint8_t* get_guid_ref() { return this->guid; }
+  librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
+  map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
-map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
+  map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
 
-string get_metadata(rbox_metadata_key key) {
-  string str_key(1, static_cast<char>(key));
-  return get_metadata(str_key);
-}
-
-string get_metadata(const string& key) {
-  string value;
-  if (attrset.find(key) != attrset.end()) {
-    value = attrset[key].to_str();
+  void get_metadata(rbox_metadata_key key, std::string* value) {
+    string str_key(1, static_cast<char>(key));
+    get_metadata(str_key, value);
   }
-  return value;
-}
 
-bool is_index_ref() { return index_ref; }
-void set_index_ref(bool ref) { this->index_ref = ref; }
-bool is_valid() { return valid; }
-void set_valid(bool valid_) { valid = valid_; }
-bool has_active_op() { return active_op; }
-string to_string(const string& padding);
-void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
-
-map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
-void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
-const string get_extended_metadata(string& key) {
-  string value;
-  if (extended_attrset.find(key) != extended_attrset.end()) {
-    value = extended_attrset[key].to_str();
+  void get_metadata(const string& key, std::string* value) {
+    if (attrset.find(key) != attrset.end()) {
+      *value = attrset[key].to_str();
+    }
   }
-  return value;
+
+  bool is_index_ref() { return index_ref; }
+  void set_index_ref(bool ref) { this->index_ref = ref; }
+  bool is_valid() { return valid; }
+  void set_valid(bool valid_) { valid = valid_; }
+  bool has_active_op() { return active_op; }
+  string to_string(const string& padding);
+  void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
+
+  map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
+  void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
+  const string get_extended_metadata(string& key) {
+    string value;
+    if (extended_attrset.find(key) != extended_attrset.end()) {
+      value = extended_attrset[key].to_str();
+    }
+    return value;
   }
 
  private:
@@ -98,10 +94,10 @@ const string get_extended_metadata(string& key) {
   map<string, ceph::bufferlist> extended_attrset;
   bool valid;
   bool index_ref;
+
  public:
   static const char X_ATTR_VERSION_VALUE[];
   static const char DATA_BUFFER_NAME[];
-
 };
 
 }  // namespace librmb

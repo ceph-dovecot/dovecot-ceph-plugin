@@ -22,10 +22,8 @@ namespace librmb {
 
 class RadosMailBox {
  public:
-
-  RadosMailBox(const std::string& _mailbox_guid, int _mail_count, const std::string &_mbox_orig_name) : mailbox_guid(_mailbox_guid),
-													mail_count(_mail_count),
-													mbox_orig_name(_mbox_orig_name) {
+  RadosMailBox(const std::string &_mailbox_guid, int _mail_count, const std::string &_mbox_orig_name)
+      : mailbox_guid(_mailbox_guid), mail_count(_mail_count), mbox_orig_name(_mbox_orig_name) {
     this->mailbox_size = 0;
     this->total_mails = 0;
     this->parser = nullptr;
@@ -50,7 +48,9 @@ class RadosMailBox {
          it != parser->get_predicates().end(); ++it) {
       if (mail->get_metadata()->find(it->first) != mail->get_metadata()->end()) {
         std::string key = it->first;
-        if (it->second->eval(mail->get_metadata(key))) {
+        std::string value;
+        mail->get_metadata(key, &value);
+        if (it->second->eval(value)) {
           mails.push_back(mail);
         }
         return;

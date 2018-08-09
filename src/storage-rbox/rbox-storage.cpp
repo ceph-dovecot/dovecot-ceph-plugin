@@ -60,6 +60,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   pool_t pool;
   pool = pool_alloconly_create("rbox storage", 256);
   storage = p_new(pool, struct rbox_storage, 1);
+  i_zero(storage);
   storage->storage = rbox_storage;
   storage->storage.pool = pool;
   storage->cluster = new librmb::RadosClusterImpl();
@@ -75,7 +76,6 @@ struct mail_storage *rbox_storage_alloc(void) {
   FUNC_END();
   return &storage->storage;
 }
-
 
 void rbox_storage_get_list_settings(const struct mail_namespace *ns ATTR_UNUSED, struct mailbox_list_settings *set) {
   FUNC_START();
@@ -101,7 +101,7 @@ static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
     const char *path = t_strconcat(home, "/rbox", NULL);
     if (access(path, R_OK | W_OK | X_OK) == 0) {
 #ifdef DEBUG
-        i_debug("rbox: root exists (%s)", path);
+      i_debug("rbox: root exists (%s)", path);
 #endif
       return path;
     }
@@ -219,6 +219,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   pool = pool_alloconly_create("rbox mailbox", 1024);
   rbox = p_new(pool, struct rbox_mailbox, 1);
+  i_zero(rbox);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
   rbox->box = rbox_mailbox;
   rbox->box.pool = pool;
@@ -432,8 +433,6 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_END();
   return ret;
 }
-
-
 
 static void rbox_update_header(struct rbox_mailbox *mbox, struct mail_index_transaction *trans,
                                const struct mailbox_update *update) {

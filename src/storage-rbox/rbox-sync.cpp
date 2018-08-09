@@ -9,7 +9,7 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-
+#include <string>
 #include <rados/librados.hpp>
 
 extern "C" {
@@ -61,6 +61,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       mail_index_expunge(ctx->trans, seq1);
 
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
+      i_zero(item);
       item->uid = uid;
       if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
         // continue anyway
@@ -102,7 +103,6 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
     guid_128_t index_oid;
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
-
 
       std::string key_oid(oid);
       std::string ext_key = std::to_string(keyword_idx);
@@ -186,7 +186,8 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       librmb::RadosMailObject mail_object;
       mail_object.set_oid(oid);
       r_storage->ms->get_storage()->load_metadata(&mail_object);
-      std::string flags_metadata = mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
+      std::string flags_metadata;
+      mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &flags_metadata);
       uint8_t flags;
       if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {
         if (add_flags != 0) {
@@ -371,7 +372,7 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
   if (ret >= 0) {
     // sync_ctx->flags werden gesetzt.
     ret = index_storage_expunged_sync_begin(&mbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
-                                           static_cast<enum mail_index_sync_flags>(sync_flags));
+                                            static_cast<enum mail_index_sync_flags>(sync_flags));
     if (mail_index_reset_fscked(mbox->box.index))
       rbox_set_mailbox_corrupted(&mbox->box);
   }
@@ -382,24 +383,24 @@ int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r,
     *ctx_r = NULL;
     FUNC_END_RET("ret <= 0");
     return ret;
-}
-if (!rebuild) {
-  ret = rbox_sync_index(ctx);
-}
-if (ret <= 0) {
-  mail_index_sync_rollback(&ctx->index_sync_ctx);
-  if (ret < 0) {
-    index_storage_expunging_deinit(&ctx->mbox->box);
-    array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
-    array_free(&ctx->expunged_items);
-    i_free(ctx);
-    return -1;
   }
-}
+  if (!rebuild) {
+    ret = rbox_sync_index(ctx);
+  }
+  if (ret <= 0) {
+    mail_index_sync_rollback(&ctx->index_sync_ctx);
+    if (ret < 0) {
+      index_storage_expunging_deinit(&ctx->mbox->box);
+      array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
+      array_free(&ctx->expunged_items);
+      i_free(ctx);
+      return -1;
+    }
+  }
 
-*ctx_r = ctx;
-FUNC_END();
-return 0;
+  *ctx_r = ctx;
+  FUNC_END();
+  return 0;
 }
 
 struct AioRemove {
@@ -431,8 +432,7 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
   return ret_remove;
 }
 
-
-static void aio_cb(rados_completion_t cb, void *arg) {
+static void expunge_cb(rados_completion_t cb, void *arg) {
   AioRemove *stat = static_cast<AioRemove *>(arg);
   if (stat->completion->get_return_value() == 0) {
     struct mailbox *box = &stat->ctx->mbox->box;
@@ -479,7 +479,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
           AioRemove *stat = new AioRemove();
           stat->ctx = ctx;
           stat->item = item;
-          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), aio_cb, NULL);
+          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), expunge_cb, NULL);
           completions.push_back(stat->completion);
           // make it async!
           rbox_sync_object_expunge(stat);
@@ -506,7 +506,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   struct rbox_sync_context *ctx = *_ctx;
   int ret = success ? 0 : -1;
   struct expunged_item *const *exp_items, *exp_item;
-  unsigned int count =0 ;
+  unsigned int count = 0;
 
   *_ctx = NULL;
   if (success) {
