@@ -268,8 +268,8 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
         librmb::RadosSaveLogEntry::op_mv(*ns_src, src_oid, dest_mbox->list->ns->owner->username, metadata)));
   }
 #ifdef DEBUG
-  i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src.c_str(), src_oid.c_str(),
-          ns_dest.c_str());
+  i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src->c_str(), src_oid.c_str(),
+          ns_dest->c_str());
 #endif
   return 0;
 }
