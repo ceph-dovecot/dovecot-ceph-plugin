@@ -46,7 +46,7 @@ int MailboxTools::init_mailbox_dir() {
   return 0;
 }
 
-int MailboxTools::delete_mail(librmb::RadosMailObject* mail_obj) {
+int MailboxTools::delete_mail(librmb::RadosMail* mail_obj) {
   if (mail_obj == nullptr) {
     return -1;
   }
@@ -71,7 +71,7 @@ int MailboxTools::delete_mailbox_dir() {
   return 0;
 }
 
-int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
+int MailboxTools::save_mail(librmb::RadosMail* mail_obj) {
   if (mail_obj == nullptr) {
     return -1;
   }
@@ -91,7 +91,7 @@ int MailboxTools::save_mail(librmb::RadosMailObject* mail_obj) {
   return 0;
 }
 
-int MailboxTools::build_filename(librmb::RadosMailObject* mail_obj, std::string* filename) {
+int MailboxTools::build_filename(librmb::RadosMail* mail_obj, std::string* filename) {
   if (mail_obj == nullptr || !filename->empty()) {
     return -1;
   }

@@ -98,10 +98,10 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
       .Times(AtLeast(1))
       .WillOnce(Return(-1));
 
-  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
-  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
+  librmb::RadosMail *test_obj = new librmb::RadosMail();
+  librmb::RadosMail *test_obj2 = new librmb::RadosMail();
 
-  EXPECT_CALL(*storage_mock, alloc_mail_object()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  EXPECT_CALL(*storage_mock, alloc_rados_mail()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
   // storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
 
@@ -193,10 +193,10 @@ TEST_F(StorageTest, exec_write_op_fails) {
   // EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
   // EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
 
-  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
-  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
-  EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
-  EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
+  librmb::RadosMail *test_obj = new librmb::RadosMail();
+  librmb::RadosMail *test_obj2 = new librmb::RadosMail();
+  EXPECT_CALL(*storage_mock, alloc_rados_mail()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  EXPECT_CALL(*storage_mock, free_rados_mail(_)).Times(2);
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
@@ -318,11 +318,11 @@ TEST_F(StorageTest, write_op_fails) {
 
   EXPECT_CALL(*storage_mock, read_mail(_, _)).WillRepeatedly(Return(-2));
 
-  librmb::RadosMailObject *test_obj = new librmb::RadosMailObject();
-  librmb::RadosMailObject *test_obj2 = new librmb::RadosMailObject();
-  EXPECT_CALL(*storage_mock, alloc_mail_object()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  librmb::RadosMail *test_obj = new librmb::RadosMail();
+  librmb::RadosMail *test_obj2 = new librmb::RadosMail();
+  EXPECT_CALL(*storage_mock, alloc_rados_mail()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
 
-  EXPECT_CALL(*storage_mock, free_mail_object(_)).Times(2);
+  EXPECT_CALL(*storage_mock, free_rados_mail(_)).Times(2);
   delete storage->config;
   librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
   EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
@@ -424,9 +424,9 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
       .WillRepeatedly(Return(true));
   // TODO: EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
 
-  librmb::RadosMailObject *test_obj_save = new librmb::RadosMailObject();
-  librmb::RadosMailObject *test_obj_save2 = new librmb::RadosMailObject();
-  EXPECT_CALL(*storage_mock, alloc_mail_object())
+  librmb::RadosMail *test_obj_save = new librmb::RadosMail();
+  librmb::RadosMail *test_obj_save2 = new librmb::RadosMail();
+  EXPECT_CALL(*storage_mock, alloc_rados_mail())
       .Times(2)
       .WillOnce(Return(test_obj_save))
       .WillOnce(Return(test_obj_save2));
@@ -451,15 +451,15 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   delete storage->s;
 
   librmbtest::RadosStorageMock *storage_mock_copy = new librmbtest::RadosStorageMock();
-  librmb::RadosMailObject *test_object = new librmb::RadosMailObject();
-  librmb::RadosMailObject *test_object2 = new librmb::RadosMailObject();
+  librmb::RadosMail *test_object = new librmb::RadosMail();
+  librmb::RadosMail *test_object2 = new librmb::RadosMail();
 
   librmb::RadosMetadata recv_date = librmb::RadosMetadata(librmb::RBOX_METADATA_RECEIVED_TIME, time(NULL));
   test_object->add_metadata(recv_date);
   librmb::RadosMetadata guid = librmb::RadosMetadata(librmb::RBOX_METADATA_GUID, "67ffff24efc0e559194f00009c60b9f7");
   test_object->add_metadata(guid);
 
-  EXPECT_CALL(*storage_mock_copy, alloc_mail_object())
+  EXPECT_CALL(*storage_mock_copy, alloc_rados_mail())
       .Times(2)
       .WillOnce(Return(test_object))
       .WillOnce(Return(test_object2));

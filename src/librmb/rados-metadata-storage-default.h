@@ -27,10 +27,10 @@ class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
   virtual ~RadosMetadataStorageDefault();
   void set_io_ctx(librados::IoCtx *io_ctx_) override { this->io_ctx = io_ctx_; }
 
-  int load_metadata(RadosMailObject *mail) override;
-  int set_metadata(RadosMailObject *mail, RadosMetadata &xattr) override;
+  int load_metadata(RadosMail *mail) override;
+  int set_metadata(RadosMail *mail, RadosMetadata &xattr) override;
   bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) override;
-  void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) override;
+  void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) override;
 
   int update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) override;
   int remove_keyword_metadata(const std::string &oid, std::string &key) override;

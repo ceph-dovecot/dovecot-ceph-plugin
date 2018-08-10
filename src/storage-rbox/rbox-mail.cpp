@@ -33,13 +33,13 @@ extern "C" {
 #include "limits.h"
 }
 
-#include "rados-mail-object.h"
+#include "../librmb/rados-mail.h"
 #include "rbox-storage.hpp"
 #include "../librmb/rados-storage-impl.h"
 #include "istream-bufferlist.h"
 #include "rbox-mail.h"
 
-using librmb::RadosMailObject;
+using librmb::RadosMail;
 using librmb::rbox_metadata_key;
 
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
@@ -376,7 +376,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     if (rmail->mail_object == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
-      rmail->mail_object = rados_storage->alloc_mail_object();
+      rmail->mail_object = rados_storage->alloc_rados_mail();
       rbox_get_index_record(_mail);
     }
     rmail->mail_object->get_mail_buffer()->clear();
@@ -549,7 +549,7 @@ static void rbox_mail_close(struct mail *_mail) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
   if (rmail_->mail_object != nullptr) {
-    r_storage->s->free_mail_object(rmail_->mail_object);
+    r_storage->s->free_rados_mail(rmail_->mail_object);
     rmail_->mail_object = nullptr;
   }
 
@@ -564,7 +564,7 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
   if (rmail_->mail_object == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-    rmail_->mail_object = r_storage->s->alloc_mail_object();
+    rmail_->mail_object = r_storage->s->alloc_rados_mail();
     rbox_get_index_record(_mail);
   }
 }

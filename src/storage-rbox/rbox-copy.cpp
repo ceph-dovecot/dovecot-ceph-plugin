@@ -23,7 +23,7 @@ extern "C" {
 #include "ostream-private.h"
 #include "debug-helper.h"
 }
-#include "rados-mail-object.h"
+#include "../librmb/rados-mail.h"
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "rbox-save.h"
@@ -171,7 +171,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
 
   setup_mail_object(ctx);
 
-  std::string dest_oid = r_ctx->current_object->get_oid();
+  std::string dest_oid = r_ctx->rados_mail->get_oid();
 
   set_mailbox_metadata(ctx, &metadata_update);
 
@@ -192,8 +192,8 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
         ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
         rados_storage->get_pool_name().c_str());
     FUNC_END_RET("ret == -1, rados_storage->copy failed");
-    rados_storage->free_mail_object(r_ctx->current_object);
-    r_ctx->current_object = nullptr;
+    rados_storage->free_rados_mail(r_ctx->rados_mail);
+    r_ctx->rados_mail = nullptr;
     return -1;
   }
 

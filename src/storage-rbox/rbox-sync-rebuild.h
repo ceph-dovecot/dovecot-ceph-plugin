@@ -15,7 +15,8 @@
 #include <map>
 #include <string>
 #include <rados/librados.hpp>
-#include "rados-mail-object.h"
+
+#include "../librmb/rados-mail.h"
 
 extern "C" {
 #include "index-rebuild.h"
@@ -28,7 +29,7 @@ struct rbox_sync_rebuild_ctx {
 extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi,
-                                librmb::RadosMailObject *mail_obj, bool alt_storage, uint32_t next_uid);
+                                librmb::RadosMail *mail_obj, bool alt_storage, uint32_t next_uid);
 
 extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
                                    struct rbox_sync_rebuild_ctx *rebuild_ctx);

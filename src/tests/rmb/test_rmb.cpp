@@ -11,11 +11,11 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "rados-mail-object.h"
 #include <rados/librados.hpp>
 #include "../../librmb/rados-util.h"
 
 #include "../../librmb/rados-cluster-impl.h"
+#include "../../librmb/rados-mail.h"
 #include "../../librmb/rados-storage-impl.h"
 #include "../../librmb/tools/rmb/ls_cmd_parser.h"
 #include "../../librmb/tools/rmb/mailbox_tools.h"
@@ -92,7 +92,7 @@ TEST(rmb1, save_mail) {
   int init = tools.init_mailbox_dir();
   EXPECT_EQ(0, init);
 
-  librmb::RadosMailObject mail;
+  librmb::RadosMail mail;
   librados::bufferlist bl;
   bl.append("1");
   (*mail.get_metadata())["U"] = bl;
@@ -131,7 +131,7 @@ TEST(rmb1, rmb_commands_no_objects_found) {
 
   std::map<std::string, std::string> opts;
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMailObject *> mails;
+  std::vector<librmb::RadosMail *> mails;
   std::string search_string = "uid";
   const librados::NObjectIterator iter = librados::NObjectIterator::__EndObjectIterator;
   librados::IoCtx test_ioctx;
@@ -149,8 +149,8 @@ TEST(rmb1, rmb_command_filter_result) {
   opts["ls"] = "-";
   librmb::CmdLineParser parser(opts["ls"]);
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMailObject *> mails;
-  librmb::RadosMailObject obj1;
+  std::vector<librmb::RadosMail *> mails;
+  librmb::RadosMail obj1;
   obj1.set_oid("oid_1");
   obj1.set_mail_size(200);
   obj1.set_rados_save_date(time(NULL));
@@ -244,8 +244,8 @@ TEST(rmb1, rmb_command_filter_result2) {
   opts["ls"] = "-";
   librmb::CmdLineParser parser(opts["ls"]);
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMailObject *> mails;
-  librmb::RadosMailObject obj1;
+  std::vector<librmb::RadosMail *> mails;
+  librmb::RadosMail obj1;
   obj1.set_oid("oid_1");
   obj1.set_mail_size(200);
   obj1.set_rados_save_date(time(NULL));

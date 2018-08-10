@@ -9,8 +9,8 @@
  * Foundation.  See file COPYING.
  */
 
-#ifndef SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
-#define SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
+#ifndef SRC_LIBRMB_RADOS_MAIL_H_
+#define SRC_LIBRMB_RADOS_MAIL_H_
 
 #include <string>
 #include <iostream>
@@ -28,10 +28,10 @@ using std::map;
 using librados::AioCompletion;
 using librados::ObjectWriteOperation;
 
-class RadosMailObject {
+class RadosMail {
  public:
-  RadosMailObject();
-  virtual ~RadosMailObject();
+  RadosMail();
+  virtual ~RadosMail();
 
   void set_oid(const char* _oid) { this->oid = _oid; }
   void set_oid(const string& _oid) { this->oid = _oid; }
@@ -102,4 +102,4 @@ class RadosMailObject {
 
 }  // namespace librmb
 
-#endif  // SRC_LIBRMB_RADOS_MAIL_OBJECT_H_
+#endif  // SRC_LIBRMB_RADOS_MAIL_H_

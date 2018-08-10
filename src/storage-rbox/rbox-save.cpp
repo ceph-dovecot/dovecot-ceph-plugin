@@ -32,7 +32,7 @@ extern "C" {
 #include "debug-helper.h"
 }
 
-#include "rados-mail-object.h"
+#include "../librmb/rados-mail.h"
 #include "rbox-storage.hpp"
 #include "rbox-save.h"
 #include "rados-util.h"
@@ -42,7 +42,7 @@ extern "C" {
 using ceph::bufferlist;
 
 using librmb::RadosStorage;
-using librmb::RadosMailObject;
+using librmb::RadosMail;
 using librmb::RadosMetadata;
 using librmb::rbox_metadata_key;
 
@@ -68,7 +68,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->output_stream = NULL;
     r_ctx->input = NULL;
   }
-  r_ctx->current_object = nullptr;
+  r_ctx->rados_mail = nullptr;
 
   t->save_ctx = &r_ctx->ctx;
 
@@ -81,8 +81,8 @@ int setup_mail_object(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   guid_128_generate(r_ctx->mail_oid);
-  r_ctx->current_object = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s->alloc_mail_object();
-  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
+  r_ctx->rados_mail = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s->alloc_rados_mail();
+  r_ctx->rados_mail->set_oid(guid_128_to_string(r_ctx->mail_oid));
 
   if (_ctx->data.guid != NULL) {
     string str(_ctx->data.guid);
@@ -137,7 +137,7 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   memcpy(rec.oid, r_ctx->mail_oid, sizeof(r_ctx->mail_oid));
 
   mail_index_update_ext(r_ctx->trans, r_ctx->seq, r_ctx->mbox->ext_id, &rec, NULL);
-  r_ctx->objects.push_back(r_ctx->current_object);
+  r_ctx->rados_mails.push_back(r_ctx->rados_mail);
 
   FUNC_END();
 }
@@ -158,9 +158,9 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 
   guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
 
-  r_ctx->current_object = r_storage->s->alloc_mail_object();
-  r_ctx->current_object->set_oid(guid_128_to_string(r_ctx->mail_oid));
-  r_ctx->objects.push_back(r_ctx->current_object);
+  r_ctx->rados_mail = r_storage->s->alloc_rados_mail();
+  r_ctx->rados_mail->set_oid(guid_128_to_string(r_ctx->mail_oid));
+  r_ctx->rados_mails.push_back(r_ctx->rados_mail);
 
   if (_ctx->data.guid != NULL) {
     string str(_ctx->data.guid);
@@ -189,7 +189,7 @@ void init_output_stream(mail_save_context *_ctx) {
     o_stream_unref(&_ctx->data.output);
   }
 
-  r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->current_object->get_mail_buffer());
+  r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->rados_mail->get_mail_buffer());
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
@@ -252,13 +252,13 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::RadosMailObject *mail_object) {
+static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::RadosMail *mail_object) {
   FUNC_START();
   struct mail_save_data *mdata = &r_ctx->ctx.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VERSION)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE);
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMail::X_ATTR_VERSION_VALUE);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID)) {
@@ -358,12 +358,12 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  if (r_storage->s->wait_for_rados_operations(r_ctx->objects)) {
+  if (r_storage->s->wait_for_rados_operations(r_ctx->rados_mails)) {
     i_error("Librados waiting for rados operations failed");
     // try to clean up!
   }
 
-  for (std::vector<RadosMailObject *>::iterator it_cur_obj = r_ctx->objects.begin(); it_cur_obj != r_ctx->objects.end();
+  for (std::vector<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
        ++it_cur_obj) {
     if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
@@ -439,20 +439,20 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->failed = true;
     } else {
       bool async_write = true;
-      r_ctx->current_object->set_mail_size(r_ctx->current_object->get_mail_buffer()->length());
-      rbox_save_mail_set_metadata(r_ctx, r_ctx->current_object);
+      r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());
+      rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
       librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
-      r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->current_object);
-      r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->current_object, async_write);
+      r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->rados_mail);
+      r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->rados_mail, async_write);
       if (r_ctx->failed) {
-        i_error("saved mail: %s failed metadata_count %lu", r_ctx->current_object->get_oid().c_str(),
-                r_ctx->current_object->get_metadata()->size());
+        i_error("saved mail: %s failed metadata_count %lu", r_ctx->rados_mail->get_oid().c_str(),
+                r_ctx->rados_mail->get_metadata()->size());
       }
       if (r_storage->save_log->is_open()) {
         r_storage->save_log->append(
-            librmb::RadosSaveLogEntry(r_ctx->current_object->get_oid(), r_storage->s->get_namespace(),
+            librmb::RadosSaveLogEntry(r_ctx->rados_mail->get_oid(), r_storage->s->get_namespace(),
                                       r_storage->s->get_pool_name(), librmb::RadosSaveLogEntry::op_save()));
       }
     }
@@ -479,17 +479,17 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   unsigned int n = 0;
   uint32_t uid = -1;
 
-  if (r_ctx->objects.size() > 0) {
+  if (r_ctx->rados_mails.size() > 0) {
     seq_range_array_iter_init(&iter, uids);
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
     RadosMetadata metadata;
-    for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-      r_ctx->current_object = *it;
+    for (std::vector<RadosMail *>::iterator it = r_ctx->rados_mails.begin(); it != r_ctx->rados_mails.end(); ++it) {
+      r_ctx->rados_mail = *it;
       bool ret = seq_range_array_iter_nth(&iter, n++, &uid);
       i_assert(ret);
       if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
         metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-        int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->current_object, metadata);
+        int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->rados_mail, metadata);
         if (ret_val < 0) {
           return -1;
         }
@@ -527,7 +527,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   i_assert(r_ctx->finished);
 
-  r_ctx->failed = storage->wait_for_rados_operations(r_ctx->objects);
+  r_ctx->failed = storage->wait_for_rados_operations(r_ctx->rados_mails);
 
   // if one write fails! all writes will be reverted and r_ctx->failed is true!
   if (r_ctx->failed) {
@@ -592,11 +592,11 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
 
 void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_storage *r_storage) {
   FUNC_START();
-  for (std::vector<RadosMailObject *>::iterator it = r_ctx->objects.begin(); it != r_ctx->objects.end(); ++it) {
-    r_storage->s->free_mail_object(*it);
+  for (std::vector<RadosMail *>::iterator it = r_ctx->rados_mails.begin(); it != r_ctx->rados_mails.end(); ++it) {
+    r_storage->s->free_rados_mail(*it);
     *it = nullptr;
   }
-  r_ctx->objects.clear();
+  r_ctx->rados_mails.clear();
   FUNC_END();
 }
 
@@ -627,7 +627,7 @@ void rbox_transaction_save_rollback(struct mail_save_context *_ctx) {
   if (_ctx->dest_mail != NULL && r_ctx->dest_mail_allocated == TRUE) {
     mail_free(&_ctx->dest_mail);
   }
-  r_ctx->current_object = nullptr;
+  r_ctx->rados_mail = nullptr;
 
   delete r_ctx;
 

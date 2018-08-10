@@ -1,3 +1,4 @@
+
 // -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
 // vim: ts=8 sw=2 smarttab
 /*
@@ -21,13 +22,13 @@ extern "C" {
 #include "rbox-storage.hpp"
 #include "rbox-mail.h"
 #include "encoding.h"
-#include "rados-mail-object.h"
+#include "../librmb/rados-mail.h"
 #include "rados-util.h"
 
-using librmb::RadosMailObject;
+using librmb::RadosMail;
 using librmb::rbox_metadata_key;
 
-int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMailObject *mail_obj,
+int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMail *mail_obj,
                          bool alt_storage, uint32_t next_uid) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
@@ -104,7 +105,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
   int ret = 0;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
-    librmb::RadosMailObject mail_object;
+    librmb::RadosMail mail_object;
     mail_object.set_oid((*iter).get_oid());
     int retx;
     if (rebuild_ctx->alt_storage) {

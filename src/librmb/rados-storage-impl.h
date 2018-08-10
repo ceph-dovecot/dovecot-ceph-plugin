@@ -19,7 +19,8 @@
 #include <cstdint>
 
 #include <rados/librados.hpp>
-#include "rados-mail-object.h"
+
+#include "rados-mail.h"
 #include "rados-storage.h"
 namespace librmb {
 
@@ -37,10 +38,10 @@ class RadosStorageImpl : public RadosStorage {
   int get_max_write_size() override { return max_write_size; }
   int get_max_write_size_bytes() override { return max_write_size * 1024 * 1024; }
 
-  int split_buffer_and_exec_op(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
+  int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                const uint64_t &max_write) override;
 
-  int delete_mail(RadosMailObject *mail) override;
+  int delete_mail(RadosMail *mail) override;
   int delete_mail(const std::string &oid) override;
 
   int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
@@ -52,7 +53,7 @@ class RadosStorageImpl : public RadosStorage {
   bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) override;
 
-  bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) override;
+  bool wait_for_rados_operations(const std::vector<librmb::RadosMail *> &object_list) override;
 
   int read_mail(const std::string &oid, librados::bufferlist *buffer) override;
   int move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
@@ -61,11 +62,11 @@ class RadosStorageImpl : public RadosStorage {
            std::list<RadosMetadata> &to_update) override;
 
   int save_mail(const std::string &oid, librados::bufferlist &buffer) override;
-  bool save_mail(RadosMailObject *mail, bool &save_async) override;
-  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool save_async) override;
-  librmb::RadosMailObject *alloc_mail_object() override;
+  bool save_mail(RadosMail *mail, bool &save_async) override;
+  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) override;
+  librmb::RadosMail *alloc_rados_mail() override;
 
-  void free_mail_object(librmb::RadosMailObject *mail) override;
+  void free_rados_mail(librmb::RadosMail *mail) override;
 
  private:
   int create_connection(const std::string &poolname);

@@ -18,7 +18,7 @@
 #include "../librmb/rados-storage-impl.h"
 #include "mail-storage-private.h"
 
-#include "rados-mail-object.h"
+#include "../librmb/rados-mail.h"
 
 class rbox_save_context {
  public:
@@ -32,7 +32,7 @@ class rbox_save_context {
         input(NULL),
         output_stream(NULL),
         rados_storage(_rados_storage),
-        current_object(NULL),
+        rados_mail(NULL),
         failed(1),
         finished(1),
         copying(0),
@@ -56,8 +56,8 @@ class rbox_save_context {
   struct ostream *output_stream;
 
   const librmb::RadosStorage &rados_storage;
-  std::vector<librmb::RadosMailObject *> objects;
-  librmb::RadosMailObject *current_object;
+  std::vector<librmb::RadosMail *> rados_mails;
+  librmb::RadosMail *rados_mail;
 
   unsigned int failed : 1;
   unsigned int finished : 1;

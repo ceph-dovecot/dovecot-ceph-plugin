@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "rados-mail-object.h"
+#include "rados-mail.h"
 
 #include <stdlib.h>
 
@@ -21,19 +21,19 @@
 using std::endl;
 using std::ostringstream;
 
-using librmb::RadosMailObject;
+using librmb::RadosMail;
 
-const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
-const char RadosMailObject::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
+const char RadosMail::X_ATTR_VERSION_VALUE[] = "0.1";
+const char RadosMail::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
 
-RadosMailObject::RadosMailObject()
+RadosMail::RadosMail()
     : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
 
-RadosMailObject::~RadosMailObject() {}
+RadosMail::~RadosMail() {}
 
-void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
+void RadosMail::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
 
-std::string RadosMailObject::to_string(const string &padding) {
+std::string RadosMail::to_string(const string &padding) {
   string uid;
   get_metadata(RBOX_METADATA_MAIL_UID, &uid);
   string recv_time_str;

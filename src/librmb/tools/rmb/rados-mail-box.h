@@ -16,7 +16,8 @@
 #include <sstream>
 #include <vector>
 #include <map>
-#include "rados-mail-object.h"
+
+#include "../../rados-mail.h"
 #include "ls_cmd_parser.h"
 namespace librmb {
 
@@ -30,7 +31,7 @@ class RadosMailBox {
   }
   virtual ~RadosMailBox() {}
 
-  void add_mail(RadosMailObject *mail) {
+  void add_mail(RadosMail *mail) {
     total_mails++;
     if (!mail->is_valid()) {
       mails.push_back(mail);
@@ -72,17 +73,17 @@ class RadosMailBox {
        << "         mailbox_size=" << mailbox_size << " bytes " << std::endl;
 
     std::string padding("         ");
-    for (std::vector<RadosMailObject *>::iterator it = mails.begin(); it != mails.end(); ++it) {
+    for (std::vector<RadosMail *>::iterator it = mails.begin(); it != mails.end(); ++it) {
       ss << (*it)->to_string(padding);
     }
     return ss.str();
   }
   inline void add_to_mailbox_size(const uint64_t &_mailbox_size) { this->mailbox_size += _mailbox_size; }
-  void set_mails(const std::vector<RadosMailObject *> &_mails) { this->mails = _mails; }
+  void set_mails(const std::vector<RadosMail *> &_mails) { this->mails = _mails; }
 
   CmdLineParser *get_xattr_filter() { return this->parser; }
   void set_xattr_filter(CmdLineParser *_parser) { this->parser = _parser; }
-  std::vector<RadosMailObject *> &get_mails() { return this->mails; }
+  std::vector<RadosMail *> &get_mails() { return this->mails; }
 
   std::string &get_mailbox_guid() { return this->mailbox_guid; }
   void set_mailbox_guid(const std::string &_mailbox_guid) { this->mailbox_guid = _mailbox_guid; }
@@ -95,7 +96,7 @@ class RadosMailBox {
   std::string mailbox_guid;
   int mail_count;
   uint64_t mailbox_size;
-  std::vector<RadosMailObject *> mails;
+  std::vector<RadosMail *> mails;
   uint64_t total_mails;
   std::string mbox_orig_name;
 };

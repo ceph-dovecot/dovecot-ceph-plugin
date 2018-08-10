@@ -184,7 +184,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
 
-      librmb::RadosMailObject mail_object;
+      librmb::RadosMail mail_object;
       mail_object.set_oid(oid);
       r_storage->ms->get_storage()->load_metadata(&mail_object);
       std::string flags_metadata;

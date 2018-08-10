@@ -136,9 +136,9 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
-  std::vector<librmb::RadosMailObject *> objects;
+  std::vector<librmb::RadosMail *> objects;
   while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
-    librmb::RadosMailObject *obj = new librmb::RadosMailObject();
+    librmb::RadosMail *obj = new librmb::RadosMail();
     obj->set_oid((*iter).get_oid());
     r_storage->ms->get_storage()->load_metadata(obj);
     objects.push_back(obj);
@@ -148,8 +148,8 @@ TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   // compare objects
   ASSERT_EQ(2, (int)objects.size());
 
-  librmb::RadosMailObject *mail1 = objects[0];
-  librmb::RadosMailObject *mail2 = objects[1];
+  librmb::RadosMail *mail1 = objects[0];
+  librmb::RadosMail *mail2 = objects[1];
 
   std::string val;
   std::string val2;
