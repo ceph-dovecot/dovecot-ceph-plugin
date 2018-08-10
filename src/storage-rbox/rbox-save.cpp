@@ -77,6 +77,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 }
 
 int setup_mail_object(struct mail_save_context *_ctx) {
+  FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   guid_128_generate(r_ctx->mail_oid);
@@ -91,12 +92,12 @@ int setup_mail_object(struct mail_save_context *_ctx) {
     guid_128_generate(r_ctx->mail_guid);
   }
   return 0;
+  FUNC_END();
 }
 
-void rbox_add_to_index(struct mail_save_context *_ctx) {
+void rbox_index_append(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  uint8_t save_flags = _ctx->data.flags & ~MAIL_RECENT;
 
 /* add to index */
 #if DOVECOT_PREREQ(2, 3)
@@ -109,7 +110,8 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
 #endif
 
-  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
+  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE,
+                          static_cast<enum mail_flags>(_ctx->data.flags & ~MAIL_RECENT));
 
   if (_ctx->data.keywords != NULL) {
     mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
@@ -117,6 +119,16 @@ void rbox_add_to_index(struct mail_save_context *_ctx) {
   if (_ctx->data.min_modseq != 0) {
     mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
   }
+
+  FUNC_END();
+}
+
+void rbox_add_to_index(struct mail_save_context *_ctx) {
+  FUNC_START();
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
+
+  /* add to index */
+  rbox_index_append(_ctx);
 
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;
@@ -134,19 +146,9 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   FUNC_START();
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  uint8_t save_flags = _ctx->data.flags & ~MAIL_RECENT;
 
   /* add to index */
-  mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
-
-  mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, static_cast<enum mail_flags>(save_flags));
-
-  if (_ctx->data.keywords != NULL) {
-    mail_index_update_keywords(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE, _ctx->data.keywords);
-  }
-  if (_ctx->data.min_modseq != 0) {
-    mail_index_update_modseq(r_ctx->trans, r_ctx->seq, _ctx->data.min_modseq);
-  }
+  rbox_index_append(_ctx);
 
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_SAVE_CONTEXT_COPY_SRC_MAIL
   struct rbox_mail *r_src_mail = (struct rbox_mail *)ctx->copy_src_mail;
@@ -250,21 +252,21 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   return 0;
 }
 
-static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::RadosMailObject *mail_object) {
+static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::RadosMailObject *mail_object) {
   FUNC_START();
-  struct mail_save_data *mdata = &ctx->ctx.data;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&ctx->mbox->storage->storage;
+  struct mail_save_data *mdata = &r_ctx->ctx.data;
+  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VERSION)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMailObject::X_ATTR_VERSION_VALUE);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(ctx->mbox->mailbox_guid));
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(r_ctx->mbox->mailbox_guid));
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_GUID)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(ctx->mail_guid));
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(r_ctx->mail_guid));
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME)) {
@@ -291,15 +293,15 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE)) {
     uoff_t vsize = -1;
-    if (mail_get_virtual_size(ctx->ctx.dest_mail, &vsize) < 0) {
+    if (mail_get_virtual_size(r_ctx->ctx.dest_mail, &vsize) < 0) {
       i_warning("unable to determine virtual size, using physical size instead.");
-      vsize = ctx->input->v_offset;
+      vsize = r_ctx->input->v_offset;
     }
     librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, vsize);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE)) {
-    librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, ctx->input->v_offset);
+    librmb::RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, r_ctx->input->v_offset);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_FLAGS)) {
@@ -322,18 +324,18 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *ctx, librmb::Ra
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, ctx->mbox->box.name);
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, r_ctx->mbox->box.name);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_OLDV1_KEYWORDS)) {
-    struct rbox_mail *rmail = (struct rbox_mail *)ctx->ctx.dest_mail;
+    struct rbox_mail *rmail = (struct rbox_mail *)r_ctx->ctx.dest_mail;
     // load keyword indexes to rmail->imal.data.keyword_indexes
-    index_mail_get_keyword_indexes(ctx->ctx.dest_mail);
+    index_mail_get_keyword_indexes(r_ctx->ctx.dest_mail);
     unsigned int count_keyword_indexes;
     const unsigned int *const keyword_indexes = array_get(&rmail->imail.data.keyword_indexes, &count_keyword_indexes);
 
     // load keywords to rmail->imal.data.keywords
-    mail_get_keywords(ctx->ctx.dest_mail);
+    mail_get_keywords(r_ctx->ctx.dest_mail);
     unsigned int count_keywords;
     const char *const *keywords = array_get(&rmail->imail.data.keywords, &count_keywords);
 
@@ -498,7 +500,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   FUNC_END();
   return 0;
 }
-void rbox_save_update_header_flags(struct rbox_save_context *ctx, struct mail_index_view *sync_view, uint32_t ext_id,
+void rbox_save_update_header_flags(struct rbox_save_context *r_ctx, struct mail_index_view *sync_view, uint32_t ext_id,
                                    unsigned int flags_offset) {
   const void *data;
   size_t data_size;
@@ -509,13 +511,13 @@ void rbox_save_update_header_flags(struct rbox_save_context *ctx, struct mail_in
     old_flags = *((const uint8_t *)data + flags_offset);
   } else {
     /* grow old dbox header */
-    mail_index_ext_resize_hdr(ctx->trans, ext_id, flags_offset + 1);
+    mail_index_ext_resize_hdr(r_ctx->trans, ext_id, flags_offset + 1);
   }
 
   flags = old_flags;
   if (flags != old_flags) {
     /* flags changed, update them */
-    mail_index_update_header_ext(ctx->trans, ext_id, flags_offset, &flags, 1);
+    mail_index_update_header_ext(r_ctx->trans, ext_id, flags_offset, &flags, 1);
   }
 }
 int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {

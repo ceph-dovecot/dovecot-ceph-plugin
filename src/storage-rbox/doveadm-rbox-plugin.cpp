@@ -471,9 +471,9 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
 
   memcpy(rec.guid, mail_guid, sizeof(mail_guid));
   memcpy(rec.oid, mail_oid, sizeof(mail_oid));
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
 
-  mail_index_update_ext(save_ctx->transaction->itrans, seq, mbox->ext_id, &rec, NULL);
+  mail_index_update_ext(save_ctx->transaction->itrans, seq, rbox->ext_id, &rec, NULL);
 
   save_ctx->transaction->save_count++;
   r_ctx->finished = TRUE;
@@ -627,7 +627,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
 
   search_ctx = mailbox_search_init(mailbox_transaction, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
-  struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   std::cout << "box: " << info->vname << std::endl;
   int mail_count = 0;
   int mail_count_missing = 0;
@@ -635,7 +635,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
     ++mail_count;
     const struct obox_mail_index_record *obox_rec;
     const void *rec_data;
-    mail_index_lookup_ext(mail->transaction->view, mail->seq, mbox->ext_id, &rec_data, NULL);
+    mail_index_lookup_ext(mail->transaction->view, mail->seq, rbox->ext_id, &rec_data, NULL);
     obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {

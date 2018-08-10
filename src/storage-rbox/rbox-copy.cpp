@@ -41,16 +41,16 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail);
 int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   FUNC_START();
 
-  struct rbox_mailbox *dest_mbox = (struct rbox_mailbox *)_ctx->transaction->box;
-  const char *storage_name = dest_mbox->storage->storage.name;
-  struct rbox_save_context *ctx = (struct rbox_save_context *)_ctx;
+  struct rbox_mailbox *dest_rbox = (struct rbox_mailbox *)_ctx->transaction->box;
+  const char *storage_name = dest_rbox->storage->storage.name;
+  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
-  ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
+  r_ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
                  strcmp(mail->box->storage->name, storage_name) == 0;
 
   int ret = rbox_mail_storage_copy(_ctx, mail);
   // cppcheck-suppress redundantAssignment
-  ctx->copying = FALSE;
+  r_ctx->copying = FALSE;
 
   index_save_context_free(_ctx);
 
@@ -112,17 +112,17 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
     struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-    struct rbox_mailbox *dest_mailbox = (struct rbox_mailbox *)(dest_mbox);
+    struct rbox_mailbox *dest_rbox = (struct rbox_mailbox *)(dest_mbox);
 
     // #130 always update Mailbox guid, in case we need to resync the mailbox!
     librmb::RadosMetadata metadata_mailbox_guid(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID,
-                                                guid_128_to_string(dest_mailbox->mailbox_guid));
+                                                guid_128_to_string(dest_rbox->mailbox_guid));
     metadata_update->push_back(metadata_mailbox_guid);
 
     if (r_storage->config->is_update_attributes()) {
       if (r_storage->config->is_updateable_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
         // updates the plain text mailbox name
-        librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_mailbox->box.name);
+        librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, dest_rbox->box.name);
         metadata_update->push_back(metadata_mbn);
       }
     }
@@ -212,7 +212,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
                      const std::string *ns_src, const std::string *ns_dest) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  struct rbox_mailbox *rmailbox = (struct rbox_mailbox *)mail->box;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)mail->box;
   struct rbox_mail *rmail = (struct rbox_mail *)mail;
   struct mailbox *dest_mbox = ctx->transaction->box;
 
@@ -248,13 +248,13 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
   i_zero(item);
   guid_128_from_string(src_oid.c_str(), item->oid);
-  array_append(&rmailbox->moved_items, &item, 1);
+  array_append(&rbox->moved_items, &item, 1);
 
   rbox_move_index(ctx, mail);
   if (r_storage->save_log->is_open()) {
     std::list<librmb::RadosMetadata *> metadata;
-    librmb::RadosMetadata mailbox_guid(librmb::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(rmailbox->mailbox_guid));
-    librmb::RadosMetadata mb_name(librmb::RBOX_METADATA_ORIG_MAILBOX, rmailbox->box.vname);
+    librmb::RadosMetadata mailbox_guid(librmb::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(rbox->mailbox_guid));
+    librmb::RadosMetadata mb_name(librmb::RBOX_METADATA_ORIG_MAILBOX, rbox->box.vname);
 
     librmb::RadosMetadata uid(librmb::RBOX_METADATA_MAIL_UID, mail->uid);
     librmb::RadosMetadata guid(librmb::RBOX_METADATA_GUID, guid_128_to_string(r_ctx->mail_guid));

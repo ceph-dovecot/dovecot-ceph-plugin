@@ -54,7 +54,6 @@ TEST_F(BackupTest, mailbox_open_inbox) {
 
 TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
-  struct mail_save_context *save_ctx;
   struct mail *mail;
   struct mail_search_context *search_ctx;
   struct mail_search_args *search_args;
@@ -90,7 +89,7 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   int foundit = 0;
   while (rados_nobjects_list_next(ctx, &entry, NULL, NULL) != -ENOENT) {
     foundit++;
-    //ASSERT_EQ(std::string(entry), "foo");
+    // ASSERT_EQ(std::string(entry), "foo");
     char xattr_res[100];
 
     ASSERT_EQ(rados_getxattr(BackupTest::s_ioctx, entry, "U", xattr_res, 1), 1);
@@ -100,7 +99,7 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
     }
     std::cout << std::string(entry) << std::endl;
   }
-  ASSERT_TRUE(foundit == 4);
+  ASSERT_EQ(foundit, 4);
   ASSERT_TRUE(!to_delete.empty());
   rados_nobjects_list_close(ctx);
 
