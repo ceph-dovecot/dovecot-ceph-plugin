@@ -361,7 +361,7 @@ int read_plugin_configuration(struct mailbox *box) {
 #ifdef DEBUG
       struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
       i_debug("reading plugin conf: %s=%s", setting.c_str(),
-              mail_user_plugin_getenv(rbox->r_storage->storage.user, setting.c_str()));
+              mail_user_plugin_getenv(rbox->storage->storage.user, setting.c_str()));
 #endif
     }
     r_storage->config->set_config_valid(true);
