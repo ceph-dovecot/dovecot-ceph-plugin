@@ -167,7 +167,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->mail_object->get_oid();
+  std::string src_oid = rmail->rados_mail->get_oid();
 
   setup_mail_object(ctx);
 
@@ -217,7 +217,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct mailbox *dest_mbox = ctx->transaction->box;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->mail_object->get_oid();
+  std::string src_oid = rmail->rados_mail->get_oid();
   std::string dest_oid = src_oid;
 
   set_mailbox_metadata(ctx, &metadata_update);

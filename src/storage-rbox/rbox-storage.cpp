@@ -10,12 +10,11 @@
  * Foundation.  See file COPYING.
  */
 #include "rbox-storage.hpp"
-
 #include <sys/stat.h>
 #include <dirent.h>
 
 #include <string>
-
+#include <map>
 #include <rados/librados.hpp>
 
 extern "C" {
@@ -111,22 +110,25 @@ static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
     i_debug("rbox: access(%s, rwx): failed: %m", path);
 #endif
   }
+
   FUNC_END();
   return NULL;
 }
+
 bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set) {
   FUNC_START();
   struct stat st;
   const char *path, *root_dir;
 
-  if (set->root_dir != NULL)
+  if (set->root_dir != NULL) {
     root_dir = set->root_dir;
-  else {
+  } else {
     root_dir = rbox_storage_find_root_dir(ns);
     if (root_dir == NULL) {
 #ifdef DEBUG
       i_debug("rbox: couldn't find root dir");
 #endif
+
       FUNC_END();
       return FALSE;
     }
@@ -137,6 +139,7 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
 #ifdef DEBUG
     i_debug("rbox autodetect: stat(%s) failed: %m", path);
 #endif
+
     FUNC_END();
     return FALSE;
   }
@@ -145,34 +148,37 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
 #ifdef DEBUG
     i_debug("rbox autodetect: %s not a directory", path);
 #endif
+
     FUNC_END();
     return FALSE;
   }
 
   set->root_dir = root_dir;
-
   rbox_storage_get_list_settings(ns, set);
+
   FUNC_END();
   return TRUE;
 }
 
-int rbox_storage_create(struct mail_storage *_storage, struct mail_namespace *ns, const char **error_r) {
+int rbox_storage_create(struct mail_storage *storage, struct mail_namespace *ns, const char **error_r) {
   FUNC_START();
 
   // RADOS initialization postponed to mailbox_open
   if (*ns->list->set.mailbox_dir_name == '\0') {
     *error_r = "rbox: MAILBOXDIR must not be empty";
+
     FUNC_END();
     return -1;
   }
-  _storage->unique_root_dir = p_strdup(_storage->pool, ns->list->set.root_dir);
+  storage->unique_root_dir = p_strdup(storage->pool, ns->list->set.root_dir);
+
   FUNC_END();
   return 0;
 }
 
-void rbox_storage_destroy(struct mail_storage *_storage) {
+void rbox_storage_destroy(struct mail_storage *storage) {
   FUNC_START();
-  struct rbox_storage *r_storage = (struct rbox_storage *)_storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
 
   if (r_storage->s != nullptr) {
     r_storage->s->close_connection();
@@ -189,7 +195,6 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
     delete r_storage->cluster;
     r_storage->cluster = nullptr;
   }
-
   if (r_storage->ns_mgr != nullptr) {
     delete r_storage->ns_mgr;
     r_storage->ns_mgr = nullptr;
@@ -209,7 +214,7 @@ void rbox_storage_destroy(struct mail_storage *_storage) {
     delete r_storage->save_log;
     r_storage->save_log = nullptr;
   }
-  index_storage_destroy(_storage);
+  index_storage_destroy(storage);
 
   FUNC_END();
 }
@@ -241,11 +246,12 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
   read_plugin_configuration(&rbox->box);
-  // TODO: load dovecot config and eval is_ceph_posix_bugfix_enabled
+  // TODO(jrse): load dovecot config and eval is_ceph_posix_bugfix_enabled
   // cephfs does not support 2 hardlinks.
   if (rbox->storage->config->is_ceph_posix_bugfix_enabled()) {
     list->ns->list->v.get_mailbox_flags = rbox_fs_list_get_mailbox_flags;
   }
+
   FUNC_END();
   return &rbox->box;
 }
@@ -267,6 +273,7 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *rbox) {
 
   // register index record holding the mail guid
   rbox->ext_id = mail_index_ext_register(rbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
+
   FUNC_END();
   return 0;
 }
@@ -304,10 +311,12 @@ int rbox_read_header(struct rbox_mailbox *rbox, struct sdbox_index_header *hdr, 
   }
   mail_index_view_close(&view);
   *need_resize_r = data_size < sizeof(*hdr);
-  FUNC_END();
+
 #ifdef DEBUG
   i_debug("rbox_read_header :%d", ret);
 #endif
+
+  FUNC_END();
   return ret;
 }
 
@@ -321,14 +330,17 @@ static int rbox_open_mailbox(struct mailbox *box) {
     /* exists, open it */
   } else if (errno == ENOENT) {
     mail_storage_set_error(box->storage, MAIL_ERROR_NOTFOUND, T_MAIL_ERR_MAILBOX_NOT_FOUND(box->vname));
+
     FUNC_END_RET("ret == -1");
     return -1;
   } else if (errno == EACCES) {
     mail_storage_set_critical(box->storage, "%s", mail_error_eacces_msg("stat", box_path));
+
     FUNC_END_RET("ret == -1");
     return -1;
   } else {
     mail_storage_set_critical(box->storage, "stat(%s) failed: %m", box_path);
+
     FUNC_END_RET("ret == -1");
     return -1;
   }
@@ -345,10 +357,11 @@ static int rbox_open_mailbox(struct mailbox *box) {
   if (!array_is_created(&rbox->moved_items)) {
     i_array_init(&rbox->moved_items, 32);
   }
-  FUNC_END();
 
+  FUNC_END();
   return 0;
 }
+
 int read_plugin_configuration(struct mailbox *box) {
   FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
@@ -370,6 +383,7 @@ int read_plugin_configuration(struct mailbox *box) {
       i_warning("unable to open the rados save log file %s", r_storage->config->get_rados_save_log_file().c_str());
     }
   }
+
   FUNC_END();
   return 0;
 }
@@ -382,12 +396,14 @@ bool is_alternate_pool_valid(struct mailbox *_box) {
 
 int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
-  /* rados cluster connection */
+
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   librmb::RadosStorage *rados_storage = rbox->storage->s;
 
   // initialize storage with plugin configuration
   read_plugin_configuration(box);
+
+  /* open connection to primary and alternative storage */
   int ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
                                            rbox->storage->config->get_rados_cluster_name(),
                                            rbox->storage->config->get_rados_username());
@@ -396,7 +412,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
                                               rbox->storage->config->get_rados_username());
   }
-  /*TODO:*/
+
   if (ret == 1) {
     // already connected nothing to do!
     FUNC_END();
@@ -406,7 +422,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     i_error("Error = %d", ret);
     return ret;
   }
-  // load rados configuration
+
   ret = rbox->storage->config->load_rados_config();
   if (ret == -ENOENT) {  // config does not exist.
     ret = rbox->storage->config->save_default_rados_config();
@@ -437,6 +453,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   } else {
     i_error("error namespace not set: for uid %s error code is: %d", uid.c_str(), ret);
   }
+
   FUNC_END();
   return ret;
 }
@@ -468,6 +485,7 @@ static void rbox_update_header(struct rbox_mailbox *rbox, struct mail_index_tran
     mail_index_update_header_ext(trans, rbox->hdr_ext_id, 0, &new_hdr, sizeof(new_hdr));
   }
   memcpy(rbox->mailbox_guid, new_hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
+
   FUNC_END();
 }
 
@@ -475,26 +493,23 @@ uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
   FUNC_START();
 
   const char *path;
-
   path = mailbox_list_get_root_forced(list, MAILBOX_LIST_PATH_TYPE_CONTROL);
   path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
-  uint32_t ret = mailbox_uidvalidity_next(list, path);
+
   FUNC_END();
-  return ret;
+  return mailbox_uidvalidity_next(list, path);
 }
 
 int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                 struct mail_index_transaction *trans) {
   FUNC_START();
 
-  struct mail_index_transaction *new_trans = NULL;
   const struct mail_index_header *hdr;
   uint32_t uid_validity, uid_next;
   struct mail_index_view *view;
 
   if (trans == NULL) {
-    new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
-    trans = new_trans;
+    trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
   }
   view = mail_index_view_open(box->index);
   hdr = mail_index_get_header(view);
@@ -517,10 +532,8 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
     mail_index_update_header(trans, offsetof(struct mail_index_header, next_uid), &uid_next, sizeof(uid_next), TRUE);
   }
   if (update != NULL && update->min_first_recent_uid != 0 && hdr->first_recent_uid < update->min_first_recent_uid) {
-    uint32_t first_recent_uid = update->min_first_recent_uid;
-
-    mail_index_update_header(trans, offsetof(struct mail_index_header, first_recent_uid), &first_recent_uid,
-                             sizeof(first_recent_uid), FALSE);
+    mail_index_update_header(trans, offsetof(struct mail_index_header, first_recent_uid), &update->min_first_recent_uid,
+                             sizeof(update->min_first_recent_uid), FALSE);
   }
   if (update != NULL && update->min_highest_modseq != 0 &&
       mail_index_modseq_get_highest(view) < update->min_highest_modseq) {
@@ -538,21 +551,21 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 #endif
 
   rbox_update_header((struct rbox_mailbox *)box, trans, update);
-  if (new_trans != NULL) {
-    if (mail_index_transaction_commit(&new_trans) < 0) {
+  if (trans != NULL) {
+    if (mail_index_transaction_commit(&trans) < 0) {
       mailbox_set_index_error(box);
+
       FUNC_END_RET("ret == -1");
       return -1;
     }
   }
-  FUNC_END();
 
+  FUNC_END();
   return 0;
 }
 int rbox_mailbox_open(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
-  struct sdbox_index_header hdr;
   bool need_resize;
 
   if (rbox_mailbox_alloc_index(rbox) < 0) {
@@ -571,6 +584,8 @@ int rbox_mailbox_open(struct mailbox *box) {
     return 0;
   }
 
+  struct sdbox_index_header hdr;
+  i_zero(&hdr);
   /* get/generate mailbox guid */
   if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0) {
     /* looks like the mailbox is corrupted */
@@ -587,6 +602,7 @@ int rbox_mailbox_open(struct mailbox *box) {
   }
 
   memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
+
   FUNC_END();
   return 0;
 }
@@ -595,8 +611,9 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
   FUNC_START();
 
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
-  struct sdbox_index_header hdr;
   bool need_resize;
+  struct sdbox_index_header hdr;
+  i_zero(&hdr);
 
   if (rbox_read_header(rbox, &hdr, TRUE, &need_resize) < 0 || hdr.rebuild_count == 0)
     rbox->storage->corrupted_rebuild_count = 1;
@@ -607,6 +624,7 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
 #ifdef DEBUG
   i_debug("setting currupted rebuild count to : %d", rbox->storage->corrupted_rebuild_count);
 #endif
+
   FUNC_END();
 }
 
@@ -650,6 +668,7 @@ static int dir_is_empty(struct mail_storage *storage, const char *path) {
   if (dir == NULL) {
     if (errno == ENOENT) {
       /* race condition with DELETE/RENAME? */
+      FUNC_END();
       return 1;
     }
     mail_storage_set_critical(storage, "opendir(%s) failed: %m", path);
@@ -666,8 +685,8 @@ static int dir_is_empty(struct mail_storage *storage, const char *path) {
     mail_storage_set_critical(storage, "closedir(%s) failed: %m", path);
     ret = -1;
   }
-  FUNC_END();
 
+  FUNC_END();
   return ret;
 }
 
@@ -688,6 +707,7 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
 
   if (mail_index_get_header(box->view)->uid_validity != 0) {
     mail_storage_set_error(box->storage, MAIL_ERROR_EXISTS, "Mailbox already exists");
+
     FUNC_END_RET("Mailbox already exists: ret == -1");
     return -1;
   }
@@ -714,6 +734,7 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
   i_debug("rbox_mailbox_create: mailbox update guid = %s",
           update != NULL ? guid_128_to_string(update->mailbox_guid) : "Invalid update");
 #endif
+
   FUNC_END();
   return rbox_mailbox_create_indexes(box, update, NULL);
 }
@@ -722,15 +743,14 @@ static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update 
   FUNC_START();
 
   if (!box->opened) {
-    if (mailbox_open(box) < 0)
+    if (mailbox_open(box) < 0) {
       return -1;
+    }
   }
 
   // TODO(peter): if (sdbox_mailbox_create_indexes(box, update, NULL) < 0) return -1;
-
-  int ret = index_storage_mailbox_update(box, update);
   FUNC_END();
-  return ret;
+  return index_storage_mailbox_update(box, update);
 }
 
 int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items items,
@@ -762,16 +782,18 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
 void rbox_notify_changes(struct mailbox *box) {
   FUNC_START();
 
-  if (box->notify_callback == NULL)
+  if (box->notify_callback == NULL) {
     mailbox_watch_remove_all(box);
-  else
+  } else {
     mailbox_watch_add(box, mailbox_get_path(box));
+  }
 
   FUNC_END();
 }
 
 int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDovecotCephCfg *config,
                                          librmb::RadosNamespaceManager *ns_mgr, librmb::RadosStorage *storage) {
+  FUNC_START();
   int ret = 0;
   struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
   for (; ns != NULL; ns = ns->next) {
@@ -824,6 +846,8 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
       }
     }
   }
+
+  FUNC_END();
   return ret;
 }
 
@@ -852,6 +876,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
     ret = check_users_mailbox_delete_ns_object(rbox->storage->storage.user, r_storage->config, r_storage->ns_mgr,
                                                r_storage->s);
   }
+
   FUNC_END();
   return ret;
 }

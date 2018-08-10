@@ -22,7 +22,7 @@ struct rbox_mail {
   guid_128_t index_guid;
   guid_128_t index_oid;
 
-  librmb::RadosMail *mail_object;
+  librmb::RadosMail *rados_mail;
   uint32_t last_seq;  // TODO(jrse): init with -1
 };
 extern void rbox_mail_set_expunged(struct rbox_mail *mail);

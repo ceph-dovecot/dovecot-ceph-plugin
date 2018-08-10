@@ -156,7 +156,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct rbox_mail *r_src_mail = (struct rbox_mail *)src_mail;
 #endif
 
-  guid_128_from_string(r_src_mail->mail_object->get_oid().c_str(), r_ctx->mail_oid);
+  guid_128_from_string(r_src_mail->rados_mail->get_oid().c_str(), r_ctx->mail_oid);
 
   r_ctx->rados_mail = r_storage->s->alloc_rados_mail();
   r_ctx->rados_mail->set_oid(guid_128_to_string(r_ctx->mail_oid));
