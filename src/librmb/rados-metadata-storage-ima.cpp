@@ -12,19 +12,18 @@
 #include "rados-metadata-storage-ima.h"
 #include "rados-util.h"
 #include <string.h>
+#include <utility>
 
+std::string librmb::RadosMetadataStorageIma::module_name = "ima";
+std::string librmb::RadosMetadataStorageIma::keyword_key = "K";
 namespace librmb {
-std::string RadosMetadataStorageIma::module_name = "ima";
-std::string RadosMetadataStorageIma::keyword_key = "K";
 
 RadosMetadataStorageIma::RadosMetadataStorageIma(librados::IoCtx *io_ctx_, RadosDovecotCephCfg *cfg_) {
   this->io_ctx = io_ctx_;
   this->cfg = cfg_;
 }
 
-RadosMetadataStorageIma::~RadosMetadataStorageIma() {
-
-}
+RadosMetadataStorageIma::~RadosMetadataStorageIma() {}
 
 int RadosMetadataStorageIma::parse_attribute(RadosMail *mail, json_t *root) {
   std::string key;
@@ -149,7 +148,6 @@ void RadosMetadataStorageIma::save_metadata(librados::ObjectWriteOperation *writ
 
 bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) {
   librados::ObjectWriteOperation write_op;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
 
   if (to_update.empty()) {
     return true;
@@ -166,7 +164,7 @@ bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<
 
   // write update
   save_metadata(&write_op, &obj);
-
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   int ret = io_ctx->aio_operate(oid, completion, &write_op);
   completion->wait_for_complete();
   completion->release();

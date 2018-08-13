@@ -222,7 +222,7 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["namespace"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-O", "--out", static_cast<char>(NULL))) {
       (*opts)["out"] = val;
-    } else if (ceph_argparse_flag(*args, i, "-h", "--help", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "-h", "--help", static_cast<char>(NULL))) {
       show_usage = true;
     } else if (ceph_argparse_witharg(args, &i, &val, "-o", "--object", static_cast<char>(NULL))) {
       (*opts)["cfg_obj"] = val;
@@ -230,7 +230,7 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["clustername"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-u", "--rados_user", static_cast<char>(NULL))) {
       (*opts)["rados_user"] = val;
-    } else if (ceph_argparse_flag(*args, i, "-D", "--debug", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "-D", "--debug", static_cast<char>(NULL))) {
       (*opts)["debug"] = "true";
     } else if (ceph_argparse_witharg(args, &i, &val, "-r", "--remove", static_cast<char>(NULL))) {
       (*opts)["remove_save_log"] = val;
@@ -242,16 +242,16 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
       (*opts)["set"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "sort", "--sort", static_cast<char>(NULL))) {
       (*opts)["sort"] = val;
-    } else if (ceph_argparse_flag(*args, i, "cfg", "--config", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "cfg", "--config", static_cast<char>(NULL))) {
       is_config = true;
     } else if (ceph_argparse_witharg(args, &i, &val, "update", "--update", static_cast<char>(NULL))) {
       (*opts)["update"] = val;
-    } else if (ceph_argparse_flag(*args, i, "create", "--create", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "create", "--create", static_cast<char>(NULL))) {
       create_config = true;
-    } else if (ceph_argparse_flag(*args, i, "show", "--show", (char *)(NULL))) {
+    } else if (ceph_argparse_flag(*args, i, "show", "--show", static_cast<char>(NULL))) {
       (*opts)["print_cfg"] = "true";
     } else if (ceph_argparse_flag(*args, i, "-yes-i-really-really-mean-it", "--yes-i-really-really-mean-it",
-                                  (char *)(NULL))) {
+                                  static_cast<char>(NULL))) {
       update_confirmed = true;
     } else if (ceph_argparse_witharg(args, &i, &val, "delete", "--delete", static_cast<char>(NULL))) {
       // delete oid
@@ -278,7 +278,7 @@ int main(int argc, const char **argv) {
   std::map<std::string, std::string> opts;
   std::map<std::string, std::string> metadata;
   std::string sort_type;
-  librmb::RmbCommands *rmb_commands;
+  librmb::RmbCommands *rmb_commands = nullptr;
 
   bool is_config_option = false;
   bool create_config = false;
@@ -441,4 +441,3 @@ int main(int argc, const char **argv) {
   // tear down.
   release_exit(&mail_objects, &cluster, false);
 }
-

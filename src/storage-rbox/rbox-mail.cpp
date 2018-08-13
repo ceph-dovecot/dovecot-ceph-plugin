@@ -65,8 +65,12 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
   if (rmail->last_seq != _mail->seq) {
-    const void *rec_data;
+    const void *rec_data = NULL;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
+    if (rec_data == NULL) {
+      i_error("error mail_index_lookup_ext for mail_seq (%d), ext_id(%d)", _mail->seq, rbox->ext_id);
+      return -1;
+    }
     const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
 
     if (obox_rec == nullptr) {
@@ -108,6 +112,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
 
+  *value_r = NULL;
+
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
   if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
@@ -139,6 +145,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   rmail->rados_mail->get_metadata(key, &value);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
+  } else {
+    i_warning("no value for metadata '%c' found ", static_cast<char>(key));
   }
   FUNC_END();
   return 0;
@@ -222,7 +230,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   }
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.
-    uint64_t psize;
+    uint64_t psize = -1;
     if (rados_storage->stat_mail(rmail->rados_mail->get_oid(), &psize, &save_date_rados) < 0) {
       // at least it needs to exist?
       return -1;
@@ -240,7 +248,6 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct index_mail_data *data = &rmail->imail.data;
   char *value = NULL;
   *size_r = -1;
-  int ret = 0;
 
   if (index_mail_get_virtual_size(_mail, size_r) == 0) {
     return 0;
@@ -260,10 +267,11 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   }
 
   if (value == NULL) {
-    FUNC_END_RET("ret == -1; mail_object, no xattribute ");
+    FUNC_END_RET("ret == -1; mail_object, no x-attribute ");
     return -1;
   }
 
+  int ret = 0;
   try {
     data->virtual_size = std::stol(value);
     *size_r = data->virtual_size;
@@ -284,10 +292,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-
+  char *value = NULL;
   *size_r = -1;
 
-  char *value = NULL;
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     FUNC_END_RET("ret == 0");
     return 0;
@@ -335,10 +342,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, const size_t physical_size,
                            struct istream **stream_r) {
   struct mail_private *pmail = &mail->imail.mail;
-  struct istream *input;  // = *stream_r;
   int ret = 0;
 
-  input = i_stream_create_from_bufferlist(buffer, physical_size);
+  struct istream *input = i_stream_create_from_bufferlist(buffer, physical_size);
   i_stream_seek(input, 0);
 
   *stream_r = input;
@@ -377,7 +383,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       // make sure that mail_object is initialized,
       // else create and load guid from index.
       rmail->rados_mail = rados_storage->alloc_rados_mail();
-      rbox_get_index_record(_mail);
+      if (rbox_get_index_record(_mail) < 0) {
+        i_error("Error rbox_get_index");
+        FUNC_END();
+        return -1;
+      }
     }
     rmail->rados_mail->get_mail_buffer()->clear();
 
@@ -429,10 +439,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
       reinterpret_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
 
   char *value = NULL;
-  string_t *str;
   unsigned int order = 0;
 
-  str = str_new(imail->mail.data_pool, 64);
+  string_t *str = str_new(imail->mail.data_pool, 64);
   if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
                               ibox->cache_fields[cache_field].idx) > 0) {
     if (cache_field == MAIL_CACHE_POP3_ORDER) {
@@ -464,6 +473,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   } else {
     if (str_to_uint(value, &order) < 0)
       order = 0;
+
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, &order, sizeof(order));
   }
 
@@ -480,6 +490,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
   int ret = 0;
 
+  *value_r = NULL;
   /* keep the UIDL in cache file, otherwise POP3 would open all
      mail files and read the metadata. same for GUIDs if they're
      used. */

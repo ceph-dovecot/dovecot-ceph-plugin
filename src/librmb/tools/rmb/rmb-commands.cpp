@@ -49,6 +49,10 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
   librmb::RadosStorageImpl storage(&cluster);
   int count = 0;
 
+  if (moved_items == nullptr) {
+    return -1;
+  }
+
   /** check content **/
   std::ifstream read(save_log);
   if (!read.is_open()) {
@@ -70,7 +74,7 @@ int RmbCommands::delete_with_save_log(const std::string &save_log, const std::st
 
     if (storage.get_pool_name().compare(entry.pool) != 0) {
       // close connection before open a new one.
-      // TODO: worst case are alternating pool entries e.g. mail_storage ,
+      // TODO(jrse): worst case are alternating pool entries e.g. mail_storage ,
       //       mail_storage_alt.... maybe we should group the entries by pool...
       storage.close_connection();
       int open_connection = storage.open_connection(entry.pool, rados_cluster, rados_user);
@@ -133,6 +137,10 @@ int RmbCommands::lspools() {
 int RmbCommands::delete_namespace(librmb::RadosStorageMetadataModule *ms,
                                   std::vector<librmb::RadosMail *> &mail_objects, librmb::RadosCephConfig *cfg,
                                   bool confirmed) {
+  if (ms == nullptr || cfg == nullptr) {
+    return -1;
+  }
+
   librmb::CmdLineParser parser("-");
   if (parser.parse_ls_string()) {
     std::string sort_type = "uid";
@@ -180,6 +188,9 @@ int RmbCommands::delete_mail(bool confirmed) {
 
 int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid) {
   print_debug("entry: rename_user");
+  if (cfg == nullptr) {
+    return -1;
+  }
   if (!cfg->is_user_mapping()) {
     std::cout << "Error: To be able to rename a user, the configuration option generate_namespace needs to be active"
               << std::endl;
@@ -205,20 +216,23 @@ int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const
   std::cout << " copy namespace configuration src " << src_ << " to dest " << dest_ << " in namespace "
             << cfg->get_user_ns() << std::endl;
   storage->set_namespace(cfg->get_user_ns());
-  uint64_t size;
-  time_t save_time;
+
+  uint64_t size = -1;
+  time_t save_time = -1;
   int exist = storage->stat_mail(src_, &size, &save_time);
   if (exist < 0) {
-    std::cout << "Error there does not exist a configuration file for " << src_ << std::endl;
+    std::cout << "Error there does not exist a mail object with oid " << src_ << std::endl;
     print_debug("end: rename_user");
     return -1;
   }
+
   exist = storage->stat_mail(dest_, &size, &save_time);
   if (exist >= 0) {
-    std::cout << "Error: there already exists a configuration file: " << dest_ << std::endl;
+    std::cout << "Error: there already exists a mail object with oid: " << dest_ << std::endl;
     print_debug("end: rename_user");
     return -1;
   }
+
   int ret = storage->copy(src_, cfg->get_user_ns().c_str(), dest_, cfg->get_user_ns().c_str(), list);
   if (ret == 0) {
     ret = storage->delete_mail(src_);
@@ -228,6 +242,7 @@ int RmbCommands::rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const
   } else {
     std::cout << "Error renaming copy failed: return code:  " << ret << " oid: " << src_ << std::endl;
   }
+
   print_debug("end: rename_user");
   return ret;
 }
@@ -249,24 +264,29 @@ int RmbCommands::configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg
   }
 
   if (!has_update) {
-    std::cerr << "create config failed, check parameter" << std::endl;
+    std::cerr << "create configuration failed, check parameter" << std::endl;
+
     print_debug("end: configuration");
     return -1;
   }
+
   if (!confirmed) {
     std::cout << "WARNING:" << std::endl;
     std::cout << "Changing this setting, after e-mails have been stored, could lead to a situation in which "
                  "users can no longer access their e-mail!!!"
               << std::endl;
     std::cout << "To confirm pass --yes-i-really-really-mean-it " << std::endl;
+
     print_debug("end: configuration");
     return -1;
   }
+
   std::size_t key_val_separator_idx = (*opts)["update"].find("=");
   if (key_val_separator_idx == std::string::npos) {
     print_debug("end: configuration");
     return -1;
   }
+
   std::string key = (*opts)["update"].substr(0, key_val_separator_idx);
   std::string key_val = (*opts)["update"].substr(key_val_separator_idx + 1, (*opts)["update"].length() - 1);
   bool failed = ceph_cfg.update_valid_key_value(key, key_val) ? false : true;
@@ -295,6 +315,9 @@ int RmbCommands::configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg
 bool RmbCommands::sort_uid(librmb::RadosMail *i, librmb::RadosMail *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t;
+  if (i == nullptr || j == nullptr) {
+    return false;
+  }
   i->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &t);
   try {
     uint64_t i_uid = std::stol(t, &sz);
@@ -315,6 +338,9 @@ bool RmbCommands::sort_uid(librmb::RadosMail *i, librmb::RadosMail *j) {
 bool RmbCommands::sort_recv_date(librmb::RadosMail *i, librmb::RadosMail *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t;
+  if (i == nullptr || j == nullptr) {
+    return false;
+  }
   i->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &t);
   try {
     int64_t i_uid = std::stol(t, &sz);
@@ -333,6 +359,9 @@ bool RmbCommands::sort_recv_date(librmb::RadosMail *i, librmb::RadosMail *j) {
 bool RmbCommands::sort_phy_size(librmb::RadosMail *i, librmb::RadosMail *j) {
   std::string::size_type sz;  // alias of size_t
   std::string t;
+  if (i == nullptr || j == nullptr) {
+    return false;
+  }
   i->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &t);
   try {
     uint64_t i_uid = std::stol(t, &sz);
@@ -349,6 +378,9 @@ bool RmbCommands::sort_phy_size(librmb::RadosMail *i, librmb::RadosMail *j) {
 }
 
 bool RmbCommands::sort_save_date(librmb::RadosMail *i, librmb::RadosMail *j) {
+  if (i == nullptr || j == nullptr) {
+    return false;
+  }
   return *i->get_rados_save_date() < *j->get_rados_save_date();
 }
 
@@ -363,7 +395,15 @@ struct AioStat {
 };
 
 static void aio_cb(rados_completion_t cb, void *arg) {
+  if (arg == nullptr) {
+    return;
+  }
   AioStat *stat = static_cast<AioStat *>(arg);
+  if (stat->completion == nullptr || stat->mail == nullptr || stat->ms == nullptr || stat->mail_objects == nullptr) {
+    std::cout << "aio_cb callback failed, invalid stat object" << std::endl;
+    return;
+  }
+
   if (stat->completion->get_return_value() == 0 && stat->object_size > 0) {
     stat->mail->set_mail_size(stat->object_size);
     stat->mail->set_rados_save_date(stat->save_date_rados);
@@ -384,9 +424,8 @@ static void aio_cb(rados_completion_t cb, void *arg) {
   stat->mail_objects->push_back(stat->mail);
   delete stat;
 }
-int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
-                              std::vector<librmb::RadosMail *> &mail_objects, std::string &sort_string,
-                              bool load_metadata) {
+int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMail *> &mail_objects,
+                              std::string &sort_string, bool load_metadata) {
   time_t begin = time(NULL);
 
   print_debug("entry: load_objects");
@@ -427,6 +466,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms,
     (*it)->wait_for_complete_and_cb();
     (*it)->release();
   }
+
   if (load_metadata) {
     if (sort_string.compare("uid") == 0) {
       std::sort(mail_objects.begin(), mail_objects.end(), sort_uid);
@@ -479,7 +519,7 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
 int RmbCommands::query_mail_storage(std::vector<librmb::RadosMail *> *mail_objects, librmb::CmdLineParser *parser,
                                     bool download, bool silent) {
   print_debug("entry: query_mail_storage");
-  int ret = 0;
+
   std::map<std::string, librmb::RadosMailBox *> mailbox;
   for (std::vector<librmb::RadosMail *>::iterator it = mail_objects->begin(); it != mail_objects->end(); ++it) {
     std::string mailbox_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_MAILBOX_GUID));
@@ -505,9 +545,9 @@ int RmbCommands::query_mail_storage(std::vector<librmb::RadosMail *> *mail_objec
       mailbox[mailbox_guid]->add_to_mailbox_size((*it)->get_mail_size());
     }
   }
+  int ret = 0;
   if (!silent) {
     std::cout << "mailbox_count: " << mailbox.size() << std::endl;
-
     ret = print_mail(&mailbox, parser->get_output_dir(), download);
   }
   for (auto &it : mailbox) {
@@ -521,7 +561,7 @@ RadosStorageMetadataModule *RmbCommands::init_metadata_storage_module(librmb::Ra
                                                                       std::string *uid) {
   print_debug("entry: init_metadata_storage_module");
   librmb::RadosConfig dovecot_cfg;
-  RadosStorageMetadataModule *ms;
+  RadosStorageMetadataModule *ms = nullptr;
   dovecot_cfg.set_config_valid(true);
   ceph_cfg.set_config_valid(true);
   librmb::RadosDovecotCephCfgImpl cfg(dovecot_cfg, ceph_cfg);

@@ -11,7 +11,10 @@
 
 #ifndef SRC_LIBRMB_RADOS_METADATA_STORAGE_DEFAULT_H_
 #define SRC_LIBRMB_RADOS_METADATA_STORAGE_DEFAULT_H_
-
+#include <list>
+#include <map>
+#include <string>
+#include <set>
 #include "rados-metadata-storage-module.h"
 
 namespace librmb {
@@ -46,4 +49,4 @@ class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
 
 } /* namespace librmb */
 
-#endif /* SRC_LIBRMB_RADOS_METADATA_STORAGE_DEFAULT_H_ */
+#endif  // SRC_LIBRMB_RADOS_METADATA_STORAGE_DEFAULT_H_
