@@ -38,7 +38,7 @@ TEST(librmb, mock_test) {
 
 TEST(librmb, split_write_operation) {
   uint64_t max_size = 3;
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -80,7 +80,7 @@ TEST(librmb, split_write_operation) {
 }
 
 TEST(librmb1, split_write_operation_1) {
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("HALLO_WELT_");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -152,7 +152,7 @@ TEST(librmb1, convert_types) {
 }
 
 TEST(librmb1, read_mail) {
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -208,7 +208,7 @@ TEST(librmb1, read_mail) {
 
 TEST(librmb, load_metadata) {
   uint64_t max_size = 3;
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -267,7 +267,7 @@ TEST(librmb, load_metadata) {
 
 TEST(librmb, AttributeVersions) {
   uint64_t max_size = 3;
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -349,7 +349,7 @@ TEST(librmb, json_ima) {
   // cfg.update_updatable_attributes("");
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -418,7 +418,7 @@ TEST(librmb, json_ima_2) {
   cfg.update_updatable_attributes("F");
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -487,7 +487,7 @@ TEST(librmb, json_ima_3) {
   cfg.update_updatable_attributes("FK");
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -565,7 +565,7 @@ TEST(librmb, test_default_metadata_load_attributes) {
   cfg.update_updatable_attributes("FK");
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
-  librmb::RadosMailObject obj;
+  librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -597,7 +597,7 @@ TEST(librmb, test_default_metadata_load_attributes) {
    // wait for op to finish.
    storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
-   librmb::RadosMailObject obj2;
+   librmb::RadosMail obj2;
    obj2.set_oid("test_ima");
 
    int a = ms.load_metadata(&obj2);
@@ -626,7 +626,7 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist) {
   cfg.update_updatable_attributes("FK");
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("test_ima1");
 
   int a = ms.load_metadata(&obj2);
@@ -654,7 +654,7 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
   cfg.update_updatable_attributes("FK");
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("test_ima1");
 
   int a = ms.load_metadata(&obj2);
@@ -679,7 +679,7 @@ TEST(librmb, increment_add_to_non_existing_key) {
 
   std::string key = "my-key";
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
@@ -719,7 +719,7 @@ TEST(librmb, increment_add_to_non_existing_object) {
 
   std::string key = "my-key";
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
   long val = 10;  // value to add
@@ -759,7 +759,7 @@ TEST(librmb, increment_add_to_existing_key) {
 
   std::string key = "my-key";
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
@@ -802,7 +802,7 @@ TEST(librmb, increment_sub_from_existing_key) {
 
   std::string key = "my-key";
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
@@ -864,20 +864,20 @@ TEST(librmb, rmb_load_objects) {
   EXPECT_NE(nullptr, ms);
 
   storage.set_namespace(ns);
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
   storage.save_mail(obj2.get_oid(), mail_buf);
 
-  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
   EXPECT_EQ(1, mail_objects.size());
 
-  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-    librmb::RadosMailObject *obj = *it;
+  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMail *obj = *it;
     delete obj;
   }
 
@@ -921,7 +921,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
 
   storage.set_namespace(ns);
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject_valid");
   obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
   obj2.set_mail_size(obj2.get_mail_buffer()->length());
@@ -1008,12 +1008,12 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   ms->save_metadata(write_op, &obj2);
   // save complete mail.
   EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
-  std::vector<librmb::RadosMailObject *> list;
+  std::vector<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
 
-  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
@@ -1022,8 +1022,8 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
 
   storage.delete_mail(&obj2);
   storage.delete_mail(ceph_cfg.get_cfg_object_name());
-  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-    librmb::RadosMailObject *obj = *it;
+  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMail *obj = *it;
     storage.delete_mail(obj);
     delete obj;
   }
@@ -1068,7 +1068,7 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
 
   storage.set_namespace(ns);
 
-  librmb::RadosMailObject obj2;
+  librmb::RadosMail obj2;
   obj2.set_oid("myobject_invalid");
   obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
   obj2.set_mail_size(obj2.get_mail_buffer()->length());
@@ -1155,20 +1155,20 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   ms->save_metadata(write_op, &obj2);
   // save complete mail.
   EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
-  std::vector<librmb::RadosMailObject *> list;
+  std::vector<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
 
-  std::vector<librmb::RadosMailObject *> mail_objects;
+  std::vector<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
   // no mail
   EXPECT_EQ(1, mail_objects.size());
 
-  for (std::vector<librmb::RadosMailObject *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
-    librmb::RadosMailObject *obj = *it;
+  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+    librmb::RadosMail *obj = *it;
     delete obj;
   }
 

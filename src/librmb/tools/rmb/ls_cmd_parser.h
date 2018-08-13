@@ -17,7 +17,8 @@
 #include <iostream>
 #include <ctime>
 #include <map>
-#include "rados-mail-object.h"
+
+#include "../../rados-mail.h"
 #include "rados-util.h"
 
 #ifndef PATH_MAX

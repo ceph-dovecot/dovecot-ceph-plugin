@@ -170,7 +170,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
     ssize_t ret;
     struct mail_save_data *mdata = &r_ctx->ctx.data;
 
-    test_oid = r_ctx->current_object->get_oid();
+    test_oid = r_ctx->rados_mail->get_oid();
 
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
@@ -215,10 +215,11 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
   while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
     if (test_oid.compare((*iter).get_oid()) == 0) {
-      librmb::RadosMailObject obj;
+      librmb::RadosMail obj;
       obj.set_oid((*iter).get_oid());
       r_storage->ms->get_storage()->load_metadata(&obj);
-      std::string str = obj.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS);
+      std::string str;
+      obj.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &str);
       uint8_t flags;
       librmb::RadosUtils::string_to_flags(str, &flags);
       EXPECT_EQ(0x01, flags);

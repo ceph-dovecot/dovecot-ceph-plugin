@@ -104,8 +104,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     struct rbox_mail *rmail = (struct rbox_mail *)mail;
     /* simulate mail object does not exist */
-    i_debug("oid: %s", rmail->mail_object->get_oid().c_str());
-    rmail->mail_object->set_oid("dummy!!!");
+    i_debug("oid: %s", rmail->rados_mail->get_oid().c_str());
+    rmail->rados_mail->set_oid("dummy!!!");
     mailbox_save_copy_flags(save_ctx, mail);
 
     int ret2 = mailbox_copy(&save_ctx, mail);

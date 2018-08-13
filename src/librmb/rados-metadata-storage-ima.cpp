@@ -26,7 +26,7 @@ RadosMetadataStorageIma::~RadosMetadataStorageIma() {
 
 }
 
-int RadosMetadataStorageIma::parse_attribute(RadosMailObject *mail, json_t *root) {
+int RadosMetadataStorageIma::parse_attribute(RadosMail *mail, json_t *root) {
   std::string key;
   void *iter = json_object_iter(root);
 
@@ -57,7 +57,7 @@ int RadosMetadataStorageIma::parse_attribute(RadosMailObject *mail, json_t *root
   return 0;
 }
 
-int RadosMetadataStorageIma::load_metadata(RadosMailObject *mail) {
+int RadosMetadataStorageIma::load_metadata(RadosMail *mail) {
   if (mail == nullptr) {
     return -1;
   }
@@ -97,7 +97,7 @@ int RadosMetadataStorageIma::load_metadata(RadosMailObject *mail) {
 }
 
 // it is required that mail->get_metadata is up to date before update.
-int RadosMetadataStorageIma::set_metadata(RadosMailObject *mail, RadosMetadata &xattr) {
+int RadosMetadataStorageIma::set_metadata(RadosMail *mail, RadosMetadata &xattr) {
   enum rbox_metadata_key k = static_cast<enum rbox_metadata_key>(*xattr.key.c_str());
   if (!cfg->is_updateable_attribute(k)) {
     mail->add_metadata(xattr);
@@ -109,7 +109,7 @@ int RadosMetadataStorageIma::set_metadata(RadosMailObject *mail, RadosMetadata &
   }
 }
 
-void RadosMetadataStorageIma::save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) {
+void RadosMetadataStorageIma::save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {
   char *s = NULL;
   json_t *root = json_object();
   librados::bufferlist bl;
@@ -155,7 +155,7 @@ bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<
     return true;
   }
 
-  RadosMailObject obj;
+  RadosMail obj;
   obj.set_oid(oid);
   load_metadata(&obj);
 

@@ -31,7 +31,6 @@ extern "C" {
 #include "ioloop.h"
 #include "istream.h"
 #include "mail-search-build.h"
-
 #include "libdict-rados-plugin.h"
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
@@ -44,18 +43,17 @@ extern "C" {
 using ::testing::AtLeast;
 using ::testing::Return;
 
-TEST_F(StorageTest, init) {}
+TEST_F(BackupTest, init) {}
 
-TEST_F(StorageTest, mailbox_open_inbox) {
+TEST_F(BackupTest, mailbox_open_inbox) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   struct mailbox *box = mailbox_alloc(ns->list, "INBOX", MAILBOX_FLAG_READONLY);
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
 
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
+TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
-  struct mail_save_context *save_ctx;
   struct mail *mail;
   struct mail_search_context *search_ctx;
   struct mail_search_args *search_args;
@@ -71,8 +69,37 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   const char *mailbox = "INBOX";
 
-  // testdata
-  testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces);
+  // create some testmails and delete the one with uid = 1
+  testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
+  testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
+  testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
+  testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
+
+  std::cout << "POOL: " << BackupTest::pool_name << std::endl;
+  rados_ioctx_set_namespace(BackupTest::s_ioctx, "user-rbox-test@localhost_u");
+
+  rados_list_ctx_t ctx;
+  std::string to_delete;
+  ASSERT_EQ(0, rados_nobjects_list_open(BackupTest::s_ioctx, &ctx));
+  const char *entry;
+  int foundit = 0;
+  while (rados_nobjects_list_next(ctx, &entry, NULL, NULL) != -ENOENT) {
+    foundit++;
+    char xattr_res[100];
+
+    ASSERT_EQ(rados_getxattr(BackupTest::s_ioctx, entry, "U", xattr_res, 1), 1);
+    std::string v(&xattr_res[0], 1);
+    if (v.compare("1") == 0) {
+      to_delete = entry;
+    }
+    std::cout << std::string(entry) << std::endl;
+  }
+  ASSERT_EQ(foundit, 4);
+  ASSERT_TRUE(!to_delete.empty());
+  rados_nobjects_list_close(ctx);
+
+  // delete UID=1
+  ASSERT_EQ(rados_remove(BackupTest::s_ioctx, to_delete.c_str()), 0);
 
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
@@ -87,6 +114,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   }
+
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
@@ -97,66 +125,39 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
-
+  struct message_size hdr_size, body_size;
+  struct istream *input = NULL;
+  bool found = false;
   while (mailbox_search_next(search_ctx, &mail)) {
-    save_ctx = mailbox_save_alloc(desttrans);  // src save context
-    mailbox_save_copy_flags(save_ctx, mail);
-
-    int ret2 = mailbox_move(&save_ctx, mail);
-    EXPECT_EQ(ret2, 0);
-    break;  // only copy one mail.
+    if (mail->uid == 1) {
+      int ret = mail_get_stream(mail, &hdr_size, &body_size, &input);
+      EXPECT_EQ(ret, -1);
+      enum mail_error error;
+      const char *errstr;
+      // backup process will skip the missing mail error if error is MAIL_ERROR_EXPUNGED!
+      errstr = mailbox_get_last_error(mail->box, &error);
+      EXPECT_EQ(error, MAIL_ERROR_EXPUNGED);
+      found = true;
+    }
   }
+  EXPECT_TRUE(found);
 
   if (mailbox_search_deinit(&search_ctx) < 0) {
     FAIL() << "search deinit failed";
   }
-
+  i_debug("after search");
   if (mailbox_transaction_commit(&desttrans) < 0) {
     FAIL() << "tnx commit failed";
   }
+  i_debug("after commit");
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
-
-  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
-  std::vector<librmb::RadosMail *> objects;
-  while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
-    librmb::RadosMail *obj = new librmb::RadosMail();
-    obj->set_oid((*iter).get_oid());
-    r_storage->ms->get_storage()->load_metadata(obj);
-    objects.push_back(obj);
-    iter++;
-  }
-
-  // compare objects
-  ASSERT_EQ(1, (int)objects.size());
-  librmb::RadosMail *mail1 = objects[0];
-
-  std::string val;
-  std::string val2;
-
-  mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val);
-  ASSERT_NE(val, val2);
-  mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val);
-  ASSERT_NE(val, val2);
-
-  ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
-  delete mail1;
+  i_debug("after sync");
   mailbox_free(&box);
 }
 
-TEST_F(StorageTest, deinit) {}
+TEST_F(BackupTest, deinit) {}
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

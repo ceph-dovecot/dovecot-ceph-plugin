@@ -19,7 +19,7 @@ headers = \
 	rados-cluster-impl.h \
 	rados-storage-impl.h \
 	rados-dictionary-impl.h \
-	rados-mail-object.h \
+	rados-mail.h \
 	rados-util.h \
 	rados-metadata.h \
 	rados-types.h \
@@ -43,7 +43,7 @@ librmb_la_SOURCES = \
 	rados-cluster-impl.cpp \
 	rados-storage-impl.cpp \
 	rados-dictionary-impl.cpp \
-	rados-mail-object.cpp \
+	rados-mail.cpp \
 	rados-util.cpp \
 	rados-dovecot-config.cpp \
 	rados-namespace-manager.cpp\

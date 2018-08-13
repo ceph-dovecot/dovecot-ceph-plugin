@@ -13,7 +13,8 @@
 #define SRC_LIBRMB_RADOS_METADATA_STORAGE_MODULE_H_
 
 #include <rados/librados.hpp>
-#include "rados-mail-object.h"
+
+#include "rados-mail.h"
 
 namespace librmb {
 class RadosStorageMetadataModule {
@@ -21,14 +22,14 @@ class RadosStorageMetadataModule {
   virtual ~RadosStorageMetadataModule(){};
   /* update io_ctx */
   virtual void set_io_ctx(librados::IoCtx *io_ctx){};
-  /* load the metadta into RadosMailObject */
-  virtual int load_metadata(RadosMailObject *mail) = 0;
+  /* load the metadta into RadosMail */
+  virtual int load_metadata(RadosMail *mail) = 0;
   /* set a new metadata attribute to a mail object */
-  virtual int set_metadata(RadosMailObject *mail, RadosMetadata &xattr) = 0;
+  virtual int set_metadata(RadosMail *mail, RadosMetadata &xattr) = 0;
   /* update the given metadata attributes */
   virtual bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) = 0;
-  /* add all metadata of RadosMailObject to write_operation */
-  virtual void save_metadata(librados::ObjectWriteOperation *write_op, RadosMailObject *mail) = 0;
+  /* add all metadata of RadosMail to write_operation */
+  virtual void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) = 0;
   /* manage keywords */
   virtual int update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) = 0;
   virtual int remove_keyword_metadata(const std::string &oid, std::string &key) = 0;

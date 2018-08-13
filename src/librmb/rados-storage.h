@@ -15,9 +15,9 @@
 #include <string>
 #include <map>
 
-#include "rados-mail-object.h"
 #include <rados/librados.hpp>
 #include "rados-cluster.h"
+#include "rados-mail.h"
 
 namespace librmb {
 
@@ -42,11 +42,11 @@ class RadosStorage {
 
   /* In case the current object size exceeds the max_write (bytes), object should be split into
    * max smaller operations and executed separately. */
-  virtual int split_buffer_and_exec_op(RadosMailObject *current_object, librados::ObjectWriteOperation *write_op_xattr,
+  virtual int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                        const uint64_t &max_write) = 0;
 
   /* deletes a mail object from rados*/
-  virtual int delete_mail(RadosMailObject *mail) = 0;
+  virtual int delete_mail(RadosMail *mail) = 0;
   virtual int delete_mail(const std::string &oid) = 0;
   /* asynchron execution of a write operation */
   virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
@@ -62,8 +62,8 @@ class RadosStorage {
 
   /* wait for all write operations to complete */
   virtual bool wait_for_write_operations_complete(
-      std::map<librados::AioCompletion*, librados::ObjectWriteOperation*>* completion_op_map) = 0;
-  virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMailObject *> &object_list) = 0;
+      std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) = 0;
+  virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMail *> &object_list) = 0;
 
   /* save the mail object */
   virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
@@ -76,12 +76,12 @@ class RadosStorage {
   virtual int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                    std::list<RadosMetadata> &to_update) = 0;
   /* save the mail */
-  virtual bool save_mail(RadosMailObject *mail, bool &save_async) = 0;
-  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMailObject *mail, bool save_async) = 0;
-  /* create a new RadosMailObject */
-  virtual librmb::RadosMailObject *alloc_mail_object() = 0;
+  virtual bool save_mail(RadosMail *mail, bool &save_async) = 0;
+  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) = 0;
+  /* create a new RadosMail */
+  virtual librmb::RadosMail *alloc_rados_mail() = 0;
   /* free the Rados Mail Object */
-  virtual void free_mail_object(librmb::RadosMailObject *mail) = 0;
+  virtual void free_rados_mail(librmb::RadosMail *mail) = 0;
 };
 
 }  // namespace librmb

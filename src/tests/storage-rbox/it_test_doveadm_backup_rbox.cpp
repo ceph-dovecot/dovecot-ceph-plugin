@@ -129,9 +129,9 @@ TEST_F(StorageTest, mail_doveadm_backup_copy_mail_in_inbox) {
 
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
-  std::vector<librmb::RadosMailObject *> objects;
+  std::vector<librmb::RadosMail *> objects;
   while (iter != r_storage->s->get_io_ctx().nobjects_end()) {
-    librmb::RadosMailObject *obj = new librmb::RadosMailObject();
+    librmb::RadosMail *obj = new librmb::RadosMail();
     obj->set_oid((*iter).get_oid());
     r_storage->ms->get_storage()->load_metadata(obj);
     objects.push_back(obj);
@@ -141,36 +141,70 @@ TEST_F(StorageTest, mail_doveadm_backup_copy_mail_in_inbox) {
   // compare objects
   ASSERT_EQ(2, (int)objects.size());
 
-  librmb::RadosMailObject *mail1 = objects[0];
-  librmb::RadosMailObject *mail2 = objects[1];
+  librmb::RadosMail *mail1 = objects[0];
+  librmb::RadosMail *mail2 = objects[1];
 
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS),
-            mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_EXT_REF), mail2->get_metadata(librmb::RBOX_METADATA_EXT_REF));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE),
-            mail2->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_GUID), mail2->get_metadata(librmb::RBOX_METADATA_GUID));
+  std::string val;
+  std::string val2;
+  mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &val2);
+  ASSERT_EQ(val, val2);
 
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID),
-            mail2->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX),
-            mail2->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE),
-            mail2->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_POP3_ORDER),
-            mail2->get_metadata(librmb::RBOX_METADATA_POP3_ORDER));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_POP3_UIDL), mail2->get_metadata(librmb::RBOX_METADATA_POP3_UIDL));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS), mail2->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME),
-            mail2->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_VERSION), mail2->get_metadata(librmb::RBOX_METADATA_VERSION));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE),
-            mail2->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE));
-  ASSERT_EQ(mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME),
-            mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME));
+  mail1->get_metadata(librmb::RBOX_METADATA_EXT_REF, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_EXT_REF, &val2);
+  ASSERT_EQ(val, val2);
 
-  ASSERT_NE(mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID), mail2->get_metadata(librmb::RBOX_METADATA_MAIL_UID));
+  mail1->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, &val2);
+  ASSERT_EQ(val, val2);
 
+  mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_GUID, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_POP3_ORDER, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_POP3_ORDER, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_POP3_UIDL, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_POP3_UIDL, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_VERSION, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_VERSION, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, &val2);
+  ASSERT_EQ(val, val2);
+
+  mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
+  mail2->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val2);
+  ASSERT_NE(val, val2);
   ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);
   delete mail1;
   delete mail2;

@@ -11,10 +11,11 @@
 
 #ifndef SRC_LIBRMB_TOOLS_RMB_RMB_COMMANDS_H_
 #define SRC_LIBRMB_TOOLS_RMB_RMB_COMMANDS_H_
+#include <stdlib.h>
+
 #include <iostream>
 #include <map>
 #include <string>
-#include <stdlib.h>
 #include <vector>
 #include <sstream>
 #include <iterator>
@@ -44,24 +45,24 @@ class RmbCommands {
   void print_debug(const std::string &msg);
   static int lspools();
   int delete_mail(bool confirmed);
-  int delete_namespace(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
+  int delete_namespace(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMail *> &mail_objects,
                        librmb::RadosCephConfig *cfg, bool confirmed);
 
   int rename_user(librmb::RadosCephConfig *cfg, bool confirmed, const std::string &uid);
 
   int configuration(bool confirmed, librmb::RadosCephConfig &ceph_cfg);
 
-  int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMailObject *> &mail_objects,
+  int load_objects(librmb::RadosStorageMetadataModule *ms, std::vector<librmb::RadosMail *> &mail_objects,
                    std::string &sort_string, bool load_metadata = true);
   int update_attributes(librmb::RadosStorageMetadataModule *ms, std::map<std::string, std::string> *metadata);
   int print_mail(std::map<std::string, librmb::RadosMailBox *> *mailbox, std::string &output_dir, bool download);
-  int query_mail_storage(std::vector<librmb::RadosMailObject *> *mail_objects, librmb::CmdLineParser *parser,
+  int query_mail_storage(std::vector<librmb::RadosMail *> *mail_objects, librmb::CmdLineParser *parser,
                          bool download, bool silent);
   librmb::RadosStorageMetadataModule *init_metadata_storage_module(librmb::RadosCephConfig &ceph_cfg, std::string *uid);
-  static bool sort_uid(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
-  static bool sort_recv_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
-  static bool sort_phy_size(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
-  static bool sort_save_date(librmb::RadosMailObject *i, librmb::RadosMailObject *j);
+  static bool sort_uid(librmb::RadosMail *i, librmb::RadosMail *j);
+  static bool sort_recv_date(librmb::RadosMail *i, librmb::RadosMail *j);
+  static bool sort_phy_size(librmb::RadosMail *i, librmb::RadosMail *j);
+  static bool sort_save_date(librmb::RadosMail *i, librmb::RadosMail *j);
 
   void set_output_path(librmb::CmdLineParser *parser);
 

@@ -23,7 +23,7 @@ struct expunged_item {
 };
 
 struct rbox_sync_context {
-  struct rbox_mailbox *mbox;
+  struct rbox_mailbox *rbox;
   struct mail_index_sync_ctx *index_sync_ctx;
   struct mail_index_view *sync_view;
   struct mail_index_transaction *trans;
@@ -39,9 +39,9 @@ struct expunge_callback_data {
   struct expunged_item *item;
 };
 
-int rbox_sync(struct rbox_mailbox *mbox, enum rbox_sync_flags flags);
+int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags);
 
-int rbox_sync_begin(struct rbox_mailbox *mbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags);
+int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r, enum rbox_sync_flags flags);
 int rbox_sync_finish(struct rbox_sync_context **ctx, bool success);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_H_

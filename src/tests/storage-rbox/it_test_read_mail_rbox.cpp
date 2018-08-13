@@ -100,9 +100,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   struct message_size hdr_size, body_size;
   struct istream *input = NULL;
   while (mailbox_search_next(search_ctx, &mail)) {
-    struct mail_save_context *save_ctx = mailbox_save_alloc(desttrans);  // src save context
-    EXPECT_NE(save_ctx, nullptr);
-
     int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
     EXPECT_EQ(ret2, 0);
     EXPECT_NE(input, nullptr);

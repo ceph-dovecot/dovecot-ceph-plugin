@@ -234,7 +234,7 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
     return 0;
   }
 
-  RadosMailObject mail;
+  RadosMail mail;
   mail.set_oid(src_oid);
 
   if (inverse) {
@@ -272,7 +272,7 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
     return 0;
   }
 
-  std::vector<librmb::RadosMailObject *> objects;
+  std::vector<librmb::RadosMail *> objects;
   objects.push_back(&mail);
   if (inverse) {
     success = primary->wait_for_rados_operations(objects);

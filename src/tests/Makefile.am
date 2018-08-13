@@ -154,12 +154,15 @@ it_test_sync_rbox_duplicate_uid_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)
 it_test_sync_rbox_duplicate_uid_LDADD = $(storage_shlibs) $(gtest_shlibs) 
 
 
-
 TESTS += it_test_doveadm_rmb
 it_test_doveadm_rmb_SOURCES = doveadm-rmb/it_test_doveadm_rmb.cpp doveadm-rmb/TestCase.cpp doveadm-rmb/TestCase.h test-utils/it_utils.cpp test-utils/it_utils.h
 it_test_doveadm_rmb_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)  
 it_test_doveadm_rmb_LDADD = $(storage_shlibs) $(gtest_shlibs) $(doveadm_rmb_shlibs) 
 
+TESTS += it_test_backup
+it_test_backup_SOURCES = backup/it_test_backup_rbox.cpp backup/TestCase.cpp backup/TestCase.h test-utils/it_utils.cpp test-utils/it_utils.h
+it_test_backup_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE)  
+it_test_backup_LDADD = $(storage_shlibs) $(gtest_shlibs) $(doveadm_rmb_shlibs) 
 
 endif
 

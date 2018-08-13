@@ -13,8 +13,8 @@
 #define SRC_STORAGE_RBOX_RBOX_MAIL_H_
 
 #include "index-mail.h"
-#include "rados-mail-object.h"
 #include <rados/librados.hpp>
+#include "../librmb/rados-mail.h"
 
 struct rbox_mail {
   struct index_mail imail;
@@ -22,7 +22,7 @@ struct rbox_mail {
   guid_128_t index_guid;
   guid_128_t index_oid;
 
-  librmb::RadosMailObject *mail_object;
+  librmb::RadosMail *rados_mail;
   uint32_t last_seq;  // TODO(jrse): init with -1
 };
 extern void rbox_mail_set_expunged(struct rbox_mail *mail);

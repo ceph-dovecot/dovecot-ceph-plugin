@@ -9,7 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
-#include "rados-mail-object.h"
+#include "rados-mail.h"
 
 #include <stdlib.h>
 
@@ -21,33 +21,44 @@
 using std::endl;
 using std::ostringstream;
 
-using librmb::RadosMailObject;
+using librmb::RadosMail;
 
-const char RadosMailObject::X_ATTR_VERSION_VALUE[] = "0.1";
-const char RadosMailObject::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
+const char RadosMail::X_ATTR_VERSION_VALUE[] = "0.1";
+const char RadosMail::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
 
-RadosMailObject::RadosMailObject()
+RadosMail::RadosMail()
     : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
 
-RadosMailObject::~RadosMailObject() {}
+RadosMail::~RadosMail() {}
 
-void RadosMailObject::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
+void RadosMail::set_guid(const uint8_t *_guid) { memcpy(this->guid, _guid, sizeof(this->guid)); }
 
-std::string RadosMailObject::to_string(const string &padding) {
-  string uid = get_metadata(RBOX_METADATA_MAIL_UID);
-  string recv_time_str = get_metadata(RBOX_METADATA_RECEIVED_TIME);
-  string p_size = get_metadata(RBOX_METADATA_PHYSICAL_SIZE);
-  string v_size = get_metadata(RBOX_METADATA_VIRTUAL_SIZE);
+std::string RadosMail::to_string(const string &padding) {
+  string uid;
+  get_metadata(RBOX_METADATA_MAIL_UID, &uid);
+  string recv_time_str;
+  get_metadata(RBOX_METADATA_RECEIVED_TIME, &recv_time_str);
+  string p_size;
+  get_metadata(RBOX_METADATA_PHYSICAL_SIZE, &p_size);
+  string v_size;
+  get_metadata(RBOX_METADATA_VIRTUAL_SIZE, &v_size);
 
-  string rbox_version = get_metadata(RBOX_METADATA_VERSION);
-  string mailbox_guid = get_metadata(RBOX_METADATA_MAILBOX_GUID);
-  string mail_guid = get_metadata(RBOX_METADATA_GUID);
-  string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX);
+  string rbox_version;
+  get_metadata(RBOX_METADATA_VERSION, &rbox_version);
+  string mailbox_guid;
+  get_metadata(RBOX_METADATA_MAILBOX_GUID, &mailbox_guid);
+  string mail_guid;
+  get_metadata(RBOX_METADATA_GUID, &mail_guid);
+  string mb_orig_name;
+  get_metadata(RBOX_METADATA_ORIG_MAILBOX, &mb_orig_name);
 
   // string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
-  string flags = get_metadata(RBOX_METADATA_OLDV1_FLAGS);
-  string pvt_flags = get_metadata(RBOX_METADATA_PVT_FLAGS);
-  string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE);
+  string flags;
+  get_metadata(RBOX_METADATA_OLDV1_FLAGS, &flags);
+  string pvt_flags;
+  get_metadata(RBOX_METADATA_PVT_FLAGS, &pvt_flags);
+  string from_envelope;
+  get_metadata(RBOX_METADATA_FROM_ENVELOPE, &from_envelope);
 
   time_t ts = -1;
   if (!recv_time_str.empty()) {

@@ -39,7 +39,6 @@ struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, cons
   stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
   stream->pos = size;
   stream->max_buffer_size = (size_t)-1;
-  ;
 
   stream->read = i_stream_data_read;
   stream->seek = i_stream_data_seek;  // use default
@@ -58,4 +57,3 @@ struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, cons
   i_stream_set_name(&stream->istream, "(buffer)");
   return &stream->istream;
 }
-

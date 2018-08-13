@@ -10,7 +10,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
- #include "dovecot-ceph-plugin-config.h"
+#include "dovecot-ceph-plugin-config.h"
 #endif
 
 #include <limits.h>
@@ -346,9 +346,6 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
   return RADOS_COMMIT_RET_NOTFOUND;
 }
 
-static void rados_dict_transaction_private_complete_callback(completion_t comp, void *arg);
-static void rados_dict_transaction_shared_complete_callback(completion_t comp, void *arg);
-
 #define ENORESULT 1000
 
 class rados_dict_transaction_context {
@@ -360,7 +357,6 @@ class rados_dict_transaction_context {
   std::string guid_to_str;
   void *context = nullptr;
   dict_transaction_commit_callback_t *callback;
-
 
   map<string, string> set_map;
   set<string> unset_set;
@@ -403,7 +399,7 @@ class rados_dict_transaction_context {
       return true;
     } else if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       dirty_shared = true;
-	  return false;
+      return false;
     }
     i_unreached();
   }
@@ -531,8 +527,6 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
 }
 #endif
 
-
-
 void (*transaction_commit)(struct dict_transaction_context *ctx, bool async,
                            dict_transaction_commit_callback_t *callback, void *context);
 
@@ -563,15 +557,15 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
       ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND : (failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK);
   if (callback != nullptr) {
 #if DOVECOT_PREREQ(2, 3)
-      struct dict_commit_result result = {static_cast<dict_commit_ret>(ret), nullptr};  // TODO(p.mauritius): text?
-      callback(&result, ctx->context);
+    struct dict_commit_result result = {static_cast<dict_commit_ret>(ret), nullptr};  // TODO(p.mauritius): text?
+    callback(&result, ctx->context);
 #else
-      callback(ret, ctx->context);
+    callback(ret, ctx->context);
 #endif
-    }
+  }
 
-    delete ctx;
-    ctx = NULL;
+  delete ctx;
+  ctx = NULL;
 
 #if DOVECOT_PREREQ(2, 3)
   return;
