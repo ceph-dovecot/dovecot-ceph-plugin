@@ -70,17 +70,13 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   const char *mailbox = "INBOX";
 
   // create some testmails and delete the one with uid = 1
-
   testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
   testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
   testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
   testutils::ItUtils::add_mail(message, mailbox, BackupTest::s_test_mail_user->namespaces);
 
-  // sleep(10);
-  // rados_list_ctx_t listh;
   std::cout << "POOL: " << BackupTest::pool_name << std::endl;
   rados_ioctx_set_namespace(BackupTest::s_ioctx, "user-rbox-test@localhost_u");
-  // rados_nobjects_list_open(BackupTest::s_ioctx, &listh);
 
   rados_list_ctx_t ctx;
   std::string to_delete;
@@ -89,7 +85,6 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   int foundit = 0;
   while (rados_nobjects_list_next(ctx, &entry, NULL, NULL) != -ENOENT) {
     foundit++;
-    // ASSERT_EQ(std::string(entry), "foo");
     char xattr_res[100];
 
     ASSERT_EQ(rados_getxattr(BackupTest::s_ioctx, entry, "U", xattr_res, 1), 1);
@@ -105,8 +100,6 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
 
   // delete UID=1
   ASSERT_EQ(rados_remove(BackupTest::s_ioctx, to_delete.c_str()), 0);
-
-  // trigger the backup command!
 
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
@@ -134,16 +127,20 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   mail_search_args_unref(&search_args);
   struct message_size hdr_size, body_size;
   struct istream *input = NULL;
+  bool found = false;
   while (mailbox_search_next(search_ctx, &mail)) {
     if (mail->uid == 1) {
       int ret = mail_get_stream(mail, &hdr_size, &body_size, &input);
       EXPECT_EQ(ret, -1);
       enum mail_error error;
       const char *errstr;
+      // backup process will skip the missing mail error if error is MAIL_ERROR_EXPUNGED!
       errstr = mailbox_get_last_error(mail->box, &error);
       EXPECT_EQ(error, MAIL_ERROR_EXPUNGED);
+      found = true;
     }
   }
+  EXPECT_TRUE(found);
 
   if (mailbox_search_deinit(&search_ctx) < 0) {
     FAIL() << "search deinit failed";
