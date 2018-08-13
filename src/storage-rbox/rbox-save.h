@@ -65,7 +65,7 @@ class rbox_save_context {
   unsigned int dest_mail_allocated : 1;
 };
 
-int setup_mail_object(struct mail_save_context *_ctx);
+void setup_mail_object(struct mail_save_context *_ctx);
 void rbox_add_to_index(struct mail_save_context *_ctx);
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail);
 void init_output_stream(mail_save_context *_ctx);

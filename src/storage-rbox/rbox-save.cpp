@@ -76,7 +76,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   return t->save_ctx;
 }
 
-int setup_mail_object(struct mail_save_context *_ctx) {
+void setup_mail_object(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
@@ -91,7 +91,7 @@ int setup_mail_object(struct mail_save_context *_ctx) {
   } else {
     guid_128_generate(r_ctx->mail_guid);
   }
-  return 0;
+
   FUNC_END();
 }
 
@@ -335,6 +335,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
     const unsigned int *const keyword_indexes = array_get(&rmail->imail.data.keyword_indexes, &count_keyword_indexes);
 
     // load keywords to rmail->imal.data.keywords
+    // TODO(jrse): is mail_get_keywords really necessary?
     mail_get_keywords(r_ctx->ctx.dest_mail);
     unsigned int count_keywords;
     const char *const *keywords = array_get(&rmail->imail.data.keywords, &count_keywords);
@@ -363,8 +364,8 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
     // try to clean up!
   }
 
-  for (std::vector<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
-       ++it_cur_obj) {
+  for (std::vector<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin();
+       it_cur_obj != r_ctx->rados_mails.end(); ++it_cur_obj) {
     if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
     } else {
@@ -489,8 +490,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
       i_assert(ret);
       if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
         metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-        int ret_val = r_storage->ms->get_storage()->set_metadata(r_ctx->rados_mail, metadata);
-        if (ret_val < 0) {
+        if (r_storage->ms->get_storage()->set_metadata(r_ctx->rados_mail, metadata) < 0) {
           return -1;
         }
       }
@@ -502,11 +502,15 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
 }
 void rbox_save_update_header_flags(struct rbox_save_context *r_ctx, struct mail_index_view *sync_view, uint32_t ext_id,
                                    unsigned int flags_offset) {
-  const void *data;
-  size_t data_size;
-  uint8_t old_flags = 0, flags;
+  const void *data = NULL;
+  size_t data_size = -1;
+  uint8_t old_flags = 0, flags = 0;
 
   mail_index_get_header_ext(sync_view, ext_id, &data, &data_size);
+  if (data == NULL) {
+    i_error("mail_index_get_header_ext failed to load extended heder for ext_id : %d", ext_id);
+    return;
+  }
   if (flags_offset < data_size) {
     old_flags = *((const uint8_t *)data + flags_offset);
   } else {
@@ -552,6 +556,10 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   /* assign UIDs for new messages */
   const struct mail_index_header *hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);
+  if (hdr == NULL) {
+    i_error("mail_index_get_header failed");
+    return -1;
+  }
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_ctx->transaction->changes->saved_uids);
 
   struct seq_range_iter iter;
