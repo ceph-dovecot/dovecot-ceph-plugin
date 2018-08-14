@@ -42,7 +42,9 @@ using ::testing::AtLeast;
 using ::testing::Return;
 
 TEST_F(SyncTest, init) {}
-
+/*
+ * Helper function to copy rados mail and change some xattributes
+ */
 static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
@@ -78,7 +80,12 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
 }
-
+/**
+ * - save mail via regular dovecot api calls
+ * - copy mail with helper function and change xattr. uid
+ * - call mailbox_sync to repair box
+ * - validate number of valid mails in index is 2.
+ */
 TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   const char *message =
       "From: user@domain.org\n"

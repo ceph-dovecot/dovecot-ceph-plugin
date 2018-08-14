@@ -21,7 +21,7 @@
 #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"  // turn off warnings for Dovecot :-(
 #endif
 
-    extern "C" {
+extern "C" {
 #include "lib.h"
 #include "mail-user.h"
 #include "mail-storage.h"
@@ -42,7 +42,9 @@ using ::testing::AtLeast;
 using ::testing::Return;
 
 TEST_F(SyncTest, init) {}
-
+/**
+ * Helper function to copy mail
+ */
 static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
@@ -77,14 +79,14 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
   EXPECT_EQ(ret, 0);
 
-  // const char *metadata_name_guid = "M";
-  // librados::bufferlist list2;
-  // list2.append("abcdefgt");  // different Mailbox guid
-  // ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name_guid, list2);
-  // i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);
 }
-
+/**
+ * - save mail via regular dovecot api calls
+ * - copy mail with helper function (mails will have same xattr uid values
+ * - call mailbox_sync to repair box
+ * - validate number of valid mails in index is 2.
+ */
 TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   const char *message =
       "From: user@domain.org\n"
@@ -111,7 +113,6 @@ TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   }
   mail_cache_file_close(box->cache);
   mailbox_free(&box);
-
 
   box = mailbox_alloc(ns->list, mailbox, MAILBOX_FLAG_IGNORE_ACLS);
 

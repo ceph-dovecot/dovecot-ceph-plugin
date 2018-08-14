@@ -42,7 +42,12 @@ using ::testing::AtLeast;
 using ::testing::Return;
 
 TEST_F(SyncTest, init) {}
-
+/**
+ * - save 3 mails via regular dovecot api calls
+ * - remove one mail from rados storage
+ * - call mailbox_sync to repair box
+ * - validate number of valid mails in index is 2.
+ */
 TEST_F(SyncTest, force_resync_missing_rados_object) {
   const char *message =
       "From: user@domain.org\n"
@@ -82,7 +87,6 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
     i_debug("Message count before = %u", msg_count_before);
     EXPECT_EQ((uint32_t)3, msg_count_before);
 
-
     if (mailbox_sync(box, static_cast<mailbox_sync_flags>(MAILBOX_SYNC_FLAG_FORCE_RESYNC |
                                                           MAILBOX_SYNC_FLAG_FIX_INCONSISTENT)) < 0) {
       i_error("Forcing a resync on mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
@@ -98,7 +102,6 @@ TEST_F(SyncTest, force_resync_missing_rados_object) {
 
   mailbox_free(&box);
 }
-
 
 TEST_F(SyncTest, deinit) {}
 
