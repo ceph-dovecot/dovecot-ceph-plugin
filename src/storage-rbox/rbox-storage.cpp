@@ -417,15 +417,24 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   if (ret == 1) {
     // already connected nothing to do!
     FUNC_END();
+#ifdef DEBUG
+    i_debug("connection to rados already open");
+#endif
     return 0;
   }
   if (ret < 0) {
-    i_error("Error = %d", ret);
+    i_error(
+        "Open rados connection. Error(%d) (pool_name(%s), cluster_name(%s), rados_user_name(%s), "
+        "alt_storage(%d), "
+        "alt_dir(%s) )",
+        ret, rbox->storage->config->get_pool_name().c_str(), rbox->storage->config->get_rados_cluster_name().c_str(),
+        rbox->storage->config->get_rados_username().c_str(), alt_storage, box->list->set.alt_dir);
     return ret;
   }
 
   ret = rbox->storage->config->load_rados_config();
   if (ret == -ENOENT) {  // config does not exist.
+    i_debug("Rados config does not exist, creating default config");
     ret = rbox->storage->config->save_default_rados_config();
   }
   if (ret < 0) {
@@ -837,12 +846,14 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
       storage->set_namespace(config->get_user_ns());
       ret = storage->delete_mail(uid);
       if (ret < 0) {
-        if (ret == -2) {
+        if (ret == -ENOENT) {
 #ifdef DEBUG
-          i_debug("indirect ns object already deleted %d", ret);
+          i_debug("indirect ns object(%s) already deleted error(%d), namespace(%s)", uid.c_str(), ret,
+                  storage->get_namespace().c_str());
 #endif
         } else {
-          i_error("Error deleting ns object %d", ret);
+          i_error("Error deleting ns object(%s) error(%d), namespace(%s)", uid.c_str(), ret,
+                  storage->get_namespace().c_str());
         }
       }
     }
@@ -868,7 +879,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
 
   ret = rbox_open_rados_connection(box, false);
   if (ret < 0) {
-    i_error("Opening rados connection : %d", ret);
+    i_error("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
     return ret;
   }
   if (r_storage->config->is_user_mapping()) {  //

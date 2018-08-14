@@ -46,7 +46,7 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   r_ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
-                 strcmp(mail->box->storage->name, storage_name) == 0;
+                   strcmp(mail->box->storage->name, storage_name) == 0;
 
   int ret = rbox_mail_storage_copy(_ctx, mail);
   // cppcheck-suppress redundantAssignment
@@ -150,12 +150,16 @@ static int get_src_dest_namespace(const struct rbox_storage *r_storage, const st
   }
 
   if (!r_storage->ns_mgr->lookup_key(ns_src_mail1, ns_src)) {
-    i_error("not initialized : ns_src");
+    i_error("namespace manager: lookup_key(ns_src_mail1=%s) failed (user_suffix(%s), public_namespace(%s)",
+            ns_src_mail1.c_str(), r_storage->config->get_user_suffix().c_str(),
+            r_storage->config->get_public_namespace().c_str());
     return -1;
   }
   //  ns_src = "raw mail user";
   if (!r_storage->ns_mgr->lookup_key(ns_dest_mail1, ns_dest)) {
-    i_error("not_initialized : ns_dest");
+    i_error("namespace manager: lookup_key(ns_dest_mail1=%s) failed ( user_suffix(%s), public_namespace(%s)",
+            ns_dest_mail1.c_str(), r_storage->config->get_user_suffix().c_str(),
+            r_storage->config->get_public_namespace().c_str());
     return -1;
   }
   return 0;
@@ -180,7 +184,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
     if (ret_val == -ENOENT) {
       i_warning(
           "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
-          "storage_pool: %s , most likely concurency issue",
+          "storage_pool: %s , most likely concurrency issue => marking mail as expunged",
           ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
           rados_storage->get_pool_name().c_str());
       rbox_mail_set_expunged(rmail);
@@ -229,7 +233,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
     if (ret_val == -ENOENT) {
       i_warning(
           "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
-          "pool_name: %s. most likely due to concurency issues",
+          "pool_name: %s. most likely due to concurency issues => marking mail as expunged",
           ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
           rados_storage->get_pool_name().c_str());
       rbox_mail_set_expunged(rmail);

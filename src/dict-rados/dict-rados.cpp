@@ -155,7 +155,8 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   if (ret < 0) {
     i_free(dict);
     *error_r = t_strdup_printf("Error initializing RadosCluster! %s", strerror(-ret));
-    i_error("%s", *error_r);
+    i_error("Cluster initialization failed with error %s, clustername(%s), rados_username(%s), error_code(%d)",
+            *error_r, clustername.c_str(), username.c_str(), ret);
     return -1;
   }
 
@@ -452,7 +453,7 @@ class rados_dict_transaction_context {
         i_debug("deploy_set_map_value: %s , oid=%s", bl.to_str().c_str(), oid.c_str());
 #endif
         if ((is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()).omap_set(oid, map) < 0) {
-          i_error("unable to set %s", key.c_str());
+          i_error("unable to set key(%s), oid(%s), is_private(%d)", key.c_str(), oid.c_str(), is_private(key));
         }
       }
       set_map.clear();
@@ -495,7 +496,7 @@ class rados_dict_transaction_context {
         i_debug("deploy_unset_map_value key: %s , oid=%s", key.c_str(), oid.c_str());
 #endif
         if ((is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()).omap_rm_keys(oid, keys) < 0) {
-          i_error("unable to unset %s", key.c_str());
+          i_error("unable to unset key(%s), oid(%s), is_private(%d)", key.c_str(), oid.c_str(), is_private(key));
         }
       }
       unset_set.clear();

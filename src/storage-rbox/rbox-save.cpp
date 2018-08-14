@@ -360,16 +360,16 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (r_storage->s->wait_for_rados_operations(r_ctx->rados_mails)) {
-    i_error("Librados waiting for rados operations failed");
-    // try to clean up!
+    i_error("Librados waiting for rados operations failed (mails: %lu), namespace=%s", r_ctx->rados_mails.size(),
+            r_storage->s->get_namespace().c_str());
   }
-
+  // try to clean up!
   for (std::vector<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin();
        it_cur_obj != r_ctx->rados_mails.end(); ++it_cur_obj) {
     if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
     } else {
-      i_error("clean_up_failed: mail object successfully %s removed from objectstore due to previous error",
+      i_error("mail object successfully %s removed from objectstore due to previous error",
               (*it_cur_obj)->get_oid().c_str());
     }
   }
@@ -448,8 +448,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->rados_mail);
       r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->rados_mail, async_write);
       if (r_ctx->failed) {
-        i_error("saved mail: %s failed metadata_count %lu", r_ctx->rados_mail->get_oid().c_str(),
-                r_ctx->rados_mail->get_metadata()->size());
+        i_error("saved mail: %s failed metadata_count %lu, mail_size (%lu)", r_ctx->rados_mail->get_oid().c_str(),
+                r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
       }
       if (r_storage->save_log->is_open()) {
         r_storage->save_log->append(
@@ -538,7 +538,8 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     // delete index entry and delete object if it exist
     // remove entry from index is not successful in rbox_transaction_commit_post
     // clean up will wait for object operation to complete
-    i_error("rados wait_for_rados_operation failed: ");
+    i_error("rbox_transaction_save_commit_pre: rados wait_for_rados_operation failed. Num mails(%lu) ",
+            r_ctx->rados_mails.size());
     rbox_transaction_save_rollback(_ctx);
     return -1;
   }

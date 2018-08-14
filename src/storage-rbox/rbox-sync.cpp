@@ -39,13 +39,6 @@ static int rbox_get_oid_from_index(struct mail_index_view *_sync_view, uint32_t 
     return -1;
   }
   obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
-
-  if (obox_rec == nullptr) {
-    i_error("no index entry for %d, ext_id=%d ", seq, ext_id);
-    /* lost for some reason, give up */
-    FUNC_END_RET("ret == -1");
-    return -1;
-  }
   memcpy(index_oid, obox_rec->oid, sizeof(obox_rec->oid));
   FUNC_END();
   return 0;
@@ -63,7 +56,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
       const struct mail_index_record *rec;
       rec = mail_index_lookup(ctx->sync_view, seq1);
       if (rec == NULL) {
-        i_error("rbox_sync_expunge: mail_index_lookup failed! for %d", seq1);
+        i_error("rbox_sync_expunge: mail_index_lookup failed! for %d uid(%d)", seq1, uid);
         continue;  // skip further processing.
       }
       mail_index_expunge(ctx->trans, seq1);
@@ -96,13 +89,13 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
     const struct mail_index_record *rec;
     rec = mail_index_lookup(ctx->sync_view, seq1);
     if (rec == NULL) {
-      i_error("update_extended_metadata: mail_index_lookup failed! for %d", seq1);
+      i_error("update_extended_metadata: mail_index_lookup failed! for %d, uid(%d)", seq1, uid);
       continue;  // skip further processing.
     }
     bool alt_storage = is_alternate_storage_set(rec->flags) && is_alternate_pool_valid(box);
 
     if (rbox_open_rados_connection(box, alt_storage) < 0) {
-      i_error("rbox_sync_object_expunge: connection to rados failed");
+      i_error("rbox_sync_object_expunge: connection to rados failed. alt_storage(%d)", alt_storage);
       return -1;
     }
     if (alt_storage) {
@@ -124,7 +117,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
         unsigned int count;
         const char *const *keywords = array_get(&ctx->sync_view->index->keywords, &count);
         if (keywords == NULL) {
-          i_error("update_extended_metadata: keywords == NULL");
+          i_error("update_extended_metadata: keywords == NULL , oid(%s), keyword_index(%s)", oid, ext_key.c_str());
           continue;
         }
         std::string key_value = keywords[keyword_idx];
@@ -148,7 +141,7 @@ static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t se
   bool ret = -1;
   // make sure alternative storage is open
   if (rbox_open_rados_connection(box, true) < 0) {
-    i_error("rbox_sync_object_expunge: connection to rados failed");
+    i_error("move_to_alt: connection to rados failed");
     return -1;
   }
   for (; seq1 <= seq2; seq1++) {
@@ -187,12 +180,12 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
     const struct mail_index_record *rec;
     rec = mail_index_lookup(ctx->sync_view, seq1);
     if (rec == NULL) {
-      i_error("update_flags: mail_index_lookup failed! for %d", seq1);
+      i_error("update_flags: mail_index_lookup failed! for %d, uid(%d)", seq1, uid);
       continue;  // skip further processing.
     }
     alt_storage = is_alternate_storage_set(rec->flags) && is_alternate_pool_valid(box);
     if (rbox_open_rados_connection(box, alt_storage) < 0) {
-      i_error("rbox_sync_object_expunge: connection to rados failed");
+      i_error("update_flags: connection to rados failed (alt_storage(%d))", alt_storage);
       return -1;
     }
     if (alt_storage) {
@@ -208,7 +201,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       librmb::RadosMail mail_object;
       mail_object.set_oid(oid);
       if (r_storage->ms->get_storage()->load_metadata(&mail_object) < 0) {
-        i_error("update_flags: load_metadata failed! for %d", seq1);
+        i_error("update_flags: load_metadata failed! for %d, oid(%s)", seq1, oid);
         continue;
       }
       std::string flags_metadata;
@@ -297,10 +290,10 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 
           int ret = move_to_alt(ctx, seq1, seq2, true);
 #ifdef DEBUG
-          i_debug("removeing alt flag! %d", ret);
+          i_debug("Removing alt flag! %d", ret);
 #endif
           if (ret < 0) {
-            i_error("Error moving  seq (%d) to alt storage", seq1);
+            i_error("Error moving seq (%d) to alt storage", seq1);
           }
         } else if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_FLAGS) &&
                    r_storage->config->is_update_attributes() &&
@@ -462,7 +455,8 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
 
   ret_remove = rbox_open_rados_connection(box, stat->item->alt_storage);
   if (ret_remove < 0) {
-    i_error("rbox_sync_object_expunge: connection to rados failed %d", ret_remove);
+    i_error("rbox_sync_object_expunge: connection to rados failed %d, alt_storage(%d), oid(%s)", ret_remove,
+            stat->item->alt_storage, oid);
     FUNC_END();
     return ret_remove;
   }
@@ -470,7 +464,8 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
 
   ret_remove = rados_storage->get_io_ctx().aio_remove(oid, stat->completion);
   if (ret_remove < 0) {
-    i_error("sync: aio_remove failed with %d", ret_remove);
+    i_error("rbox_sync_object_expunge: aio_remove failed with %d oid(%s), alt_storage(%d)", ret_remove, oid,
+            stat->item->alt_storage);
   }
 
   FUNC_END();
