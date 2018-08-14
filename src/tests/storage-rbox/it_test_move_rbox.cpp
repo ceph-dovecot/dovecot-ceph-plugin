@@ -52,8 +52,12 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
+/**
+ * - add mail via regular alloc, save, commit cycle
+ * - move new mail
+ * - evaluate moved object
+ */
+TEST_F(StorageTest, move_mail_test) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;
   struct mail *mail;
@@ -104,7 +108,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
     int ret2 = mailbox_move(&save_ctx, mail);
     EXPECT_EQ(ret2, 0);
-    break;  // only copy one mail.
+    break;  // only move one mail.
   }
 
   if (mailbox_search_deinit(&search_ctx) < 0) {

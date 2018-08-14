@@ -60,7 +60,9 @@ static int test_rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail
 }
 
 TEST_F(StorageTest, init) {}
-
+/**
+ * - Backup mail from rbox_storage with dovecot api calls
+ */
 TEST_F(StorageTest, mail_doveadm_backup_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;

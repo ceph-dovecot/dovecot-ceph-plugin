@@ -52,7 +52,12 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
+/**
+ * - add mail via regular alloc, save, commit cycle
+ * - delete mail from storage
+ * - call copy mail
+ * - evaluate error handling
+ */
 TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;
@@ -73,7 +78,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces);
-
 
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
@@ -130,10 +134,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     iter++;
     msg_count++;
   }
-  // i_debug("load metadat finished");
-  // compare objects
   ASSERT_EQ(1, msg_count);
-
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
 
   mailbox_free(&box);

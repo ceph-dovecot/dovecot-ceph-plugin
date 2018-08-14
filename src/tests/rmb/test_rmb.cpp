@@ -26,6 +26,9 @@ using ::testing::Return;
 using ::testing::_;
 using ::testing::ReturnRef;
 
+/**
+ * test ls string parser
+ */
 TEST(rmb, test_cmd_parser) {
   std::string key = "M";
   std::string key2 = "U";
@@ -55,11 +58,11 @@ TEST(rmb, test_cmd_parser) {
 
   value = "1503393219";
   EXPECT_FALSE(p3->eval(value));
-
-  // value = "1086165760";
-  // EXPECT_TRUE(p3->eval(value));
 }
 
+/**
+ * Test date predicate
+ */
 TEST(rmb1, date_arg) {
   librmb::Predicate *p = new librmb::Predicate();
 
@@ -82,6 +85,9 @@ TEST(rmb1, date_arg) {
   delete p;
 }
 
+/**
+ * Test mailboxTools.savemail
+ */
 TEST(rmb1, save_mail) {
   std::string mbox_guid = "abc";
   librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
@@ -108,7 +114,9 @@ TEST(rmb1, save_mail) {
   EXPECT_EQ(0, ret);
   EXPECT_EQ(0, ret_rm_dir);
 }
-
+/**
+ * Test mailbox Tools constructor
+ */
 TEST(rmb1, path_tests) {
   std::string mbox_guid = "abc";
   librmb::RadosMailBox mbox(mbox_guid, 1, mbox_guid);
@@ -124,6 +132,10 @@ TEST(rmb1, path_tests) {
   librmb::MailboxTools tools3(&mbox, test_path2);
   EXPECT_EQ("abc", tools3.get_mailbox_path());
 }
+/**
+ * Test rmb commands
+ * - search
+ */
 TEST(rmb1, rmb_commands_no_objects_found) {
   librmbtest::RadosStorageMock storage_mock;
   librmbtest::RadosClusterMock cluster_mock;
@@ -142,6 +154,10 @@ TEST(rmb1, rmb_commands_no_objects_found) {
   int ret = rmb_cmd.load_objects(&ms_module_mock, mails, search_string);
   EXPECT_EQ(ret, 0);
 }
+/**
+ * Test rmb commands
+ * - search filter
+ */
 TEST(rmb1, rmb_command_filter_result) {
   librmbtest::RadosStorageMock storage_mock;
   librmbtest::RadosClusterMock cluster_mock;
@@ -236,7 +252,10 @@ TEST(rmb1, rmb_command_filter_result) {
 
   EXPECT_EQ(0, rmb_cmd.query_mail_storage(&mails, &parser, false, false));
 }
-
+/**
+ * Test rmb commands
+ * - ls filter
+ */
 TEST(rmb1, rmb_command_filter_result2) {
   librmbtest::RadosStorageMock storage_mock;
   librmbtest::RadosClusterMock cluster_mock;

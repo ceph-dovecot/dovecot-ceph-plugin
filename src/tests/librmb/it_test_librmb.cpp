@@ -27,15 +27,10 @@
 using ::testing::AtLeast;
 using ::testing::Return;
 
-
-TEST(librmb, mock_test) {
-  librmbtest::RadosClusterMock cluster;
-  librmbtest::RadosStorageMock storage;  // = new RadosStorageMock();
-  EXPECT_CALL(storage, get_max_write_size()).Times(AtLeast(1)).WillOnce(Return(100));
-  int i = storage.get_max_write_size();
-  EXPECT_EQ(i, 100);
-}
-
+/**
+ * Test object split operation
+ *
+ */
 TEST(librmb, split_write_operation) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
@@ -78,7 +73,10 @@ TEST(librmb, split_write_operation) {
   EXPECT_EQ(0, ret_remove);
   EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
 }
-
+/**
+ * Test object split operation
+ *
+ */
 TEST(librmb1, split_write_operation_1) {
   librmb::RadosMail obj;
   obj.get_mail_buffer()->append("HALLO_WELT_");
@@ -122,7 +120,10 @@ TEST(librmb1, split_write_operation_1) {
   EXPECT_EQ(0, ret_remove);
   EXPECT_EQ(1, (int)obj.get_completion_op_map()->size());
 }
-
+/**
+ * Test Rados Metadata type conversion
+ *
+ */
 TEST(librmb1, convert_types) {
   std::string value = "4441c5339f4c9d59523000009c60b9f7";
   librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, value);
@@ -150,7 +151,10 @@ TEST(librmb1, convert_types) {
   attr4.key = "";
   attr4.bl.clear();
 }
-
+/**
+ * Test Storage read_mail
+ *
+ */
 TEST(librmb1, read_mail) {
   librmb::RadosMail obj;
   obj.get_mail_buffer()->append("abcdefghijklmn");
@@ -205,7 +209,10 @@ TEST(librmb1, read_mail) {
 
   delete[] buff;
 }
-
+/**
+ * Test Load Metadata
+ *
+ */
 TEST(librmb, load_metadata) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
@@ -264,7 +271,10 @@ TEST(librmb, load_metadata) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * rados object version behavior
+ *
+ */
 TEST(librmb, AttributeVersions) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
@@ -545,6 +555,9 @@ TEST(librmb, json_ima_3) {
   // tear down
   cluster.deinit();
 }
+/**
+ * Load metadata with default metadata reader
+ */
 TEST(librmb, test_default_metadata_load_attributes) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
@@ -588,26 +601,28 @@ TEST(librmb, test_default_metadata_load_attributes) {
     std::string ext_key = "k_" + keyword;
     librmb::RadosMetadata ext_metadata(ext_key, keyword);
     obj.add_extended_metadata(ext_metadata);
-   }
+  }
 
-   ms.save_metadata(op, &obj);
-   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
-   EXPECT_EQ(ret_storage, 0);
+  ms.save_metadata(op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  EXPECT_EQ(ret_storage, 0);
 
-   // wait for op to finish.
-   storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  // wait for op to finish.
+  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
 
-   librmb::RadosMail obj2;
-   obj2.set_oid("test_ima");
+  librmb::RadosMail obj2;
+  obj2.set_oid("test_ima");
 
-   int a = ms.load_metadata(&obj2);
-   EXPECT_EQ(true, a >= 0);
+  int a = ms.load_metadata(&obj2);
+  EXPECT_EQ(true, a >= 0);
 
-   storage.delete_mail(&obj);
-   // tear down
-   cluster.deinit();
+  storage.delete_mail(&obj);
+  // tear down
+  cluster.deinit();
 }
-
+/**
+ * Test LoadMetadata default reader
+ */
 TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist) {
   librados::IoCtx io_ctx;
 
@@ -635,7 +650,9 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * Test Metadata reader with ima reader
+ */
 TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
   librados::IoCtx io_ctx;
 
@@ -663,7 +680,9 @@ TEST(librmb, test_default_metadata_load_attributes_obj_no_longer_exist_ima) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * Test osd increment
+ */
 TEST(librmb, increment_add_to_non_existing_key) {
   librados::IoCtx io_ctx;
 
@@ -704,6 +723,9 @@ TEST(librmb, increment_add_to_non_existing_key) {
   // tear down
   cluster.deinit();
 }
+/**
+ * Test osd increment
+ */
 TEST(librmb, increment_add_to_non_existing_object) {
   librados::IoCtx io_ctx;
 
@@ -744,6 +766,9 @@ TEST(librmb, increment_add_to_non_existing_object) {
   // tear down
   cluster.deinit();
 }
+/**
+ * Test osd increment
+ */
 TEST(librmb, increment_add_to_existing_key) {
   librados::IoCtx io_ctx;
 
@@ -787,6 +812,9 @@ TEST(librmb, increment_add_to_existing_key) {
   cluster.deinit();
 }
 
+/**
+ * Test osd decrement
+ */
 TEST(librmb, increment_sub_from_existing_key) {
   librados::IoCtx io_ctx;
 
@@ -831,7 +859,9 @@ TEST(librmb, increment_sub_from_existing_key) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * RmbCommands load objects
+ */
 TEST(librmb, rmb_load_objects) {
   librados::IoCtx io_ctx;
 
@@ -887,7 +917,9 @@ TEST(librmb, rmb_load_objects) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * Test RmbCommands load objects
+ */
 TEST(librmb, rmb_load_objects_valid_metadata) {
   librados::IoCtx io_ctx;
 
@@ -911,9 +943,6 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
 
   librmb::RmbCommands rmb_commands(&storage, &cluster, &opts);
 
-  /* update config
-  rmb_commands.configuration(false, ceph_cfg);
-  */
   // load metadata info
   std::string uid;
   librmb::RadosStorageMetadataModule *ms = rmb_commands.init_metadata_storage_module(ceph_cfg, &uid);
@@ -1034,7 +1063,9 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * Test RmbCommands load objects
+ */
 TEST(librmb, rmb_load_objects_invalid_metadata) {
   librados::IoCtx io_ctx;
 
@@ -1058,9 +1089,6 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
 
   librmb::RmbCommands rmb_commands(&storage, &cluster, &opts);
 
-  /* update config
-  rmb_commands.configuration(false, ceph_cfg);
-  */
   // load metadata info
   std::string uid;
   librmb::RadosStorageMetadataModule *ms = rmb_commands.init_metadata_storage_module(ceph_cfg, &uid);
@@ -1179,9 +1207,10 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   // tear down
   cluster.deinit();
 }
-
+/**
+ * Test RmbCommands
+ */
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
-
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -1206,8 +1235,10 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
 
   cluster.deinit();
 }
+/**
+ * Test RmbCommands
+ */
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
-
   std::string pool_name("rmb_tool_tests");
   std::string ns("t1");
 
@@ -1221,6 +1252,9 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_file_not_found) {
   EXPECT_EQ(0, librmb::RmbCommands::delete_with_save_log("test1.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
 }
+/**
+ * Test RmbCommands
+ */
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_file) {
   std::string pool_name("rmb_tool_tests");
   std::string ns("t1");
@@ -1235,6 +1269,9 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_file) {
   EXPECT_EQ(-1, librmb::RmbCommands::delete_with_save_log("test12.log", "ceph", "client.admin", &moved_items));
   std::remove(test_file_name.c_str());
 }
+/**
+ * Test RmbCommands
+ */
 TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
@@ -1270,7 +1307,9 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
   EXPECT_EQ(storage.delete_mail("abc2"), 0);  // check that save log processing does stop at invalid line!
   cluster.deinit();
 }
-
+/**
+ * Test RmbCommands
+ */
 TEST(librmb, move_object_delete_with_save_log) {
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
