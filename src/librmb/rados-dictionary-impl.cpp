@@ -109,7 +109,7 @@ bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
     // error
     loaded = false;
   }
-  
+
   if (username.empty()) {
     username = cfg->get_public_namespace();
   }
@@ -120,18 +120,17 @@ bool RadosDictionaryImpl::lookup_namespace(std::string &username_, librmb::Rados
   if (namespace_mgr == nullptr) {
     namespace_mgr = new librmb::RadosNamespaceManager(cfg_);
   }
-  int ret = 0;
   if (!namespace_mgr->lookup_key(username_, ns)) {
-    ret = namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? 0 : -1;
+    return namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? 0 : -1;
   }
-  return ret == 0;
+  return 0;
 }
 
 librados::IoCtx &RadosDictionaryImpl::get_private_io_ctx() {
   if (!private_io_ctx_created) {
     if (cluster->io_ctx_create(poolname, &private_io_ctx) == 0) {
-      std::string ns;
       if (load_configuration(&private_io_ctx)) {
+        std::string ns;
         std::string user = username + cfg->get_user_suffix();
         lookup_namespace(user, cfg, &ns);
         private_io_ctx_created = true;
@@ -148,7 +147,9 @@ librados::IoCtx &RadosDictionaryImpl::get_io_ctx(const std::string &key) {
   } else if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
     return get_shared_io_ctx();
   }
-  assert(false);
+  assert(false);  // TODO(jrse): in the unlikely case (it's either private or public), io_ctx is not private and not
+                  // public, the return value is
+                  // undefinied in release build!
 }
 
 int RadosDictionaryImpl::get(const string &key, string *value_r) {

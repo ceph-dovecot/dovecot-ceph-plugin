@@ -13,6 +13,7 @@
 
 #include "libdict-rados-plugin.h"
 #include "dict-rados.h"
+#include "macros.h"
 
 const char *dict_rados_plugin_version = DOVECOT_ABI_VERSION;
 

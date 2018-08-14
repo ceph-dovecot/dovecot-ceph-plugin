@@ -168,8 +168,9 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
 }
 
 void rados_dict_deinit(struct dict *_dict) {
-  if (!_dict)
+  if (!_dict) {
     return;
+  }
 
   struct rados_dict *dict = (struct rados_dict *)_dict;
 
@@ -252,7 +253,6 @@ static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, 
       auto it = lc->result_map.find(lc->key);
       if (it != lc->result_map.end()) {
         lc->value = it->second.to_str();
-        // i_debug("rados_dict_lookup_complete_callback('%s')='%s'", it->first.c_str(), lc->value.c_str());
         result.value = lc->value.c_str();
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_DICT_LOOKUP_RESULT_VALUES
         values[0] = lc->value.c_str();
@@ -270,8 +270,6 @@ static void rados_lookup_complete_callback(rados_completion_t comp ATTR_UNUSED, 
         result.ret = RADOS_COMMIT_RET_FAILED;
       }
     }
-
-    // i_debug("rados_dict_lookup_complete_callback(%s) call callback result=%d", lc->key.c_str(), result.ret);
     lc->callback(&result, lc->context);
   }
 
@@ -284,8 +282,6 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
   set<string> keys;
   keys.insert(key);
   auto lc = new rados_dict_lookup_context(d);
-
-  // i_debug("rados_dict_lookup_async(%s)", key);
 
   lc->key = key;
   lc->context = context;
@@ -327,22 +323,17 @@ int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const ch
   *error_r = nullptr;
 
   int err = d->get_io_ctx(key).omap_get_vals_by_keys(d->get_full_oid(key), keys, &result_map);
-  // i_debug("rados_dict_lookup(%s), oid=%s, err=%d", key, d->get_full_oid(key).c_str(), err);
-
   if (err == 0) {
     auto value = result_map.find(key);
     if (value != result_map.end()) {
       *value_r = p_strdup(pool, value->second.to_str().c_str());
-      // i_debug("rados_dict_lookup(%s), err=%d, value_r=%s", key, err, *value_r);
       return RADOS_COMMIT_RET_OK;
     }
   } else if (err < 0 && err != -ENOENT) {
-    // i_error("rados_dict_lookup(%s), err=%d (%s)", key, err, strerror(-err));
     *error_r = NULL;  // t_strdup_printf("omap_get_vals_by_keys(%s) failed: %s", key, strerror(-err));
     return RADOS_COMMIT_RET_FAILED;
   }
 
-  // i_debug("rados_dict_lookup(%s), NOT FOUND, err=%d (%s)", key, err, strerror(-err));
   return RADOS_COMMIT_RET_NOTFOUND;
 }
 
@@ -446,8 +437,9 @@ class rados_dict_transaction_context {
     if (set_map.size() > 0) {
       struct rados_dict *dict = (struct rados_dict *)ctx.dict;
       RadosDictionary *d = dict->d;
-
+#ifdef DEBUG
       i_debug("deploy_set_map: set_map size = %lu", set_map.size());
+#endif
       for (auto it = set_map.begin(); it != set_map.end(); it++) {
         map<string, bufferlist> map;
         bufferlist bl;
@@ -456,7 +448,9 @@ class rados_dict_transaction_context {
         map.insert(pair<string, bufferlist>(key, bl));
 
         std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
+#ifdef DEBUG
         i_debug("deploy_set_map_value: %s , oid=%s", bl.to_str().c_str(), oid.c_str());
+#endif
         if ((is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()).omap_set(oid, map) < 0) {
           i_error("unable to set %s", key.c_str());
         }
@@ -471,7 +465,9 @@ class rados_dict_transaction_context {
 
       RadosDictionary *d = dict->d;
       string old_value = "0";
+#ifdef DEBUG
       i_debug("deploy_atomic_inc_map: atomic_inc_map size = %lu", atomic_inc_map.size());
+#endif
       for (auto it = atomic_inc_map.begin(); it != atomic_inc_map.end() && !atomic_inc_not_found; it++) {
         const string key = it->first;
         std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
@@ -487,14 +483,17 @@ class rados_dict_transaction_context {
     if (unset_set.size() > 0) {
       struct rados_dict *dict = (struct rados_dict *)ctx.dict;
       RadosDictionary *d = dict->d;
-
+#ifdef DEBUG
       i_debug("deploy_unset_set: unset_set size = %lu", unset_set.size());
+#endif
       for (auto it = unset_set.begin(); it != unset_set.end(); it++) {
         set<string> keys;
         const string key = *it;
         keys.insert(key);
         std::string oid = is_private(key) ? d->get_private_oid() : d->get_shared_oid();
+#ifdef DEBUG
         i_debug("deploy_unset_map_value key: %s , oid=%s", key.c_str(), oid.c_str());
+#endif
         if ((is_private(key) ? d->get_private_io_ctx() : d->get_shared_io_ctx()).omap_rm_keys(oid, keys) < 0) {
           i_error("unable to unset %s", key.c_str());
         }
@@ -520,7 +519,6 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
   if (ts != NULL) {
     _ctx->timestamp.tv_sec = t.tv_sec;
     _ctx->timestamp.tv_nsec = t.tv_nsec;
-    // TODO:
     ctx->write_op_private.mtime2(&t);
     ctx->write_op_shared.mtime2(&t);
   }
@@ -540,8 +538,6 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
 {
   rados_dict_transaction_context *ctx = reinterpret_cast<rados_dict_transaction_context *>(_ctx);
   string old_value = "0";
-
-  // i_debug("rados_dict_transaction_commit(): async=%d, user=%s", async, d->get_username().c_str());
 
   ctx->deploy_set_map();
   ctx->deploy_atomic_inc_map();
@@ -588,9 +584,9 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
   const string key(_key);
-
+#ifdef DEBUG
   i_debug("rados_dict_set(%s, %s, oid=%s)", _key, value, d->get_full_oid(key).c_str());
-
+#endif
   _ctx->changed = TRUE;
   ctx->add_set_item(key, value);
 }
@@ -600,9 +596,9 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
   RadosDictionary *d = dict->d;
   const string key(_key);
-
+#ifdef DEBUG
   i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
-
+#endif
   _ctx->changed = TRUE;
   ctx->add_unset_item(key);
 }
@@ -610,9 +606,9 @@ void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
 void rados_dict_atomic_inc(struct dict_transaction_context *_ctx, const char *_key, long long diff) {  // NOLINT
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
   const string key(_key);
-
+#ifdef DEBUG
   i_debug("rados_atomic_inc(%s, %lld)", _key, diff);
-
+#endif
   ctx->add_atomic_inc_item(key, diff);
 }
 
@@ -673,8 +669,9 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
   set<string> shared_keys;
   while (*paths) {
     string key = *paths++;
+#ifdef DEBUG
     i_debug("rados_dict_iterate_init(%s)", key.c_str());
-
+#endif
     if (!key.compare(0, strlen(DICT_PATH_SHARED), DICT_PATH_SHARED)) {
       shared_keys.insert(key);
     } else if (!key.compare(0, strlen(DICT_PATH_PRIVATE), DICT_PATH_PRIVATE)) {
@@ -695,7 +692,9 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
     }
 
     if (private_keys.size() > 0) {
+#ifdef DEBUG
       i_debug("rados_dict_iterate_init(): private query");
+#endif
       private_read_completion = librados::Rados::aio_create_completion();
 
       if (flags & DICT_ITERATE_FLAG_EXACT_KEY) {
@@ -717,12 +716,16 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
       bufferlist bl;
       int err =
           d->get_private_io_ctx().aio_operate(d->get_private_oid(), private_read_completion, &private_read_op, &bl);
+#ifdef DEBUG
       i_debug("rados_dict_iterate_init(): private err=%d(%s)", err, strerror(-err));
+#endif
       iter->failed = err < 0;
     }
 
     if (!iter->failed && shared_keys.size() > 0) {
+#ifdef DEBUG
       i_debug("rados_dict_iterate_init(): shared query");
+#endif
       shared_read_completion = librados::Rados::aio_create_completion();
 
       if (flags & DICT_ITERATE_FLAG_EXACT_KEY) {
@@ -743,19 +746,25 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
 
       bufferlist bl;
       int err = d->get_shared_io_ctx().aio_operate(d->get_shared_oid(), shared_read_completion, &shared_read_op, &bl);
+#ifdef DEBUG
       i_debug("rados_dict_iterate_init(): shared err=%d(%s)", err, strerror(-err));
+#endif
       iter->failed = err < 0;
     }
 
     if (!iter->failed && private_keys.size() > 0) {
       if (!private_read_completion->is_complete()) {
         int err = private_read_completion->wait_for_complete_and_cb();
+#ifdef DEBUG
         i_debug("rados_dict_iterate_init(): priv wait_for_complete_and_cb() err=%d(%s)", err, strerror(-err));
+#endif
         iter->failed = err < 0;
       }
       if (!iter->failed) {
         int err = private_read_completion->get_return_value();
+#ifdef DEBUG
         i_debug("rados_dict_iterate_init(): priv get_return_value() err=%d(%s)", err, strerror(-err));
+#endif
         iter->failed |= err < 0;
       }
     }
@@ -763,19 +772,25 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
     if (!iter->failed && shared_keys.size() > 0) {
       if (!shared_read_completion->is_complete()) {
         int err = shared_read_completion->wait_for_complete_and_cb();
+#ifdef DEBUG
         i_debug("rados_dict_iterate_init(): shared wait_for_complete_and_cb() err=%d(%s)", err, strerror(-err));
+#endif
         iter->failed = err < 0;
       }
       if (!iter->failed) {
         int err = shared_read_completion->get_return_value();
+#ifdef DEBUG
         i_debug("rados_dict_iterate_init(): shared get_return_value() err=%d(%s)", err, strerror(-err));
+#endif
         iter->failed |= err < 0;
       }
     }
 
     if (!iter->failed) {
       for (auto r : iter->results) {
+#ifdef DEBUG
         i_debug("rados_dict_iterate_init(): r_val=%d(%s)", r.rval, strerror(-r.rval));
+#endif
         iter->failed |= (r.rval < 0);
       }
     }
@@ -795,7 +810,9 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
       shared_read_completion = nullptr;
     }
   } else {
+#ifdef DEBUG
     i_debug("rados_dict_iterate_init() no keys");
+#endif
     iter->failed = true;
   }
 
@@ -830,10 +847,10 @@ bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, co
       return ret;
     }
   }
-
+#ifdef DEBUG
   i_debug("rados_dict_iterate() found key='%s', value='%s'", map_iter->first.c_str(),
           map_iter->second.to_str().c_str());
-
+#endif
   p_clear(iter->result_pool);
 
   *key_r = p_strdup(iter->result_pool, map_iter->first.c_str());

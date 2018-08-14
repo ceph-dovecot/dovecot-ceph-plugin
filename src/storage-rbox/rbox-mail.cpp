@@ -31,6 +31,7 @@ extern "C" {
 #include "index-mail.h"
 #include "debug-helper.h"
 #include "limits.h"
+#include "macros.h"
 }
 
 #include "../librmb/rados-mail.h"

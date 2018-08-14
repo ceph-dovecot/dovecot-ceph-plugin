@@ -25,6 +25,7 @@ extern "C" {
 #include "debug-helper.h"
 #include "guid.h"
 #include "mailbox-list-fs.h"
+#include "macros.h"
 }
 
 #include "rbox-mailbox-list-fs.h"
