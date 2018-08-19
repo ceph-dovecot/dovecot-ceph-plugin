@@ -16,24 +16,6 @@
 
 namespace librmb {
 
-std::string user_mapping;
-std::string user_ns;
-std::string user_suffix;
-std::string public_namespace;
-
-std::string mail_attributes;
-std::string update_attributes;
-std::string updateable_attributes;
-
-std::string key_user_mapping;
-std::string key_user_ns;
-std::string key_user_suffix;
-std::string key_public_namespace;
-
-std::string key_mail_attributes;
-std::string key_update_attributes;
-std::string key_updateable_attributes;
-
 RadosCephJsonConfig::RadosCephJsonConfig()
     : cfg_object_name("rbox_cfg"),
       valid(false),
@@ -52,9 +34,7 @@ RadosCephJsonConfig::RadosCephJsonConfig()
       key_update_attributes("rbox_update_attributes"),
       key_updateable_attributes("rbox_updateable_attributes"),
       key_metadata_storage_module("rbox_metadata_storage"),
-      key_metadata_storage_attribute("rbox_storage_metadata_attr")
-
-{
+      key_metadata_storage_attribute("rbox_storage_metadata_attr") {
   set_default_mail_attributes();
   set_default_updateable_attributes();
 }

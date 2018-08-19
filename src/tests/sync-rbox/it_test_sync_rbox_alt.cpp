@@ -90,7 +90,13 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
 
   EXPECT_EQ(ret, 0);
 }
-
+/**
+ * - save mail via regular dovecot api calls
+ * - copy mail with helper function and change xattr. uid
+ * - move mail to alt_storage
+ * - call mailbox_sync to repair box
+ * - validate number of valid mails in index is 2.
+ */
 TEST_F(SyncTest, force_resync_restore_missing_index_entry) {
   const char *message =
       "From: user@domain.org\n"

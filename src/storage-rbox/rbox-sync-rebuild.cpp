@@ -9,12 +9,13 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
-
+#include <list>
 extern "C" {
 #include "dovecot-all.h"
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include "data-stack.h"
 }
 
 #include "rbox-sync-rebuild.h"
@@ -50,13 +51,13 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   // convert oid and guid to
   guid_128_t oid;
   if (guid_128_from_string(oi.c_str(), oid) < 0) {
-    i_error("guid_128 oi.c_str() string %s", oi.c_str());
+    i_error("guid_128 oi.c_str() string (%s), next_uid(%lu)", oi.c_str(), next_uid);
     FUNC_END();
     return -1;
   }
   guid_128_t guid;
   if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
-    i_error("guid_128 xattr_guid string '%s'", xattr_guid.c_str());
+    i_error("guid_128 xattr_guid string '%s', next_uid(%lu)", xattr_guid.c_str(), next_uid);
     FUNC_END();
     return -1;
   }
@@ -102,17 +103,17 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
   }
 
   int found = 0;
-  int ret = 0;
+  int sync_add_objects_ret = 0;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     std::map<std::string, ceph::bufferlist> attrset;
     librmb::RadosMail mail_object;
     mail_object.set_oid((*iter).get_oid());
-    int retx;
+    int load_metadata_ret;
     if (rebuild_ctx->alt_storage) {
       r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
-      retx = r_storage->ms->get_storage()->load_metadata(&mail_object);
+      load_metadata_ret = r_storage->ms->get_storage()->load_metadata(&mail_object);
     } else {
-      retx = r_storage->ms->get_storage()->load_metadata(&mail_object);
+      load_metadata_ret = r_storage->ms->get_storage()->load_metadata(&mail_object);
     }
 
     if (!librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {
@@ -120,9 +121,12 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
       ++iter;
       continue;
     }
-    if (retx >= 0) {
-      ret = rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
-      if (ret < 0) {
+    if (load_metadata_ret >= 0) {
+      sync_add_objects_ret =
+          rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
+      if (sync_add_objects_ret < 0) {
+        i_error("sync_add_object: oid(%s), alt_storage(%s),uid(%d)", (*iter).get_oid().c_str(),
+                rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
         break;
       }
     }
@@ -130,7 +134,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     ++found;
     ++rebuild_ctx->next_uid;
   }
-  if (ret < 0) {
+  if (sync_add_objects_ret < 0) {
     i_error("error rbox_sync_add_objects for mbox %s", ctx->box->name);
     mailbox_set_deleted(ctx->box);
     mail_storage_set_critical(storage, "find mailbox(%s) failed: %m", ctx->box->name);
@@ -148,7 +152,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
   }
 
   FUNC_END();
-  return ret;
+  return sync_add_objects_ret;
 }
 
 void rbox_sync_set_uidvalidity(struct index_rebuild_context *ctx) {
@@ -215,7 +219,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   bool alt_storage = is_alternate_pool_valid(ctx->box);
 
   if (rbox_open_rados_connection(ctx->box, alt_storage) < 0) {
-    i_error("cannot open rados connection");
+    i_error("rbox_sync_index_rebuild_objects: cannot open rados connection");
     FUNC_END();
     return -1;
   }
@@ -274,7 +278,7 @@ static int repair_namespace(struct mail_namespace *ns, bool force) {
       struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
       ret = rbox_sync_index_rebuild(rbox, force);
       if (ret < 0) {
-        i_error("error resync %s", info->vname);
+        i_error("error resync (%s), error(%d), force(%d)", info->vname, ret, force);
       }
       mailbox_free(&box);
     }

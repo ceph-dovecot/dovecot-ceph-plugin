@@ -61,7 +61,10 @@ using ::testing::ReturnRef;
 #endif
 
 TEST_F(StorageTest, init) {}
-
+/**
+ * Error test:
+ * - open_connection to rados will fail with -1 .
+ */
 TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
@@ -153,7 +156,13 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   delete test_obj2;
 }
 
-TEST_F(StorageTest, exec_write_op_fails) {
+/**
+ * Error test:
+ *
+ * - save mail to rados fails.
+ *
+ */
+TEST_F(StorageTest, save_mail_fail_test) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
   struct mailbox *box = mailbox_alloc(ns->list, "INBOX", (mailbox_flags)0);
@@ -190,8 +199,6 @@ TEST_F(StorageTest, exec_write_op_fails) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock, save_mail(_, _, Matcher<bool>(_))).Times(1).WillOnce(Return(false));
-  // EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillOnce(Return(0));
-  // EXPECT_CALL(*storage_mock, read_mail(_, _)).WillOnce(Return(-2));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
   librmb::RadosMail *test_obj2 = new librmb::RadosMail();
@@ -205,8 +212,6 @@ TEST_F(StorageTest, exec_write_op_fails) {
   librmbtest::RadosStorageMetadataMock ms_mock;
   EXPECT_CALL(*ms_p_mock, get_storage()).WillRepeatedly(Return(&ms_mock));
   EXPECT_CALL(ms_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
-
-  // TODO: EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
 
   delete storage->config;
   librmbtest::RadosDovecotCephCfgMock *cfg_mock = new librmbtest::RadosDovecotCephCfgMock();
@@ -272,7 +277,12 @@ TEST_F(StorageTest, exec_write_op_fails) {
   delete test_obj;
   delete test_obj2;
 }
-
+/**
+ * Error test:
+ *
+ * - save mail to rados fails in mailbox_transaction_commit
+ *
+ */
 TEST_F(StorageTest, write_op_fails) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
@@ -310,9 +320,12 @@ TEST_F(StorageTest, write_op_fails) {
   EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
-  // EXPECT_CALL(*storage_mock, save_mail(_, _, Matcher<bool &>(_))).Times(1).WillOnce(Return(true));
-  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(true));
-  //  EXPECT_CALL(*storage_mock, save_mail(Matcher<const std::string &>(_), _)).WillRepeatedly(Return(0));
+
+  // simulate wait_for_rados_operations fail
+  EXPECT_CALL(*storage_mock, wait_for_rados_operations(_))
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(true));  // will set ctx->failed to true
+
   EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _, _))
       .WillRepeatedly(Return(true));
 
@@ -396,7 +409,11 @@ TEST_F(StorageTest, write_op_fails) {
   delete test_obj;
   delete test_obj2;
 }
-
+/**
+ * Error test:
+ *
+ * - copy mail fails due to storage.copy call returns -1
+ */
 TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;
@@ -422,7 +439,6 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
   EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _, _))
       .WillRepeatedly(Return(true));
-  // TODO: EXPECT_CALL(*storage_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
 
   librmb::RadosMail *test_obj_save = new librmb::RadosMail();
   librmb::RadosMail *test_obj_save2 = new librmb::RadosMail();
@@ -465,7 +481,6 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
       .WillOnce(Return(test_object2));
   EXPECT_CALL(*storage_mock_copy, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
 
-  // TODO: EXPECT_CALL(*storage_mock_copy, set_metadata(_, _)).WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock_copy, copy(_, _, _, _, _)).WillRepeatedly(Return(-1));
   EXPECT_CALL(*storage_mock_copy, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
@@ -493,8 +508,6 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
-  // storage->config->set_io_ctx(&storage->s->get_io_ctx());
-  // storage->ns_mgr->set_storage(storage_mock_copy);
 
   if (mailbox_open(box) < 0) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
@@ -536,7 +549,11 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   delete test_object;
   delete test_object2;
 }
-
+/**
+ * Error test:
+ *
+ * - eval copy from input to output stream
+ */
 TEST_F(StorageTest, copy_input_to_output_stream) {
   librados::bufferlist buffer;
   librados::bufferlist buffer_out;

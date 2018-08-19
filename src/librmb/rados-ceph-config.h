@@ -11,6 +11,7 @@
 #ifndef SRC_LIBRMB_RADOS_CEPH_CONFIG_H_
 #define SRC_LIBRMB_RADOS_CEPH_CONFIG_H_
 
+#include <string>
 #include "rados-ceph-json-config.h"
 #include "rados-types.h"
 #include <rados/librados.hpp>
@@ -40,7 +41,7 @@ class RadosCephConfig {
   const std::string &get_public_namespace() const { return config.get_public_namespace(); }
   void set_public_namespace(const std::string &public_namespace_) { config.set_public_namespace(public_namespace_); }
 
-  void set_cfg_object_name(const std::string& cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
+  void set_cfg_object_name(const std::string &cfg_object_name_) { config.set_cfg_object_name(cfg_object_name_); }
   std::string get_cfg_object_name() { return config.get_cfg_object_name(); }
   RadosCephJsonConfig *get_config() { return &config; }
 

@@ -31,6 +31,7 @@ extern "C" {
 #include "index-mail.h"
 #include "debug-helper.h"
 #include "limits.h"
+#include "macros.h"
 }
 
 #include "../librmb/rados-mail.h"
@@ -65,18 +66,15 @@ int rbox_get_index_record(struct mail *_mail) {
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_mail->transaction->box;
 
   if (rmail->last_seq != _mail->seq) {
-    const void *rec_data;
+    const void *rec_data = NULL;
     mail_index_lookup_ext(_mail->transaction->view, _mail->seq, rbox->ext_id, &rec_data, NULL);
-    const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
-
-    if (obox_rec == nullptr) {
-      i_error("no index entry for %d, ext_id=%d ,mail_object->oid='%s'", _mail->seq, rbox->ext_id,
-              rmail->rados_mail->get_oid().c_str());
+    if (rec_data == NULL) {
+      i_error("error mail_index_lookup_ext for mail_seq (%d), ext_id(%d)", _mail->seq, rbox->ext_id);
       /* lost for some reason, give up */
       FUNC_END_RET("ret == -1");
       return -1;
     }
-
+    const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
     memcpy(rmail->index_guid, obox_rec->guid, sizeof(obox_rec->guid));
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
 
@@ -108,10 +106,12 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   struct mail *mail = (struct mail *)rmail;
   struct rbox_storage *r_storage = (struct rbox_storage *)mail->box->storage;
 
+  *value_r = NULL;
+
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
   if (rbox_open_rados_connection(mail->box, alt_storage) < 0) {
-    i_error("ERROR, cannot open rados connection (rbox_mail_metadata_get)");
+    i_error("Cannot open rados connection (rbox_mail_metadata_get)");
     FUNC_END();
     return -1;
   }
@@ -124,12 +124,13 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
+    std::string metadata_key(static_cast<char>(key), 1);
     if (ret_load_metadata == -ENOENT) {
-      i_warning("Errorcode: %d cannot get x_attr from object %s, process %d", ret_load_metadata,
-                rmail->rados_mail->get_oid().c_str(), getpid());
+      i_warning("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata,
+                metadata_key.c_str(), rmail->rados_mail->get_oid().c_str(), getpid());
       rbox_mail_set_expunged(rmail);
     } else {
-      i_error("Errorcode: %d cannot get x_attr from object %s, process %d", ret_load_metadata,
+      i_error("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata, metadata_key.c_str(),
               rmail->rados_mail->get_oid().c_str(), getpid());
     }
     FUNC_END();
@@ -139,6 +140,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   rmail->rados_mail->get_metadata(key, &value);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
+  } else {
+    i_warning("no value for metadata '%c' found ", static_cast<char>(key));
   }
   FUNC_END();
   return 0;
@@ -176,10 +179,15 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     data->received_date = static_cast<time_t>(std::stol(value));
     *date_r = data->received_date;
   } catch (const std::invalid_argument &e) {
-    i_error("invalid value (invalid argument) for received_date %s", value);
+    std::string oid = rmail->rados_mail != nullptr ? rmail->rados_mail->get_oid() : "";
+    i_error("invalid value (invalid argument) for received_date(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
     ret = -1;
   } catch (const std::out_of_range &e) {
-    i_error("invalid value (out of range) for received_date %s", value);
+    std::string oid = rmail->rados_mail != nullptr ? rmail->rados_mail->get_oid() : "";
+    i_error("invalid value (out of range) for received_date(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
+    ret = -1;
     ret = -1;
   }
   i_free(value);
@@ -222,7 +230,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   }
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.
-    uint64_t psize;
+    uint64_t psize = -1;
     if (rados_storage->stat_mail(rmail->rados_mail->get_oid(), &psize, &save_date_rados) < 0) {
       // at least it needs to exist?
       return -1;
@@ -240,7 +248,6 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   struct index_mail_data *data = &rmail->imail.data;
   char *value = NULL;
   *size_r = -1;
-  int ret = 0;
 
   if (index_mail_get_virtual_size(_mail, size_r) == 0) {
     return 0;
@@ -260,18 +267,23 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   }
 
   if (value == NULL) {
-    FUNC_END_RET("ret == -1; mail_object, no xattribute ");
+    FUNC_END_RET("ret == -1; mail_object, no x-attribute ");
     return -1;
   }
 
+  int ret = 0;
   try {
     data->virtual_size = std::stol(value);
     *size_r = data->virtual_size;
   } catch (const std::invalid_argument &e) {
-    i_error("invalid value (invalid argument) for received_date %s", value);
+    std::string oid = rmail->rados_mail != nullptr ? rmail->rados_mail->get_oid() : "";
+    i_error("invalid value (invalid argument) for virtual_size(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
     ret = -1;
   } catch (const std::out_of_range &e) {
-    i_error("invalid value (out of range) for received_date %s", value);
+    std::string oid = rmail->rados_mail != nullptr ? rmail->rados_mail->get_oid() : "";
+    i_error("invalid value (out of range) for virtual_size(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
     ret = -1;
   }
   i_free(value);
@@ -284,10 +296,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
-
+  char *value = NULL;
   *size_r = -1;
 
-  char *value = NULL;
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
     FUNC_END_RET("ret == 0");
     return 0;
@@ -335,10 +346,9 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, const size_t physical_size,
                            struct istream **stream_r) {
   struct mail_private *pmail = &mail->imail.mail;
-  struct istream *input;  // = *stream_r;
   int ret = 0;
 
-  input = i_stream_create_from_bufferlist(buffer, physical_size);
+  struct istream *input = i_stream_create_from_bufferlist(buffer, physical_size);
   i_stream_seek(input, 0);
 
   *stream_r = input;
@@ -377,7 +387,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       // make sure that mail_object is initialized,
       // else create and load guid from index.
       rmail->rados_mail = rados_storage->alloc_rados_mail();
-      rbox_get_index_record(_mail);
+      if (rbox_get_index_record(_mail) < 0) {
+        i_error("Error rbox_get_index uid(%d)", _mail->uid);
+        FUNC_END();
+        return -1;
+      }
     }
     rmail->rados_mail->get_mail_buffer()->clear();
 
@@ -385,25 +399,30 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     int physical_size = rados_storage->read_mail(rmail->rados_mail->get_oid(), rmail->rados_mail->get_mail_buffer());
     if (physical_size < 0) {
       if (physical_size == -ENOENT) {
-        i_warning("Mail not found. %s, ns='%s', process %d", rmail->rados_mail->get_oid().c_str(),
-                  rados_storage->get_namespace().c_str(), getpid());
+        i_warning("Mail not found. %s, ns='%s', process %d, alt_storage(%d) -> marking mail as expunged!",
+                  rmail->rados_mail->get_oid().c_str(), rados_storage->get_namespace().c_str(), getpid(), alt_storage);
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;
       } else {
-        i_error("reading mail return code: %d, oid: %s", physical_size, rmail->rados_mail->get_oid().c_str());
+        i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", physical_size,
+                rmail->rados_mail->get_oid().c_str(), rados_storage->get_namespace().c_str(), alt_storage);
         FUNC_END_RET("ret == -1");
         return -1;
       }
     } else if (physical_size == 0) {
       i_error(
-          "trying to read a mail (size = 0) which is currently copied, moved or stored, returning with error. "
-          "expunging mail");
+          "trying to read a mail(%s) with size = 0, namespace(%s), alt_storage(%d) uid(%d), which is currently copied, "
+          "moved "
+          "or stored, returning with error => "
+          "expunging mail ",
+          rmail->rados_mail->get_oid().c_str(), rados_storage->get_namespace().c_str(), alt_storage, _mail->uid);
       FUNC_END_RET("ret == 0");
       rbox_mail_set_expunged(rmail);
       return -1;
     } else if (physical_size == INT_MAX) {
-      i_error("trying to read a mail with INT_MAX size. ");
+      i_error("trying to read a mail with INT_MAX size. (uid=%d,oid=%s,namespace=%s,alt_storage=%d)", _mail->uid,
+              rmail->rados_mail->get_oid().c_str(), rados_storage->get_namespace().c_str(), alt_storage);
       FUNC_END_RET("ret == -1");
       return -1;
     }
@@ -429,10 +448,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
       reinterpret_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(imail->mail.mail.box));
 
   char *value = NULL;
-  string_t *str;
   unsigned int order = 0;
 
-  str = str_new(imail->mail.data_pool, 64);
+  string_t *str = str_new(imail->mail.data_pool, 64);
   if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
                               ibox->cache_fields[cache_field].idx) > 0) {
     if (cache_field == MAIL_CACHE_POP3_ORDER) {
@@ -464,6 +482,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   } else {
     if (str_to_uint(value, &order) < 0)
       order = 0;
+
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, &order, sizeof(order));
   }
 
@@ -480,6 +499,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
   int ret = 0;
 
+  *value_r = NULL;
   /* keep the UIDL in cache file, otherwise POP3 would open all
      mail files and read the metadata. same for GUIDs if they're
      used. */

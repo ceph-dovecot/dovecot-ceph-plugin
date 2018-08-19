@@ -51,7 +51,11 @@ TEST_F(BackupTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
+/**
+ * - save several mails via regular dovecot save
+ * - delete mail with uid 0 from rados storage
+ * - trigger read and check errorcode is set correctly
+ */
 TEST_F(BackupTest, mail_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
   struct mail *mail;

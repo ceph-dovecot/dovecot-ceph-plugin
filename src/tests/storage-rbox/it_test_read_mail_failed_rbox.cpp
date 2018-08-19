@@ -52,8 +52,14 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
+/**
+ * - adds a mail via the regular alloc, save, commit plugin cycle.
+ * - delete the mail from rados storage
+ * - read the mail via regular dovecot calls
+ * - validate get_stream returns correct error.
+ *
+ */
+TEST_F(StorageTest, read_mail_fails) {
   struct mailbox_transaction_context *desttrans;
   struct mail *mail;
   struct mail_search_context *search_ctx;
@@ -111,9 +117,6 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
     int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
     EXPECT_EQ(ret2, -1);
-    // EXPECT_NE(input, 0);
-    // EXPECT_NE(body_size.physical_size, (uoff_t)0);
-    // EXPECT_NE(hdr_size.physical_size, (uoff_t)0);
     break;
   }
 

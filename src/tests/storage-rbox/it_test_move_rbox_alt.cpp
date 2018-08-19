@@ -54,8 +54,13 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
+/**
+ * - add mail via regular alloc, save, commit cycle
+ * - move new mail
+ * - change storage location of src mail to alt_storage
+ * - evaluate moved object
+ */
+TEST_F(StorageTest, move_mail_from_alt_storage) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;
   struct mail *mail;

@@ -54,7 +54,12 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
+/**
+ * - add mail via regular alloc, save, commit cycle
+ * - change location to alt_storage
+ * - copy mail via dovecot calls
+ * - validate copy
+ */
 TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;

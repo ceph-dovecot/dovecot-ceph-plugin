@@ -67,7 +67,9 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   mailbox_close(box);
   mailbox_free(&box);
 }
-
+/**
+ * - save mail via lda and evaluate saved mail
+ */
 TEST_F(StorageTest, mail_lda_copy_mail_in_inbox) {
   struct mailbox_transaction_context *desttrans;
   struct mail_save_context *save_ctx;

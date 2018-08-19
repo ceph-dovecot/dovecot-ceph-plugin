@@ -17,6 +17,7 @@
 #include "imap-match.h"
 #include "doveadm-settings.h"
 #include "doveadm-mail.h"
+#include "macros.h"
 
 #include "doveadm-rbox-plugin.h"
 
@@ -39,7 +40,6 @@ struct doveadm_cmd doveadm_cmd_rbox[] = {{cmd_rmb_config_show, "rmb config show"
                                          {cmd_rmb_config_create, "rmb config create", NULL},
                                          {cmd_rmb_config_update, "rmb config update", "key=value"},
                                          {cmd_rmb_lspools, "rmb lspools", ""}};
-
 
 void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;

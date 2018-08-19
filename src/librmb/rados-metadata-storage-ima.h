@@ -12,10 +12,15 @@
 #ifndef SRC_LIBRMB_RADOS_METADATA_STORAGE_IMA_H_
 #define SRC_LIBRMB_RADOS_METADATA_STORAGE_IMA_H_
 
+#include <jansson.h>
+#include <list>
+#include <set>
+#include <string>
+#include <map>
+
 #include "rados-ceph-config.h"
 #include "rados-dovecot-ceph-cfg.h"
 #include "rados-metadata-storage-module.h"
-#include <jansson.h>
 
 namespace librmb {
 /*

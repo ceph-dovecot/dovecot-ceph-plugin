@@ -13,7 +13,7 @@
 
 #include "libstorage-rbox-plugin.h"
 #include "rbox-storage.h"
-
+#include "macros.h"
 const char *storage_rbox_plugin_version = DOVECOT_ABI_VERSION;
 
 static int refcount = 0;

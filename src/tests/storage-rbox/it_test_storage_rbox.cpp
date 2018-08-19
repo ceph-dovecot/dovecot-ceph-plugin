@@ -61,6 +61,9 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   mailbox_free(&box);
 }
 
+/**
+ * - adds a mail via the regular alloc, save, commit plugin cycle.
+ */
 TEST_F(StorageTest, mail_save_to_inbox) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
@@ -130,7 +133,13 @@ TEST_F(StorageTest, mail_save_to_inbox) {
   i_stream_unref(&input);
   mailbox_free(&box);
 }
-
+/**
+ *
+ * - adds a mail via the regular alloc, save, commit plugin cycle.
+ * - only save RBOX_METADATA_OLDV1_FLAGS flag as xattribute
+ * - validate mail object xattributes
+ *
+ */
 TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
@@ -181,11 +190,11 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
       }
     } while ((ret = i_stream_read(input)) > 0);
 
-    std::string config_flags = "F";
+    std::string config_flags = "F";  // RBOX_METADATA_OLDV1_FLAGS
     std::string key = "rbox_mail_attributes";
     r_storage->config->update_mail_attributes(config_flags.c_str());
 
-    EXPECT_EQ(ret, -1);
+    EXPECT_EQ(ret, -1);  // i_stream_read(input)
     mdata->flags = MAIL_ANSWERED;
     if (input->stream_errno != 0) {
       FAIL() << "read(msg input) failed: " << i_stream_get_error(input);

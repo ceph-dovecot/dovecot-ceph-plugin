@@ -52,8 +52,15 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   ASSERT_GE(mailbox_open(box), 0);
   mailbox_free(&box);
 }
-
-TEST_F(StorageTest, mail_copy_mail_in_inbox) {
+/**
+ * Adds a mail via the regular alloc, save, commit plugin cycle and
+ * afterwards calls the dovecot read_mail api calls to read the mail
+ * via the plugin read cycle.
+ *
+ * Additionally tests the input and output stream classes,
+ * by comparing the resulting streams.
+ */
+TEST_F(StorageTest, read_mail_test) {
   struct mailbox_transaction_context *desttrans;
   struct mail *mail;
   struct mail_search_context *search_ctx;
@@ -126,10 +133,9 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     do {
       (void)i_stream_read_data(input, &data, &iov.iov_len, 0);
       if (iov.iov_len == 0) {
-
-    if (input->stream_errno != 0)
-      FAIL() << "stream errno";
-    break;
+        if (input->stream_errno != 0)
+          FAIL() << "stream errno";
+        break;
       }
       const char *data_t = reinterpret_cast<const char *>(data);
       std::string tmp(data_t, phy_size);

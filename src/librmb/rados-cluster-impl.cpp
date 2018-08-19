@@ -38,9 +38,7 @@ librados::Rados *RadosClusterImpl::cluster = 0;
 int RadosClusterImpl::cluster_ref_count = 0;
 bool RadosClusterImpl::connected = false;
 
-RadosClusterImpl::RadosClusterImpl() {
-
-}
+RadosClusterImpl::RadosClusterImpl() {}
 
 RadosClusterImpl::~RadosClusterImpl() {}
 
@@ -105,7 +103,7 @@ int RadosClusterImpl::connect() {
   int ret = 0;
   if (RadosClusterImpl::cluster_ref_count > 0 && !RadosClusterImpl::connected) {
     ret = RadosClusterImpl::cluster->connect();
-    RadosClusterImpl::connected = ret == 0;
+    RadosClusterImpl::connected = (ret == 0);
   }
   return ret;
 }
@@ -126,25 +124,26 @@ int RadosClusterImpl::pool_create(const string &pool) {
   // pool exists? else create
 
   int ret = connect();
-  if (ret == 0) {
-    list<pair<int64_t, string>> pool_list;
-    ret = RadosClusterImpl::cluster->pool_list2(pool_list);
+  if (ret < 0) {
+    return ret;
+  }
 
-    if (ret == 0) {
-      bool pool_found = false;
+  list<pair<int64_t, string>> pool_list;
+  ret = RadosClusterImpl::cluster->pool_list2(pool_list);
+  if (ret < 0) {
+    return ret;
+  }
 
-      for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); ++it) {
-        if ((*it).second.compare(pool) == 0) {
-          pool_found = true;
-          break;
-        }
-      }
-
-      if (pool_found != true) {
-        ret = RadosClusterImpl::cluster->pool_create(pool.c_str());
-        pool_found = ret == 0;
-      }
+  bool pool_found = false;
+  for (list<pair<int64_t, string>>::iterator it = pool_list.begin(); it != pool_list.end(); ++it) {
+    if ((*it).second.compare(pool) == 0) {
+      pool_found = true;
+      break;
     }
+  }
+  if (pool_found != true) {
+    ret = RadosClusterImpl::cluster->pool_create(pool.c_str());
+    pool_found = (ret == 0);
   }
 
   return ret;
@@ -157,21 +156,19 @@ int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx)
 
   if (RadosClusterImpl::cluster_ref_count == 0) {
     ret = -ENOENT;
+    return ret;
   }
 
+  ret = connect();
+  if (ret < 0) {
+    return ret;
+  }
+
+  // pool exists? else create
+  ret = pool_create(pool);
   if (ret == 0) {
-    ret = connect();
-
-    if (ret == 0) {
-      // pool exists? else create
-      ret = pool_create(pool);
-    }
-
-    if (ret == 0) {
-      ret = RadosClusterImpl::cluster->ioctx_create(pool.c_str(), *io_ctx);
-    }
+    ret = RadosClusterImpl::cluster->ioctx_create(pool.c_str(), *io_ctx);
   }
-
   return ret;
 }
 

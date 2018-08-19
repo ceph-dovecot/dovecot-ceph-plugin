@@ -57,7 +57,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
-  for (int i = 0; i < div; i++) {
+  for (int i = 0; i < div; ++i) {
     int offset = i * max_write;
 
     op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
@@ -102,8 +102,6 @@ int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *bu
   size_t max = INT_MAX;
   return get_io_ctx().read(oid, *buffer, max, 0);
 }
-
-
 
 int RadosStorageImpl::delete_mail(RadosMail *mail) {
   int ret = -1;
@@ -228,9 +226,9 @@ bool RadosStorageImpl::wait_for_write_operations_complete(
 
 bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::RadosMail *> &object_list) {
   bool ctx_failed = false;
-    // wait for all writes to finish!
-    // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
-    // rbox_transaction_save_commit_pre is called.
+  // wait for all writes to finish!
+  // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
+  // rbox_transaction_save_commit_pre is called.
   for (std::vector<librmb::RadosMail *>::const_iterator it_cur_obj = object_list.begin();
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
@@ -244,7 +242,6 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
   }
   return ctx_failed;
 }
-
 
 // assumes that destination io ctx is current io_ctx;
 int RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
@@ -296,11 +293,11 @@ int RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string
     if (delete_source && strcmp(src_ns, dest_ns) != 0 && ret == 0) {
       ret = src_io_ctx.remove(src_oid);
     }
-    }
-    completion->release();
-    // reset io_ctx
-    dest_io_ctx.set_namespace(dest_ns);
-    return ret;
+  }
+  completion->release();
+  // reset io_ctx
+  dest_io_ctx.set_namespace(dest_ns);
+  return ret;
 }
 
 // assumes that destination io ctx is current io_ctx;
@@ -312,7 +309,6 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
 
   librados::ObjectWriteOperation write_op;
   librados::IoCtx src_io_ctx, dest_io_ctx;
-
 
   // destination io_ctx is current io_ctx
   dest_io_ctx = io_ctx;
@@ -353,8 +349,7 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
 
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
-bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail,
-                                 bool save_async) {
+bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) {
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
@@ -364,17 +359,15 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   write_op_xattr->mtime(mail->get_rados_save_date());
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);
-  if (!save_async) {
-    std::vector<librmb::RadosMail *> objects;
-    objects.push_back(mail);
-    return wait_for_rados_operations(objects);
-  }
   if (ret != 0) {
     write_op_xattr->remove();
     delete write_op_xattr;
     mail->set_active_op(false);
+  } else if (!save_async) {
+    std::vector<librmb::RadosMail *> objects;
+    objects.push_back(mail);
+    return wait_for_rados_operations(objects);
   }
-
   return ret == 0;
 }
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete

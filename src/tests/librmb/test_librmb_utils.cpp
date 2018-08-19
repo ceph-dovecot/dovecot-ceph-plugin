@@ -285,6 +285,18 @@ TEST(librmb, test_mvn_option) {
   std::remove(test_file_name.c_str());
 }
 
+/*TEST(librmb, test_if) {
+  int arr[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+  for (int i = 0; i < 10; ++i) {
+    std::cout << " value: " << arr[i] << std::endl;
+  }
+  for (int i = 0; i < 10; i++) {
+    std::cout << " value: " << arr[i] << std::endl;
+  }
+
+  EXPECT_EQ(1, 2);
+}*/
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);

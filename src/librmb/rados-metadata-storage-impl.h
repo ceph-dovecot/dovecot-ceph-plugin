@@ -12,7 +12,7 @@
 #define SRC_LIBRMB_RADOS_METADATA_STORAGE_IMPL_H_
 
 #include <assert.h> /* assert */
-
+#include <string>
 #include "rados-metadata-storage-module.h"
 #include "rados-metadata-storage-default.h"
 #include "rados-metadata-storage-ima.h"
@@ -58,6 +58,6 @@ class RadosMetadataStorageImpl : public RadosMetadataStorage {
   RadosDovecotCephCfg *cfg;
   RadosStorageMetadataModule *storage;
 };
-}
+}  // namespace librmb
 
-#endif /* SRC_LIBRMB_RADOS_METADATA_STORAGE_IMPL_H_ */
+#endif  // SRC_LIBRMB_RADOS_METADATA_STORAGE_IMPL_H_
