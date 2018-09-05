@@ -16,6 +16,7 @@
 #include <vector>
 
 extern "C" {
+#include "config-local.h"
 #include "lib.h"
 #include "module-dir.h"
 #include "str.h"
@@ -1095,3 +1096,4 @@ int cmd_rmb_config_update(int argc, char *argv[]) {
 }
 
 int cmd_rmb_lspools(int argc, char *argv[]) { return librmb::RmbCommands::RmbCommands::lspools(); }
+int cmd_rmb_version(int argc, char *argv[]) { std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl; }

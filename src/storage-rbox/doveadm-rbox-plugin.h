@@ -42,6 +42,7 @@ extern int cmd_rmb_config_show(int argc, char *argv[]);
 extern int cmd_rmb_config_create(int argc, char *argv[]);
 extern int cmd_rmb_config_update(int argc, char *argv[]);
 extern int cmd_rmb_lspools(int argc, char *argv[]);
+extern int cmd_rmb_version(int argc, char *argv[]);
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);

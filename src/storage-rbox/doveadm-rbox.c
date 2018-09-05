@@ -39,7 +39,8 @@ static struct doveadm_mail_cmd rmb_commands[] = {
 struct doveadm_cmd doveadm_cmd_rbox[] = {{cmd_rmb_config_show, "rmb config show", NULL},
                                          {cmd_rmb_config_create, "rmb config create", NULL},
                                          {cmd_rmb_config_update, "rmb config update", "key=value"},
-                                         {cmd_rmb_lspools, "rmb lspools", ""}};
+                                         {cmd_rmb_lspools, "rmb lspools", ""},
+                                         {cmd_rmb_version, "rmb version", ""}};
 
 void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;
