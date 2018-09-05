@@ -188,4 +188,31 @@
    fun:start_thread
    fun:clone
 }
-
+{
+   <ceph_internal pthread>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:_Znwm
+   fun:_ZNK4ceph6buffer4list6crc32cEj
+   fun:_Z14decode_messageP11CephContextiR15ceph_msg_headerR15ceph_msg_footerRN4ceph6buffer4listES8_S8_P10Connection
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   obj:/usr/lib/x86_64-linux-gnu/ceph/libceph-common.so.0
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
+{
+   <lib ceph common pthread leak>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:memalign
+   fun:posix_memalign
+   fun:_ZN4ceph6buffer25create_aligned_in_mempoolEjji
+   fun:_ZN15AsyncConnection7processEv
+   fun:_ZN11EventCenter14process_eventsEiPNSt6chrono8durationImSt5ratioILl1ELl1000000000EEEE
+   obj:/usr/lib/x86_64-linux-gnu/ceph/libceph-common.so.0
+   obj:/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.24
+   fun:start_thread
+   fun:clone
+}
