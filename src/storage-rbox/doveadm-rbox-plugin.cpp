@@ -118,8 +118,7 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin) {
   plugin->read_doveadm_plugin_configuration();
   int open = plugin->open_connection();
   if (open < 0) {
-    i_error("Error opening rados connection. Errorcode: %d", open);
-    return 0;
+    return open;
   }
   librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin->config))->get_rados_ceph_cfg();
   int ret = cfg->load_cfg();
