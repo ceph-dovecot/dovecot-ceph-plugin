@@ -1,5 +1,26 @@
 # Change Log
 
+## [0.0.13](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.13) (2018-09-05)
+
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.12...0.0.13)
+
+**Implemented enhancements:**
+
+- rbox\_save\_update\_header\_flags before commiting save transaction [\#183](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/183)
+- add changelog file [\#168](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/168)
+
+**Fixed bugs:**
+
+- Thread::try\_create\(\): pthread\_create failed with error 11 [\#188](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/188)
+- doveadm backup \(rbox-\> mdbox\) stops if mailbox index has invalid entries [\#182](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/182)
+
+**Merged pull requests:**
+
+- Jrse cleanup [\#187](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/187) ([jrse](https://github.com/jrse))
+- Jrse \#182 [\#186](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/186) ([jrse](https://github.com/jrse))
+- Update issue templates [\#184](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/184) ([jrse](https://github.com/jrse))
+- Jrse changelog [\#181](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/181) ([jrse](https://github.com/jrse))
+
 ## [0.0.12](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.12) (2018-07-18)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.11...0.0.12)
 
@@ -89,10 +110,6 @@
 ## [0.0.8-cpy-rmb-fix](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.8-cpy-rmb-fix) (2018-05-23)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.8...0.0.8-cpy-rmb-fix)
 
-**Implemented enhancements:**
-
-- Use dbox alternate storage ALT=... as alternate pool name [\#62](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/62)
-
 **Merged pull requests:**
 
 - Fix some smaller issues [\#141](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/141) ([dalgaaf](https://github.com/dalgaaf))
@@ -179,22 +196,12 @@
 - add googletest: read\_mail [\#92](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/92)
 - googletest for copy and move mail [\#80](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/80)
 - read mail, unnecessary stat? [\#79](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/79)
-- copy mail issue, \(copy input stream to output stream\) [\#78](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/78)
-- Remove debug\_print\_...\(\) functions [\#76](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/76)
-- Support Dovecot 2.3.x [\#74](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/74)
-- librmd comand line tool \(basic\) [\#70](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/70)
-- Additional index restore function [\#69](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/69)
-- Add config parameter to save mail flags [\#64](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/64)
 
 **Fixed bugs:**
 
 - copy mail : creating a mail duplicate [\#111](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/111)
 - Quota reached -\> exception  [\#110](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/110)
 - Dictionary and Quota plugin [\#100](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/100)
-- segv in rbox\_save\_begin with Dovecot 2.2.21 [\#73](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/73)
-- delete mailbox with active dict-rados crashes [\#39](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/39)
-- Check lifecycle of rbox\_mail\_alloc [\#37](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/37)
-- bad\_alloc exception while reading / writing huge mails ~26mb from rados into std::string buffer  [\#33](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/33)
 
 **Closed issues:**
 
@@ -209,64 +216,6 @@
 - librmb headers are not installed via 'make install' [\#88](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/88)
 - make distcheck not working [\#86](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/86)
 - make dist does not package all needed files to build [\#82](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/82)
-- integrate googlemock [\#75](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/75)
-- Remove all compiler/linker warnings [\#72](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/72)
-- Inspect source code with valgrind [\#71](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/71)
-- Integrate Google test framework [\#66](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/66)
-- Ensure that Dovecots zlib-plugin is working with storage-rbox [\#63](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/63)
-- doveadm force-resync does not work [\#61](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/61)
-- separate librmb in own git repo [\#60](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/60)
-- build RPM package for SUSE [\#58](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/58)
-- move mail leads to copy -\> expunge  [\#57](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/57)
-- Postpone RADOS cluster initialization to allow lightweight index operations [\#56](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/56)
-- Test doveadm move/copy [\#55](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/55)
-- Add support for Dovecot mailbox settings [\#54](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/54)
-- Test doveadm force-resync [\#53](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/53)
-- Use username as RADOS namespace [\#52](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/52)
-- Save more immutable mail attributes in the mail object  [\#51](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/51)
-- Test doveadm sync mailbox conversion [\#50](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/50)
-- Envelop Changed imaptest failure [\#49](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/49)
-- Change default name for Dict pool to mail\_dictionaries [\#48](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/48)
-- test XATTR \(copy, save\) [\#47](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/47)
-- test ceph-dovecot plugin with dovcot-lda [\#46](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/46)
-- test dovecot-ceph plugin  LMTP [\#45](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/45)
-- Update ceph-dovecot readme [\#44](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/44)
-- imaptest \(imap\) [\#43](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/43)
-- imaptest \(pop3\) [\#42](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/42)
-- Save Xattr data as String \(not binary\) [\#41](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/41)
-- make sure mtime is set correctly \(copy mail\) [\#40](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/40)
-- rados max file size [\#38](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/38)
-- manual tests Delete/Copy/Add Mails [\#36](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/36)
-- analyze sync functionality [\#35](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/35)
--  add  asynchronous \(write\) wait\_for\_completion to appropriate dovecot transaction lifecycle method [\#34](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/34)
-- Write buffer  [\#31](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/31)
-- copy mail [\#30](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/30)
-- delete mail [\#29](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/29)
-- Rename storage-rados module [\#28](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/28)
-- use rados object operations to set / read object xattributes and object data [\#27](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/27)
-- Analyse how index\_mail\_get\_/ set\_physical\_size works [\#26](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/26)
-- get mails physical size from rados if it can not be read from rados [\#25](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/25)
-- use "real" guid to store and read rados objects  [\#24](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/24)
-- delete rados mail object in case transaction abort [\#23](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/23)
-- Write Rados object asynchronous [\#21](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/21)
-- dict-rados - check memory usage [\#19](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/19)
-- Define ceph mailbox datatype [\#17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/17)
-- Define RBox-storage Mail datastructure [\#16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/16)
-- pass ceph configuration to rbox-storage plugin [\#15](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/15)
-- Ceph Day Germany: Begin of November, Frankfurt Area [\#14](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/14)
-- Ceph Day Netherlands: September 20th, EDE [\#13](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/13)
-- Abstract Cephalocon 2017 [\#12](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/12)
-- Research: Index creation obox [\#11](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/11)
-- setup dev/test environment, code: rbox, dict-rados [\#10](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/10)
-- create ceph connection class [\#9](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/9)
-- creation of mail GUIDs [\#8](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/8)
-- research: ceph io context initialisation [\#7](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/7)
-- read mail attributes from rados [\#6](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/6)
-- save mail attributes in rados [\#5](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/5)
-- rbox debug log [\#4](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/4)
-- read rados object [\#3](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/3)
-- Save rados object [\#2](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/2)
-- Test Issue [\#1](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/1)
 
 **Merged pull requests:**
 
@@ -277,11 +226,6 @@
 - ignore some files from the tests subdirectory [\#84](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/84) ([dalgaaf](https://github.com/dalgaaf))
 - add script to generate archive for package build [\#83](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/83) ([dalgaaf](https://github.com/dalgaaf))
 - Travis support [\#81](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/81) ([peter-mauritius](https://github.com/peter-mauritius))
-- add Wido den Hollander to Thanks [\#77](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/77) ([dalgaaf](https://github.com/dalgaaf))
-- Fix some smaller code issues [\#59](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/59) ([dalgaaf](https://github.com/dalgaaf))
-- Some smaller fast fixes [\#32](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/32) ([dalgaaf](https://github.com/dalgaaf))
-- Feature 2 16 -\> code review and merge  [\#22](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/22) ([jrse](https://github.com/jrse))
-- dict-rados works async now, namespace removed [\#18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/18) ([peter-mauritius](https://github.com/peter-mauritius))
 
 
 
