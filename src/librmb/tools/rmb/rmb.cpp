@@ -36,6 +36,7 @@
 #include "rados-dovecot-ceph-cfg-impl.h"
 #include "rados-metadata-storage-default.h"
 #include "rmb-commands.h"
+#include "config-local.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {
   args->insert(args->end(), argv + 1, argv + argc);
@@ -158,7 +159,8 @@ static void usage(std::ostream &out) {
          "   -c    rados cluster name, default: 'ceph'\n"
          "   -u    rados user name, default: 'client.admin' \n"
          "   -D    debug output \n"
-         "   -r    save log with objects to delete => deletes all entries (save,mv,cp) from object store, use with "
+         "   -r    save log with objects to delete => deletes all entries (save,mv,cp) from object store, use with \n"
+         "   -v    print plugin version\n"
          "care!!!! \n "
          "\n"
          "\nMAIL COMMANDS\n"
@@ -216,6 +218,9 @@ static void parse_cmd_line_args(std::map<std::string, std::string> *opts, bool &
   for (i = (*args).begin(); i != (*args).end();) {
     if (ceph_argparse_double_dash(args, &i)) {
       break;
+    } else if (ceph_argparse_flag(*args, i, "-v", "--version", static_cast<char>(NULL))) {
+      std::cout << "Plugin version: " << PACKAGE_VERSION << std::endl;
+      exit(0);
     } else if (ceph_argparse_witharg(args, &i, &val, "-p", "--pool", static_cast<char>(NULL))) {
       (*opts)["pool"] = val;
     } else if (ceph_argparse_witharg(args, &i, &val, "-N", "--namespace", static_cast<char>(NULL))) {
