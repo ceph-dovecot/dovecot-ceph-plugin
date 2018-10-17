@@ -370,7 +370,9 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || rbox->storage->corrupted_rebuild_count != 0 || rbox_refresh_header(rbox, TRUE, FALSE) < 0;
+#ifdef DEBUG
   i_debug("RBOX storage corrupted rebuild count = %d", rbox->storage->corrupted_rebuild_count);
+#endif
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(rbox->box.view);
   // cppcheck-suppress redundantAssignment
@@ -617,14 +619,22 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     uint8_t rbox_sync_flags = 0x0;
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
+#ifdef DEBUG
       i_debug("setting FORCE_REBUILD FLAG");
-    } else {
+#endif
+    }
+#ifdef DEBUG
+    else {
       i_debug("FLAG DOES NOT HAVE FORCE_REBUILD FLAG");
     }
+#endif
     ret = rbox_sync(rbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
-  } else {
+  }
+#ifdef DEBUG
+  else {
     i_debug("NO FLAG EVALUATION");
   }
+#endif
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);
 }
