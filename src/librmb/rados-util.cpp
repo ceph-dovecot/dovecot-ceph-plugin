@@ -156,7 +156,7 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
 }
 
 std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata) {
-  string str_key(1, static_cast<char>(key));
+  string str_key = librmb::rbox_metadata_key_to_char(key);
   return get_metadata(str_key, metadata);
 }
 
@@ -181,7 +181,7 @@ bool RadosUtils::is_numeric_optional(std::string &text) {
   return text.find_first_not_of("0123456789") == std::string::npos;
 }
 
-bool RadosUtils::validate_metadata(map<string, ceph::bufferlist>* metadata) {
+bool RadosUtils::validate_metadata(map<string, ceph::bufferlist> *metadata) {
   string uid = get_metadata(RBOX_METADATA_MAIL_UID, metadata);
   string recv_time_str = get_metadata(RBOX_METADATA_RECEIVED_TIME, metadata);
   string p_size = get_metadata(RBOX_METADATA_PHYSICAL_SIZE, metadata);
@@ -208,8 +208,6 @@ bool RadosUtils::validate_metadata(map<string, ceph::bufferlist>* metadata) {
   test += mailbox_guid.empty() ? 1 : 0;
   test += mail_guid.empty() ? 1 : 0;
   return test == 0;
-
-
 }
 // assumes that destination is open and initialized with uses namespace
 int RadosUtils::move_to_alt(std::string &oid, RadosStorage *primary, RadosStorage *alt_storage,

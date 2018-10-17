@@ -121,7 +121,7 @@ bool RadosDictionaryImpl::lookup_namespace(std::string &username_, librmb::Rados
     namespace_mgr = new librmb::RadosNamespaceManager(cfg_);
   }
   if (!namespace_mgr->lookup_key(username_, ns)) {
-    return namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? 0 : -1;
+    return namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? true : false;
   }
   return 0;
 }

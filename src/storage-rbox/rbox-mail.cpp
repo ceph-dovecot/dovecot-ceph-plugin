@@ -124,14 +124,14 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
-    std::string metadata_key(static_cast<char>(key), 1);
+    std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
     if (ret_load_metadata == -ENOENT) {
-      i_warning("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata,
-                metadata_key.c_str(), rmail->rados_mail->get_oid().c_str(), getpid());
+      i_warning("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
+                metadata_key.c_str(), key, rmail->rados_mail->get_oid().c_str(), getpid());
       rbox_mail_set_expunged(rmail);
     } else {
-      i_error("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata, metadata_key.c_str(),
-              rmail->rados_mail->get_oid().c_str(), getpid());
+      i_error("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
+              metadata_key.c_str(), key, rmail->rados_mail->get_oid().c_str(), getpid());
     }
     FUNC_END();
     return -1;

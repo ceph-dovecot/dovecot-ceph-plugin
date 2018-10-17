@@ -51,7 +51,7 @@ class RadosMail {
   map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
 
   void get_metadata(rbox_metadata_key key, std::string* value) {
-    string str_key(1, static_cast<char>(key));
+    string str_key(librmb::rbox_metadata_key_to_char(key));
     get_metadata(str_key, value);
   }
 

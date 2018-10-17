@@ -57,5 +57,47 @@ enum rbox_metadata_key {
   RBOX_METADATA_OLDV1_SAVE_TIME = 'S',
   RBOX_METADATA_OLDV1_SPACE = ' '
 };
+static const char *rbox_metadata_key_to_char(rbox_metadata_key type) {
+  switch (type) {
+    case RBOX_METADATA_MAILBOX_GUID:
+      return "M";
+    case RBOX_METADATA_GUID:
+      return "G";
+    case RBOX_METADATA_POP3_UIDL:
+      return "P";
+    case RBOX_METADATA_POP3_ORDER:
+      return "O";
+    case RBOX_METADATA_RECEIVED_TIME:
+      return "R";
+    case RBOX_METADATA_PHYSICAL_SIZE:
+      return "Z";
+    case RBOX_METADATA_VIRTUAL_SIZE:
+      return "V";
+    case RBOX_METADATA_EXT_REF:
+      return "X";
+    case RBOX_METADATA_ORIG_MAILBOX:
+      return "B";
+    case RBOX_METADATA_MAIL_UID:
+      return "U";
+    case RBOX_METADATA_VERSION:
+      return "I";
+    case RBOX_METADATA_FROM_ENVELOPE:
+      return "A";
+    case RBOX_METADATA_PVT_FLAGS:
+      return "C";
+    case RBOX_METADATA_OLDV1_EXPUNGED:
+      return "E";
+    case RBOX_METADATA_OLDV1_FLAGS:
+      return "F";
+    case RBOX_METADATA_OLDV1_KEYWORDS:
+      return "K";
+    case RBOX_METADATA_OLDV1_SAVE_TIME:
+      return "S";
+    case RBOX_METADATA_OLDV1_SPACE:
+      return " ";
+    default:
+      return "";
+  }
+}
 }  // namespace
 #endif /* SRC_LIBRMB_RADOS_TYPES_H_ */
