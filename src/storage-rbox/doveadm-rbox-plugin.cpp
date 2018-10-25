@@ -138,7 +138,7 @@ static int open_connection_load_config(RboxDoveadmPlugin *plugin) {
   }
   return ret;
 }
-static int cmd_rmb_config(const std::map<std::string, std::string> &opts) {
+static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
   RboxDoveadmPlugin plugin;
   plugin.read_doveadm_plugin_configuration();
   int open = open_connection_load_config(&plugin);
@@ -449,7 +449,7 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
 
   const struct mail_index_header *hdr = mail_index_get_header(save_ctx->transaction->view);
   uint32_t next_uid, seq = 0;
-  // modify index
+  // modify indexdoveadm-rbox-plugin.cpp:1108:113:
   if (hdr->next_uid != 0) {
     // found a uid;
     next_uid = hdr->next_uid;
@@ -603,7 +603,6 @@ static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct m
     doveadm_rmb_mail_next_user(ctx, &ctx->storage_service_input, cur_service_user, &cur_mail_user, &error,
                                &iter->second);
   }
-
   return 0;
 }
 
@@ -658,7 +657,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
 
     if (it_mail == mail_objects.end()) {
       /*  std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
-                  << " available: " << (it_mail != mail_objects.end()) << std::endl;*/
+                  << " available: " << (it_mail != mail_objects.end()) << std::doveadm-rbox-plugin.cpp:1108:113:endl;*/
       ++mail_count_missing;
     } else {
       (*it_mail)->set_index_ref(true);
@@ -1105,4 +1104,7 @@ int cmd_rmb_config_update(int argc, char *argv[]) {
 }
 
 int cmd_rmb_lspools(int argc, char *argv[]) { return librmb::RmbCommands::RmbCommands::lspools(); }
-int cmd_rmb_version(int argc, char *argv[]) { std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl; }
+int cmd_rmb_version(int argc, char *argv[]) {
+  std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
+  return 0;
+}

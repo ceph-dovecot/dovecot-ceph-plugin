@@ -661,7 +661,7 @@ static void rbox_mailbox_close(struct mailbox *box) {
 #ifdef DEBUG
     i_debug("storage corrupted rebuild count != 0 calling sync");
 #endif
-    (void)rbox_sync(rbox, 0);
+    (void)rbox_sync(rbox, static_cast<enum rbox_sync_flags>(0));
   }
 
   index_storage_mailbox_close(box);
