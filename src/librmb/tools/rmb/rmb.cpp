@@ -36,6 +36,12 @@
 #include "rados-dovecot-ceph-cfg-impl.h"
 #include "rados-metadata-storage-default.h"
 #include "rmb-commands.h"
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_URL
+#undef PACKAGE_VERSION
 #include "config-local.h"
 
 static void argv_to_vec(int argc, const char **argv, std::vector<const char *> *args) {

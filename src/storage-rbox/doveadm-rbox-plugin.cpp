@@ -9,6 +9,7 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
+
 #include <algorithm>
 #include <list>
 #include <map>
@@ -16,7 +17,7 @@
 #include <vector>
 
 extern "C" {
-#include "config-local.h"
+
 #include "lib.h"
 #include "module-dir.h"
 #include "str.h"
@@ -36,6 +37,14 @@ extern "C" {
 #include "doveadm-cmd.h"
 #include "istream.h"
 #include "doveadm-print.h"
+
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_URL
+#undef PACKAGE_VERSION
+#include "config-local.h"
 }
 
 #include "tools/rmb/rmb-commands.h"
