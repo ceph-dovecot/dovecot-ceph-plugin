@@ -138,7 +138,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
 static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, bool inverse) {
   struct mailbox *box = &ctx->rbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  bool ret = -1;
+  int ret = -1;
   // make sure alternative storage is open
   if (rbox_open_rados_connection(box, true) < 0) {
     i_error("move_to_alt: connection to rados failed");

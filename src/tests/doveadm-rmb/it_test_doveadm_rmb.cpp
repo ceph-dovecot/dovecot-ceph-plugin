@@ -9,6 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
+#include <sstream>  // std::stringstream
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "TestCase.h"
@@ -47,8 +48,6 @@ extern "C" {
 #include "doveadm-settings.h"
 #include "mempool.h"
 }
-
-#include <sstream>  // std::stringstream
 
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
@@ -100,9 +99,10 @@ void doveadm_mail_failed_error(struct doveadm_mail_cmd_context *ctx, enum mail_e
 TEST_F(DoveadmTest, init) {}
 
 TEST_F(DoveadmTest, test_doveadm) { ASSERT_EQ(cmd_rmb_lspools(0, NULL), 0); }
-TEST_F(DoveadmTest, test_create_config) { ASSERT_EQ(cmd_rmb_config_create(0, NULL), 0); }
-TEST_F(DoveadmTest, test_show_config) { ASSERT_EQ(cmd_rmb_config_show(0, NULL), 0); }
 
+TEST_F(DoveadmTest, test_create_config) { ASSERT_EQ(cmd_rmb_config_create(0, NULL), 0); }
+/*TEST_F(DoveadmTest, test_show_config) { ASSERT_EQ(cmd_rmb_config_show(0, NULL), 0); }
+*/
 TEST_F(DoveadmTest, test_update_config_invalid_key) {
   /*const char *key = "rmb";
   const char *value = "invalid_key=1";
@@ -116,6 +116,7 @@ TEST_F(DoveadmTest, test_update_config_invalid_key) {
   //  char *argv[] = {key, value};
   int ret = cmd_rmb_config_update(argv.size() - 1, argv.data());
   ASSERT_EQ(ret, -1);
+  i_debug("ok ret val is -1");
 }
 
 TEST_F(DoveadmTest, test_update_config_valid_key) {
@@ -126,6 +127,7 @@ TEST_F(DoveadmTest, test_update_config_valid_key) {
   argv.push_back(nullptr);
   int ret = cmd_rmb_config_update(argv.size() - 1, argv.data());
   ASSERT_EQ(ret, 0);
+  i_debug("ok ret val is 0");
 }
 
 TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
@@ -200,16 +202,11 @@ TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_get_param_check) {
-  std::vector<std::string> arguments = {"-"};
-  std::vector<char *> argv;
-  for (const auto &arg : arguments)
-    argv.push_back((char *)(arg.data()));
-  argv.push_back(nullptr);
-
+  const char *const argv[] = {"-"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_get_alloc();
-  cmd_ctx->args = argv.data();
+  cmd_ctx->args = argv;
   cmd_ctx->iterate_single_user = true;
-  cmd_ctx->v.init(cmd_ctx, argv.data());
+  cmd_ctx->v.init(cmd_ctx, argv);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
   pool_unref(&cmd_ctx->pool);
 }
@@ -249,7 +246,7 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
-  std::vector<std::string> arguments = {"hw2", "B=INBOX2"};
+  std::vector<std::string> arguments = {"hw2", "B2=INBOX2"};
   std::vector<char *> argv;
   for (const auto &arg : arguments)
     argv.push_back((char *)(arg.data()));
@@ -506,6 +503,7 @@ TEST_F(DoveadmTest, cmd_rmb_delete_no_object) {
   ASSERT_EQ(cmd_ctx->exit_code, -2);
   pool_unref(&cmd_ctx->pool);
 }
+
 TEST_F(DoveadmTest, deinit) {}
 
 int main(int argc, char **argv) {
