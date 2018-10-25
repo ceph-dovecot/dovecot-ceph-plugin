@@ -51,13 +51,13 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   // convert oid and guid to
   guid_128_t oid;
   if (guid_128_from_string(oi.c_str(), oid) < 0) {
-    i_error("guid_128 oi.c_str() string (%s), next_uid(%lu)", oi.c_str(), next_uid);
+    i_error("guid_128 oi.c_str() string (%s), next_uid(%d)", oi.c_str(), next_uid);
     FUNC_END();
     return -1;
   }
   guid_128_t guid;
   if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
-    i_error("guid_128 xattr_guid string '%s', next_uid(%lu)", xattr_guid.c_str(), next_uid);
+    i_error("guid_128 xattr_guid string '%s', next_uid(%d)", xattr_guid.c_str(), next_uid);
     FUNC_END();
     return -1;
   }
@@ -125,7 +125,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
       sync_add_objects_ret =
           rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
       if (sync_add_objects_ret < 0) {
-        i_error("sync_add_object: oid(%s), alt_storage(%s),uid(%d)", (*iter).get_oid().c_str(),
+        i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", (*iter).get_oid().c_str(),
                 rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
         break;
       }
@@ -260,13 +260,14 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
   return 0;
 }
 
-static int repair_namespace(struct mail_namespace *ns, bool force) {
+int repair_namespace(struct mail_namespace *ns, bool force) {
   FUNC_START();
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
 
-  iter = mailbox_list_iter_init(ns->list, "*", MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS);
+  iter = mailbox_list_iter_init(ns->list, "*", static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST |
+                                                                                    MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
