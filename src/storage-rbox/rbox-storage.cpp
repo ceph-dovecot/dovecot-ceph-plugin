@@ -424,11 +424,12 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   }
   if (ret < 0) {
     i_error(
-        "Open rados connection. Error(%d) (pool_name(%s), cluster_name(%s), rados_user_name(%s), "
+        "Open rados connection. Error(%d,%s) (pool_name(%s), cluster_name(%s), rados_user_name(%s), "
         "alt_storage(%d), "
         "alt_dir(%s) )",
-        ret, rbox->storage->config->get_pool_name().c_str(), rbox->storage->config->get_rados_cluster_name().c_str(),
-        rbox->storage->config->get_rados_username().c_str(), alt_storage, box->list->set.alt_dir);
+        ret, strerror(ret * -1), rbox->storage->config->get_pool_name().c_str(),
+        rbox->storage->config->get_rados_cluster_name().c_str(), rbox->storage->config->get_rados_username().c_str(),
+        alt_storage, box->list->set.alt_dir);
     return ret;
   }
 

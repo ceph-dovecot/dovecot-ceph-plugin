@@ -474,9 +474,14 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
   return ret_remove;
 }
 
+/**
+ * Expunge callback will be called from librados.
+ * Due to different memory managment it
+ * may be problematic to use the log functions
+ * here e.g. i_debug.
+ */
 static void expunge_cb(rados_completion_t cb, void *arg) {
   if (arg == NULL) {
-    i_error("stat argument is null");
     return;
   }
   AioRemove *stat = static_cast<AioRemove *>(arg);
@@ -487,9 +492,6 @@ static void expunge_cb(rados_completion_t cb, void *arg) {
     if (box->v.sync_notify != NULL) {
       box->v.sync_notify(box, stat->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
     }
-  } else {
-    i_error("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d",
-            guid_128_to_string(stat->item->oid), getpid(), stat->completion->get_return_value());
   }
   delete stat;
 }
