@@ -26,8 +26,7 @@ lib10_doveadm_rbox_plugin_la_CPPFLAGS= \
 	$(LIBDOVECOT_INCLUDE) \
 	$(LIBDOVECOT_STORAGE_INCLUDE) \
 	-I$(top_srcdir)/src/librmb \
-	-I$(top_srcdir)/src/librmb/rmb \
-	-I$(top_srcdir)/src/doveadm
+	-I$(top_srcdir)/src/librmb/tools/rmb 
 
 libstorage_rbox_plugin_la_DEPENDENCIES = $(LIBDOVECOT_DEPS)
 libstorage_rbox_plugin_la_LDFLAGS = -module -avoid-version
