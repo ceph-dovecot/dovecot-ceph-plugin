@@ -19,9 +19,24 @@ extern "C" {
 #endif
 
 #include "dovecot-all.h"
-
+#include "rbox-storage-struct.h"
+/**
+ * @brief create rbox storage
+ * @param[in] storage valid ptr to storage
+ * @param[in] ns valid ptr to namespace
+ * @param[out] error msg in case of error.
+ *
+ * @return linux error code or >=0 if sucessful
+ */
 extern int rbox_storage_create(struct mail_storage *storage, struct mail_namespace *ns, const char **error_r);
+/**
+ * @brief allocate struct mail_storage
+ * @return new mail_storage
+ */
 extern struct mail_storage *rbox_storage_alloc(void);
+/**
+ * @brief destroy mail_storage
+ */
 extern void rbox_storage_destroy(struct mail_storage *storage);
 extern void rbox_storage_get_list_settings(const struct mail_namespace *ns, struct mailbox_list_settings *set);
 extern bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_list_settings *set);
@@ -44,13 +59,6 @@ extern int rbox_storage_mailbox_delete(struct mailbox *box);
 #define RBOX_INDEX_FLAG_ALT MAIL_INDEX_MAIL_FLAG_BACKEND
 
 #define SDBOX_INDEX_HEADER_MIN_SIZE (sizeof(uint32_t))
-struct sdbox_index_header {
-  /* increased every time a full mailbox rebuild is done */
-  uint32_t rebuild_count;
-  guid_128_t mailbox_guid;
-  uint8_t flags; /* enum dbox_index_header_flags */
-  uint8_t unused[3];
-};
 
 struct obox_mail_index_record {
   unsigned char guid[GUID_128_SIZE];

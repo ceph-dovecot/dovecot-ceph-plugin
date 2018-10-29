@@ -12,23 +12,17 @@
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 
-#include "../librmb/rados-cluster-impl.h"
-#include "../librmb/rados-namespace-manager.h"
-#include "../librmb/rados-dovecot-ceph-cfg.h"
-#include "../librmb/rados-storage-impl.h"
-#include "../librmb/rados-metadata-storage-impl.h"
-#include "../librmb/rados-save-log.h"
-
-struct rbox_storage {
-  struct mail_storage storage;
-
-  librmb::RadosCluster* cluster;
-  librmb::RadosStorage *s;
-  librmb::RadosDovecotCephCfg *config;
-  librmb::RadosNamespaceManager *ns_mgr;
-  librmb::RadosMetadataStorage *ms;
-  librmb::RadosStorage *alt;
-  librmb::RadosSaveLog *save_log;
+/**
+ * @brief sdbox_index_header.
+ *
+ * sdbox index header,
+ */
+struct rbox_index_header {
+  /* increased every time a full mailbox rebuild is done */
+  uint32_t rebuild_count;
+  guid_128_t mailbox_guid;
+  uint8_t flags; /* enum dbox_index_header_flags */
+  uint8_t unused[3];
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_

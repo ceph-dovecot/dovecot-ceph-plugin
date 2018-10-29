@@ -339,7 +339,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 static int rbox_refresh_header(struct rbox_mailbox *rbox, bool retry, bool log_error) {
   FUNC_START();
   struct mail_index_view *view;
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   bool need_resize = false;
   int ret = 0;
 

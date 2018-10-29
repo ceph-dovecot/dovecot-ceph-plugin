@@ -555,7 +555,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
   /* update rbox header flags */
   rbox_save_update_header_flags(r_ctx, r_ctx->sync_ctx->sync_view, r_ctx->mbox->hdr_ext_id,
-                                offsetof(struct sdbox_index_header, flags));
+                                offsetof(struct rbox_index_header, flags));
 
   /* assign UIDs for new messages */
   const struct mail_index_header *hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);

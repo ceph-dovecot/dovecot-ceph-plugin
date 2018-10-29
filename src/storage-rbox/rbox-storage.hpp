@@ -30,6 +30,8 @@
 #include "../librmb/rados-metadata-storage-impl.h"
 #include "../librmb/rados-save-log.h"
 
+#include "rbox-storage-struct.h"
+
 struct rbox_storage {
   struct mail_storage storage;
 
@@ -67,7 +69,7 @@ extern int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_
 
 extern struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags);
 extern void rbox_notify_changes(struct mailbox *box);
-extern int rbox_read_header(struct rbox_mailbox *mbox, struct sdbox_index_header *hdr, bool log_error,
+extern int rbox_read_header(struct rbox_mailbox *mbox, struct rbox_index_header *hdr, bool log_error,
                             bool *need_resize_r);
 
 extern int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,

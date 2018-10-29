@@ -263,9 +263,9 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *rbox) {
   if (index_storage_mailbox_alloc_index(&rbox->box) < 0)
     return -1;
 
-  rbox->hdr_ext_id = mail_index_ext_register(rbox->box.index, "dbox-hdr", sizeof(struct sdbox_index_header), 0, 0);
+  rbox->hdr_ext_id = mail_index_ext_register(rbox->box.index, "dbox-hdr", sizeof(struct rbox_index_header), 0, 0);
   /* set the initialization data in case the mailbox is created */
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   i_zero(&hdr);
   guid_128_generate(hdr.mailbox_guid);
   mail_index_set_ext_init_data(rbox->box.index, rbox->hdr_ext_id, &hdr, sizeof(hdr));
@@ -279,7 +279,7 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *rbox) {
   return 0;
 }
 
-int rbox_read_header(struct rbox_mailbox *rbox, struct sdbox_index_header *hdr, bool log_error, bool *need_resize_r) {
+int rbox_read_header(struct rbox_mailbox *rbox, struct rbox_index_header *hdr, bool log_error, bool *need_resize_r) {
   FUNC_START();
   struct mail_index_view *view;
   const void *data;
@@ -473,7 +473,7 @@ static void rbox_update_header(struct rbox_mailbox *rbox, struct mail_index_tran
                                const struct mailbox_update *update) {
   FUNC_START();
 
-  struct sdbox_index_header hdr, new_hdr;
+  struct rbox_index_header hdr, new_hdr;
   bool need_resize;
 
   if (rbox_read_header(rbox, &hdr, TRUE, &need_resize) < 0) {
@@ -595,7 +595,7 @@ int rbox_mailbox_open(struct mailbox *box) {
     return 0;
   }
 
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   i_zero(&hdr);
   /* get/generate mailbox guid */
   if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0) {
@@ -623,7 +623,7 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
 
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   bool need_resize;
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   i_zero(&hdr);
 
   if (rbox_read_header(rbox, &hdr, TRUE, &need_resize) < 0 || hdr.rebuild_count == 0)

@@ -197,7 +197,7 @@ int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_c
 void rbox_sync_update_header(struct index_rebuild_context *ctx) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   bool need_resize;
 
   if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0)
@@ -296,7 +296,7 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force) {
   struct index_rebuild_context *ctx;
   struct mail_index_view *view;
   struct mail_index_transaction *trans;
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   bool need_resize;
   int ret;
   FUNC_START();
