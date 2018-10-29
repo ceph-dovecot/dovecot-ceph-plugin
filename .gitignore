@@ -102,3 +102,6 @@ libtool
 /*.log
 *.rej
 *.orig
+
+#doxygen
+docs-generated/
