@@ -15,6 +15,12 @@
 #include "rados-metadata-storage-module.h"
 
 namespace librmb {
+/**
+ * Rados MetadataStorage
+ *
+ * abstract class to access the metadata storage.
+ *
+ */
 class RadosMetadataStorage {
  public:
   virtual ~RadosMetadataStorage() {}

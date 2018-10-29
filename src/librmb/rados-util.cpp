@@ -168,12 +168,12 @@ std::string RadosUtils::get_metadata(const std::string &key, std::map<std::strin
   return value;
 }
 
-bool RadosUtils::is_numeric(std::string &text) {
+/*bool RadosUtils::is_numeric(std::string &text) {
   if (text.empty()) {
     return false;
   }
   return text.find_first_not_of("0123456789") == std::string::npos;
-}
+}*/
 bool RadosUtils::is_numeric_optional(std::string &text) {
   if (text.empty()) {
     return true;
