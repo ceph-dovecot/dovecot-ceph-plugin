@@ -23,7 +23,12 @@
 #include "rados-metadata.h"
 
 namespace librmb {
-
+/**
+ * RadosSaveLogEntry
+ *
+ * Class provides access to the savelog.format.
+ *
+ */
 class RadosSaveLogEntry {
  public:
   RadosSaveLogEntry() {}
@@ -137,9 +142,7 @@ class RadosSaveLogEntry {
 
 class RadosSaveLog {
  public:
-  explicit RadosSaveLog(const std::string &logfile_) : logfile(logfile_) {
-    log_active = !logfile.empty();
-  }
+  explicit RadosSaveLog(const std::string &logfile_) : logfile(logfile_) { log_active = !logfile.empty(); }
   RadosSaveLog() { log_active = false; }
   void set_save_log_file(const std::string &logfile_) {
     this->logfile = logfile_;

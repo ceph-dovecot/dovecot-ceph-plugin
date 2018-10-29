@@ -18,7 +18,14 @@
 #include "rados-types.h"
 
 namespace librmb {
-
+/**
+ * Rados CephJsonConfig
+ *
+ * Dovecot-Ceph-plugin configuration
+ * Ceph Configuration is json object, class
+ * provides access to json object / Serialize / Deserialize
+ *
+ */
 class RadosCephJsonConfig {
  public:
   RadosCephJsonConfig();

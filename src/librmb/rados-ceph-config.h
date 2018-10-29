@@ -18,7 +18,11 @@
 #include "rados-storage.h"
 
 namespace librmb {
-
+/**
+ * RadosCephConfig
+ *
+ * read Plugin configuration from rados storage
+ */
 class RadosCephConfig {
  public:
   explicit RadosCephConfig(librados::IoCtx *io_ctx_);
@@ -60,7 +64,6 @@ class RadosCephConfig {
 
   const std::string &get_metadata_storage_module() { return config.get_metadata_storage_module(); }
   const std::string &get_metadata_storage_attribute() { return config.get_metadata_storage_attribute(); }
-
 
   const std::string &get_mail_attribute_key() { return config.get_mail_attribute_key(); }
   const std::string &get_updateable_attribute_key() { return config.get_updateable_attribute_key(); }

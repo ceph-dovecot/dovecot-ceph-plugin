@@ -17,6 +17,13 @@
 #include "rados-storage.h"
 namespace librmb {
 
+/**
+ * class RadosDovecotCephCfg
+ *
+ * Abstract interface to the Dovecot-Ceph-plugin configuration.
+ * See project wiki for more details.
+ *
+ */
 class RadosDovecotCephCfg {
  public:
   virtual ~RadosDovecotCephCfg(){};
@@ -63,9 +70,25 @@ class RadosDovecotCephCfg {
   virtual std::string &get_user_suffix() = 0;
   virtual const std::string &get_public_namespace() = 0;
 
+  /*!
+   * Save configuration to objectt
+   * @param[in] unique ident
+   * @param[in] buffer configuration object
+   * * @return linux error codes or 0 if successful
+   */
   virtual int save_object(const std::string &oid, librados::bufferlist &buffer) = 0;
+  /*!
+   * read configuration from object
+   * @param[in] unique ident
+   * @param[out] valid pointer to buffer.
+   * @return linux error codes or 0 if successful
+   */
   virtual int read_object(const std::string &oid, librados::bufferlist *buffer) = 0;
+  /*!
+   * set rados configuration namespace
+   */
   virtual void set_io_ctx_namespace(const std::string &namespace_) = 0;
+
   virtual bool is_rbox_check_empty_mailboxes() = 0;
 };
 
