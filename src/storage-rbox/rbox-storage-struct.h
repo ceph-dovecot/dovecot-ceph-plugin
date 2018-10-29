@@ -13,15 +13,17 @@
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_STRUCT_H_
 
 /**
- * @brief sdbox_index_header.
+ * @brief rbox_index_header.
  *
- * sdbox index header,
+ * rbox index_heder struct.
  */
 struct rbox_index_header {
-  /* increased every time a full mailbox rebuild is done */
+  /** increased every time a full mailbox rebuild is done **/
   uint32_t rebuild_count;
+  /** unique mailbox ident **/
   guid_128_t mailbox_guid;
-  uint8_t flags; /* enum dbox_index_header_flags */
+  /** enum dbox_index_header_flags **/
+  uint8_t flags;
   uint8_t unused[3];
 };
 

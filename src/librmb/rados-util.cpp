@@ -168,7 +168,7 @@ std::string RadosUtils::get_metadata(const std::string &key, std::map<std::strin
   return value;
 }
 
-/*bool RadosUtils::is_numeric(std::string &text) {
+/*  bool RadosUtils::is_numeric(std::string &text) {
   if (text.empty()) {
     return false;
   }
