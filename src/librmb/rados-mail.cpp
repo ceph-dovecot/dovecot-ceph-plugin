@@ -24,10 +24,8 @@ using std::ostringstream;
 using librmb::RadosMail;
 
 const char RadosMail::X_ATTR_VERSION_VALUE[] = "0.1";
-const char RadosMail::DATA_BUFFER_NAME[] = "RADOS_MAIL_BUFFER";
 
-RadosMail::RadosMail()
-    : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
+RadosMail::RadosMail() : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
 
 RadosMail::~RadosMail() {}
 

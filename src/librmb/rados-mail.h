@@ -28,11 +28,16 @@ using std::map;
 using librados::AioCompletion;
 using librados::ObjectWriteOperation;
 
+/**
+ * Rados mail object
+ *
+ * ceph mail representation.
+ *
+ */
 class RadosMail {
  public:
   RadosMail();
   virtual ~RadosMail();
-
   void set_oid(const char* _oid) { this->oid = _oid; }
   void set_oid(const string& _oid) { this->oid = _oid; }
   void set_guid(const uint8_t* guid);
@@ -45,11 +50,22 @@ class RadosMail {
 
   time_t* get_rados_save_date() { return &this->save_date_rados; }
   uint8_t* get_guid_ref() { return this->guid; }
+  /*!
+   * @return ptr to internal buffer .
+   */
   librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
+  /*!
+   * @return reference to all write operations related with this object
+   */
   map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
 
+  /*!
+   * get metadata value
+   * @param[in] key rbox_metadata_key
+   * @param[out] value ptr to valid std::string buffer.
+   */
   void get_metadata(rbox_metadata_key key, std::string* value) {
     string str_key(librmb::rbox_metadata_key_to_char(key));
     get_metadata(str_key, value);
@@ -69,7 +85,15 @@ class RadosMail {
   string to_string(const string& padding);
   void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
 
+  /*!
+   * Some metadata isn't saved as xattribute (default). To access those, get_extended_metadata can
+   * be used.
+   */
   map<string, ceph::bufferlist>* get_extended_metadata() { return &this->extended_attrset; }
+  /*!
+     * Save metadata to extended metadata store currently omap
+     * @param[in] metadata valid radosMetadata.
+     */
   void add_extended_metadata(RadosMetadata& metadata) { extended_attrset[metadata.key] = metadata.bl; }
   const string get_extended_metadata(string& key) {
     string value;
@@ -96,8 +120,8 @@ class RadosMail {
   bool index_ref;
 
  public:
+  /** the xattribute version */
   static const char X_ATTR_VERSION_VALUE[];
-  static const char DATA_BUFFER_NAME[];
 };
 
 }  // namespace librmb

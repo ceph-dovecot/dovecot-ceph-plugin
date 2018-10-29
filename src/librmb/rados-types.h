@@ -14,49 +14,71 @@
 
 namespace librmb {
 #define GUID_128_SIZE 16
-
+/**
+ * The available metadata keys used as rados
+ * omap / xattribute
+ */
 enum rbox_metadata_key {
-  /*
+  /**
    * mailbox global unique id the mail currently is in.
-   */
+   **/
   RBOX_METADATA_MAILBOX_GUID = 'M',
-  /* Globally unique identifier for the message. Preserved when
-     copying. */
+  /** Globally unique identifier for the message. Preserved when
+     copying. **/
   RBOX_METADATA_GUID = 'G',
-  /* POP3 UIDL overriding the default format */
+  /** POP3 UIDL overriding the default format **/
   RBOX_METADATA_POP3_UIDL = 'P',
-  /* POP3 message ordering (for migrated mails) */
+  /** POP3 message ordering (for migrated mails) **/
   RBOX_METADATA_POP3_ORDER = 'O',
-  /* Received UNIX timestamp in hex */
+  /** Received UNIX timestamp in hex **/
   RBOX_METADATA_RECEIVED_TIME = 'R',
-  /* Physical message size in hex. Necessary only if it differs from
+  /** Physical message size in hex. Necessary only if it differs from
      the dbox_message_header.message_size_hex, for example because the
-     message is compressed. */
+     message is compressed. **/
   RBOX_METADATA_PHYSICAL_SIZE = 'Z',
-  /* Virtual message size in hex (line feeds counted as CRLF) */
+  /** Virtual message size in hex (line feeds counted as CRLF) **/
   RBOX_METADATA_VIRTUAL_SIZE = 'V',
-  /* Pointer to external message data. Format is:
-     1*(<start offset> <byte count> <options> <ref>) */
+  /** Pointer to external message data. Format is:
+     1*(<start offset> <byte count> <options> <ref>) **/
   RBOX_METADATA_EXT_REF = 'X',
-  /* Mailbox name where this message was originally saved to.
+  /** Mailbox name where this message was originally saved to.
      When rebuild finds a message whose mailbox is unknown, it's
-     placed to this mailbox. */
+     placed to this mailbox. **/
   RBOX_METADATA_ORIG_MAILBOX = 'B',
-
-  RBOX_METADATA_MAIL_UID = 'U',
-  RBOX_METADATA_VERSION = 'I',
-  /*
-   * Mails from envelope
+  /**
+   * original mail uid.
    */
+  RBOX_METADATA_MAIL_UID = 'U',
+  /**
+   * Metadata version used to store this
+   * object.
+   */
+  RBOX_METADATA_VERSION = 'I',
+  /**
+   * Mails from envelope
+   **/
   RBOX_METADATA_FROM_ENVELOPE = 'A',
+  /**
+   * private flags.
+   */
   RBOX_METADATA_PVT_FLAGS = 'C',
-  /* metadata used by old Dovecot versions */
+  /** metadata used by old Dovecot versions **/
   RBOX_METADATA_OLDV1_EXPUNGED = 'E',
+  /** saved as uint**/
   RBOX_METADATA_OLDV1_FLAGS = 'F',
+  /** list of keywords**/
   RBOX_METADATA_OLDV1_KEYWORDS = 'K',
+  /** additional save time **/
   RBOX_METADATA_OLDV1_SAVE_TIME = 'S',
+  /** currently unused...**/
   RBOX_METADATA_OLDV1_SPACE = ' '
 };
+
+/*!
+ *  Converts the given metadata_key to it's char value.
+ *  @param[in]  type  The rbox_metadata_key instance
+ *  @return cost char* (e.g  type =RBOX_METADATA_MAILBOX_GUID => M)
+ */
 static const char *rbox_metadata_key_to_char(rbox_metadata_key type) {
   switch (type) {
     case RBOX_METADATA_MAILBOX_GUID:

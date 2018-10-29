@@ -18,6 +18,11 @@
 
 namespace librmb {
 
+/**
+ * Rados Dictionary
+ *
+ * Dictionary module (omap values).
+ */
 class RadosDictionary {
  public:
   virtual ~RadosDictionary() {}
@@ -37,6 +42,7 @@ class RadosDictionary {
   virtual void remove_completion(librados::AioCompletion* c) = 0;
   virtual void push_back_completion(librados::AioCompletion* c) = 0;
   virtual void wait_for_completions() = 0;
+
   virtual int get(const std::string& key, std::string* value_r) = 0;
 };
 }  // namespace librmb
