@@ -14,7 +14,11 @@
 
 #ifndef SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
 #define SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_
-
+/**
+ * @brief: creates a istream with a given librados:bufferlist as data buffer.
+ * @param[in] data valid pointer to bufferlist which is avail while istream is avail.
+ * @param[in] size size of initial buffer.
+ */
 struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, const size_t &size);
 
 #endif /* SRC_STORAGE_RBOX_ISTREAM_BUFFERLIST_H_ */

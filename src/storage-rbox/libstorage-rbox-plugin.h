@@ -16,7 +16,13 @@
 #include "dovecot-ceph-plugin-config.h"
 #endif
 
+/**
+ * @brief: storage plugin entry function
+ */
 void storage_rbox_plugin_init(struct module *module);
+/**
+ * @brief: storage plugin exit function
+ */
 void storage_rbox_plugin_deinit(void);
 
 #endif  // SRC_STORAGE_RBOX_LIBSTORAGE_RBOX_PLUGIN_H_
