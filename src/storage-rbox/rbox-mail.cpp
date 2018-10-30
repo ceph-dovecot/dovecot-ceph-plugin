@@ -162,9 +162,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
 
   ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
   if (ret < 0) {
-    if (ret == -ENOENT) {
-      rbox_mail_set_expunged(rmail);
-    } else {
+    if (ret != -ENOENT) {
+      // in rbox_mail_metadata_get mail has already been set as expunged!
       FUNC_END_RET("ret == -1; cannot get received date");
     }
     return -1;
@@ -220,13 +219,10 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
   int ret_val = rados_storage->stat_mail(rmail->rados_mail->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
-    if (ret_val == -ENOENT) {
-      rbox_mail_set_expunged(rmail);
-      return -1;
-    } else {
+    if (ret_val != -ENOENT) {
       FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
-      return -1;
     }
+    return -1;
   }
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.
