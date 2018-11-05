@@ -11,6 +11,7 @@
  */
 #include <string>
 #include <rados/librados.hpp>
+#include <list>
 
 extern "C" {
 #include "dovecot-all.h"
@@ -495,7 +496,8 @@ static void expunge_cb(rados_completion_t cb, void *arg) {
   }
   delete stat;
 }
-static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
+static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx,
+                                           std::list<librados::AioCompletion *> *completions) {
   FUNC_START();
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
@@ -505,8 +507,6 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   items = array_get(&ctx->expunged_items, &count);
 
   if (count > 0) {
-    std::list<librados::AioCompletion *> completions;
-
     moved_items = array_get(&ctx->rbox->moved_items, &moved_count);
     for (unsigned int i = 0; i < count; i++) {
       T_BEGIN {
@@ -523,20 +523,23 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
           AioRemove *stat = new AioRemove();
           stat->ctx = ctx;
           stat->item = item;
-          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), expunge_cb, NULL);
-          completions.push_back(stat->completion);
+          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), NULL, NULL);
+          completions->push_back(stat->completion);
           // make it async!
           rbox_sync_object_expunge(stat);
+
+          // directly notify
+          if (ctx->rbox->box.v.sync_notify != NULL) {
+            ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+          }
         }
       }
       T_END;
     }
-    for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
-      (*it)->wait_for_complete_and_cb();
-      (*it)->release();
+    if (ctx->rbox->box.v.sync_notify != NULL) {
+      ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
     }
   }
-
   FUNC_END();
 }
 
@@ -555,13 +558,16 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       FUNC_END_RET("ret == -1");
       ret = -1;
     } else {
-      if (ctx->rbox->box.v.sync_notify != NULL) {
-        ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
-      }
+      std::list<librados::AioCompletion *> completions;
+      // delete/move objects from mailstorage
+      rbox_sync_expunge_rbox_objects(ctx, &completions);
       // close the view, write changes to index.
       mail_index_view_close(&ctx->sync_view);
-      // delete/move objects from mailstorage
-      rbox_sync_expunge_rbox_objects(ctx);
+
+      for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
+        (*it)->wait_for_complete_and_cb();
+        (*it)->release();
+      }
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
