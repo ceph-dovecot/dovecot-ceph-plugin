@@ -501,10 +501,6 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   struct expunged_item *const *moved_items, *moved_item;
   unsigned int count, moved_count = 0;
 
-  /* NOTE: Index is no longer locked. Mrbox_storage_sync_initultiple processes may be deleting
-     the objects at the same time. */
-  ctx->rbox->box.tmp_sync_view = ctx->sync_view;
-
   // rbox_sync_object_expunge;
   items = array_get(&ctx->expunged_items, &count);
 
@@ -541,11 +537,6 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
     }
   }
 
-  if (ctx->rbox->box.v.sync_notify != NULL) {
-    ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
-  }
-
-  ctx->rbox->box.tmp_sync_view = NULL;
   FUNC_END();
 }
 
@@ -564,8 +555,13 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       FUNC_END_RET("ret == -1");
       ret = -1;
     } else {
-      rbox_sync_expunge_rbox_objects(ctx);
+      if (ctx->rbox->box.v.sync_notify != NULL) {
+        ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
+      }
+      // close the view, write changes to index.
       mail_index_view_close(&ctx->sync_view);
+      // delete/move objects from mailstorage
+      rbox_sync_expunge_rbox_objects(ctx);
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
