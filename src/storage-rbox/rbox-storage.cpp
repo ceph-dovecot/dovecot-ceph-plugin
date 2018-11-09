@@ -324,6 +324,7 @@ static int rbox_open_mailbox(struct mailbox *box) {
   struct stat st;
   int ret = -1;
 
+#ifdef HAVE_ITER_FROM_INDEX_DIR
   if (box->list->set.iter_from_index_dir) {
     /* Just because the index directory exists, it doesn't mean
            that the mailbox is selectable. Check that by seeing if
@@ -339,6 +340,7 @@ static int rbox_open_mailbox(struct mailbox *box) {
     box_path = t_strconcat(box_path, "/", box->index_prefix, ".log", NULL);
     ret = stat(box_path, &st);
   }
+#endif
 
   if (ret < 0) {
     ret = stat(box_path, &st);
