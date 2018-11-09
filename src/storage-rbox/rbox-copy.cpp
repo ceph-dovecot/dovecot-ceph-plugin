@@ -321,25 +321,22 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
 
-    T_BEGIN {
-      librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
-      if (ctx->moving != TRUE) {
-        if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
-          return -1;
-        }
-      }
-      if (ctx->moving) {
-        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
-          return -1;
-        }
-      }
-
-      index_copy_cache_fields(ctx, mail, r_ctx->seq);
-      if (ctx->dest_mail != NULL) {
-        mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
+    if (ctx->moving != TRUE) {
+      if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
+        return -1;
       }
     }
-    T_END;
+    if (ctx->moving) {
+      if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
+        return -1;
+      }
+    }
+
+    index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    if (ctx->dest_mail != NULL) {
+      mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    }
   }
 
   FUNC_END();

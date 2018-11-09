@@ -244,7 +244,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   struct index_mailbox_context *ibox = static_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(&rbox->box));
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
-  ibox = INDEX_STORAGE_CONTEXT(&rbox->box);
+  ibox = RBOX_INDEX_STORAGE_CONTEXT(&rbox->box);
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
   read_plugin_configuration(&rbox->box);
@@ -293,8 +293,7 @@ int rbox_read_header(struct rbox_mailbox *rbox, struct rbox_index_header *hdr, b
   mail_index_get_header_ext(view, rbox->hdr_ext_id, &data, &data_size);
   if (data_size < SDBOX_INDEX_HEADER_MIN_SIZE && (!rbox->box.creating || data_size != 0)) {
     if (log_error) {
-      mail_storage_set_critical(&rbox->storage->storage, "rbox %s: Invalid box header size (%d)",
-                                mailbox_get_path(&rbox->box), data_size);
+      mail_storage_set_critical(&rbox->storage->storage, "rbox %s: Invalid box header", mailbox_get_path(&rbox->box));
     }
     ret = -1;
   } else {
@@ -843,9 +842,8 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(
-        ns->list, "*",
-        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {
