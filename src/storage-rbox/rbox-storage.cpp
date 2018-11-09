@@ -244,6 +244,7 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
   struct index_mailbox_context *ibox = static_cast<index_mailbox_context *>(RBOX_INDEX_STORAGE_CONTEXT(&rbox->box));
   intflags = ibox->index_flags | MAIL_INDEX_OPEN_FLAG_KEEP_BACKUPS | MAIL_INDEX_OPEN_FLAG_NEVER_IN_MEMORY;
+  ibox = INDEX_STORAGE_CONTEXT(&rbox->box);
   ibox->index_flags = static_cast<mail_index_open_flags>(intflags);
 
   read_plugin_configuration(&rbox->box);
@@ -292,8 +293,8 @@ int rbox_read_header(struct rbox_mailbox *rbox, struct rbox_index_header *hdr, b
   mail_index_get_header_ext(view, rbox->hdr_ext_id, &data, &data_size);
   if (data_size < SDBOX_INDEX_HEADER_MIN_SIZE && (!rbox->box.creating || data_size != 0)) {
     if (log_error) {
-      mail_storage_set_critical(&rbox->storage->storage, "sdbox %s: Invalid dbox header size",
-                                mailbox_get_path(&rbox->box));
+      mail_storage_set_critical(&rbox->storage->storage, "rbox %s: Invalid box header size (%d)",
+                                mailbox_get_path(&rbox->box), data_size);
     }
     ret = -1;
   } else {
@@ -313,10 +314,6 @@ int rbox_read_header(struct rbox_mailbox *rbox, struct rbox_index_header *hdr, b
   mail_index_view_close(&view);
   *need_resize_r = data_size < sizeof(*hdr);
 
-#ifdef DEBUG
-  i_debug("rbox_read_header :%d", ret);
-#endif
-
   FUNC_END();
   return ret;
 }
@@ -326,8 +323,28 @@ static int rbox_open_mailbox(struct mailbox *box) {
 
   const char *box_path = mailbox_get_path(box);
   struct stat st;
+  int ret = -1;
 
-  if (stat(box_path, &st) == 0) {
+  if (box->list->set.iter_from_index_dir) {
+    /* Just because the index directory exists, it doesn't mean
+           that the mailbox is selectable. Check that by seeing if
+           dovecot.index.log exists. If it doesn't, fallback to
+           checking for the dbox-Mails in the mail root directory.
+           So this also means that if a mailbox is \NoSelect, listing
+           it will always do a stat() for rbox-Mails in the mail root
+           directory. That's not ideal, but this makes the behavior
+           safer and \NoSelect mailboxes are somewhat rare. */
+    if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &box_path) < 0)
+      return -1;
+    i_assert(box_path != NULL);
+    box_path = t_strconcat(box_path, "/", box->index_prefix, ".log", NULL);
+    ret = stat(box_path, &st);
+  }
+
+  if (ret < 0) {
+    ret = stat(box_path, &st);
+  }
+  if (ret == 0) {
     /* exists, open it */
   } else if (errno == ENOENT) {
     mail_storage_set_error(box->storage, MAIL_ERROR_NOTFOUND, T_MAIL_ERR_MAILBOX_NOT_FOUND(box->vname));
@@ -577,6 +594,7 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 int rbox_mailbox_open(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
+  struct rbox_index_header hdr;
   bool need_resize;
 
   if (rbox_mailbox_alloc_index(rbox) < 0) {
@@ -595,7 +613,6 @@ int rbox_mailbox_open(struct mailbox *box) {
     return 0;
   }
 
-  struct rbox_index_header hdr;
   i_zero(&hdr);
   /* get/generate mailbox guid */
   if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0) {
@@ -706,6 +723,10 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
   const char *alt_path;
   struct stat st;
   int ret;
+  struct mail_index_sync_ctx *sync_ctx;
+  struct mail_index_view *view;
+  struct mail_index_transaction *trans;
+  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
 
   if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
     FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
@@ -718,8 +739,6 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
 
   if (mail_index_get_header(box->view)->uid_validity != 0) {
     mail_storage_set_error(box->storage, MAIL_ERROR_EXISTS, "Mailbox already exists");
-
-    FUNC_END_RET("Mailbox already exists: ret == -1");
     return -1;
   }
 
@@ -746,8 +765,22 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
           update != NULL ? guid_128_to_string(update->mailbox_guid) : "Invalid update");
 #endif
 
+  /* use syncing as a lock */
+  ret = mail_index_sync_begin(box->index, &sync_ctx, &view, &trans, 0);
+  if (ret <= 0) {
+    i_assert(ret != 0);
+    mailbox_set_index_error(box);
+    return -1;
+  }
+  if (mail_index_get_header(view)->uid_validity == 0) {
+    if (rbox_mailbox_create_indexes(box, update, NULL) < 0) {
+      mail_index_sync_rollback(&sync_ctx);
+      return -1;
+    }
+  }
+
   FUNC_END();
-  return rbox_mailbox_create_indexes(box, update, NULL);
+  return mail_index_sync_commit(&sync_ctx);
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
@@ -810,8 +843,9 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
-                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(
+        ns->list, "*",
+        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {

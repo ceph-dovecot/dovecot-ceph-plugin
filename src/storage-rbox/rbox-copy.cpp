@@ -321,22 +321,27 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }
 
-    librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
-    if (ctx->moving != TRUE) {
-      if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
-        return -1;
+    T_BEGIN {
+      librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
+      if (ctx->moving != TRUE) {
+        if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
+          return -1;
+        }
+      }
+      if (ctx->moving) {
+        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
+          return -1;
+        }
+      }
+
+      index_copy_cache_fields(ctx, mail, r_ctx->seq);
+      if (ctx->dest_mail != NULL) {
+        mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
       }
     }
-    if (ctx->moving) {
-      if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
-        return -1;
-      }
-    }
-    index_copy_cache_fields(ctx, mail, r_ctx->seq);
-    if (ctx->dest_mail != NULL) {
-      mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
-    }
+    T_END;
   }
+
   FUNC_END();
   return 0;
 }
@@ -352,12 +357,15 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 #endif
   r_ctx->finished = TRUE;
 
+#if DOVECOT_PREREQ(2, 3)
   if (ctx->data.keywords != NULL) {
     /* keywords gets unreferenced twice: first in
        mailbox_save_cancel()/_finish() and second time in
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
+#endif
+
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
 
