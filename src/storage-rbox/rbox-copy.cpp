@@ -206,9 +206,12 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
         ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
         rados_storage->get_pool_name().c_str());
     FUNC_END_RET("ret == -1, rados_storage->copy failed");
+
     rados_storage->free_rados_mail(r_ctx->rados_mail);
     r_ctx->rados_mail = nullptr;
+
     mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
+
     return -1;
   }
 
@@ -320,25 +323,33 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       FUNC_END_RET("ret == -1, mail_save_copy_default_metadata failed");
       return -1;
     }
-    T_BEGIN {
-      librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
-      if (ctx->moving != TRUE) {
-        if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
-          return -1;
-        }
-      }
-      if (ctx->moving) {
-        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
-          return -1;
-        }
-      }
 
-      index_copy_cache_fields(ctx, mail, r_ctx->seq);
-      if (ctx->dest_mail != NULL) {
-        mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
+    if (ctx->moving != TRUE) {
+      if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
+        FUNC_END_RET("ret == -1, copy mail failed");
+        i_debug("OK FOPY MAIL FAILED");
+        return -1;
       }
     }
-    T_END;
+    if (ctx->moving) {
+      int ret = 0;
+      T_BEGIN {
+        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
+          FUNC_END_RET("ret == -1, move mail failed");
+          ret - 1;
+        }
+      }
+      T_END;
+      if (ret < 0) {
+        return ret;
+      }
+    }
+
+    index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    if (ctx->dest_mail != NULL) {
+      mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
+    }
   }
 
   FUNC_END();
@@ -351,6 +362,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   struct mailbox *dest_mbox = ctx->transaction->box;
 
   FUNC_START();
+
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_COPYING_OR_MOVING
   i_assert(ctx->copying_or_moving);
 #endif
@@ -394,14 +406,15 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   } else {
     if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {
       if (ctx != NULL) {
+        i_debug("FREEING CONTEXT!");
         //  mailbox_save_cancel(&ctx);
         index_save_context_free(ctx);
+        i_debug("FREEING CONTEXT => DONE");
       }
       FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
       return -1;
     }
   }
-
   ctx->unfinished = false;
 
   FUNC_END();
