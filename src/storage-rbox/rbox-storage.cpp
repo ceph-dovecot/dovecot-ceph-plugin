@@ -381,7 +381,7 @@ static int rbox_open_mailbox(struct mailbox *box) {
   return 0;
 }
 
-int read_plugin_configuration(struct mailbox *box) {
+void read_plugin_configuration(struct mailbox *box) {
   FUNC_START();
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
@@ -404,7 +404,6 @@ int read_plugin_configuration(struct mailbox *box) {
   }
 
   FUNC_END();
-  return 0;
 }
 
 bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_ALT) != 0; }
@@ -802,11 +801,9 @@ int rbox_mailbox_get_metadata(struct mailbox *box, enum mailbox_metadata_items i
                               struct mailbox_metadata *metadata_r) {
   FUNC_START();
 
-  if (items != 0) {
-    if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
-      FUNC_END_RET("ret == -1");
-      return -1;
-    }
+  if (index_mailbox_get_metadata(box, items, metadata_r) < 0) {
+    FUNC_END_RET("ret == -1");
+    return -1;
   }
 
   if ((items & MAILBOX_METADATA_GUID) != 0) {
