@@ -27,6 +27,85 @@
 using ::testing::AtLeast;
 using ::testing::Return;
 
+TEST(librmb, convert_enum) {
+  enum librmb::rbox_metadata_key key = librmb::rbox_metadata_key::RBOX_METADATA_GUID;
+
+  std::string metadata_key(librmb::rbox_metadata_key_to_char(key));
+  EXPECT_EQ("G", metadata_key);
+
+  key = librmb::RBOX_METADATA_MAILBOX_GUID;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("M", metadata_key);
+
+  key = librmb::RBOX_METADATA_GUID;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("G", metadata_key);
+
+  key = librmb::RBOX_METADATA_POP3_UIDL;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("P", metadata_key);
+
+  key = librmb::RBOX_METADATA_POP3_ORDER;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("O", metadata_key);
+
+  key = librmb::RBOX_METADATA_RECEIVED_TIME;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("R", metadata_key);
+
+  key = librmb::RBOX_METADATA_PHYSICAL_SIZE;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("Z", metadata_key);
+
+  key = librmb::RBOX_METADATA_VIRTUAL_SIZE;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("V", metadata_key);
+
+  key = librmb::RBOX_METADATA_EXT_REF;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("X", metadata_key);
+
+  key = librmb::RBOX_METADATA_ORIG_MAILBOX;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("B", metadata_key);
+
+  key = librmb::RBOX_METADATA_MAIL_UID;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("U", metadata_key);
+
+  key = librmb::RBOX_METADATA_VERSION;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("I", metadata_key);
+
+  key = librmb::RBOX_METADATA_FROM_ENVELOPE;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("A", metadata_key);
+
+  key = librmb::RBOX_METADATA_PVT_FLAGS;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("C", metadata_key);
+
+  key = librmb::RBOX_METADATA_OLDV1_EXPUNGED;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("E", metadata_key);
+
+  key = librmb::RBOX_METADATA_OLDV1_FLAGS;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("F", metadata_key);
+
+  key = librmb::RBOX_METADATA_OLDV1_KEYWORDS;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("K", metadata_key);
+
+  key = librmb::RBOX_METADATA_OLDV1_SAVE_TIME;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ("S", metadata_key);
+
+  key = librmb::RBOX_METADATA_OLDV1_SPACE;
+  metadata_key = librmb::rbox_metadata_key_to_char(key);
+  EXPECT_EQ(" ", metadata_key);
+}
+
 TEST(librmb, utils_convert_str_to_time) {
   time_t test_time;
   // %Y-%m-%d %H:%M:%S

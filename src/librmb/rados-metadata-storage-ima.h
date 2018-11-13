@@ -23,7 +23,7 @@
 #include "rados-metadata-storage-module.h"
 
 namespace librmb {
-/*
+/**
  *  All immutable mail attributes are saved in one rados
  *  attribute. The value of the attribute is a json format
  *

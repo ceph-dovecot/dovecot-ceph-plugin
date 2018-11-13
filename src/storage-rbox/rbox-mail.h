@@ -16,12 +16,15 @@
 #include <rados/librados.hpp>
 #include "../librmb/rados-mail.h"
 
+/**
+ * @brief: holds the rados mail object.
+ */
 struct rbox_mail {
   struct index_mail imail;
 
   guid_128_t index_guid;
   guid_128_t index_oid;
-
+  /** refrence to rados mail object **/
   librmb::RadosMail *rados_mail;
   uint32_t last_seq;  // TODO(jrse): init with -1
 };

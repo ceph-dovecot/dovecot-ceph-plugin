@@ -18,8 +18,17 @@
 #include "rados-guid-generator.h"
 namespace librmb {
 
+/**
+ * Rados Namespace Manager
+ *
+ * Get Users Namespace based on configuration
+ *
+ */
 class RadosNamespaceManager {
  public:
+  /*!
+   * @param[in] config_ valid radosDovecotCephCfg.
+   */
   explicit RadosNamespaceManager(RadosDovecotCephCfg *config_) : oid_suffix("_namespace"), config(config_) {}
   virtual ~RadosNamespaceManager();
   void set_config(RadosDovecotCephCfg *config_) { config = config_; }

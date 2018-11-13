@@ -63,25 +63,12 @@ enum rados_commit_ret {
   RADOS_COMMIT_RET_FAILED = -1,
 };
 
-static const char *OMAP_KEY_PRIVATE = "priv/key";
-static const char *OMAP_VALUE_PRIVATE = "PRIVATE";
-static const char *OMAP_KEY_SHARED = "shared/key";
-static const char *OMAP_VALUE_SHARED = "SHARED";
-
-static const char *OMAP_KEY_ATOMIC_INC = "priv/atomic_inc";
-static const char *OMAP_KEY_ATOMIC_INC_NOT_FOUND = "priv/atomic_inc_not_found";
-
-static const char *OMAP_ITERATE_EXACT_KEYS[] = {"priv/K1", "priv/K2", "priv/K3", "priv/K4", "shared/S1", NULL};
-static const char *OMAP_ITERATE_EXACT_VALUES[] = {"V1", "V2", "V3", "V4", "VS1", NULL};
-
 static const char *OMAP_ITERATE_KEYS[] = {"priv/A1",    "priv/A1/B1", "priv/A/B1/C1", "priv/A1/B1/C2",
                                           "priv/A1/B2", "priv/A2",    "shared/S1",    NULL};
 static const char *OMAP_ITERATE_VALUES[] = {"V-A1",    "V-A1/B1", "V-A/B1/C1", "V-A1/B1/C2",
                                             "V-A1/B2", "V-A2",    "V-S1",      NULL};
 static const char *OMAP_ITERATE_KEY[] = {"priv/A1/", "shared/S1", NULL};
 static const char *OMAP_ITERATE_RESULTS[] = {"V-A1/B1", "V-A1/B2", "V-S1", NULL};
-
-static const char *OMAP_ITERATE_REC_RESULTS[] = {"V-A1/B1", "V-A1/B1/C2", "V-A1/B2", "V-S1", NULL};
 
 extern struct dict dict_driver_rados;
 static struct dict_settings *set;
@@ -117,7 +104,6 @@ TEST_F(DictTest, iterate) {
   }
   EXPECT_EQ(i, 3);
   ASSERT_EQ(dict_iterate_deinit(&iter, &error_r), 0);
-
 }
 
 TEST_F(DictTest, deinit) {

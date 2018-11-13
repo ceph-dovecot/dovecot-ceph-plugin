@@ -11,6 +11,7 @@
  */
 #include <string>
 #include <rados/librados.hpp>
+#include <list>
 
 extern "C" {
 #include "dovecot-all.h"
@@ -138,7 +139,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
 static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t seq2, bool inverse) {
   struct mailbox *box = &ctx->rbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  bool ret = -1;
+  int ret = -1;
   // make sure alternative storage is open
   if (rbox_open_rados_connection(box, true) < 0) {
     i_error("move_to_alt: connection to rados failed");
@@ -339,7 +340,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 static int rbox_refresh_header(struct rbox_mailbox *rbox, bool retry, bool log_error) {
   FUNC_START();
   struct mail_index_view *view;
-  struct sdbox_index_header hdr;
+  struct rbox_index_header hdr;
   bool need_resize = false;
   int ret = 0;
 
@@ -370,7 +371,9 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
 
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || rbox->storage->corrupted_rebuild_count != 0 || rbox_refresh_header(rbox, TRUE, FALSE) < 0;
+#ifdef DEBUG
   i_debug("RBOX storage corrupted rebuild count = %d", rbox->storage->corrupted_rebuild_count);
+#endif
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(rbox->box.view);
   // cppcheck-suppress redundantAssignment
@@ -472,9 +475,14 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
   return ret_remove;
 }
 
+/**
+ * Expunge callback will be called from librados.
+ * Due to different memory managment it
+ * may be problematic to use the log functions
+ * here e.g. i_debug.
+ */
 static void expunge_cb(rados_completion_t cb, void *arg) {
   if (arg == NULL) {
-    i_error("stat argument is null");
     return;
   }
   AioRemove *stat = static_cast<AioRemove *>(arg);
@@ -485,28 +493,20 @@ static void expunge_cb(rados_completion_t cb, void *arg) {
     if (box->v.sync_notify != NULL) {
       box->v.sync_notify(box, stat->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
     }
-  } else {
-    i_error("sync: object expunged: oid=%s, process-id=%d, delete_mail return value= %d",
-            guid_128_to_string(stat->item->oid), getpid(), stat->completion->get_return_value());
   }
   delete stat;
 }
-static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
+static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx,
+                                           std::list<librados::AioCompletion *> *completions) {
   FUNC_START();
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
   unsigned int count, moved_count = 0;
 
-  /* NOTE: Index is no longer locked. Mrbox_storage_sync_initultiple processes may be deleting
-     the objects at the same time. */
-  ctx->rbox->box.tmp_sync_view = ctx->sync_view;
-
   // rbox_sync_object_expunge;
   items = array_get(&ctx->expunged_items, &count);
 
   if (count > 0) {
-    std::list<librados::AioCompletion *> completions;
-
     moved_items = array_get(&ctx->rbox->moved_items, &moved_count);
     for (unsigned int i = 0; i < count; i++) {
       T_BEGIN {
@@ -523,25 +523,23 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
           AioRemove *stat = new AioRemove();
           stat->ctx = ctx;
           stat->item = item;
-          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), expunge_cb, NULL);
-          completions.push_back(stat->completion);
+          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), NULL, NULL);
+          completions->push_back(stat->completion);
           // make it async!
           rbox_sync_object_expunge(stat);
+
+          // directly notify
+          if (ctx->rbox->box.v.sync_notify != NULL) {
+            ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
+          }
         }
       }
       T_END;
     }
-    for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
-      (*it)->wait_for_complete_and_cb();
-      (*it)->release();
+    if (ctx->rbox->box.v.sync_notify != NULL) {
+      ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
     }
   }
-
-  if (ctx->rbox->box.v.sync_notify != NULL) {
-    ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
-  }
-
-  ctx->rbox->box.tmp_sync_view = NULL;
   FUNC_END();
 }
 
@@ -560,8 +558,16 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       FUNC_END_RET("ret == -1");
       ret = -1;
     } else {
-      rbox_sync_expunge_rbox_objects(ctx);
+      std::list<librados::AioCompletion *> completions;
+      // delete/move objects from mailstorage
+      rbox_sync_expunge_rbox_objects(ctx, &completions);
+      // close the view, write changes to index.
       mail_index_view_close(&ctx->sync_view);
+
+      for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
+        (*it)->wait_for_complete_and_cb();
+        (*it)->release();
+      }
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
@@ -617,14 +623,22 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
     uint8_t rbox_sync_flags = 0x0;
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
+#ifdef DEBUG
       i_debug("setting FORCE_REBUILD FLAG");
-    } else {
+#endif
+    }
+#ifdef DEBUG
+    else {
       i_debug("FLAG DOES NOT HAVE FORCE_REBUILD FLAG");
     }
+#endif
     ret = rbox_sync(rbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
-  } else {
+  }
+#ifdef DEBUG
+  else {
     i_debug("NO FLAG EVALUATION");
   }
+#endif
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);
 }

@@ -124,14 +124,14 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   }
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
-    std::string metadata_key(static_cast<char>(key), 1);
+    std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
     if (ret_load_metadata == -ENOENT) {
-      i_warning("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata,
-                metadata_key.c_str(), rmail->rados_mail->get_oid().c_str(), getpid());
+      i_warning("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
+                metadata_key.c_str(), key, rmail->rados_mail->get_oid().c_str(), getpid());
       rbox_mail_set_expunged(rmail);
     } else {
-      i_error("Errorcode: %d cannot get x_attr(%s) from object %s, process %d", ret_load_metadata, metadata_key.c_str(),
-              rmail->rados_mail->get_oid().c_str(), getpid());
+      i_error("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
+              metadata_key.c_str(), key, rmail->rados_mail->get_oid().c_str(), getpid());
     }
     FUNC_END();
     return -1;
@@ -162,9 +162,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
 
   ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
   if (ret < 0) {
-    if (ret == -ENOENT) {
-      rbox_mail_set_expunged(rmail);
-    } else {
+    if (ret != -ENOENT) {
+      // in rbox_mail_metadata_get mail has already been set as expunged!
       FUNC_END_RET("ret == -1; cannot get received date");
     }
     return -1;
@@ -220,13 +219,10 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
   int ret_val = rados_storage->stat_mail(rmail->rados_mail->get_oid(), &object_size, &save_date_rados);
   if (ret_val < 0) {
-    if (ret_val == -ENOENT) {
-      rbox_mail_set_expunged(rmail);
-      return -1;
-    } else {
+    if (ret_val != -ENOENT) {
       FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
-      return -1;
     }
+    return -1;
   }
   if (save_date_rados == 0) {
     // last chance is to stat the object to get the save date.

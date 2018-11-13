@@ -17,21 +17,54 @@
 #include <rados/librados.hpp>
 
 namespace librmb {
+/** class RadosDictionary
+ *  brief an abstract Rados Cluster
+ *  details This abstract class provides the api
+ *         to create a rados cluster connection:
+ */
 class RadosDictionary;
 
 class RadosCluster {
  public:
   virtual ~RadosCluster() {}
-  /* initialize the cluster */
+  /*!
+   * initialize the cluster with default user and clustername
+   * @return linux error code or 0 if successful
+   *
+   */
   virtual int init() = 0;
+  /*!
+   * initialize the cluster with custom user and clustername
+   * @return linux error code or 0 if successful
+   */
   virtual int init(const std::string &clustername, const std::string &rados_username) = 0;
-  /* tear down cluster  */
+  /*! tear down cluster
+   * @return linux error code or 0 if successful
+   * */
   virtual void deinit() = 0;
-  /* create a storae pool */
+  /*! create a storae pool
+   * @param[in] pool poolname to create if not existend.
+   * @return linux errror code or 0 if successful
+   * */
   virtual int pool_create(const std::string &pool) = 0;
-  /* create io context */
+  /*! create io context
+   * @param[in] pool poolname
+   * @praam[in] valid io_ctx.
+   * @return linux errror code or 0 if successful
+   * */
   virtual int io_ctx_create(const std::string &pool, librados::IoCtx *io_ctx) = 0;
+  /*!
+   * read ceph configuration
+   * @param[in] option option name as described in the ceph documentation
+   * @param[out] value valid ptr to a string buffer.
+   * @return linux error code or 0 if successful
+   *
+   */
   virtual int get_config_option(const char *option, std::string *value) = 0;
+  /*!
+   * Check if cluster connection does exist and is working-
+   * @return true if connected
+   */
   virtual bool is_connected() = 0;
 };
 

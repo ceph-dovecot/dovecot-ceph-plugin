@@ -9,6 +9,7 @@
  * Foundation.  See file COPYING.
  */
 
+#include <sstream>  // std::stringstream
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "TestCase.h"
@@ -47,8 +48,6 @@ extern "C" {
 #include "doveadm-settings.h"
 #include "mempool.h"
 }
-
-#include <sstream>  // std::stringstream
 
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
@@ -100,28 +99,48 @@ void doveadm_mail_failed_error(struct doveadm_mail_cmd_context *ctx, enum mail_e
 TEST_F(DoveadmTest, init) {}
 
 TEST_F(DoveadmTest, test_doveadm) { ASSERT_EQ(cmd_rmb_lspools(0, NULL), 0); }
-TEST_F(DoveadmTest, test_create_config) { ASSERT_EQ(cmd_rmb_config_create(0, NULL), 0); }
-TEST_F(DoveadmTest, test_show_config) { ASSERT_EQ(cmd_rmb_config_show(0, NULL), 0); }
 
+TEST_F(DoveadmTest, test_create_config) { ASSERT_EQ(cmd_rmb_config_create(0, NULL), 0); }
+/*TEST_F(DoveadmTest, test_show_config) { ASSERT_EQ(cmd_rmb_config_show(0, NULL), 0); }
+*/
 TEST_F(DoveadmTest, test_update_config_invalid_key) {
-  char *argv[] = {"rmb", "invalid_key=1"};
-  int ret = cmd_rmb_config_update(2, argv);
+  /*const char *key = "rmb";
+  const char *value = "invalid_key=1";
+*/
+  std::vector<std::string> arguments = {"rmb", "invalid_key=1"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
+  //  char *argv[] = {key, value};
+  int ret = cmd_rmb_config_update(argv.size() - 1, argv.data());
   ASSERT_EQ(ret, -1);
+  i_debug("ok ret val is -1");
 }
 
 TEST_F(DoveadmTest, test_update_config_valid_key) {
-  char *argv[] = {"rmb", "user_mapping=false"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=false"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+  int ret = cmd_rmb_config_update(argv.size() - 1, argv.data());
   ASSERT_EQ(ret, 0);
+  i_debug("ok ret val is 0");
 }
 
 TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
-  char *argv[] = {"ls", "-"};
+  std::vector<std::string> arguments = {"ls", "-"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
@@ -129,7 +148,11 @@ TEST_F(DoveadmTest, cmd_rmb_ls_empty_box) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
-  char *argv[] = {"ls", "-"};
+  std::vector<std::string> arguments = {"ls", "-"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
 
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw", "Hello World!", 12, 0), 0);
@@ -137,7 +160,7 @@ TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_ls_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
@@ -145,7 +168,12 @@ TEST_F(DoveadmTest, cmd_rmb_ls_mail_invalid_mail) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
-  char *argv[] = {"-", "test_get"};
+  std::vector<std::string> arguments = {"-", "test_get"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw", "Hello World!", 12, 0), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "B", "INBOX", 5), 0);
@@ -160,7 +188,7 @@ TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_get_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
@@ -184,7 +212,12 @@ TEST_F(DoveadmTest, cmd_rmb_get_param_check) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
-  char *argv[] = {"hw2", "B=INBOX2"};
+  std::vector<std::string> arguments = {"hw2", "B=INBOX2"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
@@ -199,7 +232,7 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_set_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
@@ -213,7 +246,12 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
-  char *argv[] = {"hw2", "B2=INBOX2"};  // update invalid attribute
+  std::vector<std::string> arguments = {"hw2", "B2=INBOX2"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
@@ -228,7 +266,7 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_set_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, -1);
@@ -236,18 +274,28 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_rename_user) {
-  char *argv[] = {"rmb", "user_mapping=true"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=true"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "users");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "t1_u", "ABCDEFG", 12, 0), 0);
 
-  char *argv2[] = {"t_22"};
+  argv.clear();
+  std::vector<std::string> arguments2 = {"t_22"};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
@@ -267,15 +315,24 @@ TEST_F(DoveadmTest, cmd_rmb_rename_user) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_rename_user_no_indirect_user_mapping) {
-  char *argv[] = {"rmb", "user_mapping=false"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=false"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
+
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
-  char *argv2[] = {"t_22"};
+  argv.clear();
+  std::vector<std::string> arguments2 = {"t_22"};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t1";
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, -1);
@@ -283,15 +340,23 @@ TEST_F(DoveadmTest, cmd_rmb_rename_user_no_indirect_user_mapping) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_rename_unknown_user) {
-  char *argv[] = {"rmb", "user_mapping=true"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=true"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
-  char *argv2[] = {"t_22"};
+  argv.clear();
+  std::vector<std::string> arguments2 = {"t_22"};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
+  argv.push_back(nullptr);
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_rename_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "t2222";  // unknown user!
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, -1);
@@ -299,8 +364,12 @@ TEST_F(DoveadmTest, cmd_rmb_rename_unknown_user) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_check_indices) {
-  char *argv[] = {"rmb", "user_mapping=false"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=false"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
   std::stringstream ss;
@@ -319,10 +388,14 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices) {
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
 
-  char *argv2[] = {DoveadmTest::s_test_mail_user->username};
+  argv.clear();
+  std::vector<std::string> arguments2 = {DoveadmTest::s_test_mail_user->username};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
+
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_check_indices_alloc();
 
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
   ASSERT_EQ(cmd_ctx->exit_code, 1);
@@ -330,8 +403,12 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
-  char *argv[] = {"rmb", "user_mapping=false"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=false"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
   std::stringstream ss;
@@ -350,11 +427,15 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
   ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
 
-  char *argv2[] = {DoveadmTest::s_test_mail_user->username};
+  argv.clear();
+  std::vector<std::string> arguments2 = {DoveadmTest::s_test_mail_user->username};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
+
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_check_indices_alloc();
   struct check_indices_cmd_context *ctx_ = (struct check_indices_cmd_context *)cmd_ctx;
   ctx_->delete_not_referenced_objects = true;
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, DoveadmTest::s_test_mail_user);
   ASSERT_EQ(cmd_ctx->exit_code, 2);
@@ -362,17 +443,23 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete_mailbox) {
-  char *argv[] = {"rmb", "user_mapping=false"};
-  int ret = cmd_rmb_config_update(2, argv);
+  std::vector<std::string> arguments = {"rmb", "user_mapping=false"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
+  int ret = cmd_rmb_config_update(2, argv.data());
   ASSERT_EQ(ret, 0);
 
   std::stringstream ss;
+  argv.clear();
+  std::vector<std::string> arguments2 = {"INBOX\0"};
+  for (const auto &arg : arguments2)
+    argv.push_back((char *)(arg.data()));
 
-  char *argv2[] = {"INBOX\0"};
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_mailbox_delete_alloc();
   struct delete_cmd_context *ctx = (struct delete_cmd_context *)cmd_ctx;
   ctx->recursive = FALSE;
-  cmd_ctx->args = argv2;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   std::string mailbox_name = "INBOX";
   char *name = p_strdup(cmd_ctx->pool, mailbox_name.c_str());
@@ -387,29 +474,36 @@ TEST_F(DoveadmTest, cmd_rmb_delete_mailbox) {
 }
 
 TEST_F(DoveadmTest, cmd_rmb_delete) {
-  char *argv[] = {"rbox_cfg"};
+  std::vector<std::string> arguments = {"rbox_cfg"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_delete_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, 0);
   pool_unref(&cmd_ctx->pool);
 }
 TEST_F(DoveadmTest, cmd_rmb_delete_no_object) {
-  char *argv[] = {"no_obj"};
+  std::vector<std::string> arguments = {"no_obj"};
+  std::vector<char *> argv;
+  for (const auto &arg : arguments)
+    argv.push_back((char *)(arg.data()));
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_delete_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
   user->username = "";
-  cmd_ctx->args = argv;
+  cmd_ctx->args = argv.data();
   cmd_ctx->iterate_single_user = true;
   cmd_ctx->v.run(cmd_ctx, user);
   ASSERT_EQ(cmd_ctx->exit_code, -2);
   pool_unref(&cmd_ctx->pool);
 }
+
 TEST_F(DoveadmTest, deinit) {}
 
 int main(int argc, char **argv) {

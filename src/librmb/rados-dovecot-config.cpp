@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <sstream>
+#include "rados-types.h"
 
 namespace librmb {
 
@@ -39,7 +40,7 @@ RadosConfig::RadosConfig()
 }
 
 bool RadosConfig::string_contains_key(const std::string &str, enum rbox_metadata_key key) {
-  std::string value(1, static_cast<char>(key));
+  std::string value(librmb::rbox_metadata_key_to_char(key));
   return str.find(value) != std::string::npos;
 }
 

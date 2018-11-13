@@ -8,6 +8,13 @@
  * License version 2.1, as published by the Free Software
  * Foundation.  See file COPYING.
  */
+
+#undef PACKAGE_BUGREPORT
+#undef PACKAGE_NAME
+#undef PACKAGE_STRING
+#undef PACKAGE_TARNAME
+#undef PACKAGE_URL
+#undef PACKAGE_VERSION
 #include "config-local.h"
 #ifndef SRC_STORAGE_RBOX_DEBUG_HELPER_H_
 #define SRC_STORAGE_RBOX_DEBUG_HELPER_H_

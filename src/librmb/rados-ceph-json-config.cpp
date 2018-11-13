@@ -134,11 +134,11 @@ std::string RadosCephJsonConfig::to_string() {
 }
 
 bool RadosCephJsonConfig::is_mail_attribute(enum rbox_metadata_key key) {
-  return mail_attributes.find_first_of(static_cast<char>(key), 0) != std::string::npos;
+  return mail_attributes.find_first_of(librmb::rbox_metadata_key_to_char(key), 0) != std::string::npos;
 }
 
 bool RadosCephJsonConfig::is_updateable_attribute(enum rbox_metadata_key key) {
-  return updateable_attributes.find_first_of(static_cast<char>(key), 0) != std::string::npos;
+  return updateable_attributes.find_first_of(librmb::rbox_metadata_key_to_char(key), 0) != std::string::npos;
 }
 
 void RadosCephJsonConfig::update_mail_attribute(const char *value) {

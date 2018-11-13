@@ -166,6 +166,8 @@ AC_MSG_CHECKING([for HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE])
 AS_IF([$GREP -A 1 'mailbox_transaction_begin(struct mailbox \*box' $dovecot_pkgincludedir/mail-storage.h | grep 'enum mailbox_transaction_flags flags);'], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE],,[HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE supported])],[AC_MSG_RESULT(no)])
 
 
+AC_MSG_CHECKING([for HAVE_ITER_FROM_INDEX_DIR])
+AS_IF([$GREP -A 1 'bool iter_from_index_dir;' $dovecot_pkgincludedir/mailbox-list.h | grep 'bool iter_from_index_dir;'], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_ITER_FROM_INDEX_DIR],,[HAVE_ITER_FROM_INDEX_DIR supported])],[AC_MSG_RESULT(no)])
 
 
 AC_CONFIG_HEADERS([config-local.h])

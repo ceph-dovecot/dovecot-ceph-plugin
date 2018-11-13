@@ -9,15 +9,23 @@
  * Foundation.  See file COPYING.
  */
 
-
 #ifndef SRC_LIBRMB_RADOS_GUID_GENERATOR_H_
 #define SRC_LIBRMB_RADOS_GUID_GENERATOR_H_
 
 namespace librmb {
-
+/**
+ * Rados Guid Generator
+ *
+ * Abstract class provides the interface to
+ * reimplement the guid generation
+ *
+ */
 class RadosGuidGenerator {
  public:
   virtual ~RadosGuidGenerator(){};
+  /*!
+   * @param[out] guid global unique identifier
+   */
   virtual void generate_guid(std::string *guid) = 0;
 };
 

@@ -364,9 +364,11 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
             r_storage->s->get_namespace().c_str());
   }
   // try to clean up!
+  int delete_ret = 0;
   for (std::vector<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin();
        it_cur_obj != r_ctx->rados_mails.end(); ++it_cur_obj) {
-    if (r_storage->s->delete_mail(*it_cur_obj) < 0) {
+    delete_ret = r_storage->s->delete_mail(*it_cur_obj);
+    if (delete_ret < 0 && delete_ret != -ENOENT) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
     } else {
       i_error("mail object successfully %s removed from objectstore due to previous error",
@@ -553,7 +555,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
   /* update rbox header flags */
   rbox_save_update_header_flags(r_ctx, r_ctx->sync_ctx->sync_view, r_ctx->mbox->hdr_ext_id,
-                                offsetof(struct sdbox_index_header, flags));
+                                offsetof(struct rbox_index_header, flags));
 
   /* assign UIDs for new messages */
   const struct mail_index_header *hdr = mail_index_get_header(r_ctx->sync_ctx->sync_view);

@@ -18,7 +18,12 @@
 #include "rados-types.h"
 
 namespace librmb {
-
+/**
+ * The Rados Config
+ * class holds and provides access to all configuration values which
+ * are stored in ceph.
+ *
+ */
 class RadosConfig {
  public:
   RadosConfig();
@@ -49,6 +54,9 @@ class RadosConfig {
   bool is_rbox_check_empty_mailboxes() {
     return config[rbox_check_empty_mailboxes].compare("true") == 0 ? true : false;
   }
+  /*!
+   * print configuration
+   */
   std::string to_string();
 
  private:

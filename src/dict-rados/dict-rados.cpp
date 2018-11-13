@@ -582,10 +582,10 @@ void rados_dict_transaction_rollback(struct dict_transaction_context *_ctx) {
 
 void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, const char *value) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
-  RadosDictionary *d = dict->d;
   const string key(_key);
 #ifdef DEBUG
+  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
+  RadosDictionary *d = dict->d;
   i_debug("rados_dict_set(%s, %s, oid=%s)", _key, value, d->get_full_oid(key).c_str());
 #endif
   _ctx->changed = TRUE;
@@ -594,10 +594,10 @@ void rados_dict_set(struct dict_transaction_context *_ctx, const char *_key, con
 
 void rados_dict_unset(struct dict_transaction_context *_ctx, const char *_key) {
   struct rados_dict_transaction_context *ctx = (struct rados_dict_transaction_context *)_ctx;
-  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
-  RadosDictionary *d = dict->d;
   const string key(_key);
 #ifdef DEBUG
+  struct rados_dict *dict = (struct rados_dict *)ctx->ctx.dict;
+  RadosDictionary *d = dict->d;
   i_debug("rados_dict_unset(%s, oid=%s)", _key, d->get_full_oid(key).c_str());
 #endif
   _ctx->changed = TRUE;

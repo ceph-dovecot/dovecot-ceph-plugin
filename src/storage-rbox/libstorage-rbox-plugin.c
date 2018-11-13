@@ -17,7 +17,6 @@
 const char *storage_rbox_plugin_version = DOVECOT_ABI_VERSION;
 
 static int refcount = 0;
-
 struct mail_storage rbox_storage = {
     .name = "rbox",
     .class_flags = MAIL_STORAGE_CLASS_FLAG_UNIQUE_ROOT | MAIL_STORAGE_CLASS_FLAG_FILE_PER_MSG |

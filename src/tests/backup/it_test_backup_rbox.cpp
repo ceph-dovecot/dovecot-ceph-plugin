@@ -137,9 +137,9 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
       int ret = mail_get_stream(mail, &hdr_size, &body_size, &input);
       EXPECT_EQ(ret, -1);
       enum mail_error error;
-      const char *errstr;
+
       // backup process will skip the missing mail error if error is MAIL_ERROR_EXPUNGED!
-      errstr = mailbox_get_last_error(mail->box, &error);
+      mailbox_get_last_error(mail->box, &error);
       EXPECT_EQ(error, MAIL_ERROR_EXPUNGED);
       found = true;
     }
