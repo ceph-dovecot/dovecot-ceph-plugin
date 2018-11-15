@@ -337,7 +337,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       T_BEGIN {
         if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
           FUNC_END_RET("ret == -1, move mail failed");
-          ret - 1;
+          ret = -1;
         }
       }
       T_END;
@@ -368,14 +368,12 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 #endif
   r_ctx->finished = TRUE;
 
-#if DOVECOT_PREREQ(2, 3)
   if (ctx->data.keywords != NULL) {
     /* keywords gets unreferenced twice: first in
        mailbox_save_cancel()/_finish() and second time in
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
-#endif
 
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);

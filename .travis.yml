@@ -36,14 +36,17 @@ script:
 - docker exec build sh -c 'doveadm -D altmove -r -u t2 ALL'
 
 - docker exec build sh -c 'doveadm -Dv backup -u t1 -m INBOX mdbox:/usr/local/var/mail/mdbox/t1'
-- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received date.sent pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
-- docker exec build sh -c 'doveadm -D -c /usr/local/etc/dovecot_mdbox/dovecot.conf fetch -u t1 "guid date.received date.sent pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/mdbox.t1.mails'
+- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received date.sent flags pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
+- docker exec build sh -c 'doveadm -D -c /usr/local/etc/dovecot_mdbox/dovecot.conf fetch -u t1 "guid date.received date.sent flags pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/mdbox.t1.mails'
+- docker exec build sh -c 'cd repo/src/scripts; ./sort.sh /root/rbox.t1.mails /root/rbox.t1.mails.sorted'
+- docker exec build sh -c 'cd repo/src/scripts; ./sort.sh /root/mdbox.t1.mails /root/mdbox.t1.mails.sorted'
 
-- docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
+- docker exec build sh -c 'diff -y -W 1500 /root/rbox.t1.mails.sorted /root/mdbox.t1.mails.sorted'
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox/t1'
 - docker exec build sh -c 'doveadm -Dv -c /usr/local/etc/dovecot_mdbox/dovecot.conf backup -u t1 -m INBOX rbox:/usr/local/var/mail/rbox/t1'
-- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received date.sent pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
-- docker exec build sh -c 'diff -y -W 200 /root/rbox.t1.mails /root/mdbox.t1.mails'
+- docker exec build sh -c 'doveadm -D fetch -u t1 "guid date.received date.sent flags pop3.uidl seq size.virtual uid user mailbox-guid mailbox" ALL > /root/rbox.t1.mails'
+- docker exec build sh -c 'cd repo/src/scripts; ./sort.sh /root/rbox.t1.mails /root/rbox.t1.mails.sorted'
+- docker exec build sh -c 'diff -y -W 1500 /root/rbox.t1.mails.sorted /root/mdbox.t1.mails.sorted'
 
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=150 output=/var/log/imaptest.log'
