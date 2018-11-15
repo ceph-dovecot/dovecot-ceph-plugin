@@ -221,6 +221,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   if (ret_val < 0) {
     if (ret_val != -ENOENT) {
       FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
+      mail_set_expunged(_mail);
     }
     return -1;
   }
@@ -391,7 +392,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     }
     rmail->rados_mail->get_mail_buffer()->clear();
 
-    _mail->transaction->stats.open_lookup_count++;
     int physical_size = rados_storage->read_mail(rmail->rados_mail->get_oid(), rmail->rados_mail->get_mail_buffer());
     if (physical_size < 0) {
       if (physical_size == -ENOENT) {
