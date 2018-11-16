@@ -326,10 +326,17 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 
     librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
     if (ctx->moving != TRUE) {
-      if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
-        FUNC_END_RET("ret == -1, copy mail failed");
-        i_debug("OK FOPY MAIL FAILED");
-        return -1;
+      int ret = 0;
+      T_BEGIN {
+        if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
+          FUNC_END_RET("ret == -1, copy mail failed");
+          i_debug("OK FOPY MAIL FAILED");
+          ret = -1;
+        }
+      }
+      T_END;
+      if (ret < 0) {
+        return ret;
       }
     }
     if (ctx->moving) {
