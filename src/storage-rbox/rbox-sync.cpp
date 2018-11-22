@@ -565,7 +565,12 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       mail_index_view_close(&ctx->sync_view);
 
       for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
-        (*it)->wait_for_complete_and_cb();
+        struct rbox_storage *s = ctx->rbox->storage;
+        if (s->config->is_ceph_aio_wait_for_safe_and_cb()) {
+          (*it)->wait_for_safe_and_cb();
+        } else {
+          (*it)->wait_for_complete_and_cb();
+        }
         (*it)->release();
       }
     }
