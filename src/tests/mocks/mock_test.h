@@ -11,7 +11,9 @@
 
 #include <map>
 #include <string>
-
+#include <vector>
+#include <list>
+#include "rados-types.h"
 #include "../../librmb/rados-cluster.h"
 #include "../../librmb/rados-dictionary.h"
 #include "../../librmb/rados-dovecot-config.h"
@@ -34,14 +36,14 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD3(stat_mail, int(const std::string &oid, uint64_t *psize, time_t *pmtime));
   MOCK_METHOD1(set_namespace, void(const std::string &nspace));
   MOCK_METHOD0(get_namespace, std::string());
+
   MOCK_METHOD0(get_pool_name, std::string());
 
   MOCK_METHOD0(get_max_write_size, int());
   MOCK_METHOD0(get_max_write_size_bytes, int());
 
-  MOCK_METHOD3(split_buffer_and_exec_op,
-               int(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
-                   const uint64_t &max_write));
+  MOCK_METHOD3(split_buffer_and_exec_op, int(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
+                                             const uint64_t &max_write));
 
   MOCK_METHOD1(delete_mail, int(RadosMail *mail));
   MOCK_METHOD1(delete_mail, int(const std::string &oid));
@@ -55,7 +57,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD1(wait_for_write_operations_complete,
                bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMail *> &object_list));
-
+  MOCK_METHOD1(set_ceph_wait_method, void(enum librmb::rbox_ceph_aio_wait_method wait_method));
   MOCK_METHOD2(read_mail, int(const std::string &oid, librados::bufferlist *buffer));
   MOCK_METHOD6(move, int(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                          std::list<RadosMetadata> &to_update, bool delete_source));
@@ -128,7 +130,6 @@ class RadosClusterMock : public RadosCluster {
   MOCK_METHOD0(is_connected, bool());
 };
 
-
 using librmb::RadosDovecotCephCfg;
 class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
  public:
@@ -142,6 +143,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(is_updateable_attribute, bool(enum librmb::rbox_metadata_key key));
   MOCK_METHOD1(set_update_attributes, void(const std::string &update_attributes_));
   MOCK_METHOD0(is_ceph_posix_bugfix_enabled, bool());
+  MOCK_METHOD0(is_ceph_aio_wait_for_safe_and_cb, bool());
 
   MOCK_METHOD1(update_mail_attributes, void(const char *value));
   MOCK_METHOD1(update_updatable_attributes, void(const char *value));

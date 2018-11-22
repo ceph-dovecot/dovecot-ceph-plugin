@@ -17,7 +17,9 @@
 #include <map>
 #include <string>
 #include <cstdint>
-
+#include <vector>
+#include <list>
+#include <algorithm>
 #include <rados/librados.hpp>
 
 #include "rados-mail.h"
@@ -35,6 +37,7 @@ class RadosStorageImpl : public RadosStorage {
   std::string get_namespace() override { return nspace; }
   std::string get_pool_name() override { return pool_name; }
 
+  void set_ceph_wait_method(enum rbox_ceph_aio_wait_method wait_method_) { this->wait_method = wait_method_; }
   int get_max_write_size() override { return max_write_size; }
   int get_max_write_size_bytes() override { return max_write_size * 1024 * 1024; }
 
@@ -48,7 +51,8 @@ class RadosStorageImpl : public RadosStorage {
                   librados::ObjectWriteOperation *op) override;
   librados::NObjectIterator find_mails(const RadosMetadata *attr) override;
   int open_connection(const std::string &poolname) override;
-  int open_connection(const std::string &poolname, const std::string &clustername, const std::string &rados_username) override;
+  int open_connection(const std::string &poolname, const std::string &clustername,
+                      const std::string &rados_username) override;
   void close_connection() override;
   bool wait_for_write_operations_complete(
       std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) override;
@@ -78,6 +82,7 @@ class RadosStorageImpl : public RadosStorage {
   librados::IoCtx io_ctx;
   bool io_ctx_created;
   std::string pool_name;
+  enum rbox_ceph_aio_wait_method wait_method;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
 };

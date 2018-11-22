@@ -51,7 +51,7 @@ class RadosCephConfig {
 
   bool is_valid_key_value(const std::string &key, const std::string &value);
   bool update_valid_key_value(const std::string &key, const std::string &value);
-
+  bool is_ceph_posix_bugfix_enabled();
   bool is_mail_attribute(enum rbox_metadata_key key) { return config.is_mail_attribute(key); }
   bool is_updateable_attribute(enum rbox_metadata_key key) { return config.is_updateable_attribute(key); }
   bool is_update_attributes() { return config.is_update_attributes(); }

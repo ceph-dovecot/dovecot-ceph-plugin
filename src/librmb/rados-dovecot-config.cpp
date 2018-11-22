@@ -17,8 +17,6 @@
 
 namespace librmb {
 
-std::string pool_name;
-
 RadosConfig::RadosConfig()
     : pool_name("rbox_pool_name"),
       rbox_cfg_object_name("rbox_cfg_object_name"),
@@ -27,7 +25,8 @@ RadosConfig::RadosConfig()
       prefix_keyword("k"),
       bugfix_cephfs_posix_hardlinks("rbox_bugfix_cephfs_21652"),
       save_log("rados_save_log"),
-      rbox_check_empty_mailboxes("rados_check_empty_mailboxes") {
+      rbox_check_empty_mailboxes("rados_check_empty_mailboxes"),
+      rbox_ceph_aio_wait_for_safe_and_cb("rbox_ceph_aio_wait_for_safe_and_cb") {
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
@@ -36,6 +35,7 @@ RadosConfig::RadosConfig()
   config[bugfix_cephfs_posix_hardlinks] = "false";
   config[save_log] = "";
   config[rbox_check_empty_mailboxes] = "false";
+  config[rbox_ceph_aio_wait_for_safe_and_cb] = "false";
   is_valid = false;
 }
 
@@ -69,6 +69,7 @@ std::string RadosConfig::to_string() {
   ss << "  " << bugfix_cephfs_posix_hardlinks << "=" << config[bugfix_cephfs_posix_hardlinks] << std::endl;
   ss << "  " << save_log << "=" << config[save_log] << std::endl;
   ss << "  " << rbox_check_empty_mailboxes << "=" << config[rbox_check_empty_mailboxes] << std::endl;
+  ss << "  " << rbox_ceph_aio_wait_for_safe_and_cb << "=" << config[rbox_ceph_aio_wait_for_safe_and_cb] << std::endl;
   return ss.str();
 }
 

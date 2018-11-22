@@ -47,9 +47,8 @@ int rbox_mail_copy(struct mail_save_context *_ctx, struct mail *mail) {
 
   r_ctx->copying = _ctx->saving != TRUE && strcmp(mail->box->storage->name, "rbox") == 0 &&
                    strcmp(mail->box->storage->name, storage_name) == 0;
-  int ret = 0;
-  T_BEGIN { ret = rbox_mail_storage_copy(_ctx, mail); }
-  T_END;
+
+  int ret = rbox_mail_storage_copy(_ctx, mail);
   // cppcheck-suppress redundantAssignment
   r_ctx->copying = FALSE;
 
@@ -329,14 +328,21 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     if (ctx->moving != TRUE) {
       if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
         FUNC_END_RET("ret == -1, copy mail failed");
+        i_debug("OK FOPY MAIL FAILED");
         return -1;
       }
     }
-
     if (ctx->moving) {
-      if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
-        FUNC_END_RET("ret == -1, move mail failed");
-        return -1;
+      int ret = 0;
+      T_BEGIN {
+        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
+          FUNC_END_RET("ret == -1, move mail failed");
+          ret - 1;
+        }
+      }
+      T_END;
+      if (ret < 0) {
+        return ret;
       }
     }
 
@@ -362,12 +368,14 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 #endif
   r_ctx->finished = TRUE;
 
+#if DOVECOT_PREREQ(2, 3)
   if (ctx->data.keywords != NULL) {
     /* keywords gets unreferenced twice: first in
        mailbox_save_cancel()/_finish() and second time in
        mailbox_copy(). */
     mailbox_keywords_ref(ctx->data.keywords);
   }
+#endif
 
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
