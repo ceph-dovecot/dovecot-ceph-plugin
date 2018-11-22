@@ -14,10 +14,13 @@
 
 #include <string>
 #include <map>
+#include <vector>
+#include <list>
 
 #include <rados/librados.hpp>
 #include "rados-cluster.h"
 #include "rados-mail.h"
+#include "rados-types.h"
 
 namespace librmb {
 /** class RadosStorage
@@ -50,6 +53,9 @@ class RadosStorage {
    * @return copy of the current pool name
    * */
   virtual std::string get_pool_name() = 0;
+
+  /* set the wait method for async operations */
+  virtual void set_ceph_wait_method(enum rbox_ceph_aio_wait_method wait_method) = 0;
 
   /*! get the max object size in mb
    * @return the maximal number of mb to write in a single write operation*/

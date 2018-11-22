@@ -121,5 +121,6 @@ static const char *rbox_metadata_key_to_char(rbox_metadata_key type) {
       return "";
   }
 }
+enum rbox_ceph_aio_wait_method { WAIT_FOR_COMPLETE_AND_CB, WAIT_FOR_SAFE_AND_CB };
 }  // namespace
 #endif /* SRC_LIBRMB_RADOS_TYPES_H_ */

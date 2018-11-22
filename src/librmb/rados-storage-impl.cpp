@@ -36,9 +36,11 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   cluster = _cluster;
   max_write_size = 10;
   io_ctx_created = false;
+  wait_method = WAIT_FOR_COMPLETE_AND_CB;
 }
 
 RadosStorageImpl::~RadosStorageImpl() {}
+
 int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
                                                librados::ObjectWriteOperation *write_op_xattr,
                                                const uint64_t &max_write) {
@@ -214,7 +216,15 @@ bool RadosStorageImpl::wait_for_write_operations_complete(
   for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
            completion_op_map->begin();
        map_it != completion_op_map->end(); ++map_it) {
-    map_it->first->wait_for_complete_and_cb();
+    switch (wait_method) {
+      case WAIT_FOR_COMPLETE_AND_CB:
+        map_it->first->wait_for_complete_and_cb();
+        break;
+      case WAIT_FOR_SAFE_AND_CB:
+        map_it->first->wait_for_safe_and_cb();
+        break;
+    }
+
     failed = map_it->first->get_return_value() < 0 || failed ? true : false;
     // clean up
     map_it->first->release();

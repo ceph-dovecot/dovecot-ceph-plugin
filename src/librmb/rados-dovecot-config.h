@@ -54,6 +54,9 @@ class RadosConfig {
   bool is_rbox_check_empty_mailboxes() {
     return config[rbox_check_empty_mailboxes].compare("true") == 0 ? true : false;
   }
+  bool is_ceph_aio_wait_for_safe_and_cb() {
+    return config[rbox_ceph_aio_wait_for_safe_and_cb].compare("true") == 0 ? true : false;
+  }
   /*!
    * print configuration
    */
@@ -73,6 +76,7 @@ class RadosConfig {
   std::string bugfix_cephfs_posix_hardlinks;
   std::string save_log;
   std::string rbox_check_empty_mailboxes;
+  std::string rbox_ceph_aio_wait_for_safe_and_cb;
   bool is_valid;
 };
 

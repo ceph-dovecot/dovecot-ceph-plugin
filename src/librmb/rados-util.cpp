@@ -15,9 +15,10 @@
 
 #include "rados-util.h"
 #include <string>
-#include <limits.h>
+#include <vector>
 #include <iostream>
 #include <sstream>
+#include <limits.h>
 #include "encoding.h"
 
 namespace librmb {
