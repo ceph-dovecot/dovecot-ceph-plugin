@@ -57,7 +57,7 @@ extern int rbox_open_rados_connection(struct mailbox *box, bool alt_storage);
  * @brief reads the 90-plugin.conf section
  * @param[in] box mailbox (state open).
  */
-extern int read_plugin_configuration(struct mailbox *box);
+extern void read_plugin_configuration(struct mailbox *box);
 /**
  * @brief: deletes the given mailbox
  */

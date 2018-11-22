@@ -62,6 +62,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
     r_ctx->trans = t->itrans;
+    t->save_ctx = &r_ctx->ctx;
   } else {
     r_ctx->failed = FALSE;
     r_ctx->finished = FALSE;
@@ -69,8 +70,6 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->input = NULL;
   }
   r_ctx->rados_mail = nullptr;
-
-  t->save_ctx = &r_ctx->ctx;
 
   FUNC_END();
   return t->save_ctx;
@@ -99,16 +98,17 @@ void rbox_index_append(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
-/* add to index */
-#if DOVECOT_PREREQ(2, 3)
-  if ((r_ctx->ctx.transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
-    mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
-  } else {
-    r_ctx->seq = _ctx->data.stub_seq;
-  }
-#else
+  /* add to index */
+  /*#if DOVECOT_PREREQ(2, 3)
+    // dovecot 2.3 is using different mechanism for uid assignment. we ignore it for now.
+    if ((r_ctx->ctx.transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
+      mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
+    } else {
+      r_ctx->seq = _ctx->data.stub_seq;
+    }
+  #else*/
   mail_index_append(r_ctx->trans, _ctx->data.uid, &r_ctx->seq);
-#endif
+  // #endif
 
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE,
                           static_cast<enum mail_flags>(_ctx->data.flags & ~MAIL_RECENT));
@@ -232,6 +232,13 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
     return -1;
   }
 
+#if DOVECOT_PREREQ(2, 3)
+  if (index_storage_save_continue(_ctx, r_ctx->input, _ctx->dest_mail) < 0) {
+    r_ctx->failed = TRUE;
+    FUNC_END();
+    return -1;
+  }
+#else
   do {
     if (o_stream_send_istream(_ctx->data.output, r_ctx->input) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
@@ -245,8 +252,10 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
     index_mail_cache_parse_continue(_ctx->dest_mail);
     /* both tee input readers may consume data from our primary
      input stream. we'll have to make sure we don't return with
-     one of the streams still having data in them. */
+     one of the streams still having data in them.*/
   } while (i_stream_read(r_ctx->input) > 0);
+
+#endif
 
   FUNC_END();
   return 0;
@@ -370,9 +379,6 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
     delete_ret = r_storage->s->delete_mail(*it_cur_obj);
     if (delete_ret < 0 && delete_ret != -ENOENT) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
-    } else {
-      i_error("mail object successfully %s removed from objectstore due to previous error",
-              (*it_cur_obj)->get_oid().c_str());
     }
   }
   // clean up index
@@ -413,27 +419,42 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
   if (!r_ctx->failed) {
     if (_ctx->data.save_date != (time_t)-1) {
-      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &_ctx->data.save_date,
-                           sizeof(_ctx->data.save_date));
+      uint32_t t = _ctx->data.save_date;
+      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
 
-    if (r_ctx->ctx.data.output != r_ctx->output_stream) {
 #if DOVECOT_PREREQ(2, 3)
+    int ret = 0;
+    if (r_ctx->ctx.data.output != r_ctx->output_stream) {
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */
-      o_stream_finish(r_ctx->ctx.data.output);
+      ret = o_stream_finish(r_ctx->ctx.data.output);
+    } else {
+      /* no plugins - flush the output so far */
+      ret = o_stream_flush(r_ctx->ctx.data.output);
+    }
+    if (ret < 0) {
+      mail_set_critical(r_ctx->ctx.dest_mail, "write(%s) failed: %s", o_stream_get_name(r_ctx->ctx.data.output),
+                        o_stream_get_error(r_ctx->ctx.data.output));
+      r_ctx->failed = TRUE;
+    }
 #else
-      if (o_stream_nfinish(r_ctx->ctx.data.output) < 0) {
-        mail_storage_set_critical(r_ctx->ctx.transaction->box->storage, "write(%s) failed: %m",
-                                  o_stream_get_name(r_ctx->ctx.data.output));
-        r_ctx->failed = TRUE;
-      }
+    if (o_stream_nfinish(r_ctx->ctx.data.output) < 0) {
+      mail_storage_set_critical(r_ctx->ctx.transaction->box->storage, "write(%s) failed: %m",
+                                o_stream_get_name(r_ctx->ctx.data.output));
+      r_ctx->failed = TRUE;
+    }
+    if (r_ctx->ctx.data.output == NULL) {
+      i_assert(r_ctx->failed);
+    }
 #endif
+    if (r_ctx->ctx.data.output != r_ctx->output_stream) {
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&r_ctx->ctx.data.output);
       r_ctx->ctx.data.output = r_ctx->output_stream;
     }
+
     // reset virtual size
     index_mail_cache_parse_deinit(_ctx->dest_mail, r_ctx->ctx.data.received_date, !r_ctx->failed);
     // always save to primary storage
@@ -563,10 +584,9 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
     i_error("mail_index_get_header failed");
     return -1;
   }
+  // note dovecot 2.3 is using stashed away uids, this mechanism is not used for now.
   mail_index_append_finish_uids(r_ctx->trans, hdr->next_uid, &_ctx->transaction->changes->saved_uids);
 
-  struct seq_range_iter iter;
-  seq_range_array_iter_init(&iter, &_ctx->transaction->changes->saved_uids);
   if (rbox_save_assign_uids(r_ctx, &_ctx->transaction->changes->saved_uids) < 0) {
     rbox_transaction_save_rollback(_ctx);
     return -1;
@@ -595,7 +615,9 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
 
   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
-  (void)rbox_sync_finish(&r_ctx->sync_ctx, TRUE);
+  if (rbox_sync_finish(&r_ctx->sync_ctx, TRUE) < 0) {
+    r_ctx->failed = TRUE;
+  }
   rbox_transaction_save_rollback(_ctx);
 
   FUNC_END();
