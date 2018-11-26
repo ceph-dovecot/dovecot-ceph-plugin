@@ -1,7 +1,15 @@
 # Change Log
 
-## [0.0.14](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.14)
+## [0.0.15](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.15)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.14...0.0.15)
+
+**Fixed bugs:**
+
+- doveadm rmb revert =\> does return count of deleted files instead of 0 in case of no error. [\#218](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/218)
+- doveadm force-resync restore mail \(rbox\_sync\) [\#215](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/215)
+
+## [0.0.14](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.14) (2018-11-22)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.13...0.0.14)
 
 **Fixed bugs:**
@@ -26,6 +34,7 @@
 
 **Merged pull requests:**
 
+- Jrse 0.0.14 [\#214](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/214) ([jrse](https://github.com/jrse))
 - Jrse \#212 [\#213](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/213) ([jrse](https://github.com/jrse))
 - Jrse \#209 [\#211](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/211) ([jrse](https://github.com/jrse))
 - Jrse minor and minor fixes  [\#208](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/208) ([jrse](https://github.com/jrse))
