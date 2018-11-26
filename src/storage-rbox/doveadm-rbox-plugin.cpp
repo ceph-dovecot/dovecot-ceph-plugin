@@ -459,7 +459,6 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
 /* add to index */
 #if DOVECOT_PREREQ(2, 3)
 
-  if ((save_ctx->transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
     mail_index_append(save_ctx->transaction->itrans, next_uid, &seq);
   } else {
     seq = save_ctx->data.stub_seq;
@@ -590,7 +589,9 @@ static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct m
   }
   std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
   ctx->exit_code = librmb::RmbCommands::delete_with_save_log(log_file, plugin.config->get_rados_cluster_name(),
-                                                             plugin.config->get_rados_username(), &moved_items);
+                                                             plugin.config->get_rados_username(), &moved_items) >= 0
+                       ? 0
+                       : -1;
 
   for (std::map<std::string, std::list<librmb::RadosSaveLogEntry>>::iterator iter = moved_items.begin();
        iter != moved_items.end(); ++iter) {

@@ -223,6 +223,9 @@ bool RadosStorageImpl::wait_for_write_operations_complete(
       case WAIT_FOR_SAFE_AND_CB:
         map_it->first->wait_for_safe_and_cb();
         break;
+      default:
+        map_it->first->wait_for_complete_and_cb();
+        break;
     }
 
     failed = map_it->first->get_return_value() < 0 || failed ? true : false;
