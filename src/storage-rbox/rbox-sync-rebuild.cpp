@@ -180,17 +180,7 @@ int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_c
   // rebuild index.
 
   librados::NObjectIterator iter_guid(storage->find_mails(&attr_guid));
-  if (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
-    ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
-  } else {
-#ifdef DEBUG
-    i_debug("guid is empty, using mailbox name to detect mail objects ");
-#endif
-    librmb::RadosMetadata attr_name(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, rbox->box.name);
-    // rebuild index.
-    librados::NObjectIterator iter_name(storage->find_mails(&attr_name));
-    ret = rbox_sync_rebuild_entry(ctx, iter_name, rebuild_ctx);
-  }
+  ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
   FUNC_END();
   return ret;
 }
@@ -266,8 +256,9 @@ int repair_namespace(struct mail_namespace *ns, bool force) {
   const struct mailbox_info *info;
   int ret = 0;
 
-  iter = mailbox_list_iter_init(ns->list, "*", static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST |
-                                                                                    MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(
+      ns->list, "*",
+      static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
