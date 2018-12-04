@@ -140,9 +140,13 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   rmail->rados_mail->get_metadata(key, &value);
   if (!value.empty()) {
     *value_r = i_strdup(value.c_str());
-  } else {
+  }
+#ifdef DEBUG
+  else {
+    // this may not be a problem, because we only save metadata as omap value if it really has a value
     i_warning("no value for metadata '%c' found ", static_cast<char>(key));
   }
+#endif
   FUNC_END();
   return 0;
 }
