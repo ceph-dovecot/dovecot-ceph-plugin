@@ -45,18 +45,8 @@ using librmb::rbox_metadata_key;
 
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
   FUNC_START();
-  struct mail *_mail = &mail->imail.mail.mail;
-
-  mail_index_refresh(_mail->box->index);
-  if (mail_index_is_expunged(_mail->transaction->view, _mail->seq)) {
-    mail_set_expunged(_mail);
-  } else {
-    mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
-                              _mail->uid);
-    /* the message was probably just purged */
-    mail_storage_set_error(_mail->box->storage, MAIL_ERROR_EXPUNGED, "requested messages no longer exist.");
-    rbox_set_mailbox_corrupted(_mail->box);
-  }
+  // only set mail to expunge. see #222 rbox_set_expunge => index rebuild!
+  mail_set_expunged(_mail);
   FUNC_END();
 }
 
