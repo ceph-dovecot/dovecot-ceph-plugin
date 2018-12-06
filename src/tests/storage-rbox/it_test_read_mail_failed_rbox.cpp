@@ -14,7 +14,7 @@
 #include "TestCase.h"
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
+#pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot   :-(
 #pragma GCC diagnostic ignored "-Wundef"            // turn off warnings for Dovecot :-(
 #pragma GCC diagnostic ignored "-Wredundant-decls"  // turn off warnings for Dovecot :-(
 #ifndef __cplusplus
@@ -117,6 +117,7 @@ TEST_F(StorageTest, read_mail_fails) {
 
     int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
     EXPECT_EQ(ret2, -1);
+    EXPECT_TRUE(mail->expunged);
     break;
   }
 
@@ -131,8 +132,6 @@ TEST_F(StorageTest, read_mail_fails) {
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
-
-  ASSERT_EQ(0, (int)box->index->map->hdr.messages_count);
 
   mailbox_free(&box);
 }
