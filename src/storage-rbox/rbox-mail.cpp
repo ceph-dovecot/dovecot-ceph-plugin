@@ -46,7 +46,7 @@ using librmb::rbox_metadata_key;
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
   FUNC_START();
   // only set mail to expunge. see #222 rbox_set_expunge => index rebuild!
-  mail_set_expunged(_mail);
+  mail_set_expunged((struct mail *)mail);
   FUNC_END();
 }
 
