@@ -196,6 +196,7 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
   if (err < 0) {
     return err;
   }
+  max_write_size = std::stoi(max_write_size_str);
   if (err == 0) {
     io_ctx_created = true;
   }
