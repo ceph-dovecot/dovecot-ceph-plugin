@@ -201,14 +201,12 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   struct istream *crlf_input;
   r_ctx->failed = FALSE;
 
-  setup_mail_object(_ctx);
-  rbox_add_to_index(_ctx);
-
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
-
+  setup_mail_object(_ctx);
+  rbox_add_to_index(_ctx);
   mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 
   crlf_input = i_stream_create_lf(input);
@@ -560,13 +558,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   librmb::RadosStorage *storage = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s;
 
   i_assert(r_ctx->finished);
-
-  if (r_ctx->rados_mails.size() == 0) {
-    /* the mail must be freed in the commit_pre() */
-    if (_ctx->dest_mail != NULL)
-      mail_free(&_ctx->dest_mail);
-    return 0;
-  }
 
   r_ctx->failed = storage->wait_for_rados_operations(r_ctx->rados_mails);
 
