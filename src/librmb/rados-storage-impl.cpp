@@ -50,7 +50,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   librados::ObjectWriteOperation *op = nullptr;
   librados::AioCompletion *completion = nullptr;
-  int ret_val = 0;
+  int ret_val = -1;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
   // split the buffer.
@@ -196,7 +196,6 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
   if (err < 0) {
     return err;
   }
-  max_write_size = std::stoi(max_write_size_str);
   if (err == 0) {
     io_ctx_created = true;
   }
