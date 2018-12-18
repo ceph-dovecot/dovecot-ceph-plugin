@@ -337,7 +337,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       T_BEGIN {
         if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
           FUNC_END_RET("ret == -1, move mail failed");
-          ret - 1;
+          ret = - 1;
         }
       }
       T_END;

@@ -421,12 +421,13 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
 
   // initialize storage with plugin configuration
   read_plugin_configuration(box);
-
+  int ret = 0;
+try{
   rados_storage->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
                                           ? librmb::WAIT_FOR_SAFE_AND_CB
                                           : librmb::WAIT_FOR_COMPLETE_AND_CB);
   /* open connection to primary and alternative storage */
-  int ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
+  ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
                                            rbox->storage->config->get_rados_cluster_name(),
                                            rbox->storage->config->get_rados_username());
 
@@ -438,6 +439,9 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                                  ? librmb::WAIT_FOR_SAFE_AND_CB
                                                  : librmb::WAIT_FOR_COMPLETE_AND_CB);
   }
+}catch(std::exception& e){
+  ret= -1;
+}
 
   if (ret == 1) {
     // already connected nothing to do!
