@@ -1,13 +1,35 @@
 # Change Log
 
-## [0.0.15](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.15)
+## [0.0.16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.16)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.15...0.0.16)
+
+**Fixed bugs:**
+
+- rbox\_set\_expunge =\> index rebuild [\#222](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/222)
+- reusing the rbox\_save\_context [\#225](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/225)
+
+**Closed issues:**
+
+- backup from rbox -\> mdbox : [\#220](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/220)
+- iredmail 0.98 \(Dovecot 2.2.33\) on Ubuntu 18.04 LTS - diverse problems [\#210](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/210)
+
+**Merged pull requests:**
+
+- Jrse \#222 [\#223](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/223) ([jrse](https://github.com/jrse))
+- \#220: added \#ifdef around the warning message. If a metadata is not s… [\#221](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/221) ([jrse](https://github.com/jrse))
+
+## [0.0.15](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.15) (2018-11-26)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.14...0.0.15)
 
 **Fixed bugs:**
 
 - doveadm rmb revert =\> does return count of deleted files instead of 0 in case of no error. [\#218](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/218)
 - doveadm force-resync restore mail \(rbox\_sync\) [\#215](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/215)
+
+**Merged pull requests:**
+
+- Rbox sync rebuild \#215 [\#219](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/219) ([jrse](https://github.com/jrse))
 
 ## [0.0.14](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.14) (2018-11-22)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.13...0.0.14)

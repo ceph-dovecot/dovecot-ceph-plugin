@@ -57,6 +57,10 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   ceph::bufferlist tmp_buffer;
   assert(max_write > 0);
 
+  if (write_buffer_size <= 0 || max_write <= 0) {
+    ret_val = -1;
+  }
+
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {

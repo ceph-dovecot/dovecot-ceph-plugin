@@ -57,7 +57,7 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
 
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
-  if (r_ctx == NULL) {
+  if (r_ctx == 0 || r_ctx == NULL) {
     r_ctx = new rbox_save_context(*(r_storage->s));
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
@@ -200,14 +200,15 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct istream *crlf_input;
   r_ctx->failed = FALSE;
+
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
   setup_mail_object(_ctx);
   rbox_add_to_index(_ctx);
-
   mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+
   crlf_input = i_stream_create_lf(input);
   r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
   i_stream_unref(&crlf_input);
@@ -461,6 +462,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
       i_error("ERROR, cannot open rados connection (rbox_save_finish)");
       r_ctx->failed = true;
+    } else if (r_ctx->rados_mail->get_mail_buffer()->length() <= 0) {
+      // error mail size is null
+      r_ctx->failed = true;
+      i_error("ERROR, mailsize is <= 0 ");
     } else {
       bool async_write = true;
       r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());

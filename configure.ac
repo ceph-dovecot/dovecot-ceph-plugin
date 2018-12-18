@@ -8,7 +8,7 @@
 
 AC_PREREQ([2.59])
 
-AC_INIT([dovecot-ceph-plugin], [0.0.15], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
+AC_INIT([dovecot-ceph-plugin], [0.0.16], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
@@ -189,6 +189,7 @@ if test "x$want_tests" = "xyes"; then
   if test "x$have_pthread" = "xyes"; then
     GTEST_CPPFLAGS="-DGTEST_HAS_PTHREAD=1"
     GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -std=c++11 -Wmissing-declarations"
+    #GTEST_CXXFLAGS="$PTHREAD_CFLAGS -fpermissive -shared-libgcc -std=c++11 -Wmissing-declarations"
     GTEST_LDFLAGS="-module -avoid-version"
     GTEST_LIBS="$PTHREAD_LIBS"
   else
