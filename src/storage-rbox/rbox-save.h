@@ -39,15 +39,15 @@ class rbox_save_context {
         output_stream(NULL),
         rados_storage(_rados_storage),
         rados_mail(NULL),
-        failed(1),
-        finished(1),
-        copying(0),
-        dest_mail_allocated(0),
 #if DOVECOT_PREREQ(2, 3)
         highest_pop3_uidl_seq(0),
 #endif
         have_pop3_uidls(0),
-        have_pop3_orders(0) {
+        have_pop3_orders(0),
+        failed(1),
+        finished(1),
+        copying(0),
+        dest_mail_allocated(0) {
   }
 
   /** dovecot mail save context **/
