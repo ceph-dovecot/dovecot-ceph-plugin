@@ -272,7 +272,7 @@ TEST_F(StorageTest, mail_save_to_inbox_reuse_save_context) {
   for (int i = 0; i < 2; i++) {
     save_ctx = mailbox_save_alloc(trans);
     input = i_stream_create_from_data(message, strlen(message));
-    i_debug("save_ctx: %ld", save_ctx);
+
     bool save_failed = FALSE;
     if (mailbox_save_begin(&save_ctx, input) < 0) {
       i_error("Saving failed: %s", mailbox_get_last_internal_error(box, NULL));
@@ -299,7 +299,6 @@ TEST_F(StorageTest, mail_save_to_inbox_reuse_save_context) {
       }
     }
 
-    i_debug("SAVE_CTX = %ld", trans->save_ctx);
     EXPECT_TRUE(input->eof);
 
     i_stream_unref(&input);

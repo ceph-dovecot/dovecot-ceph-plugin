@@ -30,6 +30,9 @@ extern "C" {
 #include "rbox-sync.h"
 
 #include "debug-helper.h"
+#if DOVECOT_PREREQ(2, 3)
+#include "index-pop3-uidl.h"
+#endif
 }
 
 #include "../librmb/rados-mail.h"
@@ -41,9 +44,9 @@ extern "C" {
 
 using ceph::bufferlist;
 
-using librmb::RadosStorage;
 using librmb::RadosMail;
 using librmb::RadosMetadata;
+using librmb::RadosStorage;
 using librmb::rbox_metadata_key;
 
 using std::string;
@@ -287,12 +290,20 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
     if (mdata->pop3_uidl != NULL) {
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
       mail_object->add_metadata(xattr);
+      r_ctx->have_pop3_uidls = TRUE;
+#if DOVECOT_PREREQ(2, 3)
+      r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
+#endif
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_POP3_ORDER)) {
     if (mdata->pop3_order != 0) {
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER, mdata->pop3_order);
       mail_object->add_metadata(xattr);
+      r_ctx->have_pop3_orders = TRUE;
+#if DOVECOT_PREREQ(2, 3)
+      r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
+#endif
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE)) {
@@ -423,7 +434,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-
+    
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;
     if (r_ctx->ctx.data.output != r_ctx->output_stream) {
@@ -522,6 +533,11 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
           return -1;
         }
       }
+#if DOVECOT_PREREQ(2, 3)
+      if (r_ctx->highest_pop3_uidl_seq == n + 1) {
+        index_pop3_uidl_set_max_uid(&r_ctx->mbox->box, r_ctx->trans, uid);
+      }
+#endif
     }
     i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
   }
@@ -547,6 +563,10 @@ void rbox_save_update_header_flags(struct rbox_save_context *r_ctx, struct mail_
   }
 
   flags = old_flags;
+  if (r_ctx->have_pop3_uidls)
+    flags |= RBOX_INDEX_HEADER_FLAG_HAVE_POP3_UIDLS;
+  if (r_ctx->have_pop3_orders)
+    flags |= RBOX_INDEX_HEADER_FLAG_HAVE_POP3_ORDERS;
   if (flags != old_flags) {
     /* flags changed, update them */
     mail_index_update_header_ext(r_ctx->trans, ext_id, flags_offset, &flags, 1);

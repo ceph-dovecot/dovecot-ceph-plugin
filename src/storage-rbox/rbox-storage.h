@@ -63,6 +63,17 @@ extern void read_plugin_configuration(struct mailbox *box);
  */
 extern int rbox_storage_mailbox_delete(struct mailbox *box);
 
+/**
+ * check for flag
+ *
+ * @param box mailbox
+ * @param ext_id header extension id
+ * @param flags_offset flags offset
+ * @param flag flag
+ * @return
+ */
+extern bool rbox_header_have_flag(struct mailbox *box, uint32_t ext_id, unsigned int flags_offset, uint8_t flag);
+
 #ifdef __cplusplus
 }
 #endif
@@ -93,6 +104,13 @@ struct rbox_mailbox {
   /** list of moved_items, after move mail will not be deleted immediately,
    * but during next sync.   */
   ARRAY(struct expunged_item *) moved_items;
+};
+
+enum rbox_index_header_flags {
+  /* messages' metadata contain POP3 UIDLs */
+  RBOX_INDEX_HEADER_FLAG_HAVE_POP3_UIDLS = 0x01,
+  /* messages' metadata contain POP3 orders */
+  RBOX_INDEX_HEADER_FLAG_HAVE_POP3_ORDERS = 0x02
 };
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_H_

@@ -39,10 +39,16 @@ class rbox_save_context {
         output_stream(NULL),
         rados_storage(_rados_storage),
         rados_mail(NULL),
+#if DOVECOT_PREREQ(2, 3)
+        highest_pop3_uidl_seq(0),
+#endif
+        have_pop3_uidls(0),
+        have_pop3_orders(0),
         failed(1),
         finished(1),
         copying(0),
-        dest_mail_allocated(0) {}
+        dest_mail_allocated(0) {
+  }
 
   /** dovecot mail save context **/
   struct mail_save_context ctx;
@@ -69,7 +75,11 @@ class rbox_save_context {
   std::vector<librmb::RadosMail *> rados_mails;
   /** current mail in the context **/
   librmb::RadosMail *rados_mail;
-
+#if DOVECOT_PREREQ(2, 3)
+  unsigned int highest_pop3_uidl_seq : 1;
+#endif
+  unsigned int have_pop3_uidls : 1;
+  unsigned int have_pop3_orders : 1;
   unsigned int failed : 1;
   unsigned int finished : 1;
   unsigned int copying : 1;

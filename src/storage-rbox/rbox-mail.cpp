@@ -32,6 +32,9 @@ extern "C" {
 #include "debug-helper.h"
 #include "limits.h"
 #include "macros.h"
+#if DOVECOT_PREREQ(2, 3)
+#include "index-pop3-uidl.h"
+#endif
 }
 
 #include "../librmb/rados-mail.h"
@@ -487,6 +490,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
 
 static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field, const char **value_r) {
   struct rbox_mail *mail = (struct rbox_mail *)_mail;
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)_mail->box;
   int ret = 0;
 
   *value_r = NULL;
@@ -497,23 +501,31 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
     case MAIL_FETCH_GUID:
       return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
     case MAIL_FETCH_UIDL_BACKEND:
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
+      if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
+                                 RBOX_INDEX_HEADER_FLAG_HAVE_POP3_UIDLS)) {
+        *value_r = "";
+        return 0;
+      }
+#if DOVECOT_PREREQ(2, 3)
       if (!index_pop3_uidl_can_exist(_mail)) {
         *value_r = "";
         return 0;
       }
 #endif
-
       ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
-
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
+#if DOVECOT_PREREQ(2, 3)
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
 #endif
       return ret;
     case MAIL_FETCH_POP3_ORDER:
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
+      if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
+                                 RBOX_INDEX_HEADER_FLAG_HAVE_POP3_ORDERS)) {
+        *value_r = "";
+        return 0;
+      }
+#if DOVECOT_PREREQ(2, 3)
       if (!index_pop3_uidl_can_exist(_mail)) {
         /* we're assuming that if there's a POP3 order, there's
            also a UIDL */
@@ -578,7 +590,7 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
     rbox_get_index_record(_mail);
   }
 }
-
+/*static void rbox_update_pop3_uidl(struct mail *_mail, const char *uidl) { i_debug("UIDL: %s", uidl); }*/
 /*ebd if old version */
 // rbox_mail_free,
 struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
@@ -616,7 +628,7 @@ struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
                                        index_mail_update_keywords,
                                        index_mail_update_modseq,
                                        index_mail_update_pvt_modseq,
-                                       NULL,
+                                       NULL /*rbox_update_pop3_uidl*/,
                                        index_mail_expunge,
                                        index_mail_set_cache_corrupted,
                                        index_mail_opened,

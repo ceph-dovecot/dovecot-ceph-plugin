@@ -475,27 +475,6 @@ static int rbox_sync_object_expunge(AioRemove *stat) {
   return ret_remove;
 }
 
-/**
- * Expunge callback will be called from librados.
- * Due to different memory managment it
- * may be problematic to use the log functions
- * here e.g. i_debug.
- */
-static void expunge_cb(rados_completion_t cb, void *arg) {
-  if (arg == NULL) {
-    return;
-  }
-  AioRemove *stat = static_cast<AioRemove *>(arg);
-  if (stat->completion->get_return_value() == 0) {
-    struct mailbox *box = &stat->ctx->rbox->box;
-    // callback
-    /* do sync_notify only when the file was unlinked by us */
-    if (box->v.sync_notify != NULL) {
-      box->v.sync_notify(box, stat->item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-    }
-  }
-  delete stat;
-}
 static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx,
                                            std::list<librados::AioCompletion *> *completions) {
   FUNC_START();
