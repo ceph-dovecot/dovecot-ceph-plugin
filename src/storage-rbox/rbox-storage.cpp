@@ -26,6 +26,7 @@ extern "C" {
 #include "guid.h"
 #include "mailbox-list-fs.h"
 #include "macros.h"
+#include "index-pop3-uidl.h"
 }
 
 #include "rbox-mailbox-list-fs.h"
@@ -422,26 +423,26 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   // initialize storage with plugin configuration
   read_plugin_configuration(box);
   int ret = 0;
-try{
-  rados_storage->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
-                                          ? librmb::WAIT_FOR_SAFE_AND_CB
-                                          : librmb::WAIT_FOR_COMPLETE_AND_CB);
-  /* open connection to primary and alternative storage */
-  ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
-                                           rbox->storage->config->get_rados_cluster_name(),
-                                           rbox->storage->config->get_rados_username());
+  try {
+    rados_storage->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
+                                            ? librmb::WAIT_FOR_SAFE_AND_CB
+                                            : librmb::WAIT_FOR_COMPLETE_AND_CB);
+    /* open connection to primary and alternative storage */
+    ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
+                                         rbox->storage->config->get_rados_cluster_name(),
+                                         rbox->storage->config->get_rados_username());
 
-  if (alt_storage) {
-    ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
-                                              rbox->storage->config->get_rados_username());
+    if (alt_storage) {
+      ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
+                                                rbox->storage->config->get_rados_username());
 
-    rbox->storage->alt->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
-                                                 ? librmb::WAIT_FOR_SAFE_AND_CB
-                                                 : librmb::WAIT_FOR_COMPLETE_AND_CB);
+      rbox->storage->alt->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
+                                                   ? librmb::WAIT_FOR_SAFE_AND_CB
+                                                   : librmb::WAIT_FOR_COMPLETE_AND_CB);
+    }
+  } catch (std::exception &e) {
+    ret = -1;
   }
-}catch(std::exception& e){
-  ret= -1;
-}
 
   if (ret == 1) {
     // already connected nothing to do!
@@ -582,13 +583,11 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   }
   mail_index_view_close(&view);
 
-#ifdef DOVECOT_CEPH_PLUGINS_HAVE_INDEX_POP3_UIDL_H
   if (box->inbox_user && box->creating) {
     /* initialize pop3-uidl header when creating mailbox
        (not on mailbox_update()) */
     index_pop3_uidl_set_max_uid(box, trans, 0);
   }
-#endif
 
   rbox_update_header((struct rbox_mailbox *)box, trans, update);
   if (trans != NULL) {
@@ -853,8 +852,9 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
-                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(
+        ns->list, "*",
+        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {
@@ -935,6 +935,17 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
 
   FUNC_END();
   return ret;
+}
+
+bool rbox_header_have_flag(struct mailbox *box, uint32_t ext_id, unsigned int flags_offset, uint8_t flag) {
+  const void *data;
+  size_t data_size;
+  uint8_t flags = 0;
+
+  mail_index_get_header_ext(box->view, ext_id, &data, &data_size);
+  if (flags_offset < data_size)
+    flags = *((const uint8_t *)data + flags_offset);
+  return (flags & flag) != 0;
 }
 
 struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
