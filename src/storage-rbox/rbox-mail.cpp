@@ -32,7 +32,9 @@ extern "C" {
 #include "debug-helper.h"
 #include "limits.h"
 #include "macros.h"
+#if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
+#endif
 }
 
 #include "../librmb/rados-mail.h"
@@ -504,14 +506,18 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         *value_r = "";
         return 0;
       }
+#if DOVECOT_PREREQ(2, 3)
       if (!index_pop3_uidl_can_exist(_mail)) {
         *value_r = "";
         return 0;
       }
+#endif
       ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
+#if DOVECOT_PREREQ(2, 3)
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
+#endif
       return ret;
     case MAIL_FETCH_POP3_ORDER:
       if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
@@ -519,12 +525,14 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         *value_r = "";
         return 0;
       }
+#if DOVECOT_PREREQ(2, 3)
       if (!index_pop3_uidl_can_exist(_mail)) {
         /* we're assuming that if there's a POP3 order, there's
            also a UIDL */
         *value_r = "";
         return 0;
       }
+#endif
       return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_ORDER, MAIL_CACHE_POP3_ORDER,
                                       value_r);
 

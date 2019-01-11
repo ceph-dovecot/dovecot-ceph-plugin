@@ -30,7 +30,9 @@ extern "C" {
 #include "rbox-sync.h"
 
 #include "debug-helper.h"
+#if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
+#endif
 }
 
 #include "../librmb/rados-mail.h"
@@ -289,7 +291,9 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
       mail_object->add_metadata(xattr);
       r_ctx->have_pop3_uidls = TRUE;
+#if DOVECOT_PREREQ(2, 3)
       r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
+#endif
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_POP3_ORDER)) {
@@ -297,7 +301,9 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER, mdata->pop3_order);
       mail_object->add_metadata(xattr);
       r_ctx->have_pop3_orders = TRUE;
+#if DOVECOT_PREREQ(2, 3)
       r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
+#endif
     }
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_FROM_ENVELOPE)) {
@@ -527,9 +533,11 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
           return -1;
         }
       }
+#if DOVECOT_PREREQ(2, 3)
       if (r_ctx->highest_pop3_uidl_seq == n + 1) {
         index_pop3_uidl_set_max_uid(&r_ctx->mbox->box, r_ctx->trans, uid);
       }
+#endif
     }
     i_assert(!seq_range_array_iter_nth(&iter, n, &uid));
   }

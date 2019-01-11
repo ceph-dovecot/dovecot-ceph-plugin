@@ -26,7 +26,9 @@ extern "C" {
 #include "guid.h"
 #include "mailbox-list-fs.h"
 #include "macros.h"
+#if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
+#endif
 }
 
 #include "rbox-mailbox-list-fs.h"
@@ -583,11 +585,13 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   }
   mail_index_view_close(&view);
 
+#if DOVECOT_PREREQ(2, 3)
   if (box->inbox_user && box->creating) {
     /* initialize pop3-uidl header when creating mailbox
        (not on mailbox_update()) */
     index_pop3_uidl_set_max_uid(box, trans, 0);
   }
+#endif
 
   rbox_update_header((struct rbox_mailbox *)box, trans, update);
   if (trans != NULL) {
@@ -852,9 +856,8 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(
-        ns->list, "*",
-        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {
