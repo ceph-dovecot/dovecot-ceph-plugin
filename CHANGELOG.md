@@ -1,21 +1,39 @@
 # Change Log
 
-## [0.0.16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.16)
+## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17)
 
-[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.15...0.0.16)
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.16...0.0.17)
 
 **Fixed bugs:**
 
-- rbox\_set\_expunge =\> index rebuild [\#222](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/222)
+- fetching pop3.uidl leads to rados storage metadata \(omap\) read [\#230](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/230)
+
+**Merged pull requests:**
+
+- Pop3 uidl handling \#230 [\#231](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/231) ([jrse](https://github.com/jrse))
+
+## [0.0.16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.16) (2018-12-18)
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.15...0.0.16)
+
+**Implemented enhancements:**
+
+- use shared ptr instead of raw pointer [\#121](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/121)
+
+**Fixed bugs:**
+
 - reusing the rbox\_save\_context [\#225](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/225)
+- rbox\_set\_expunge =\> index rebuild [\#222](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/222)
+- backup from rbox -\> mdbox : [\#220](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/220)
 
 **Closed issues:**
 
-- backup from rbox -\> mdbox : [\#220](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/220)
 - iredmail 0.98 \(Dovecot 2.2.33\) on Ubuntu 18.04 LTS - diverse problems [\#210](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/210)
 
 **Merged pull requests:**
 
+- \#185: fix return value assignment, open\_connection: set\_ceph\_wait\_method [\#228](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/228) ([jrse](https://github.com/jrse))
+- Jrse \#222 [\#227](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/227) ([jrse](https://github.com/jrse))
+- Merge pull request \#223 from ceph-dovecot/jrse\_\#222 [\#226](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/226) ([jrse](https://github.com/jrse))
 - Jrse \#222 [\#223](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/223) ([jrse](https://github.com/jrse))
 - \#220: added \#ifdef around the warning message. If a metadata is not s… [\#221](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/221) ([jrse](https://github.com/jrse))
 
