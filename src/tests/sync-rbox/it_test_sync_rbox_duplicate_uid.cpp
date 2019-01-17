@@ -75,7 +75,8 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   EXPECT_EQ(ret, 0);
   const char *metadata_name = "U";
   librados::bufferlist list;
-  list.append("1");  // duplicate uid
+  std::string id = "1";
+  list.append(id.c_str(), id.length() + 1);
   ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
   EXPECT_EQ(ret, 0);
 

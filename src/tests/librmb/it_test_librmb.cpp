@@ -129,7 +129,7 @@ TEST(librmb1, convert_types) {
   librmb::RadosMetadata attr(librmb::RBOX_METADATA_GUID, value);
 
   EXPECT_EQ(attr.key, "G");
-  EXPECT_EQ(attr.bl.to_str(), value);
+  EXPECT_STREQ(attr.bl.c_str(), "4441c5339f4c9d59523000009c60b9f7");
   time_t t = 1503488583;
 
   attr.key = "";
@@ -137,16 +137,16 @@ TEST(librmb1, convert_types) {
   librmb::RadosMetadata attr2(librmb::RBOX_METADATA_RECEIVED_TIME, t);
 
   EXPECT_EQ(attr2.key, "R");
-  EXPECT_EQ(attr2.bl.to_str(), "1503488583");
+  EXPECT_STREQ(attr2.bl.c_str(), "1503488583");
 
   time_t recv_date;
-  attr2.convert(attr2.bl.to_str().c_str(), &recv_date);
+  attr2.convert(attr2.bl.c_str(), &recv_date);
   EXPECT_EQ(t, recv_date);
 
   size_t st = 100;
   librmb::RadosMetadata attr4(librmb::RBOX_METADATA_VIRTUAL_SIZE, st);
   EXPECT_EQ(attr4.key, "V");
-  EXPECT_EQ(attr4.bl.to_str(), "100");
+  EXPECT_STREQ(attr4.bl.c_str(), "100");
 
   attr4.key = "";
   attr4.bl.clear();

@@ -37,7 +37,7 @@ TEST(librmb, get_metadata_1) {
 
   mail.get_metadata(key, &val);
   std::cout << val << std::endl;
-  EXPECT_EQ(val, "abcdefg\0");
+  EXPECT_STREQ(val, "abcdefg\0");
 }
 
 TEST(librmb, convert_enum) {
