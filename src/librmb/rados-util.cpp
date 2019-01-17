@@ -163,7 +163,7 @@ std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std
 std::string RadosUtils::get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata) {
   std::string value;
   if (metadata->find(key) != metadata->end()) {
-    value = (*metadata)[key].to_str();
+    value = (*metadata)[key].c_str();
   }
   return value;
 }

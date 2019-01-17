@@ -452,44 +452,30 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
     ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
                                                   rmail->rados_mail->get_mail_buffer());
-    ret = completion->wait_for_complete_and_cb();
+    completion->wait_for_complete_and_cb();
+    ret = completion->get_return_value();
     completion->release();
+    delete read_mail;
 
     if (ret < 0) {
-      i_error(
-          "reading from rados storage failed with(%d), oid(%s),namespace(%s), alt_storage(%d), stat_err(%d), "
-          "read_err(%d)",
-          ret, rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage, stat_err,
-          read_err);
-      FUNC_END_RET("ret == -1");
-      return -1;
-    }
-
-    i_debug("end read : %ld", time(NULL));
-    int physical_size = psize;
-    rmail->rados_mail->set_mail_size(psize);
-    rmail->rados_mail->set_rados_save_date(save_date);
-
-    gettimeofday(&end, NULL);
-    long seconds = (end.tv_sec - begin.tv_sec);
-    long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
-    i_debug("read mail(%s) from storage took: %ld seconds and %ld millisec (size=%d)",
-            rmail->rados_mail->get_oid()->c_str(), seconds, micros / 1000, physical_size);
-
-    if (physical_size < 0) {
-      if (physical_size == -ENOENT) {
+      if (ret == -ENOENT) {
         i_warning("Mail not found. %s, ns='%s', process %d, alt_storage(%d) -> marking mail as expunged!",
                   rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), getpid(), alt_storage);
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
         return -1;
       } else {
-        i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", physical_size,
+        i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", ret,
                 rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
         FUNC_END_RET("ret == -1");
         return -1;
       }
-    } else if (physical_size == 0) {
+    }
+    int physical_size = psize;
+    rmail->rados_mail->set_mail_size(psize);
+    rmail->rados_mail->set_rados_save_date(save_date);
+
+    if (physical_size == 0) {
       i_error(
           "trying to read a mail(%s) with size = 0, namespace(%s), alt_storage(%d) uid(%d), which is currently copied, "
           "moved "
@@ -505,6 +491,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1");
       return -1;
     }
+
+
     librmb::RadosMetadata metadata_phy(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, physical_size);
     rmail->rados_mail->add_metadata(metadata_phy);
 
