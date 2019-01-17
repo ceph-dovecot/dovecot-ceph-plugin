@@ -216,6 +216,7 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
   }
 
   bool failed = false;
+
   switch (wait_method) {
     case WAIT_FOR_COMPLETE_AND_CB:
       completion->wait_for_complete_and_cb();
@@ -226,13 +227,13 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
     default:
       completion->wait_for_complete_and_cb();
       break;
-
-      failed = completion->get_return_value() < 0 || failed ? true : false;
-      // clean up
-      completion->release();
-      write_operation->remove();
-      delete write_operation;
   }
+  failed = completion->get_return_value() < 0 || failed ? true : false;
+  // clean up
+  completion->release();
+  write_operation->remove();
+  delete write_operation;
+
   return failed;
 }
 
