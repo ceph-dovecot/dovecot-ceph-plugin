@@ -137,21 +137,27 @@ TEST_F(StorageTest, move_mail_test) {
   ASSERT_EQ(1, (int)objects.size());
   librmb::RadosMail *mail1 = objects[0];
 
-  char *val;
-  char *val2;
+  char *val = NULL;
+  char *val2 = NULL;
 
   mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val);
   ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val);
   ASSERT_STRNE(val, val2);
 

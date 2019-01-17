@@ -33,11 +33,11 @@ TEST(librmb, get_metadata_1) {
   librmb::RadosMetadata m(key, "abcdefg");
   librmb::RadosMail mail;
   mail.add_metadata(m);
-  char *val;
+  char *val = NULL
 
   mail.get_metadata(key, &val);
   std::cout << val << std::endl;
-  EXPECT_STREQ(val, "abcdefg");
+  EXPECT_STREQ(val, "abcdefg\0");
 }
 
 TEST(librmb, convert_enum) {
@@ -352,7 +352,7 @@ TEST(librmb, test_mvn_option) {
   metadata.push_back(&mb_name);
   metadata.push_back(&uid);
 
-  std::string test_file_name = "test_1.log";
+  std::string test_file_name = "test_2.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("dest_oid", "ns_dest", "mail_storage",
@@ -368,7 +368,7 @@ TEST(librmb, test_mvn_option) {
     EXPECT_EQ(entry.oid, "dest_oid");
     EXPECT_EQ(entry.ns, "ns_dest");
     EXPECT_EQ(entry.pool, "mail_storage");
-    EXPECT_EQ(entry.op, "mv:ns_src:src_oid:user;M=ABCDEFG:B=INBOX:U=1");
+    EXPECT_EQ(entry.op, "mv:ns_src:src_oid:user;M=ABCDEFG:B=INBOX:U=1\0");
     EXPECT_EQ(entry.metadata.size(), 3);
   }
 

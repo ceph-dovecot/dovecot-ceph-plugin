@@ -206,7 +206,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
         i_error("update_flags: load_metadata failed! for %d, oid(%s)", seq1, oid);
         continue;
       }
-      char *flags_metadata;
+      char *flags_metadata = NULL;
       mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &flags_metadata);
       uint8_t flags = 0x0;
       if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {

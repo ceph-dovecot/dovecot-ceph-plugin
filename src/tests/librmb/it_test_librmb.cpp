@@ -71,7 +71,7 @@ TEST(librmb, split_write_operation) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_NE(5, (int)obj.get_num_active_op());
+  EXPECT_EQ(5, (int)obj.get_num_active_op());
 }
 /**
  * Test object split operation

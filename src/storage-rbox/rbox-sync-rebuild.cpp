@@ -33,9 +33,9 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
                          bool alt_storage, uint32_t next_uid) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
-  char *xattr_mail_uid;
+  char *xattr_mail_uid = NULL;
   mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID, &xattr_mail_uid);
-  char *xattr_guid;
+  char *xattr_guid = NULL;
   mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID, &xattr_guid);
   struct mail_storage *storage = ctx->box->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
@@ -256,9 +256,8 @@ int repair_namespace(struct mail_namespace *ns, bool force) {
   const struct mailbox_info *info;
   int ret = 0;
 
-  iter = mailbox_list_iter_init(
-      ns->list, "*",
-      static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(ns->list, "*", static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST |
+                                                                                    MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
