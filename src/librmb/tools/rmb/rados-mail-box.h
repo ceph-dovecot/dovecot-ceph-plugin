@@ -49,7 +49,7 @@ class RadosMailBox {
          it != parser->get_predicates().end(); ++it) {
       if (mail->get_metadata()->find(it->first) != mail->get_metadata()->end()) {
         std::string key = it->first;
-        std::string value;
+        char *value;
         mail->get_metadata(key, &value);
         if (it->second->eval(value)) {
           mails.push_back(mail);

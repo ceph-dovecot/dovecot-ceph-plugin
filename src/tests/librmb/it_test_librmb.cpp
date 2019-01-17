@@ -59,7 +59,7 @@ TEST(librmb, split_write_operation) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
 
   // remove it
   int ret_remove = storage.delete_mail(&obj);
@@ -106,10 +106,10 @@ TEST(librmb1, split_write_operation_1) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
 
   // remove it
-  int ret_remove = storage.delete_mail(obj.get_oid());
+  int ret_remove = storage.delete_mail(*obj.get_oid());
 
   // tear down.
   cluster.deinit();
@@ -184,17 +184,17 @@ TEST(librmb1, read_mail) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
 
   librados::bufferlist bl;
-  int copy_mail_ret = storage.read_mail(obj.get_oid(), &bl);
+  int copy_mail_ret = storage.read_mail(*obj.get_oid(), &bl);
   char *buff = new char[copy_mail_ret + 1];
   memset(buff, 1, size + 1);
   memcpy(buff, bl.to_str().c_str(), copy_mail_ret + 1);
   EXPECT_EQ(buff[copy_mail_ret], '\0');
 
   // remove it
-  int ret_remove = storage.delete_mail(obj.get_oid());
+  int ret_remove = storage.delete_mail(*obj.get_oid());
 
   // tear down
   cluster.deinit();
@@ -250,7 +250,7 @@ TEST(librmb, load_metadata) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
 
   EXPECT_EQ(buffer_length, size);
   EXPECT_EQ(0, ret_storage);
@@ -265,7 +265,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(0, i);
 
   // remove it
-  int ret_remove = storage.delete_mail(obj.get_oid());
+  int ret_remove = storage.delete_mail(*obj.get_oid());
   EXPECT_EQ(0, ret_remove);
 
   // tear down
@@ -310,7 +310,7 @@ TEST(librmb, AttributeVersions) {
   // stat the object
   uint64_t size;
   time_t save_date;
-  int ret_stat = storage.stat_mail(obj.get_oid(), &size, &save_date);
+  int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
   EXPECT_EQ(ret_stat, 0);
   uint64_t version = storage.get_io_ctx().get_last_version();
 
@@ -324,14 +324,13 @@ TEST(librmb, AttributeVersions) {
   std::map<std::string, librados::bufferlist> map;
   librados::bufferlist omap_bl;
   omap_bl.append("xxx");
-  map.insert(std::pair<std::string, librados::bufferlist>(obj.get_oid(), omap_bl));
-  storage.get_io_ctx().omap_set(obj.get_oid(), map);
-
+  map.insert(std::pair<std::string, librados::bufferlist>(*obj.get_oid(), omap_bl));
+  storage.get_io_ctx().omap_set(*obj.get_oid(), map);
   uint64_t version_after_omap_set = storage.get_io_ctx().get_last_version();
   EXPECT_NE(version_after_xattr_update, version_after_omap_set);
 
   // remove it
-  storage.delete_mail(obj.get_oid());
+  storage.delete_mail(*obj.get_oid());
   // tear down
   cluster.deinit();
 }
@@ -386,7 +385,7 @@ TEST(librmb, json_ima) {
 
   // check
   std::map<std::string, ceph::bufferlist> attr_list;
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(1, attr_list.size());
 
   unsigned int uid = 10;
@@ -396,7 +395,7 @@ TEST(librmb, json_ima) {
 
   // check again
   attr_list.clear();
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(1, attr_list.size());
 
   storage.delete_mail(&obj);
@@ -455,7 +454,7 @@ TEST(librmb, json_ima_2) {
 
   // check there should be ima and F (Flags)
   std::map<std::string, ceph::bufferlist> attr_list;
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(2, attr_list.size());
 
   unsigned int uid = 10;
@@ -465,7 +464,7 @@ TEST(librmb, json_ima_2) {
 
   // check again
   attr_list.clear();
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(2, attr_list.size());
 
   storage.delete_mail(&obj);
@@ -531,7 +530,7 @@ TEST(librmb, json_ima_3) {
 
   // check there should be ima and F (Flags)
   std::map<std::string, ceph::bufferlist> attr_list;
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(2, attr_list.size());
 
   unsigned int uid = 10;
@@ -541,7 +540,7 @@ TEST(librmb, json_ima_3) {
 
   // check again
   attr_list.clear();
-  storage.get_io_ctx().getxattrs(obj.get_oid(), attr_list);
+  storage.get_io_ctx().getxattrs(*obj.get_oid(), attr_list);
   EXPECT_EQ(2, attr_list.size());
 
   obj.get_metadata()->clear();
@@ -702,17 +701,17 @@ TEST(librmb, increment_add_to_non_existing_key) {
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
-  storage.save_mail(obj2.get_oid(), mail_buf);
+  storage.save_mail(*obj2.get_oid(), mail_buf);
 
   long val = 10;  // value to add
-  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
   keys.insert(key);
 
-  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(*obj2.get_oid(), keys, &omap));
 
   std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
   ASSERT_NE(omap.end(), it);
@@ -745,16 +744,16 @@ TEST(librmb, increment_add_to_non_existing_object) {
   obj2.set_oid("myobject");
 
   long val = 10;  // value to add
-  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
-  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
   keys.insert(key);
 
-  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(*obj2.get_oid(), keys, &omap));
 
   std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
   ASSERT_NE(omap.end(), it);
@@ -788,18 +787,18 @@ TEST(librmb, increment_add_to_existing_key) {
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
-  storage.save_mail(obj2.get_oid(), mail_buf);
+  storage.save_mail(*obj2.get_oid(), mail_buf);
   long val = 10;  // value to add
-  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
-  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
   // get the value!
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
   keys.insert(key);
 
-  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(*obj2.get_oid(), keys, &omap));
 
   std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
   ASSERT_NE(omap.end(), it);
@@ -834,20 +833,20 @@ TEST(librmb, increment_sub_from_existing_key) {
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
-  storage.save_mail(obj2.get_oid(), mail_buf);
+  storage.save_mail(*obj2.get_oid(), mail_buf);
 
   long val = 10;  // value to add
-  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), obj2.get_oid(), key, val);
+  int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
   ASSERT_EQ(0, ret);
   long sub_val = 5;  // value to add
-  ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), obj2.get_oid(), key, sub_val);
+  ret = librmb::RadosUtils::osd_sub(&storage.get_io_ctx(), *obj2.get_oid(), key, sub_val);
   // get the value!
   ASSERT_EQ(0, ret);
   std::set<std::string> keys;
   std::map<std::string, ceph::bufferlist> omap;
   keys.insert(key);
 
-  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(obj2.get_oid(), keys, &omap));
+  ASSERT_EQ(0, storage.get_io_ctx().omap_get_vals_by_keys(*obj2.get_oid(), keys, &omap));
 
   std::map<std::string, ceph::bufferlist>::iterator it = omap.find(key);
   ASSERT_NE(omap.end(), it);
@@ -898,7 +897,7 @@ TEST(librmb, rmb_load_objects) {
   obj2.set_oid("myobject");
 
   ceph::bufferlist mail_buf;
-  storage.save_mail(obj2.get_oid(), mail_buf);
+  storage.save_mail(*obj2.get_oid(), mail_buf);
 
   std::vector<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";

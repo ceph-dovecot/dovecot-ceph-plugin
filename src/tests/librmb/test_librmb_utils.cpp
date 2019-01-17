@@ -21,11 +21,24 @@
 #include "rados-util.h"
 #include "rados-types.h"
 #include "rados-save-log.h"
+#include "rados-mail.h"
 #include <cstdio>
 #include <pthread.h>
 
 using ::testing::AtLeast;
 using ::testing::Return;
+
+TEST(librmb, get_metadata_1) {
+  enum librmb::rbox_metadata_key key = librmb::rbox_metadata_key::RBOX_METADATA_GUID;
+  librmb::RadosMetadata m(key, "abcdefg");
+  librmb::RadosMail mail;
+  mail.add_metadata(m);
+  char *val;
+
+  mail.get_metadata(key, &val);
+  std::cout << val << std::endl;
+  EXPECT_STREQ(val, "abcdefg");
+}
 
 TEST(librmb, convert_enum) {
   enum librmb::rbox_metadata_key key = librmb::rbox_metadata_key::RBOX_METADATA_GUID;

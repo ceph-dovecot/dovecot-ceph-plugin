@@ -48,8 +48,9 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     return -1;
   }
 
-  librados::ObjectWriteOperation *op = nullptr;
-  librados::AioCompletion *completion = nullptr;
+  librados::ObjectWriteOperation *op =
+      write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
@@ -65,8 +66,6 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
     int offset = i * max_write;
-
-    op = (i == 0) ? write_op_xattr : new librados::ObjectWriteOperation();
 
     uint64_t length = max_write;
     if (write_buffer_size < ((i + 1) * length)) {
@@ -84,16 +83,10 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       op->write(offset, tmp_buffer);
     }
-    completion = librados::Rados::aio_create_completion();
-
-    (*current_object->get_completion_op_map())[completion] = op;
-
-    ret_val = get_io_ctx().aio_operate(current_object->get_oid(), completion, op);
-    if (ret_val < 0) {
-      break;
-    }
   }
+  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), completion, op);
 
+  (*current_object->get_completion_op_map())[completion] = op;
   return ret_val;
 }
 
@@ -113,7 +106,7 @@ int RadosStorageImpl::delete_mail(RadosMail *mail) {
   int ret = -1;
 
   if (cluster->is_connected() && io_ctx_created && mail != nullptr) {
-    ret = delete_mail(mail->get_oid());
+    ret = delete_mail(*mail->get_oid());
   }
   return ret;
 }
@@ -373,7 +366,8 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   if (write_op_xattr == nullptr || mail == nullptr) {
     return false;
   }
-  write_op_xattr->mtime(mail->get_rados_save_date());
+  time_t save_date = mail->get_rados_save_date();
+  write_op_xattr->mtime(&save_date);
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   mail->set_active_op(true);
   if (ret != 0) {

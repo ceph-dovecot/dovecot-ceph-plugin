@@ -11,7 +11,7 @@
 
 #include "rados-metadata-storage-default.h"
 #include "rados-util.h"
-
+#include <utility>
 namespace librmb {
 
 std::string RadosMetadataStorageDefault::module_name = "default";
@@ -20,24 +20,23 @@ RadosMetadataStorageDefault::RadosMetadataStorageDefault(librados::IoCtx *io_ctx
 
 RadosMetadataStorageDefault::~RadosMetadataStorageDefault() {}
 
-
 int RadosMetadataStorageDefault::load_metadata(RadosMail *mail) {
   int ret = -1;
   if (mail != nullptr) {
     if (mail->get_metadata()->size() == 0) {
-      ret = io_ctx->getxattrs(mail->get_oid(), *mail->get_metadata());
+      ret = io_ctx->getxattrs(*mail->get_oid(), *mail->get_metadata());
     } else {
       ret = 0;
     }
     if (ret >= 0) {
-      ret = RadosUtils::get_all_keys_and_values(io_ctx, mail->get_oid(), mail->get_extended_metadata());
+      ret = RadosUtils::get_all_keys_and_values(io_ctx, *mail->get_oid(), mail->get_extended_metadata());
     }
   }
   return ret;
 }
 int RadosMetadataStorageDefault::set_metadata(RadosMail *mail, RadosMetadata &xattr) {
   mail->add_metadata(xattr);
-  return io_ctx->setxattr(mail->get_oid(), xattr.key.c_str(), xattr.bl);
+  return io_ctx->setxattr(*mail->get_oid(), xattr.key.c_str(), xattr.bl);
 }
 
 void RadosMetadataStorageDefault::save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {

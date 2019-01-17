@@ -34,6 +34,7 @@ class RadosMetadata {
   RadosMetadata(enum rbox_metadata_key _key, const uint& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const size_t& val) { convert(_key, val); }
+  RadosMetadata(enum rbox_metadata_key _key, const int val) { convert(_key, val); }
   ~RadosMetadata() {}
 
  public:
@@ -98,6 +99,11 @@ class RadosMetadata {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
     bl.append(std::to_string(static_cast<int>(value)));
+  }
+  void convert(enum rbox_metadata_key _key, const int value) {
+    bl.clear();
+    key = librmb::rbox_metadata_key_to_char(_key);
+    bl.append(std::to_string(value));
   }
 };
 }  // end namespace

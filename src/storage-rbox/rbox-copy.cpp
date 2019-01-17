@@ -180,11 +180,11 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->rados_mail->get_oid();
+  std::string src_oid = *rmail->rados_mail->get_oid();
 
   setup_mail_object(ctx);
 
-  std::string dest_oid = r_ctx->rados_mail->get_oid();
+  std::string dest_oid = *r_ctx->rados_mail->get_oid();
 
   set_mailbox_metadata(ctx, &metadata_update);
 
@@ -235,7 +235,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct mailbox *dest_mbox = ctx->transaction->box;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->rados_mail->get_oid();
+  std::string src_oid = *rmail->rados_mail->get_oid();
   std::string dest_oid = src_oid;
 
   set_mailbox_metadata(ctx, &metadata_update);
@@ -337,7 +337,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       T_BEGIN {
         if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
           FUNC_END_RET("ret == -1, move mail failed");
-          ret = - 1;
+          ret = -1;
         }
       }
       T_END;

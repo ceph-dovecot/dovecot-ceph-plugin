@@ -19,6 +19,7 @@ extern "C" {
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
+#include <time.h>
 }
 #include "rados-util.h"
 #include "rbox-storage.hpp"
@@ -205,7 +206,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
         i_error("update_flags: load_metadata failed! for %d, oid(%s)", seq1, oid);
         continue;
       }
-      std::string flags_metadata;
+      char *flags_metadata;
       mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &flags_metadata);
       uint8_t flags = 0x0;
       if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {
@@ -215,13 +216,13 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
         if (remove_flags != 0) {
           flags &= ~remove_flags;
         }
-
-        if (librmb::RadosUtils::flags_to_string(flags, &flags_metadata)) {
-          librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
+        std::string str_flags_metadata;
+        if (librmb::RadosUtils::flags_to_string(flags, &str_flags_metadata)) {
+          librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, str_flags_metadata);
           ret = r_storage->ms->get_storage()->set_metadata(&mail_object, update);
           if (ret < 0) {
             i_warning("updating metadata for object : oid(%s), seq (%d) failed with ceph errorcode: %d",
-                      mail_object.get_oid().c_str(), seq1, ret);
+                      mail_object.get_oid()->c_str(), seq1, ret);
           }
         }
       }
@@ -372,7 +373,8 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || rbox->storage->corrupted_rebuild_count != 0 || rbox_refresh_header(rbox, TRUE, FALSE) < 0;
 #ifdef DEBUG
-  i_debug("RBOX storage corrupted rebuild count = %d", rbox->storage->corrupted_rebuild_count);
+  i_debug("RBOX storage corrupted rebuild count = %d, rebuild %d, force_rebuild %d",
+          rbox->storage->corrupted_rebuild_count, rebuild, force_rebuild);
 #endif
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(rbox->box.view);
@@ -413,10 +415,12 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   if (ret >= 0) {
     ret = index_storage_expunged_sync_begin(&rbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<enum mail_index_sync_flags>(sync_flags));
+    i_debug("expunge index_storage_expunge... ret %d", ret);
     if (mail_index_reset_fscked(rbox->box.index))
       rbox_set_mailbox_corrupted(&rbox->box);
   }
   if (ret <= 0) {
+    i_debug("array delete");
     array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
     array_free(&ctx->expunged_items);
     i_free(ctx);
@@ -578,6 +582,9 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
 int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
   FUNC_START();
+  timeval begin, end;
+  gettimeofday(&begin, NULL);
+
   struct rbox_sync_context *sync_ctx = NULL;
 
   if (rbox_sync_begin(rbox, &sync_ctx, flags) < 0) {
@@ -585,8 +592,15 @@ int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
     return -1;
   }
 
+  int ret = sync_ctx == NULL ? 0 : rbox_sync_finish(&sync_ctx, TRUE);
+
+  gettimeofday(&end, NULL);
+  long seconds = (end.tv_sec - begin.tv_sec);
+  long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
+  i_debug("sync MAILBOX took: %ld seconds and %ld millisec ", seconds, micros / 1000);
+
   FUNC_END();
-  return sync_ctx == NULL ? 0 : rbox_sync_finish(&sync_ctx, TRUE);
+  return ret;
 }
 
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {

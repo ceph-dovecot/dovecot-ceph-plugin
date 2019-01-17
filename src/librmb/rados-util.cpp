@@ -72,7 +72,6 @@ int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   *ret_val = std::string(buffer);
   return 0;
 }
-
 bool RadosUtils::flags_to_string(const uint8_t &flags_, std::string *flags_str) {
   std::stringstream sstream;
   sstream << std::hex << flags_;
