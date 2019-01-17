@@ -54,7 +54,7 @@ TEST(librmb, split_write_operation) {
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // stat the object
   uint64_t size;
@@ -71,7 +71,7 @@ TEST(librmb, split_write_operation) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
+  EXPECT_NE(5, (int)obj.get_num_active_op());
 }
 /**
  * Test object split operation
@@ -101,7 +101,7 @@ TEST(librmb1, split_write_operation_1) {
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // stat the object
   uint64_t size;
@@ -118,7 +118,7 @@ TEST(librmb1, split_write_operation_1) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(1, (int)obj.get_completion_op_map()->size());
+  EXPECT_EQ(1, (int)obj.get_num_active_op());
 }
 /**
  * Test Rados Metadata type conversion
@@ -179,7 +179,7 @@ TEST(librmb1, read_mail) {
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // stat the object
   uint64_t size;
@@ -243,7 +243,7 @@ TEST(librmb, load_metadata) {
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   ms.load_metadata(&obj);
   std::cout << "load metadata ok" << std::endl;
@@ -255,7 +255,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(buffer_length, size);
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
-  EXPECT_EQ(5, (int)obj.get_completion_op_map()->size());
+  EXPECT_EQ(5, (int)obj.get_num_active_op());
   EXPECT_EQ(2, (int)obj.get_metadata()->size());
   std::cout << " load with null" << std::endl;
   int i = ms.load_metadata(nullptr);
@@ -305,7 +305,7 @@ TEST(librmb, AttributeVersions) {
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
   EXPECT_EQ(ret_storage, 0);
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // stat the object
   uint64_t size;
@@ -381,7 +381,7 @@ TEST(librmb, json_ima) {
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // check
   std::map<std::string, ceph::bufferlist> attr_list;
@@ -450,7 +450,7 @@ TEST(librmb, json_ima_2) {
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // check there should be ima and F (Flags)
   std::map<std::string, ceph::bufferlist> attr_list;
@@ -526,7 +526,7 @@ TEST(librmb, json_ima_3) {
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // check there should be ima and F (Flags)
   std::map<std::string, ceph::bufferlist> attr_list;
@@ -607,7 +607,7 @@ TEST(librmb, test_default_metadata_load_attributes) {
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion_op_map());
+  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   librmb::RadosMail obj2;
   obj2.set_oid("test_ima");

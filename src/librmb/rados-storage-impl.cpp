@@ -83,10 +83,12 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       op->write(offset, tmp_buffer);
     }
+    current_object->set_active_op(i + 1);
   }
   ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), completion, op);
+  current_object->set_completion(completion);
+  current_object->set_write_operation(op);
 
-  (*current_object->get_completion_op_map())[completion] = op;
   return ret_val;
 }
 
@@ -207,29 +209,29 @@ void RadosStorageImpl::close_connection() {
     cluster->deinit();
   }
 }
-bool RadosStorageImpl::wait_for_write_operations_complete(
-    std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) {
-  bool failed = false;
-  for (std::map<librados::AioCompletion *, librados::ObjectWriteOperation *>::iterator map_it =
-           completion_op_map->begin();
-       map_it != completion_op_map->end(); ++map_it) {
-    switch (wait_method) {
-      case WAIT_FOR_COMPLETE_AND_CB:
-        map_it->first->wait_for_complete_and_cb();
-        break;
-      case WAIT_FOR_SAFE_AND_CB:
-        map_it->first->wait_for_safe_and_cb();
-        break;
-      default:
-        map_it->first->wait_for_complete_and_cb();
-        break;
-    }
+bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletion *completion,
+                                                          librados::ObjectWriteOperation *write_operation) {
+  if (completion == nullptr || write_operation == nullptr) {
+    return true;  // failed!
+  }
 
-    failed = map_it->first->get_return_value() < 0 || failed ? true : false;
-    // clean up
-    map_it->first->release();
-    map_it->second->remove();
-    delete map_it->second;
+  bool failed = false;
+  switch (wait_method) {
+    case WAIT_FOR_COMPLETE_AND_CB:
+      completion->wait_for_complete_and_cb();
+      break;
+    case WAIT_FOR_SAFE_AND_CB:
+      completion->wait_for_safe_and_cb();
+      break;
+    default:
+      completion->wait_for_complete_and_cb();
+      break;
+
+      failed = completion->get_return_value() < 0 || failed ? true : false;
+      // clean up
+      completion->release();
+      write_operation->remove();
+      delete write_operation;
   }
   return failed;
 }
@@ -243,11 +245,13 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
        it_cur_obj != object_list.end(); ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
-      bool op_failed = wait_for_write_operations_complete((*it_cur_obj)->get_completion_op_map());
+      bool op_failed =
+          wait_for_write_operations_complete((*it_cur_obj)->get_completion(), (*it_cur_obj)->get_write_operation());
 
       ctx_failed = ctx_failed ? ctx_failed : op_failed;
-      (*it_cur_obj)->get_completion_op_map()->clear();
-      (*it_cur_obj)->set_active_op(false);
+      (*it_cur_obj)->set_active_op(0);
+      (*it_cur_obj)->set_completion(nullptr);
+      (*it_cur_obj)->set_write_operation(nullptr);
     }
   }
   return ctx_failed;
@@ -369,11 +373,10 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   time_t save_date = mail->get_rados_save_date();
   write_op_xattr->mtime(&save_date);
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
-  mail->set_active_op(true);
   if (ret != 0) {
     write_op_xattr->remove();
     delete write_op_xattr;
-    mail->set_active_op(false);
+    mail->set_active_op(0);
   } else if (!save_async) {
     std::vector<librmb::RadosMail *> objects;
     objects.push_back(mail);

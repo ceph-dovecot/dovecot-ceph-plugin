@@ -23,7 +23,14 @@ using std::ostringstream;
 
 using librmb::RadosMail;
 
-RadosMail::RadosMail() : object_size(-1), active_op(false), save_date_rados(-1), valid(true), index_ref(false) {}
+RadosMail::RadosMail()
+    : object_size(-1),
+      completion(nullptr),
+      write_operation(nullptr),
+      active_op(0),
+      save_date_rados(-1),
+      valid(true),
+      index_ref(false) {}
 
 RadosMail::~RadosMail() {}
 

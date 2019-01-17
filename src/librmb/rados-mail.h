@@ -41,7 +41,7 @@ class RadosMail {
   void set_oid(const char* _oid) { this->oid = _oid; }
   void set_oid(const string& _oid) { this->oid = _oid; }
   void set_mail_size(const int _size) { object_size = _size; }
-  void set_active_op(bool _active) { this->active_op = _active; }
+  void set_active_op(int num_write_op) { this->active_op = num_write_op; }
   void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
 
   string* get_oid() { return &this->oid; }
@@ -55,10 +55,16 @@ class RadosMail {
   librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
+  AioCompletion* get_completion() { return completion; }
+  void set_completion(AioCompletion* completion_) { this->completion = completion_; }
+
+  ObjectWriteOperation* get_write_operation() { return write_operation; }
+  void set_write_operation(ObjectWriteOperation* write_operation_) { this->write_operation = write_operation_; }
+
   /*!
    * @return reference to all write operations related with this object
    */
-  map<AioCompletion*, ObjectWriteOperation*>* get_completion_op_map() { return &completion_op; }
+
   void get_metadata(const std::string& key, char** value) {
     if (attrset.find(key) != attrset.end()) {
       *value = attrset[key].c_str();
@@ -75,7 +81,8 @@ class RadosMail {
   void set_index_ref(bool ref) { this->index_ref = ref; }
   bool is_valid() { return valid; }
   void set_valid(bool valid_) { valid = valid_; }
-  bool has_active_op() { return active_op; }
+  bool has_active_op() { return active_op > 0; }
+  int get_num_active_op() { return active_op; }
   string to_string(const string& padding);
   void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
 
@@ -99,12 +106,12 @@ class RadosMail {
 
  private:
   string oid;
-
   uint8_t guid[GUID_128_SIZE] = {};
   int object_size;  // byte
-  map<AioCompletion*, ObjectWriteOperation*> completion_op;
+  AioCompletion* completion;
+  ObjectWriteOperation* write_operation;
 
-  bool active_op;
+  int active_op;
   ceph::bufferlist mail_buffer;
   time_t save_date_rados;
 
