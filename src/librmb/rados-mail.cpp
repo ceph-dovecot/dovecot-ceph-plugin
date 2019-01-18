@@ -35,30 +35,30 @@ RadosMail::RadosMail()
 RadosMail::~RadosMail() {}
 
 std::string RadosMail::to_string(const string& padding) {
-  char* uid;
+  char* uid = NULL;
   get_metadata(RBOX_METADATA_MAIL_UID, &uid);
-  char* recv_time_str;
+  char* recv_time_str = NULL;
   get_metadata(RBOX_METADATA_RECEIVED_TIME, &recv_time_str);
-  char* p_size;
+  char* p_size = NULL;
   get_metadata(RBOX_METADATA_PHYSICAL_SIZE, &p_size);
-  char* v_size;
+  char* v_size = NULL;
   get_metadata(RBOX_METADATA_VIRTUAL_SIZE, &v_size);
 
-  char* rbox_version;
+  char* rbox_version = NULL;
   get_metadata(RBOX_METADATA_VERSION, &rbox_version);
-  char* mailbox_guid;
+  char* mailbox_guid = NULL;
   get_metadata(RBOX_METADATA_MAILBOX_GUID, &mailbox_guid);
-  char* mail_guid;
+  char* mail_guid = NULL;
   get_metadata(RBOX_METADATA_GUID, &mail_guid);
-  char* mb_orig_name;
+  char* mb_orig_name = NULL;
   get_metadata(RBOX_METADATA_ORIG_MAILBOX, &mb_orig_name);
 
   // string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
-  char* flags;
+  char* flags = NULL;
   get_metadata(RBOX_METADATA_OLDV1_FLAGS, &flags);
-  char* pvt_flags;
+  char* pvt_flags = NULL;
   get_metadata(RBOX_METADATA_PVT_FLAGS, &pvt_flags);
-  char* from_envelope;
+  char* from_envelope = NULL;
   get_metadata(RBOX_METADATA_FROM_ENVELOPE, &from_envelope);
 
   time_t ts = -1;
@@ -103,10 +103,11 @@ std::string RadosMail::to_string(const string& padding) {
     ss << padding << "        "
        << "save_time= INVALID DATE '" << save_date_rados << "'\n";
   }
-
-  ss << padding << "        " << static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE) << "(phy_size)=" << p_size << " "
-     << static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE) << "(v_size) = " << v_size << " stat_size=" << object_size
-     << endl;
+  if (p_size != NULL && v_size != NULL) {
+    ss << padding << "        " << static_cast<char>(RBOX_METADATA_PHYSICAL_SIZE) << "(phy_size)=" << p_size << " "
+       << static_cast<char>(RBOX_METADATA_VIRTUAL_SIZE) << "(v_size) = " << v_size << " stat_size=" << object_size
+       << endl;
+  }
   if (mailbox_guid != NULL) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_MAILBOX_GUID) << "(mailbox_guid)=" << mailbox_guid
        << endl;
@@ -131,7 +132,7 @@ std::string RadosMail::to_string(const string& padding) {
     }
   }
 
-  if (flags == NULL) {
+  if (flags != NULL) {
     uint8_t flags_;
     if (RadosUtils::string_to_flags(flags, &flags_)) {
       std::string resolved_flags;
@@ -141,12 +142,12 @@ std::string RadosMail::to_string(const string& padding) {
     }
   }
 
-  if (pvt_flags == NULL) {
+  if (pvt_flags != NULL) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_PVT_FLAGS) << "(private flags): " << pvt_flags
        << endl;
   }
 
-  if (from_envelope == NULL) {
+  if (from_envelope != NULL) {
     ss << padding << "        " << static_cast<char>(RBOX_METADATA_FROM_ENVELOPE)
        << "(from envelope): " << from_envelope << endl;
   }
