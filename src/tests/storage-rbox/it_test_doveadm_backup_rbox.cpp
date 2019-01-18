@@ -160,9 +160,12 @@ TEST_F(StorageTest, mail_doveadm_backup_copy_mail_in_inbox) {
   mail2->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
+  // TODO: i assume if, mail was copied the guid of the copy differs from the original mail.
+  // However this asumption needs clarification!
   mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
   mail2->get_metadata(librmb::RBOX_METADATA_GUID, &val2);
-  ASSERT_STREQ(val, val2);
+  ASSERT_STRNE(val, val2);
+
   val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
   mail2->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val2);
