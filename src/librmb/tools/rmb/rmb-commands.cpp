@@ -433,6 +433,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms, std::vecto
     print_debug("end: load_objects");
     return -1;
   }
+  // TODO(jrse): Fix completions.....
   std::list<librados::AioCompletion *> completions;
   // load all objects metadata into memory
   librados::NObjectIterator iter(storage->find_mails(nullptr));
@@ -523,11 +524,16 @@ int RmbCommands::query_mail_storage(std::vector<librmb::RadosMail *> *mail_objec
   std::map<std::string, librmb::RadosMailBox *> mailbox;
   for (std::vector<librmb::RadosMail *>::iterator it = mail_objects->begin(); it != mail_objects->end(); ++it) {
     std::string mailbox_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_MAILBOX_GUID));
-    char *mailbox_guid;
+    char *mailbox_guid = NULL;
     (*it)->get_metadata(mailbox_key, &mailbox_guid);
     std::string mailbox_orig_name_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_ORIG_MAILBOX));
-    char *mailbox_orig_name;
+    char *mailbox_orig_name = NULL;
     (*it)->get_metadata(mailbox_orig_name_key, &mailbox_orig_name);
+
+    if (mailbox_guid == NULL || mailbox_orig_name == NULL) {
+      std::cout << " mail " << (*it)->get_oid() << " with empty mailbox guid  is not valid: " << std::endl;
+      continue;
+    }
 
     if (parser->contains_key(mailbox_key)) {
       librmb::Predicate *p = parser->get_predicate(mailbox_key);
