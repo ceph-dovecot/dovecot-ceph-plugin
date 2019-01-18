@@ -138,7 +138,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     FUNC_END();
     return -1;
   }
-  
+
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
   char* val = NULL;
   rmail->rados_mail->get_metadata(key, &val);
@@ -525,7 +525,6 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
 
   char *value = NULL;
   unsigned int order = 0;
-  bool free_value = true;
 
   string_t *str = str_new(imail->mail.data_pool, 64);
   if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
@@ -551,9 +550,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   if (rbox_mail_metadata_get(mail, key, &value) < 0)
     return -1;
 
+
   if (value == NULL) {
     value = i_strdup("");
-    free_value = false;
   }
   if (cache_field != MAIL_CACHE_POP3_ORDER) {
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, value, strlen(value) + 1);
@@ -569,9 +568,7 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
      change unexpectedly */
   str_truncate(str, 0);
   str_append(str, value);
-  if (free_value && value != NULL) {
-    i_free(value);
-  }
+  i_free(value);
   *value_r = str_c(str);
   return 0;
 }
