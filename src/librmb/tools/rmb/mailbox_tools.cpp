@@ -100,7 +100,7 @@ int MailboxTools::build_filename(librmb::RadosMail* mail_obj, std::string* filen
   char* m_mail_uid;
   mail_obj->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &m_mail_uid);
   ss << m_mail_uid << ".";
-  ss << mail_obj->get_oid();
+  ss << *mail_obj->get_oid();
   *filename = ss.str();
   return filename->empty() ? -1 : 0;
 }
