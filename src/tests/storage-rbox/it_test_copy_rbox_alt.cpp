@@ -305,8 +305,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
   mail2->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val2);
   if (val != NULL && val2 != NULL) {
-    std::cout << " maioluid" << std::endl;
-    ASSERT_STREQ(val, val2);
+    std::cout << " mailuid" << std::endl;
+    ASSERT_STRNE(val, val2);
   } else if ((val == NULL && val2 != NULL) || (val != NULL && val2 == NULL)) {
     FAIL();
   }
