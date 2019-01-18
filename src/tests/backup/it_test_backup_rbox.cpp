@@ -91,7 +91,8 @@ TEST_F(BackupTest, mail_copy_mail_in_inbox) {
     foundit++;
     char xattr_res[100];
 
-    ASSERT_EQ(rados_getxattr(BackupTest::s_ioctx, entry, "U", xattr_res, 1), 1);
+    int x_attr_read = rados_getxattr(BackupTest::s_ioctx, entry, "U", xattr_res, 2);
+    ASSERT_EQ(x_attr_read, 2);
     std::string v(&xattr_res[0], 1);
     if (v.compare("1") == 0) {
       to_delete = entry;
