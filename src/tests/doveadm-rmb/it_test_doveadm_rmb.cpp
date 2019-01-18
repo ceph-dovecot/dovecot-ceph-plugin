@@ -176,14 +176,14 @@ TEST_F(DoveadmTest, cmd_rmb_get_mail_valid_mail) {
 
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw", "Hello World!", 12, 0), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "B", "INBOX", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "G", "ksksk", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "I", "0.1", 3), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "M", "MY_BOX", 6), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "R", "1531485201", 10), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "V", "2256", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "Z", "2210", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "U", "1", 1), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "B", "INBOX\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "G", "ksksk\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "I", "0.1\0", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "M", "MY_BOX\0", 7), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "R", "1531485201\0", 11), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "V", "2256\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "Z", "2210\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw", "U", "1\0", 2), 0);
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_get_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
@@ -220,14 +220,14 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
 
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), "t1_u");
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1", 3), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX", 6), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201", 10), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1\0", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX\0", 7), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201\0", 11), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1\0", 2), 0);
 
   struct doveadm_mail_cmd_context *cmd_ctx = cmd_rmb_set_alloc();
   struct mail_user *user = p_new(cmd_ctx->pool, struct mail_user, 1);
@@ -239,10 +239,12 @@ TEST_F(DoveadmTest, cmd_rmb_set_mail_attr) {
   pool_unref(&cmd_ctx->pool);
 
   char xattr_res[100];
-  ASSERT_EQ(rados_getxattr(DoveadmTest::get_io_ctx(), "hw2", "B", xattr_res, 6), 6);
+  int x_attr_length = rados_getxattr(DoveadmTest::get_io_ctx(), "hw2", "B", xattr_res, 7);
+  std::cout << " XATTR: " << xattr_res << " Attr_lenght " << x_attr_length << std::endl;
+  ASSERT_EQ(x_attr_length, 7);
 
-  std::string v(&xattr_res[0], 6);
-  ASSERT_EQ(v.compare("INBOX2"), 0);
+  std::string v(&xattr_res[0], 7);
+  ASSERT_STREQ(v.c_str(), "INBOX2");
 }
 
 TEST_F(DoveadmTest, cmd_rmb_set_mail_invalid_attr) {
@@ -379,14 +381,14 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices) {
   // add new object
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), ns.c_str());
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1", 3), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX", 6), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201", 10), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1\0", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX\0", 7), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201\0", 11), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1\0", 2), 0);
 
   argv.clear();
   std::vector<std::string> arguments2 = {DoveadmTest::s_test_mail_user->username};
@@ -418,14 +420,14 @@ TEST_F(DoveadmTest, cmd_rmb_check_indices_delete) {
   // add new object
   rados_ioctx_set_namespace(DoveadmTest::get_io_ctx(), ns.c_str());
   ASSERT_EQ(rados_write(DoveadmTest::get_io_ctx(), "hw2", "Hello World!", 12, 0), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk", 5), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1", 3), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX", 6), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201", 10), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210", 4), 0);
-  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1", 1), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "B", "INBOX\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "G", "ksksk\0", 6), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "I", "0.1\0", 4), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "M", "MY_BOX\0", 7), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "R", "1531485201\0", 11), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "V", "2256\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "Z", "2210\0", 5), 0);
+  ASSERT_EQ(rados_setxattr(DoveadmTest::get_io_ctx(), "hw2", "U", "1\0", 2), 0);
 
   argv.clear();
   std::vector<std::string> arguments2 = {DoveadmTest::s_test_mail_user->username};
