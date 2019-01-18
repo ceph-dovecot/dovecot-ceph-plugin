@@ -324,7 +324,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     if (ctx->moving != TRUE) {
       if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
         FUNC_END_RET("ret == -1, copy mail failed");
-        i_debug("OK COPY MAIL FAILED");
         return -1;
       }
     }
