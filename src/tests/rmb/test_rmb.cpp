@@ -100,7 +100,8 @@ TEST(rmb1, save_mail) {
 
   librmb::RadosMail mail;
   librados::bufferlist bl;
-  bl.append("1");
+  std::string attr_val = "1";
+  bl.append(attr_val.c_str(), attr_val.length() + 1);
   (*mail.get_metadata())["U"] = bl;
   std::string mail_guid = "defg";
   mail.get_mail_buffer()->append("hallo welt\nbababababa\n");
