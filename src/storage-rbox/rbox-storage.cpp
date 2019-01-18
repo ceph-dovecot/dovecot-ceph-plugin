@@ -231,8 +231,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
                                    enum mailbox_flags flags) {
   FUNC_START();
   struct rbox_mailbox *rbox;
-  i_debug("start mailbox : %ld", time(NULL));
-
   /* rados can't work without index files */
   int intflags = flags & ~MAILBOX_FLAG_NO_INDEX_FILES;
 
@@ -438,7 +436,6 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                          rbox->storage->config->get_rados_cluster_name(),
                                          rbox->storage->config->get_rados_username());
 
-    i_warning("CONNETION TO RADOS OPEN: %d", ret);
     if (alt_storage) {
       ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
                                                 rbox->storage->config->get_rados_username());
@@ -680,8 +677,6 @@ static void rbox_mailbox_close(struct mailbox *box) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   struct expunged_item *const *moved_items, *moved_item;
-  timeval begin, end;
-  gettimeofday(&begin, NULL);
 
   if (array_is_created(&rbox->moved_items)) {
     if (array_count(&rbox->moved_items) > 0) {
@@ -704,12 +699,6 @@ static void rbox_mailbox_close(struct mailbox *box) {
   }
 
   index_storage_mailbox_close(box);
-  gettimeofday(&end, NULL);
-  long seconds = (end.tv_sec - begin.tv_sec);
-  long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
-  i_debug("close MAILBOX took: %ld seconds and %ld millisec ", seconds, micros / 1000);
-
-  i_debug("close mailbox : %ld", time(NULL));
   FUNC_END();
 }
 

@@ -436,7 +436,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-
+//TODO REMOVE cache...
     if (r_ctx->mail_guid != NULL) {
       const char *guid = guid_128_to_string(r_ctx->mail_guid);
       index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
