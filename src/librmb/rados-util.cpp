@@ -155,6 +155,7 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
+/*TODO(jrse): fix this get_metadata stuff */
 std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata) {
   string str_key = librmb::rbox_metadata_key_to_char(key);
   return get_metadata(str_key, metadata);
