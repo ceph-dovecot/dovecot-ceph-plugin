@@ -36,6 +36,7 @@ extern "C" {
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
 #include "time.h"
+#include "guid.h"
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
@@ -112,11 +113,14 @@ TEST_F(StorageTest, check_metadata) {
     if (mail_get_special(mail, MAIL_FETCH_GUID, &value) < 0) {
       FAIL();
     }
-    struct rbox_mail *rmail = (struct rbox_mail *)mail;
-    i_debug("here is the special value %s : metadata in mails_cache: %ld", value,
-            rmail->rados_mail->get_metadata()->size());
 
-    ASSERT_EQ(rmail->rados_mail->get_metadata()->size(), 8);
+    struct rbox_mail *rmail = (struct rbox_mail *)mail;
+    ASSERT_FALSE(guid_128_is_empty(rmail->index_guid));
+    char *guid = guid_128_to_string(rmail->index_guid);
+
+    i_debug("GUID values: %s : metadata in mails_cache: rmail->index_guid '%s'", value, guid);
+
+    ASSERT_STREQ(value, guid);
 
     const char *value2 = NULL;
     if (mail_get_special(mail, MAIL_FETCH_MAILBOX_NAME, &value2) < 0) {
@@ -129,25 +133,25 @@ TEST_F(StorageTest, check_metadata) {
       FAIL();
     }
 
-    i_debug("here is the save date value %ld", date_r);
+    i_debug("save date value %ld", date_r);
     char buff[20];
     strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&date_r));
-    i_debug("here is the save date value %ld = %s", date_r, buff);
+    i_debug("save date value %ld = %s", date_r, buff);
     time_t date_recv = -1;
     if (mail_get_received_date(mail, &date_recv) < 0) {
       FAIL();
     }
 
-    i_debug("here is the recv date value %ld", date_recv);
+    i_debug("recv date value %ld", date_recv);
     char buff2[20];
     strftime(buff2, 20, "%Y-%m-%d %H:%M:%S", localtime(&date_recv));
-    i_debug("here is the recv date value %ld = %s", date_recv, buff2);
+    i_debug("recv date value %ld = %s", date_recv, buff2);
 
     char *val3 = NULL;
     rmail->rados_mail->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val3);
     ASSERT_TRUE(val3 != NULL);
-    i_debug("here is val3: %s", val3);
 
+    ASSERT_EQ(rmail->rados_mail->get_metadata()->size(), 8);
     // load from index.
     time_t date_recv2 = -1;
     if (mail_get_received_date(mail, &date_recv2) < 0) {
@@ -161,13 +165,13 @@ TEST_F(StorageTest, check_metadata) {
     if (mail_get_physical_size(mail, &size_r) < 0) {
       FAIL();
     }
-    i_debug("here is the physical size %ld", size_r);
+    i_debug("physical size %ld", size_r);
 
     uoff_t size_v;
     if (mail_get_virtual_size(mail, &size_v) < 0) {
       FAIL();
     }
-    i_debug("here is the virtual size %ld", size_v);
+    i_debug("virtual size %ld", size_v);
 
     const char *value3 = NULL;
     if (mail_get_special(mail, MAIL_FETCH_MAILBOX_NAME, &value3) < 0) {

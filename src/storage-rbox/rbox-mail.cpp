@@ -129,7 +129,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     }
     FUNC_END();
     return -1;
-  } 
+  }
 
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
   char *val = NULL;
@@ -158,7 +158,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   // void get_metadata(rbox_metadata_key key, std::string* value) {
   rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
 
-  if (value == NULL) {   
+  if (value == NULL) {
     ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
     if (ret < 0) {
       if (ret != -ENOENT) {
@@ -421,10 +421,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     int stat_err = 0;
     int read_err = 0;
 
-    timeval begin, end;
-    gettimeofday(&begin, NULL);
-
-    i_debug("start read : %ld", time(NULL));
     librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
     read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
     read_mail->stat(&psize, &save_date, &stat_err);
@@ -472,7 +468,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
-
     librmb::RadosMetadata metadata_phy(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, physical_size);
     rmail->rados_mail->add_metadata(metadata_phy);
 
@@ -487,6 +482,23 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
   FUNC_END();
   return ret;
+}
+
+// guid is saved in the obox header, and should be available when rbox_mail does exist. (rbox_get_index_record)
+int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
+  if (!guid_128_is_empty(mail->index_guid)) {
+    *value_r = guid_128_to_string(mail->index_guid);
+    return 0;
+  }
+  char *value = NULL;
+  // index is empty. we have to check the object attributes do we have to tell someone that the index is broken?
+  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, &value) < 0) {
+    return -1;
+  }
+  *value_r = t_strdup(value);
+
+  // found the guid in xattributes.
+  return 0;
 }
 
 static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_key key,
@@ -522,7 +534,6 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   if (rbox_mail_metadata_get(mail, key, &value) < 0)
     return -1;
 
-
   if (value == NULL) {
     value = i_strdup("");
   }
@@ -555,7 +566,8 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
      used. */
   switch (field) {
     case MAIL_FETCH_GUID:
-      return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+      return rbox_get_guid_metadata(mail, value_r);
+    //  return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
     case MAIL_FETCH_UIDL_BACKEND:
       if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
                                  RBOX_INDEX_HEADER_FLAG_HAVE_POP3_UIDLS)) {
