@@ -140,6 +140,8 @@ TEST_F(StorageTest, read_mail_test) {
       const char *data_t = reinterpret_cast<const char *>(data);
       std::string tmp(data_t, phy_size);
       buff += tmp;
+      // make sure mail is \0 terminated!
+      EXPECT_EQ(*(data_t + phy_size + 1), '\0');
     } while ((size_t)ret == iov.iov_len);
 
     //    i_debug("data: %s", buff.c_str());

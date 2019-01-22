@@ -436,7 +436,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-/*TODO create cache: #229 
+/*TODO create cache: #229
     if (r_ctx->mail_guid != NULL) {
       const char *guid = guid_128_to_string(r_ctx->mail_guid);
       index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
@@ -488,7 +488,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_error("ERROR, mailsize is <= 0 ");
     } else {
       bool async_write = true;
-      r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());
+
+      // always write \0 to ceph (length()+1)
+      r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length() + 1);
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
