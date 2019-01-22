@@ -22,16 +22,18 @@ RadosMetadataStorageDefault::~RadosMetadataStorageDefault() {}
 
 int RadosMetadataStorageDefault::load_metadata(RadosMail *mail) {
   int ret = -1;
-  if (mail != nullptr) {
-    if (mail->get_metadata()->size() == 0) {
-      ret = io_ctx->getxattrs(*mail->get_oid(), *mail->get_metadata());
-    } else {
-      ret = 0;
-    }
-    if (ret >= 0) {
-      ret = RadosUtils::get_all_keys_and_values(io_ctx, *mail->get_oid(), mail->get_extended_metadata());
-    }
+  if (mail == nullptr) {
+    return ret;
   }
+  if (mail->get_metadata()->size() > 0) {
+    mail->get_metadata()->clear();
+  }
+  ret = io_ctx->getxattrs(*mail->get_oid(), *mail->get_metadata());
+
+  if (ret >= 0) {
+    ret = RadosUtils::get_all_keys_and_values(io_ctx, *mail->get_oid(), mail->get_extended_metadata());
+  }
+
   return ret;
 }
 int RadosMetadataStorageDefault::set_metadata(RadosMail *mail, RadosMetadata &xattr) {

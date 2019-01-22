@@ -115,16 +115,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   } else {
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
   }
-  timeval begin, end;
-  gettimeofday(&begin, NULL);
 
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
-
-  gettimeofday(&end, NULL);
-  long seconds = (end.tv_sec - begin.tv_sec);
-  long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
-  i_debug("load METADATA(%s) for oid:%s took: %ld seconds and %ld millisec ", librmb::rbox_metadata_key_to_char(key),
-          rmail->rados_mail->get_oid()->c_str(), seconds, micros / 1000);
   if (ret_load_metadata < 0) {
     std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
     if (ret_load_metadata == -ENOENT) {
@@ -137,10 +129,10 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     }
     FUNC_END();
     return -1;
-  }
+  } 
 
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
-  char* val = NULL;
+  char *val = NULL;
   rmail->rados_mail->get_metadata(key, &val);
   if (val != NULL) {
     *value_r = i_strdup(val);
@@ -162,12 +154,11 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     FUNC_END_RET("ret == 0");
     return ret;
   }
-
   // in case we already read the metadata this gives us the value
   // void get_metadata(rbox_metadata_key key, std::string* value) {
   rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
 
-  if (value == NULL) {
+  if (value == NULL) {   
     ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
     if (ret < 0) {
       if (ret != -ENOENT) {
@@ -180,7 +171,9 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     if (value == NULL) {
       // file exists but receive date is unkown, due to missing index entry and missing
       // rados xattribute, as in sdbox this is not necessarily a error so return 0;
-      return 0;
+      i_error("receive_date for object(%s) is not in index and not in xattribues!",
+              rmail->rados_mail->get_oid()->c_str());
+      return -1;
     }
   } else {
     // value is ptr to bufferlist.buf
@@ -201,8 +194,6 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     ret = -1;
   }
   if (value != NULL && free_value) {
-    librmb::RadosMetadata metadata_phy(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, value);
-    rmail->rados_mail->add_metadata(metadata_phy);
     i_free(value);
   }
   FUNC_END();
@@ -216,7 +207,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   uint64_t object_size = 0;
   time_t save_date_rados = 0;
-  timeval begin, end;
   enum mail_flags flags = index_mail_get_flags(_mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
 
@@ -235,13 +225,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
   }
 
   librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
-  gettimeofday(&begin, NULL);
   int ret_val = rados_storage->stat_mail(*rmail->rados_mail->get_oid(), &object_size, &save_date_rados);
-  gettimeofday(&end, NULL);
-  long seconds = (end.tv_sec - begin.tv_sec);
-  long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
-  i_debug("stat_mail METADATA for oid:%s took: %ld seconds and %ld millisec ", rmail->rados_mail->get_oid()->c_str(),
-          seconds, micros / 1000);
   if (ret_val < 0) {
     if (ret_val != -ENOENT) {
       FUNC_END_RET("ret == -1; cannot stat object to get received date and object size");
@@ -319,9 +303,7 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
   rmail->rados_mail->add_metadata(metadata_phy);
 
   if (value != NULL && free_value) {
-    i_warning("FREE_V");
     i_free(value);
-    i_warning("FREE_V_DONE");
   }
   return ret;
 }
@@ -431,16 +413,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       rados_storage->set_namespace(rados_storage->get_namespace());
     }
 
-    if (rmail->rados_mail == nullptr) {
-      // make sure that mail_object is initialized,
-      // else create and load guid from index.
-      rmail->rados_mail = rados_storage->alloc_rados_mail();
-      if (rbox_get_index_record(_mail) < 0) {
-        i_error("Error rbox_get_index uid(%d)", _mail->uid);
-        FUNC_END();
-        return -1;
-      }
-    }
     rmail->rados_mail->get_mail_buffer()->clear();
 
     uint64_t psize;
@@ -556,7 +528,6 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   }
   if (cache_field != MAIL_CACHE_POP3_ORDER) {
     index_mail_cache_add_idx(imail, ibox->cache_fields[cache_field].idx, value, strlen(value) + 1);
-    i_debug("METADATA ADDED TO CACHE: %d", ibox->cache_fields[cache_field].idx);
   } else {
     if (str_to_uint(value, &order) < 0)
       order = 0;
