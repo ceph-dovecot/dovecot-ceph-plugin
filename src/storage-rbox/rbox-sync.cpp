@@ -19,7 +19,6 @@ extern "C" {
 
 #include "rbox-sync.h"
 #include "debug-helper.h"
-#include <time.h>
 }
 #include "rados-util.h"
 #include "rbox-storage.hpp"
@@ -557,8 +556,6 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
 int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
   FUNC_START();
-  timeval begin, end;
-  gettimeofday(&begin, NULL);
 
   struct rbox_sync_context *sync_ctx = NULL;
 
@@ -567,15 +564,8 @@ int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
     return -1;
   }
 
-  int ret = sync_ctx == NULL ? 0 : rbox_sync_finish(&sync_ctx, TRUE);
-
-  gettimeofday(&end, NULL);
-  long seconds = (end.tv_sec - begin.tv_sec);
-  long micros = ((seconds * 1000000) + end.tv_usec) - (begin.tv_usec);
-  i_debug("sync MAILBOX took: %ld seconds and %ld millisec ", seconds, micros / 1000);
-
   FUNC_END();
-  return ret;
+  return sync_ctx == NULL ? 0 : rbox_sync_finish(&sync_ctx, TRUE);
 }
 
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
