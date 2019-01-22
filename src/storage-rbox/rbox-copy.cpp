@@ -401,10 +401,8 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   } else {
     if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {
       if (ctx != NULL) {
-        i_debug("FREEING CONTEXT!");
         //  mailbox_save_cancel(&ctx);
         index_save_context_free(ctx);
-        i_debug("FREEING CONTEXT => DONE");
       }
       FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
       return -1;

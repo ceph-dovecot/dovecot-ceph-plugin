@@ -321,7 +321,6 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
 
   rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value);
 
-  //  i_debug("METADATA: %s",rmail->rados_mail->to_string("  ").c_str());
   if (value == NULL) {
     if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value) < 0) {
       value = NULL;
