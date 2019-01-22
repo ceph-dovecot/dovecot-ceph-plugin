@@ -233,14 +233,6 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     }
     return -1;
   }
-  if (save_date_rados == 0) {
-    // last chance is to stat the object to get the save date.
-    uint64_t psize = -1;
-    if (rados_storage->stat_mail(*rmail->rados_mail->get_oid(), &psize, &save_date_rados) < 0) {
-      // at least it needs to exist?
-      return -1;
-    }
-  }
   // check if this is null
   *date_r = data->save_date = save_date_rados;
 
@@ -312,9 +304,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;
-  struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
   char *value = NULL;
-  *size_r = -1;
+  int ret = 0;
   bool free_value = true;
 
   if (index_mail_get_physical_size(_mail, size_r) == 0) {
@@ -341,36 +332,26 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     // value is ptr to bufferlist.buf
     free_value = false;
   }
+  try {
+    *size_r = data->physical_size = std::stol(value);
+  } catch (const std::invalid_argument &e) {
+    ret = -1;
+    std::string oid = rmail->rados_mail != nullptr ? *rmail->rados_mail->get_oid() : "";
+    i_error("invalid value (invalid_argument) for physical_size(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
+  } catch (const std::out_of_range &e) {
+    ret = -1;
+    std::string oid = rmail->rados_mail != nullptr ? *rmail->rados_mail->get_oid() : "";
 
-  if (value == NULL) {
-    enum mail_flags flags = index_mail_get_flags(_mail);
-    bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
-
-    // no index entry, no xattribute,
-    // last change is to stat the object to get physical size.
-
-    librmb::RadosStorage *rados_storage = alt_storage ? r_storage->alt : r_storage->s;
-    uint64_t psize;
-    time_t pmtime;
-    if (rados_storage->stat_mail(*rmail->rados_mail->get_oid(), &psize, &pmtime) < 0) {
-      // at least it needs to exists?
-      return -1;
-    }
-
-    // TODO: psize is uint64_t (64Bit = unsigned long int, 32Bit =unsigned long long int)
-    data->physical_size = psize;
-    *size_r = data->physical_size;
-  } else {
-    data->physical_size = std::stol(value);
-    *size_r = data->physical_size;
+    i_error("invalid value (out of range) for physical_size(%s), mail_id(%d), mail_oid(%s)", value, _mail->uid,
+            oid.c_str());
   }
-
   if (value != NULL && free_value) {
     i_free(value);
   }
 
   FUNC_END();
-  return 0;
+  return ret;
 }
 
 static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer, const size_t physical_size,

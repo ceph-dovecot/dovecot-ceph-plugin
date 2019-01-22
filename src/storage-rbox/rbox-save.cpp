@@ -430,6 +430,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+  bool zlib_plugin_active = false;
 
   if (!r_ctx->failed) {
     if (_ctx->data.save_date != (time_t)-1) {
@@ -442,8 +443,10 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
     }
     uint32_t recv_date = _ctx->data.received_date;
-    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date, sizeof(recv_date));
+    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
+   sizeof(recv_date));
 */
+
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;
     if (r_ctx->ctx.data.output != r_ctx->output_stream) {
@@ -474,6 +477,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&r_ctx->ctx.data.output);
       r_ctx->ctx.data.output = r_ctx->output_stream;
+      zlib_plugin_active = true;
     }
 
     // reset virtual size
@@ -489,8 +493,14 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     } else {
       bool async_write = true;
 
-      // always write \0 to ceph (length()+1)
-      r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length() + 1);
+      if (!zlib_plugin_active) {
+        // write \0 to ceph (length()+1) if stream is not binary
+        r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length() + 1);
+      } else {
+        // binary stream, do not modify the length of stream.
+        r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());
+      }
+
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
