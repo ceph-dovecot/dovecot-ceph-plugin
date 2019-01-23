@@ -1,7 +1,22 @@
 # Change Log
 
-## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17)
+## [0.0.18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.18)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.17...0.0.18)
+
+**Implemented enhancements:**
+
+- rbox mail optimizations: [\#233](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/233)
+
+**Fixed bugs:**
+
+- Guid Metadata [\#234](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/234)
+
+**Merged pull requests:**
+
+- PR: Code Cleanup \#233, \#234 and missing \0 for mail metadata and mail \(if not compressed\) [\#235](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/235) ([jrse](https://github.com/jrse))
+
+## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17) (2019-01-14)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.16...0.0.17)
 
 **Fixed bugs:**
@@ -10,6 +25,7 @@
 
 **Merged pull requests:**
 
+- release preparations and CHANGELOG [\#232](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/232) ([jrse](https://github.com/jrse))
 - Pop3 uidl handling \#230 [\#231](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/231) ([jrse](https://github.com/jrse))
 
 ## [0.0.16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.16) (2018-12-18)
