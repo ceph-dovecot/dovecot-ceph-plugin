@@ -116,11 +116,39 @@ TEST_F(StorageTest, check_metadata) {
 
     struct rbox_mail *rmail = (struct rbox_mail *)mail;
     ASSERT_FALSE(guid_128_is_empty(rmail->index_guid));
-    char *guid = guid_128_to_string(rmail->index_guid);
+    const char *guid = guid_128_to_string(rmail->index_guid);
+
+    // test re-write guid to index. simulate index_guid is empty.
+    guid_128_empty(rmail->index_guid);
+    char *value_2 = NULL;
+    if (mail_get_special(mail, MAIL_FETCH_GUID, &value_2) < 0) {
+      FAIL();
+    }
+    // we need to free it here!!!
+    i_free(value_2);
+
+    ASSERT_FALSE(guid_128_is_empty(rmail->index_guid));
+    char *guid2 = guid_128_to_string(rmail->index_guid);
 
     i_debug("GUID values: %s : metadata in mails_cache: rmail->index_guid '%s'", value, guid);
-
+    ASSERT_STREQ(guid, guid2);
     ASSERT_STREQ(value, guid);
+
+    // check that index is still ok !
+    const void *rec_data = NULL;
+    struct rbox_mailbox *rbox = (struct rbox_mailbox *)mail->transaction->box;
+    mail_index_lookup_ext(mail->transaction->view, mail->seq, rbox->ext_id, &rec_data, NULL);
+    if (rec_data == NULL) {
+      FAIL();
+    }
+    const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+    guid_128_t obox_guid;
+    guid_128_t obox_oid;
+
+    memcpy(obox_guid, obox_rec->guid, sizeof(obox_rec->guid));
+    memcpy(obox_oid, obox_rec->oid, sizeof(obox_rec->oid));
+    ASSERT_STREQ(guid_128_to_string(obox_guid), guid2);
+    ASSERT_STREQ(guid_128_to_string(obox_oid), guid_128_to_string(rmail->index_oid));
 
     const char *value2 = NULL;
     if (mail_get_special(mail, MAIL_FETCH_MAILBOX_NAME, &value2) < 0) {
