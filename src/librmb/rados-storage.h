@@ -124,8 +124,8 @@ class RadosStorage {
    * @param[in] completion_op_map map of write operations with matching completion objects.
    * @return false if successful !!!!
    *  */
-  virtual bool wait_for_write_operations_complete(
-      std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map) = 0;
+  virtual bool wait_for_write_operations_complete(librados::AioCompletion *completion,
+                                                  librados::ObjectWriteOperation *write_operation) = 0;
   /*!
    * wait for all rados operations
    *

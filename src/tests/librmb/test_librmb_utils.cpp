@@ -21,11 +21,24 @@
 #include "rados-util.h"
 #include "rados-types.h"
 #include "rados-save-log.h"
+#include "rados-mail.h"
 #include <cstdio>
 #include <pthread.h>
 
 using ::testing::AtLeast;
 using ::testing::Return;
+
+TEST(librmb, get_metadata_1) {
+  enum librmb::rbox_metadata_key key = librmb::rbox_metadata_key::RBOX_METADATA_GUID;
+  librmb::RadosMetadata m(key, "abcdefg");
+  librmb::RadosMail mail;
+  mail.add_metadata(m);
+  char *val = NULL;
+
+  mail.get_metadata(key, &val);
+  std::cout << val << std::endl;
+  EXPECT_STREQ(val, "abcdefg\0");
+}
 
 TEST(librmb, convert_enum) {
   enum librmb::rbox_metadata_key key = librmb::rbox_metadata_key::RBOX_METADATA_GUID;
@@ -339,7 +352,7 @@ TEST(librmb, test_mvn_option) {
   metadata.push_back(&mb_name);
   metadata.push_back(&uid);
 
-  std::string test_file_name = "test_1.log";
+  std::string test_file_name = "test_2.log";
   librmb::RadosSaveLog log_file(test_file_name);
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("dest_oid", "ns_dest", "mail_storage",
@@ -355,7 +368,7 @@ TEST(librmb, test_mvn_option) {
     EXPECT_EQ(entry.oid, "dest_oid");
     EXPECT_EQ(entry.ns, "ns_dest");
     EXPECT_EQ(entry.pool, "mail_storage");
-    EXPECT_EQ(entry.op, "mv:ns_src:src_oid:user;M=ABCDEFG:B=INBOX:U=1");
+    EXPECT_EQ(entry.op, "mv:ns_src:src_oid:user;M=ABCDEFG:B=INBOX:U=1\0");
     EXPECT_EQ(entry.metadata.size(), 3);
   }
 

@@ -543,7 +543,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   ctx->deploy_set_map();
   ctx->deploy_atomic_inc_map();
   ctx->deploy_unset_set();
-  i_debug("commit !");
+
   bool failed = false;
   int ret;
 

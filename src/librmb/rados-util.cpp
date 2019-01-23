@@ -72,7 +72,6 @@ int RadosUtils::convert_time_t_to_str(const time_t &t, std::string *ret_val) {
   *ret_val = std::string(buffer);
   return 0;
 }
-
 bool RadosUtils::flags_to_string(const uint8_t &flags_, std::string *flags_str) {
   std::stringstream sstream;
   sstream << std::hex << flags_;
@@ -156,6 +155,7 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
+/*TODO(jrse): fix this get_metadata stuff */
 std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata) {
   string str_key = librmb::rbox_metadata_key_to_char(key);
   return get_metadata(str_key, metadata);
@@ -164,7 +164,7 @@ std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std
 std::string RadosUtils::get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata) {
   std::string value;
   if (metadata->find(key) != metadata->end()) {
-    value = (*metadata)[key].to_str();
+    value = (*metadata)[key].c_str();
   }
   return value;
 }

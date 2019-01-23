@@ -654,7 +654,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
     std::string oid = guid_128_to_string(obox_rec->oid);
 
     auto it_mail = std::find_if(mail_objects.begin(), mail_objects.end(),
-                                [oid](librmb::RadosMail *m) { return m->get_oid().compare(oid) == 0; });
+                                [oid](librmb::RadosMail *m) { return m->get_oid()->compare(oid) == 0; });
 
     if (it_mail == mail_objects.end()) {
       /*  std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
@@ -686,8 +686,9 @@ int check_namespace_mailboxes(const struct mail_namespace *ns, const std::vector
   const struct mailbox_info *info;
   int ret = 0;
   std::cout << "INDEX: Check" << std::endl;
-  iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
-                                                   MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(
+      ns->list, "*",
+      static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       ret = iterate_mailbox(ns, info, mail_objects);
@@ -758,7 +759,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   for (auto mo : mail_objects) {
     std::cout << mo->to_string("  ") << std::endl;
     if (open >= 0 && ctx_->delete_not_referenced_objects && !mo->is_index_ref()) {
-      std::cout << "mail object: " << mo->get_oid().c_str()
+      std::cout << "mail object: " << mo->get_oid()->c_str()
                 << " deleted: " << (plugin.storage->delete_mail(mo) < 0 ? " FALSE " : " TRUE") << std::endl;
       ctx->exit_code = 2;
     }

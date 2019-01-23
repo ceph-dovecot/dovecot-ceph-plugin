@@ -122,13 +122,13 @@ TEST_F(StorageTest, read_mail_from_alt_storage) {
     mail_update_flags(mail, MODIFY_ADD, (enum mail_flags)MAIL_INDEX_MAIL_FLAG_BACKEND);
     rbox_get_index_record(mail);
     struct rbox_mail *r_mail = (struct rbox_mail *)mail;
-    i_debug("end %s", r_mail->rados_mail->get_oid().c_str());
+    i_debug("end %s", r_mail->rados_mail->get_oid()->c_str());
     if (rbox_open_rados_connection(box, true) < 0) {
       FAIL() << "connection error alt";
     } else {
       struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
       // MOVE TO ALT
-      std::string oid = r_mail->rados_mail->get_oid();
+      std::string oid = *r_mail->rados_mail->get_oid();
       librmb::RadosUtils::move_to_alt(oid, mbox->storage->s, mbox->storage->alt, mbox->storage->ms, false);
     }
 
