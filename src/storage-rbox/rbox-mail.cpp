@@ -393,7 +393,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       rados_storage->set_namespace(rados_storage->get_namespace());
     }
 
-	  /* Pop3 needs this. it looks like rbox_index_mail_set_seq is not called. */
+    /* Pop3 needs this. it looks like rbox_index_mail_set_seq is not called. */
     if (rmail->rados_mail == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
@@ -458,9 +458,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1");
       return -1;
     }
-
-    librmb::RadosMetadata metadata_phy(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, physical_size);
-    rmail->rados_mail->add_metadata(metadata_phy);
 
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
       FUNC_END_RET("ret == -1");
