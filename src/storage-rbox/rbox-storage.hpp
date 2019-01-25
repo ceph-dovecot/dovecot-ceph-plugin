@@ -11,6 +11,7 @@
 
 #ifndef SRC_STORAGE_RBOX_RBOX_STORAGE_HPP_
 #define SRC_STORAGE_RBOX_RBOX_STORAGE_HPP_
+#include <time.h>
 
 #include "rbox-storage.h"
 

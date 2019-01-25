@@ -24,7 +24,7 @@ namespace librmb {
 class RadosMetadata {
  public:
   RadosMetadata() {}
-  RadosMetadata(std::string& key_, std::string& value_) : key(key_) { bl.append(value_); }
+  RadosMetadata(std::string& key_, std::string& value_) : key(key_) { bl.append(value_.c_str(), value_.length() + 1); }
   RadosMetadata(enum rbox_metadata_key _key, const std::string& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const time_t& val) { convert(_key, val); }
@@ -34,6 +34,7 @@ class RadosMetadata {
   RadosMetadata(enum rbox_metadata_key _key, const uint& val) { convert(_key, val); }
 
   RadosMetadata(enum rbox_metadata_key _key, const size_t& val) { convert(_key, val); }
+  RadosMetadata(enum rbox_metadata_key _key, const int val) { convert(_key, val); }
   ~RadosMetadata() {}
 
  public:
@@ -62,7 +63,7 @@ class RadosMetadata {
   }
   std::string to_string() {
     std::stringstream str;
-    str << key << "=" << bl.to_str();
+    str << key << "=" << bl.to_str().substr(0, bl.length() - 1);
     return str.str();
   }
 
@@ -73,31 +74,41 @@ class RadosMetadata {
   void convert(enum rbox_metadata_key _key, const std::string& val) {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
-    bl.append(val);
+    bl.append(val.c_str(), val.length() + 1);
   }
 
   void convert(enum rbox_metadata_key _key, const time_t& time) {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
-    bl.append(std::to_string(time));
+    std::string time_ = std::to_string(time);
+    bl.append(time_.c_str(), time_.length() + 1);
   }
 
   void convert(enum rbox_metadata_key _key, char* value) {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
-    bl.append(value);
+    std::string str = value;
+    bl.append(str.c_str(), str.length() + 1);
   }
 
   void convert(enum rbox_metadata_key _key, const uint& value) {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
-    bl.append(std::to_string(value));
+    std::string val = std::to_string(value);
+    bl.append(val.c_str(), val.length() + 1);
   }
 
   void convert(enum rbox_metadata_key _key, const size_t& value) {
     bl.clear();
     key = librmb::rbox_metadata_key_to_char(_key);
-    bl.append(std::to_string(static_cast<int>(value)));
+    std::string val = std::to_string(static_cast<int>(value));
+    bl.append(val.c_str(), val.length() + 1);
+  }
+  void convert(enum rbox_metadata_key _key, const int value) {
+    bl.clear();
+    key = librmb::rbox_metadata_key_to_char(_key);
+    std::string val = std::to_string(value);
+    bl.append(val.c_str(), val.length() + 1);
   }
 };
 }  // end namespace

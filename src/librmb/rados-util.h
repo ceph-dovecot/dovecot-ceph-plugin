@@ -50,10 +50,10 @@ class RadosUtils {
    */
   static bool is_numeric(const std::string &s);
   /*!
-     * check if given string is a numeric value.
-     * @param[in] text string, if string is empty => true
-     * @return true if given string is numeric.
-     */
+   * check if given string is a numeric value.
+   * @param[in] text string, if string is empty => true
+   * @return true if given string is numeric.
+   */
   static bool is_numeric_optional(std::string &text);
   /*!
    * checks if key is a data attribute
@@ -79,12 +79,13 @@ class RadosUtils {
    * @return false if not sucessful
    */
   static bool flags_to_string(const uint8_t &flags, std::string *flags_str);
+
   /*!
-     * converts hex string to uint8_t
-     * @param[in] flags_str flags (e.g. 0x03
-     * @param[out] flags to uint8_t
-     * @return false if not sucessful
-     */
+   * converts hex string to uint8_t
+   * @param[in] flags_str flags (e.g. 0x03
+   * @param[out] flags to uint8_t
+   * @return false if not sucessful
+   */
   static bool string_to_flags(const std::string &flags_str, uint8_t *flags);
 
   /*!
@@ -96,18 +97,18 @@ class RadosUtils {
   static void find_and_replace(std::string *source, std::string const &find, std::string const &replace);
 
   /*!
-     * get a list of key value pairs
-     * @param[in] io_ctx valid io_ctx
-     * @param[in] oid: unique identifier
-     * @param[out] kv_map valid ptr to key value map.
-  */
+   * get a list of key value pairs
+   * @param[in] io_ctx valid io_ctx
+   * @param[in] oid: unique identifier
+   * @param[out] kv_map valid ptr to key value map.
+   */
   static int get_all_keys_and_values(librados::IoCtx *io_ctx, const std::string &oid,
                                      std::map<std::string, librados::bufferlist> *kv_map);
   /*!
-  * get the text representation of uint flags.
-  * @param[in] flags
-  * @param[out] flat : string representation
-  */
+   * get the text representation of uint flags.
+   * @param[in] flags
+   * @param[out] flat : string representation
+   */
   static void resolve_flags(const uint8_t &flags, std::string *flat);
   /*!
    * copy object to alternative storage
@@ -144,14 +145,14 @@ class RadosUtils {
    */
   static int osd_add(librados::IoCtx *ioctx, const std::string &oid, const std::string &key, long long value_to_add);
   /*!
-     * decrement (sub) value directly on osd
-     * @param[in] ioctx
-     * @param[in] oid
-     * @param[in] key
-     * @param[in] value_to_subtract
-     *
-     * @return linux error code or 0 if sucessful
-     */
+   * decrement (sub) value directly on osd
+   * @param[in] ioctx
+   * @param[in] oid
+   * @param[in] key
+   * @param[in] value_to_subtract
+   *
+   * @return linux error code or 0 if sucessful
+   */
   static int osd_sub(librados::IoCtx *ioctx, const std::string &oid, const std::string &key,
                      long long value_to_subtract);
 
@@ -171,12 +172,12 @@ class RadosUtils {
    */
   static std::string get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata);
   /*!
-     * get metadata
-     *
-     * @param[in] key
-     * @param[int] valid pointer to metadata map
-     * @return the metadata value
-     */
+   * get metadata
+   *
+   * @param[in] key
+   * @param[int] valid pointer to metadata map
+   * @return the metadata value
+   */
   static std::string get_metadata(const string &key, std::map<std::string, ceph::bufferlist> *metadata);
 };
 

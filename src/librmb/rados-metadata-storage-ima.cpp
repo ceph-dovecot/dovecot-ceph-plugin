@@ -65,7 +65,7 @@ int RadosMetadataStorageIma::load_metadata(RadosMail *mail) {
   }
 
   std::map<string, ceph::bufferlist> attr;
-  int ret = io_ctx->getxattrs(mail->get_oid(), attr);
+  int ret = io_ctx->getxattrs(*mail->get_oid(), attr);
   if (ret < 0) {
     return ret;
   }
@@ -89,7 +89,7 @@ int RadosMetadataStorageIma::load_metadata(RadosMail *mail) {
 
   // load other omap values.
   if (cfg->is_updateable_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS)) {
-    ret = RadosUtils::get_all_keys_and_values(io_ctx, mail->get_oid(), mail->get_extended_metadata());
+    ret = RadosUtils::get_all_keys_and_values(io_ctx, *mail->get_oid(), mail->get_extended_metadata());
   }
 
   return ret;
@@ -102,9 +102,9 @@ int RadosMetadataStorageIma::set_metadata(RadosMail *mail, RadosMetadata &xattr)
     mail->add_metadata(xattr);
     librados::ObjectWriteOperation op;
     save_metadata(&op, mail);
-    return io_ctx->operate(mail->get_oid(), &op);
+    return io_ctx->operate(*mail->get_oid(), &op);
   } else {
-    return io_ctx->setxattr(mail->get_oid(), xattr.key.c_str(), xattr.bl);
+    return io_ctx->setxattr(*mail->get_oid(), xattr.key.c_str(), xattr.bl);
   }
 }
 

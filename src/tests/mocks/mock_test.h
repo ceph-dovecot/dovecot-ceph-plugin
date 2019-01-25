@@ -24,11 +24,11 @@
 #include "gmock/gmock.h"
 
 namespace librmbtest {
-using librmb::RadosStorage;
 using librmb::RadosMail;
 using librmb::RadosMetadata;
-using librmb::RadosStorageMetadataModule;
 using librmb::RadosMetadataStorage;
+using librmb::RadosStorage;
+using librmb::RadosStorageMetadataModule;
 
 class RadosStorageMock : public RadosStorage {
  public:
@@ -54,8 +54,8 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD3(open_connection,
                int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
   MOCK_METHOD0(close_connection, void());
-  MOCK_METHOD1(wait_for_write_operations_complete,
-               bool(std::map<librados::AioCompletion *, librados::ObjectWriteOperation *> *completion_op_map));
+  MOCK_METHOD2(wait_for_write_operations_complete,
+               bool(librados::AioCompletion *completion, librados::ObjectWriteOperation *write_operation));
   MOCK_METHOD1(wait_for_rados_operations, bool(const std::vector<librmb::RadosMail *> &object_list));
   MOCK_METHOD1(set_ceph_wait_method, void(enum librmb::rbox_ceph_aio_wait_method wait_method));
   MOCK_METHOD2(read_mail, int(const std::string &oid, librados::bufferlist *buffer));
