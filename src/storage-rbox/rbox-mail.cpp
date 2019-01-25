@@ -136,6 +136,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   rmail->rados_mail->get_metadata(key, &val);
   if (val != NULL) {
     *value_r = i_strdup(val);
+  } else {
+    return -1;
   }
   FUNC_END();
   return 0;
@@ -478,14 +480,26 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
     *value_r = guid_128_to_string(mail->index_guid);
     return 0;
   }
-  char *value = NULL;
+  // lost for some reason, use fallback
   // index is empty. we have to check the object attributes do we have to tell someone that the index is broken?
-  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, &value) < 0) {
+  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, value_r) < 0) {
     return -1;
   }
-  *value_r = t_strdup(value);
 
-  // found the guid in xattributes.
+  // restore the index extension header quietly.
+  guid_128_from_string(*value_r, mail->index_guid);
+  struct index_mail *imail = &mail->imail;
+  struct mail *_mail = (struct mail *)mail;
+  struct rbox_mailbox *mbox = (struct rbox_mailbox *)_mail->box;
+
+  i_warning("guid for mail with uid : %d, seq = %d was lost restoring guid.", _mail->uid, _mail->seq);
+
+  /* save the 128bit GUID/OID to index record */
+  struct obox_mail_index_record rec;
+  memcpy(rec.guid, mail->index_guid, sizeof(mail->index_guid));
+  memcpy(rec.oid, mail->index_oid, sizeof(mail->index_oid));
+  mail_index_update_ext(_mail->transaction->itrans, imail->mail.mail.seq, mbox->ext_id, &rec, NULL);
+
   return 0;
 }
 
