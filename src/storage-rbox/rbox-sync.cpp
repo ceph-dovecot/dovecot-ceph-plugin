@@ -205,7 +205,7 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
         i_error("update_flags: load_metadata failed! for %d, oid(%s)", seq1, oid);
         continue;
       }
-      std::string flags_metadata;
+      char *flags_metadata = NULL;
       mail_object.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &flags_metadata);
       uint8_t flags = 0x0;
       if (librmb::RadosUtils::string_to_flags(flags_metadata, &flags)) {
@@ -215,13 +215,13 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
         if (remove_flags != 0) {
           flags &= ~remove_flags;
         }
-
-        if (librmb::RadosUtils::flags_to_string(flags, &flags_metadata)) {
-          librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, flags_metadata);
+        std::string str_flags_metadata;
+        if (librmb::RadosUtils::flags_to_string(flags, &str_flags_metadata)) {
+          librmb::RadosMetadata update(librmb::RBOX_METADATA_OLDV1_FLAGS, str_flags_metadata);
           ret = r_storage->ms->get_storage()->set_metadata(&mail_object, update);
           if (ret < 0) {
             i_warning("updating metadata for object : oid(%s), seq (%d) failed with ceph errorcode: %d",
-                      mail_object.get_oid().c_str(), seq1, ret);
+                      mail_object.get_oid()->c_str(), seq1, ret);
           }
         }
       }
@@ -372,7 +372,8 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   force_rebuild = (flags & RBOX_SYNC_FLAG_FORCE_REBUILD) != 0;
   rebuild = force_rebuild || rbox->storage->corrupted_rebuild_count != 0 || rbox_refresh_header(rbox, TRUE, FALSE) < 0;
 #ifdef DEBUG
-  i_debug("RBOX storage corrupted rebuild count = %d", rbox->storage->corrupted_rebuild_count);
+  i_debug("RBOX storage corrupted rebuild count = %d, rebuild %d, force_rebuild %d",
+          rbox->storage->corrupted_rebuild_count, rebuild, force_rebuild);
 #endif
 #ifdef DOVECOT_CEPH_PLUGINS_HAVE_MAIL_INDEX_HDR_FLAG_FSCKD
   const struct mail_index_header *hdr = mail_index_get_header(rbox->box.view);
@@ -413,10 +414,12 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   if (ret >= 0) {
     ret = index_storage_expunged_sync_begin(&rbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<enum mail_index_sync_flags>(sync_flags));
+    i_debug("expunge index_storage_expunge... ret %d", ret);
     if (mail_index_reset_fscked(rbox->box.index))
       rbox_set_mailbox_corrupted(&rbox->box);
   }
   if (ret <= 0) {
+    i_debug("array delete");
     array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
     array_free(&ctx->expunged_items);
     i_free(ctx);
@@ -443,40 +446,33 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   return 0;
 }
 
-struct AioRemove {
-  struct rbox_sync_context *ctx;
-  struct expunged_item *item;
-  librados::AioCompletion *completion;
-};
-static int rbox_sync_object_expunge(AioRemove *stat) {
+static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expunged_item *item) {
   FUNC_START();
   int ret_remove = -1;
-  struct mailbox *box = &stat->ctx->rbox->box;
+  struct mailbox *box = &ctx->rbox->box;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
-  const char *oid = guid_128_to_string(stat->item->oid);
+  const char *oid = guid_128_to_string(item->oid);
 
-  ret_remove = rbox_open_rados_connection(box, stat->item->alt_storage);
+  ret_remove = rbox_open_rados_connection(box, item->alt_storage);
   if (ret_remove < 0) {
     i_error("rbox_sync_object_expunge: connection to rados failed %d, alt_storage(%d), oid(%s)", ret_remove,
-            stat->item->alt_storage, oid);
+            item->alt_storage, oid);
     FUNC_END();
     return ret_remove;
   }
-  librmb::RadosStorage *rados_storage = stat->item->alt_storage ? r_storage->alt : r_storage->s;
-
-  ret_remove = rados_storage->get_io_ctx().aio_remove(oid, stat->completion);
+  librmb::RadosStorage *rados_storage = item->alt_storage ? r_storage->alt : r_storage->s;
+  ret_remove = rados_storage->get_io_ctx().remove(oid);
   if (ret_remove < 0) {
     i_error("rbox_sync_object_expunge: aio_remove failed with %d oid(%s), alt_storage(%d)", ret_remove, oid,
-            stat->item->alt_storage);
+            item->alt_storage);
   }
 
   FUNC_END();
   return ret_remove;
 }
 
-static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx,
-                                           std::list<librados::AioCompletion *> *completions) {
+static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
   struct expunged_item *const *moved_items, *moved_item;
@@ -499,14 +495,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx,
           }
         }
         if (moved != TRUE) {
-          AioRemove *stat = new AioRemove();
-          stat->ctx = ctx;
-          stat->item = item;
-          stat->completion = librados::Rados::aio_create_completion(static_cast<void *>(stat), NULL, NULL);
-          completions->push_back(stat->completion);
-          // make it async!
-          rbox_sync_object_expunge(stat);
-
+          rbox_sync_object_expunge(ctx, item);
           // directly notify
           if (ctx->rbox->box.v.sync_notify != NULL) {
             ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
@@ -537,21 +526,10 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
       FUNC_END_RET("ret == -1");
       ret = -1;
     } else {
-      std::list<librados::AioCompletion *> completions;
       // delete/move objects from mailstorage
-      rbox_sync_expunge_rbox_objects(ctx, &completions);
+      rbox_sync_expunge_rbox_objects(ctx);
       // close the view, write changes to index.
       mail_index_view_close(&ctx->sync_view);
-
-      for (std::list<librados::AioCompletion *>::iterator it = completions.begin(); it != completions.end(); ++it) {
-        struct rbox_storage *s = ctx->rbox->storage;
-        if (s->config->is_ceph_aio_wait_for_safe_and_cb()) {
-          (*it)->wait_for_safe_and_cb();
-        } else {
-          (*it)->wait_for_complete_and_cb();
-        }
-        (*it)->release();
-      }
     }
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
@@ -578,6 +556,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
 
 int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
   FUNC_START();
+
   struct rbox_sync_context *sync_ctx = NULL;
 
   if (rbox_sync_begin(rbox, &sync_ctx, flags) < 0) {

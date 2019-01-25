@@ -28,7 +28,7 @@ extern "C" {
 #include "str.h"
 
 #include "rbox-sync.h"
-
+#include "rados-types.h"
 #include "debug-helper.h"
 #if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
@@ -51,6 +51,8 @@ using librmb::rbox_metadata_key;
 
 using std::string;
 using std::vector;
+
+static const char X_ATTR_VERSION_VALUE[] = "0.1";
 
 struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t) {
   FUNC_START();
@@ -159,7 +161,7 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
   struct rbox_mail *r_src_mail = (struct rbox_mail *)src_mail;
 #endif
 
-  guid_128_from_string(r_src_mail->rados_mail->get_oid().c_str(), r_ctx->mail_oid);
+  guid_128_from_string(r_src_mail->rados_mail->get_oid()->c_str(), r_ctx->mail_oid);
 
   r_ctx->rados_mail = r_storage->s->alloc_rados_mail();
   r_ctx->rados_mail->set_oid(guid_128_to_string(r_ctx->mail_oid));
@@ -271,7 +273,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_VERSION)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, RadosMail::X_ATTR_VERSION_VALUE);
+    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_VERSION, X_ATTR_VERSION_VALUE);
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAILBOX_GUID)) {
@@ -390,7 +392,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx) {
        it_cur_obj != r_ctx->rados_mails.end(); ++it_cur_obj) {
     delete_ret = r_storage->s->delete_mail(*it_cur_obj);
     if (delete_ret < 0 && delete_ret != -ENOENT) {
-      i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid().c_str());
+      i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid()->c_str());
     }
   }
   // clean up index
@@ -428,13 +430,23 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   FUNC_START();
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
+  bool zlib_plugin_active = false;
 
   if (!r_ctx->failed) {
     if (_ctx->data.save_date != (time_t)-1) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-    
+/*TODO create cache: #229
+    if (r_ctx->mail_guid != NULL) {
+      const char *guid = guid_128_to_string(r_ctx->mail_guid);
+      index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
+    }
+    uint32_t recv_date = _ctx->data.received_date;
+    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
+   sizeof(recv_date));
+*/
+
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;
     if (r_ctx->ctx.data.output != r_ctx->output_stream) {
@@ -465,6 +477,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       o_stream_ref(r_ctx->output_stream);
       o_stream_destroy(&r_ctx->ctx.data.output);
       r_ctx->ctx.data.output = r_ctx->output_stream;
+      zlib_plugin_active = true;
     }
 
     // reset virtual size
@@ -479,7 +492,15 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_error("ERROR, mailsize is <= 0 ");
     } else {
       bool async_write = true;
-      r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());
+
+      if (!zlib_plugin_active) {
+        // write \0 to ceph (length()+1) if stream is not binary
+        r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length() + 1);
+      } else {
+        // binary stream, do not modify the length of stream.
+        r_ctx->rados_mail->set_mail_size(r_ctx->rados_mail->get_mail_buffer()->length());
+      }
+
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
@@ -487,17 +508,16 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->rados_mail);
       r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->rados_mail, async_write);
       if (r_ctx->failed) {
-        i_error("saved mail: %s failed metadata_count %lu, mail_size (%lu)", r_ctx->rados_mail->get_oid().c_str(),
+        i_error("saved mail: %s failed metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
                 r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
       }
       if (r_storage->save_log->is_open()) {
         r_storage->save_log->append(
-            librmb::RadosSaveLogEntry(r_ctx->rados_mail->get_oid(), r_storage->s->get_namespace(),
+            librmb::RadosSaveLogEntry(*r_ctx->rados_mail->get_oid(), r_storage->s->get_namespace(),
                                       r_storage->s->get_pool_name(), librmb::RadosSaveLogEntry::op_save()));
       }
     }
   }
-
   clean_up_write_finish(_ctx);
   FUNC_END();
   return r_ctx->failed ? -1 : 0;

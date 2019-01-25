@@ -180,11 +180,11 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->rados_mail->get_oid();
+  std::string src_oid = *rmail->rados_mail->get_oid();
 
   setup_mail_object(ctx);
 
-  std::string dest_oid = r_ctx->rados_mail->get_oid();
+  std::string dest_oid = *r_ctx->rados_mail->get_oid();
 
   set_mailbox_metadata(ctx, &metadata_update);
 
@@ -197,21 +197,17 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
           ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
           rados_storage->get_pool_name().c_str());
       rbox_mail_set_expunged(rmail);
-      mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
-      return -1;
+    } else {
+      i_error(
+          "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
+          "storage_pool: %s",
+          ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
+          rados_storage->get_pool_name().c_str());
     }
-    i_error(
-        "copy mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
-        "storage_pool: %s",
-        ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
-        rados_storage->get_pool_name().c_str());
     FUNC_END_RET("ret == -1, rados_storage->copy failed");
-
     rados_storage->free_rados_mail(r_ctx->rados_mail);
     r_ctx->rados_mail = nullptr;
-
     mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
-
     return -1;
   }
 
@@ -235,7 +231,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   struct mailbox *dest_mbox = ctx->transaction->box;
 
   std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = rmail->rados_mail->get_oid();
+  std::string src_oid = *rmail->rados_mail->get_oid();
   std::string dest_oid = src_oid;
 
   set_mailbox_metadata(ctx, &metadata_update);
@@ -328,7 +324,6 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     if (ctx->moving != TRUE) {
       if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
         FUNC_END_RET("ret == -1, copy mail failed");
-        i_debug("OK FOPY MAIL FAILED");
         return -1;
       }
     }
@@ -337,7 +332,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       T_BEGIN {
         if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
           FUNC_END_RET("ret == -1, move mail failed");
-          ret = - 1;
+          ret = -1;
         }
       }
       T_END;
@@ -406,10 +401,8 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
   } else {
     if (rbox_mail_storage_try_copy(&ctx, mail, alt_storage) < 0) {
       if (ctx != NULL) {
-        i_debug("FREEING CONTEXT!");
         //  mailbox_save_cancel(&ctx);
         index_save_context_free(ctx);
-        i_debug("FREEING CONTEXT => DONE");
       }
       FUNC_END_RET("ret == -1, rbox_mail_storage_try_copy failed ");
       return -1;

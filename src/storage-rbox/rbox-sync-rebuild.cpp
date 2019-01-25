@@ -33,9 +33,9 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
                          bool alt_storage, uint32_t next_uid) {
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
-  std::string xattr_mail_uid;
+  char *xattr_mail_uid = NULL;
   mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID, &xattr_mail_uid);
-  std::string xattr_guid;
+  char *xattr_guid = NULL;
   mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID, &xattr_guid);
   struct mail_storage *storage = ctx->box->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
@@ -56,8 +56,8 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     return -1;
   }
   guid_128_t guid;
-  if (guid_128_from_string(xattr_guid.c_str(), guid) < 0) {
-    i_error("guid_128 xattr_guid string '%s', next_uid(%d)", xattr_guid.c_str(), next_uid);
+  if (guid_128_from_string(xattr_guid, guid) < 0) {
+    i_error("guid_128 xattr_guid string '%s', next_uid(%d)", xattr_guid, next_uid);
     FUNC_END();
     return -1;
   }
@@ -74,11 +74,11 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
 
   // update uid.
   librmb::RadosMetadata mail_uid(librmb::RBOX_METADATA_MAIL_UID, next_uid);
-  std::string s_oid = mail_obj->get_oid();
+  std::string s_oid = *mail_obj->get_oid();
   std::list<librmb::RadosMetadata> to_update;
   to_update.push_back(mail_uid);
   if (!r_storage->ms->get_storage()->update_metadata(s_oid, to_update)) {
-    i_warning("update of MAIL_UID failed: for object: %s , uid: %d", mail_obj->get_oid().c_str(), next_uid);
+    i_warning("update of MAIL_UID failed: for object: %s , uid: %d", mail_obj->get_oid()->c_str(), next_uid);
   }
 #ifdef DEBUG
   i_debug("rebuilding %s , with oid=%d", oi.c_str(), next_uid);
@@ -117,7 +117,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     }
 
     if (!librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {
-      i_error("metadata for object : %s is not valid, skipping object ", mail_object.get_oid().c_str());
+      i_error("metadata for object : %s is not valid, skipping object ", mail_object.get_oid()->c_str());
       ++iter;
       continue;
     }
@@ -256,9 +256,8 @@ int repair_namespace(struct mail_namespace *ns, bool force) {
   const struct mailbox_info *info;
   int ret = 0;
 
-  iter = mailbox_list_iter_init(
-      ns->list, "*",
-      static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(ns->list, "*", static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST |
+                                                                                    MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);

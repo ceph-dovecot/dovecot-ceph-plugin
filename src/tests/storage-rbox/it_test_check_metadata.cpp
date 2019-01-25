@@ -35,12 +35,14 @@ extern "C" {
 #include "libdict-rados-plugin.h"
 #include "mail-search-parser-private.h"
 #include "mail-search.h"
+#include "time.h"
+#include "guid.h"
 }
 #include "rbox-storage.hpp"
 #include "../mocks/mock_test.h"
 #include "dovecot-ceph-plugin-config.h"
 #include "../test-utils/it_utils.h"
-
+#include "rbox-mail.h"
 using ::testing::AtLeast;
 using ::testing::Return;
 
@@ -53,15 +55,14 @@ TEST_F(StorageTest, mailbox_open_inbox) {
   mailbox_free(&box);
 }
 /**
- * Adds a mail via the regular alloc, save, commit plugin cycle and
- * afterwards calls the dovecot read_mail api calls to read the mail
- * via the plugin read cycle.
+ * - add mail via regular alloc, save, commit cycle
+ * - copy mail via dovecot calls
+ * - validate copy
  *
- * Additionally tests the input and output stream classes,
- * by comparing the resulting streams.
  */
-TEST_F(StorageTest, read_mail_test) {
+TEST_F(StorageTest, check_metadata) {
   struct mailbox_transaction_context *desttrans;
+  struct mail_save_context *save_ctx;
   struct mail *mail;
   struct mail_search_context *search_ctx;
   struct mail_search_args *search_args;
@@ -93,6 +94,7 @@ TEST_F(StorageTest, read_mail_test) {
     i_error("Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
   }
+
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
 #else
@@ -104,55 +106,108 @@ TEST_F(StorageTest, read_mail_test) {
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
 
-  struct message_size hdr_size, body_size;
-  struct istream *input = NULL;
   while (mailbox_search_next(search_ctx, &mail)) {
-    int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
-    EXPECT_EQ(ret2, 0);
-    EXPECT_NE(input, nullptr);
-    EXPECT_NE(body_size.physical_size, (uoff_t)0);
-    EXPECT_NE(hdr_size.physical_size, (uoff_t)0);
+    save_ctx = mailbox_save_alloc(desttrans);  // src save context
 
-    size_t size = -1;
-    int ret_size = i_stream_get_size(input, true, &size);
-    EXPECT_EQ(ret_size, 1);
-    uoff_t phy_size;
-    index_mail_get_physical_size(mail, &phy_size);
+    const char *value = NULL;
+    if (mail_get_special(mail, MAIL_FETCH_GUID, &value) < 0) {
+      FAIL();
+    }
 
-    std::string msg3(
-        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
-        "text/plain; charset=us-ascii\n\nbody\n");
+    struct rbox_mail *rmail = (struct rbox_mail *)mail;
+    ASSERT_FALSE(guid_128_is_empty(rmail->index_guid));
+    const char *guid = guid_128_to_string(rmail->index_guid);
 
-    EXPECT_EQ(phy_size, msg3.length());  // i_stream ads a \r before every \n
+    // test re-write guid to index. simulate index_guid is empty.
+    guid_128_empty(rmail->index_guid);
+    char *value_2 = NULL;
+    if (mail_get_special(mail, MAIL_FETCH_GUID, &value_2) < 0) {
+      FAIL();
+    }
+    // we need to free it here!!!
+    i_free(value_2);
 
-    // read the input stream and evaluate content.
-    struct const_iovec iov;
-    const unsigned char *data = NULL;
-    ssize_t ret = 0;
-    std::string buff;
-    do {
-      (void)i_stream_read_data(input, &data, &iov.iov_len, 0);
-      if (iov.iov_len == 0) {
-        if (input->stream_errno != 0)
-          FAIL() << "stream errno";
-        break;
-      }
-      const char *data_t = reinterpret_cast<const char *>(data);
-      std::string tmp(data_t, phy_size);
-      buff += tmp;
-      // make sure mail is \0 terminated!
-      EXPECT_EQ(*(data_t + phy_size + 1), '\0');
-    } while ((size_t)ret == iov.iov_len);
+    ASSERT_FALSE(guid_128_is_empty(rmail->index_guid));
+    char *guid2 = guid_128_to_string(rmail->index_guid);
 
-    //    i_debug("data: %s", buff.c_str());
-    std::string msg(
-        "From: user@domain.org\nDate: Sat, 24 Mar 2017 23:00:00 +0200\nMime-Version: 1.0\nContent-Type: "
-        "text/plain; charset=us-ascii\n\nbody\n");
+    i_debug("GUID values: %s : metadata in mails_cache: rmail->index_guid '%s'", value, guid);
+    ASSERT_STREQ(guid, guid2);
+    ASSERT_STREQ(value, guid);
 
-    // validate !
-    EXPECT_EQ(buff, msg);
+    // check that index is still ok !
+    const void *rec_data = NULL;
+    struct rbox_mailbox *rbox = (struct rbox_mailbox *)mail->transaction->box;
+    mail_index_lookup_ext(mail->transaction->view, mail->seq, rbox->ext_id, &rec_data, NULL);
+    if (rec_data == NULL) {
+      FAIL();
+    }
+    const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+    guid_128_t obox_guid;
+    guid_128_t obox_oid;
 
-    break;
+    memcpy(obox_guid, obox_rec->guid, sizeof(obox_rec->guid));
+    memcpy(obox_oid, obox_rec->oid, sizeof(obox_rec->oid));
+    ASSERT_STREQ(guid_128_to_string(obox_guid), guid2);
+    ASSERT_STREQ(guid_128_to_string(obox_oid), guid_128_to_string(rmail->index_oid));
+
+    const char *value2 = NULL;
+    if (mail_get_special(mail, MAIL_FETCH_MAILBOX_NAME, &value2) < 0) {
+      FAIL();
+    }
+    ASSERT_TRUE(value2 != NULL);
+
+    time_t date_r = -1;
+    if (mail_get_save_date(mail, &date_r) < 0) {
+      FAIL();
+    }
+
+    i_debug("save date value %ld", date_r);
+    char buff[20];
+    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&date_r));
+    i_debug("save date value %ld = %s", date_r, buff);
+    time_t date_recv = -1;
+    if (mail_get_received_date(mail, &date_recv) < 0) {
+      FAIL();
+    }
+
+    i_debug("recv date value %ld", date_recv);
+    char buff2[20];
+    strftime(buff2, 20, "%Y-%m-%d %H:%M:%S", localtime(&date_recv));
+    i_debug("recv date value %ld = %s", date_recv, buff2);
+
+    char *val3 = NULL;
+    rmail->rados_mail->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val3);
+    ASSERT_TRUE(val3 != NULL);
+
+    ASSERT_EQ(rmail->rados_mail->get_metadata()->size(), 8);
+    // load from index.
+    time_t date_recv2 = -1;
+    if (mail_get_received_date(mail, &date_recv2) < 0) {
+      FAIL();
+    }
+    i_debug("here is the recv2 date value %ld", date_recv2);
+
+    ASSERT_EQ(date_recv, date_recv2);
+
+    uoff_t size_r;
+    if (mail_get_physical_size(mail, &size_r) < 0) {
+      FAIL();
+    }
+    i_debug("physical size %ld", size_r);
+
+    uoff_t size_v;
+    if (mail_get_virtual_size(mail, &size_v) < 0) {
+      FAIL();
+    }
+    i_debug("virtual size %ld", size_v);
+
+    const char *value3 = NULL;
+    if (mail_get_special(mail, MAIL_FETCH_MAILBOX_NAME, &value3) < 0) {
+      FAIL();
+    }
+    ASSERT_TRUE(value3 != NULL);
+    ASSERT_EQ(rmail->rados_mail->get_metadata()->size(), 8);
+    break;  // only move one mail.
   }
 
   if (mailbox_search_deinit(&search_ctx) < 0) {
@@ -162,12 +217,10 @@ TEST_F(StorageTest, read_mail_test) {
   if (mailbox_transaction_commit(&desttrans) < 0) {
     FAIL() << "tnx commit failed";
   }
-
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
 
-  ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
   mailbox_free(&box);
 }
 

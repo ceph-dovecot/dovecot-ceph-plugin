@@ -543,7 +543,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   ctx->deploy_set_map();
   ctx->deploy_atomic_inc_map();
   ctx->deploy_unset_set();
-  i_debug("commit !");
+
   bool failed = false;
   int ret;
 
@@ -679,7 +679,8 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
       private_keys.insert(key);
     }
   }
-
+  bufferlist bl_private;
+  bufferlist bl_shared;
   if (private_keys.size() + shared_keys.size() > 0) {
     AioCompletion *private_read_completion = nullptr;
     ObjectReadOperation private_read_op;
@@ -714,9 +715,8 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         }
       }
 
-      bufferlist bl;
-      int err =
-          d->get_private_io_ctx().aio_operate(d->get_private_oid(), private_read_completion, &private_read_op, &bl);
+      int err = d->get_private_io_ctx().aio_operate(d->get_private_oid(), private_read_completion, &private_read_op,
+                                                    &bl_private);
 #ifdef DEBUG
       i_debug("rados_dict_iterate_init(): private err=%d(%s)", err, strerror(-err));
 #endif
@@ -745,8 +745,8 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
         }
       }
 
-      bufferlist bl;
-      int err = d->get_shared_io_ctx().aio_operate(d->get_shared_oid(), shared_read_completion, &shared_read_op, &bl);
+      int err =
+          d->get_shared_io_ctx().aio_operate(d->get_shared_oid(), shared_read_completion, &shared_read_op, &bl_shared);
 #ifdef DEBUG
       i_debug("rados_dict_iterate_init(): shared err=%d(%s)", err, strerror(-err));
 #endif

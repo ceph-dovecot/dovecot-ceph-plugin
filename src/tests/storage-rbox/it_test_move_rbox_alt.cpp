@@ -121,13 +121,13 @@ TEST_F(StorageTest, move_mail_from_alt_storage) {
     mail_update_flags(mail, MODIFY_ADD, (enum mail_flags)MAIL_INDEX_MAIL_FLAG_BACKEND);
     rbox_get_index_record(mail);
     struct rbox_mail *r_mail = (struct rbox_mail *)mail;
-    i_debug("end %s", r_mail->rados_mail->get_oid().c_str());
+    i_debug("end %s", r_mail->rados_mail->get_oid()->c_str());
     if (rbox_open_rados_connection(box, true) < 0) {
       FAIL() << "connection error alt";
     } else {
       struct rbox_mailbox *mbox = (struct rbox_mailbox *)box;
       // MOVE TO ALT
-      std::string oid = r_mail->rados_mail->get_oid();
+      std::string oid = *r_mail->rados_mail->get_oid();
       librmb::RadosUtils::move_to_alt(oid, mbox->storage->s, mbox->storage->alt, mbox->storage->ms, false);
     }
 
@@ -164,23 +164,29 @@ TEST_F(StorageTest, move_mail_from_alt_storage) {
   ASSERT_EQ(1, (int)objects.size());
   librmb::RadosMail *mail1 = objects[0];
 
-  std::string val;
-  std::string val2;
+  char *val = NULL;
+  char *val2 = NULL;
 
   mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
+  val = val2 = NULL;
   mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val);
-  ASSERT_NE(val, val2);
+  ASSERT_STRNE(val, val2);
 
   ASSERT_EQ(1, (int)box->index->map->hdr.messages_count);
   r_storage->alt->delete_mail(mail1);

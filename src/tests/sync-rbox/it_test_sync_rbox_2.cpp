@@ -75,7 +75,7 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   EXPECT_EQ(ret, 0);
   const char *metadata_name = "U";
   librados::bufferlist list;
-  list.append("100");
+  list.append("100", 4);
   ret = r_storage->s->get_io_ctx().setxattr(test_oid, metadata_name, list);
   i_debug("copy operate setxattr: %d for %s", ret, test_oid.c_str());
   EXPECT_EQ(ret, 0);

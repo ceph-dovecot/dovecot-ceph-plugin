@@ -16,7 +16,7 @@
 #include <string>
 #include <map>
 #include <rados/librados.hpp>
-
+#include <time.h>
 extern "C" {
 
 #include "dovecot-all.h"
@@ -29,6 +29,8 @@ extern "C" {
 #if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
 #endif
+
+#include <unistd.h>
 }
 
 #include "rbox-mailbox-list-fs.h"
@@ -60,6 +62,7 @@ extern struct mailbox_vfuncs rbox_mailbox_vfuncs;
 
 struct mail_storage *rbox_storage_alloc(void) {
   FUNC_START();
+
   struct rbox_storage *r_storage;
   pool_t pool;
   pool = pool_alloconly_create("rbox storage", 256);
@@ -228,7 +231,6 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
                                    enum mailbox_flags flags) {
   FUNC_START();
   struct rbox_mailbox *rbox;
-
   /* rados can't work without index files */
   int intflags = flags & ~MAILBOX_FLAG_NO_INDEX_FILES;
 
@@ -741,7 +743,6 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
   struct mail_index_sync_ctx *sync_ctx;
   struct mail_index_view *view;
   struct mail_index_transaction *trans;
-  struct rbox_storage *storage = (struct rbox_storage *)box->storage;
 
   if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
     FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
@@ -781,7 +782,7 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
 #endif
 
   /* use syncing as a lock */
-  ret = mail_index_sync_begin(box->index, &sync_ctx, &view, &trans, 0);
+  ret = mail_index_sync_begin(box->index, &sync_ctx, &view, &trans, static_cast<enum mail_index_sync_flags>(0));
   if (ret <= 0) {
     i_assert(ret != 0);
     mailbox_set_index_error(box);
@@ -856,8 +857,9 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
-                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(
+        ns->list, "*",
+        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {
