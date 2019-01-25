@@ -461,9 +461,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
-    librmb::RadosMetadata metadata_phy(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, physical_size);
-    rmail->rados_mail->add_metadata(metadata_phy);
-
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
       FUNC_END_RET("ret == -1");
       return -1;

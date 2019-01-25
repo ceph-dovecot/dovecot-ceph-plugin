@@ -36,7 +36,7 @@ struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, cons
   struct istream_private *stream;
 
   stream = i_new(struct istream_private, 1);
-  stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
+  stream->buffer = reinterpret_cast<const char *>(data->c_str());
   stream->pos = size;
   stream->max_buffer_size = (size_t)-1;
 
