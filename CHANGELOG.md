@@ -1,7 +1,28 @@
 # Change Log
 
-## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17)
+## [0.0.18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.18)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.17...0.0.18)
+
+**Implemented enhancements:**
+
+- restore mail guid if not in mail extension header [\#238](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/238)
+- rbox mail optimizations: [\#233](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/233)
+
+**Fixed bugs:**
+
+- zlib plugin: broken physical size! [\#239](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/239)
+- restore mail guid if not in mail extension header [\#238](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/238)
+- Dictionary plugin unit test fail [\#237](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/237)
+- Guid Metadata [\#234](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/234)
+
+**Merged pull requests:**
+
+- \#239: invalid reinterpret\_cast in istream\_bufferlist  [\#241](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/241) ([jrse](https://github.com/jrse))
+- Jrse \#238\#237 [\#240](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/240) ([jrse](https://github.com/jrse))
+- PR: Code Cleanup \#233, \#234 and missing \0 for mail metadata and mail \(if not compressed\) [\#235](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/235) ([jrse](https://github.com/jrse))
+
+## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17) (2019-01-14)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.16...0.0.17)
 
 **Fixed bugs:**
@@ -10,6 +31,7 @@
 
 **Merged pull requests:**
 
+- release preparations and CHANGELOG [\#232](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/232) ([jrse](https://github.com/jrse))
 - Pop3 uidl handling \#230 [\#231](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/231) ([jrse](https://github.com/jrse))
 
 ## [0.0.16](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.16) (2018-12-18)
