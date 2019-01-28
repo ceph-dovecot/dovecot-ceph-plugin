@@ -35,7 +35,7 @@ TEST(librmb, get_metadata_1) {
   mail.add_metadata(m);
   char *val = NULL;
 
-  mail.get_metadata(key, &val);
+  librmb::RadosUtils::get_metadata(key, mail.get_metadata(), &val);
   std::cout << val << std::endl;
   EXPECT_STREQ(val, "abcdefg\0");
 }

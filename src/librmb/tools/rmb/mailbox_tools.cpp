@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iostream>
 #include "mailbox_tools.h"
+#include "rados-util.h"
 
 namespace librmb {
 
@@ -98,7 +99,7 @@ int MailboxTools::build_filename(librmb::RadosMail* mail_obj, std::string* filen
 
   std::stringstream ss;
   char* m_mail_uid;
-  mail_obj->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &m_mail_uid);
+  RadosUtils::get_metadata(librmb::RBOX_METADATA_MAIL_UID, mail_obj->get_metadata(), &m_mail_uid);
   ss << m_mail_uid << ".";
   ss << *mail_obj->get_oid();
   *filename = ss.str();

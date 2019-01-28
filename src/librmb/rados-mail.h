@@ -65,17 +65,17 @@ class RadosMail {
    * @return reference to all write operations related with this object
    */
 
-  void get_metadata(const std::string& key, char** value) {
-    if (attrset.find(key) != attrset.end()) {
-      *value = attrset[key].c_str();
-      return;
+  /*  void get_metadata(const std::string& key, char** value) {
+      if (attrset.find(key) != attrset.end()) {
+        *value = attrset[key].c_str();
+        return;
+      }
+      *value = NULL;
     }
-    *value = NULL;
-  }
-  void get_metadata(rbox_metadata_key key, char** value) {
-    string str_key(librmb::rbox_metadata_key_to_char(key));
-    get_metadata(str_key, value);
-  }
+    void get_metadata(rbox_metadata_key key, char** value) {
+      string str_key(librmb::rbox_metadata_key_to_char(key));
+      get_metadata(str_key, value);
+    }*/
 
   bool is_index_ref() { return index_ref; }
   void set_index_ref(bool ref) { this->index_ref = ref; }

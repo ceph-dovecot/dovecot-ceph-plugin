@@ -19,6 +19,7 @@
 
 #include "../../rados-mail.h"
 #include "ls_cmd_parser.h"
+#include "rados-util.h"
 namespace librmb {
 
 class RadosMailBox {
@@ -50,7 +51,7 @@ class RadosMailBox {
       if (mail->get_metadata()->find(it->first) != mail->get_metadata()->end()) {
         std::string key = it->first;
         char *value;
-        mail->get_metadata(key, &value);
+        RadosUtils::get_metadata(key, mail->get_metadata(), &value);
         if (it->second->eval(value)) {
           mails.push_back(mail);
         }

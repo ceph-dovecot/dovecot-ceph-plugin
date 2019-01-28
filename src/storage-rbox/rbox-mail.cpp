@@ -42,6 +42,7 @@ extern "C" {
 #include "../librmb/rados-storage-impl.h"
 #include "istream-bufferlist.h"
 #include "rbox-mail.h"
+#include "rados-util.h"
 
 using librmb::RadosMail;
 using librmb::rbox_metadata_key;
@@ -133,7 +134,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
   char *val = NULL;
-  rmail->rados_mail->get_metadata(key, &val);
+
+  librmb::RadosUtils::get_metadata(key, rmail->rados_mail->get_metadata(), &val);
   if (val != NULL) {
     *value_r = i_strdup(val);
   } else {
@@ -158,7 +160,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   }
   // in case we already read the metadata this gives us the value
   // void get_metadata(rbox_metadata_key key, std::string* value) {
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
@@ -261,8 +264,8 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
     FUNC_END_RET("ret == -1; mail_object == nullptr ");
     return -1;
   }
-
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
@@ -321,7 +324,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return -1;
   }
 
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value) < 0) {
