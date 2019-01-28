@@ -414,12 +414,10 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   if (ret >= 0) {
     ret = index_storage_expunged_sync_begin(&rbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<enum mail_index_sync_flags>(sync_flags));
-    i_debug("expunge index_storage_expunge... ret %d", ret);
     if (mail_index_reset_fscked(rbox->box.index))
       rbox_set_mailbox_corrupted(&rbox->box);
   }
   if (ret <= 0) {
-    i_debug("array delete");
     array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
     array_free(&ctx->expunged_items);
     i_free(ctx);

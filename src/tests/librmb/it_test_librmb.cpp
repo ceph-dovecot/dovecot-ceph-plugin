@@ -236,7 +236,7 @@ TEST(librmb, load_metadata) {
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   ceph::bufferlist bl;
-  bl.append("xyz");
+  bl.append("xyz\0");
   op->setxattr("A", bl);
   op->setxattr("B", bl);
 
@@ -299,7 +299,7 @@ TEST(librmb, AttributeVersions) {
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   ceph::bufferlist bl;
-  bl.append("xyz");
+  bl.append("xyz\0");
   op->setxattr("A", bl);
 
   int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);

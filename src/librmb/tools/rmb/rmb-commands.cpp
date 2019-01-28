@@ -614,7 +614,7 @@ int RmbCommands::update_attributes(librmb::RadosStorageMetadataModule *ms,
       librmb::rbox_metadata_key ke = static_cast<librmb::rbox_metadata_key>(it->first[0]);
       std::string value = it->second;
       if (librmb::RadosUtils::is_date_attribute(ke)) {
-        if (!librmb::RadosUtils::is_numeric(value)) {
+        if (!librmb::RadosUtils::is_numeric(value.c_str())) {
           std::string date;
           if (librmb::RadosUtils::convert_string_to_date(value, &date)) {
             value = date;
