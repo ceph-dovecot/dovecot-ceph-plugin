@@ -106,13 +106,11 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
-
+  int ret2 = 0;
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     mailbox_save_copy_flags(save_ctx, mail);
-
-    int ret2 = mailbox_copy(&save_ctx, mail);
-    EXPECT_EQ(ret2, 0);
+    ret2 = mailbox_copy(&save_ctx, mail);
     break;  // only move one mail.
   }
 
@@ -126,6 +124,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
+
+  EXPECT_EQ(ret2, 0);
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
   std::vector<librmb::RadosMail *> objects;

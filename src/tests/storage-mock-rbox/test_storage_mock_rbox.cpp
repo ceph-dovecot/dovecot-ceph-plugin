@@ -524,14 +524,12 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
-
+  int ret2 = 0;
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     mailbox_save_copy_flags(save_ctx, mail);
 
-    int ret2 = mailbox_copy(&save_ctx, mail);
-    // mail should be marked as expunged!!!
-    EXPECT_EQ(ret2, -1);
+    ret2 = mailbox_copy(&save_ctx, mail);
 
     break;  // only move one mail.
   }
@@ -544,6 +542,9 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
     i_debug("transaction commit <0");
     SUCCEED() << "tnx commit failed";
   }
+
+  // mail should be marked as expunged!!!
+  EXPECT_EQ(ret2, -1);
   mailbox_free(&box);
 
   delete test_object;
