@@ -30,11 +30,9 @@ RadosMail::RadosMail()
       active_op(0),
       save_date_rados(-1),
       valid(true),
-      index_ref(false) {
-  completion = librados::Rados::aio_create_completion();
-}
+      index_ref(false) {}
 
-RadosMail::~RadosMail() {}
+RadosMail::~RadosMail() { delete completion; }
 
 std::string RadosMail::to_string(const string& padding) {
   char* uid = NULL;

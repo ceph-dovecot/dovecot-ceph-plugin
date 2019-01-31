@@ -59,6 +59,7 @@ class RadosMail {
 
   ObjectWriteOperation* get_write_operation() { return write_operation; }
   void set_write_operation(ObjectWriteOperation* write_operation_) { this->write_operation = write_operation_; }
+  void set_completion(AioCompletion* completion_) { this->completion = completion_; }
 
   /*!
    * @return reference to all write operations related with this object

@@ -196,6 +196,7 @@ void init_output_stream(mail_save_context *_ctx) {
 
   r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage,
                                                     rbox->storage->config->is_create_write_op_in_write_continue());
+  r_ctx->rados_mail->set_completion(librados::Rados::aio_create_completion());
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
