@@ -196,7 +196,6 @@ void init_output_stream(mail_save_context *_ctx) {
 
   r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage,
                                                     rbox->storage->config->is_create_write_op_in_write_continue());
-  r_ctx->rados_mail->set_completion(librados::Rados::aio_create_completion());
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
@@ -213,25 +212,24 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     r_ctx->dest_mail_allocated = TRUE;
   }
   setup_mail_object(_ctx);
-  rbox_add_to_index(_ctx);
-  mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
-
-  crlf_input = i_stream_create_lf(input);
-  r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
-  i_stream_unref(&crlf_input);
-
   // always save to primary storage
   if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_save_finish)");
     r_ctx->failed = true;
+  } else {
+    rbox_add_to_index(_ctx);
+    mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
+
+    crlf_input = i_stream_create_lf(input);
+    r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
+    i_stream_unref(&crlf_input);
+
+    init_output_stream(_ctx);
+
+    if (_ctx->data.received_date == (time_t)-1) {
+      _ctx->data.received_date = ioloop_time;
+    }
   }
-
-  init_output_stream(_ctx);
-
-  if (_ctx->data.received_date == (time_t)-1) {
-    _ctx->data.received_date = ioloop_time;
-  }
-
   FUNC_END();
   return 0;
 }
@@ -450,15 +448,15 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-    /*TODO create cache: #229
-        if (r_ctx->mail_guid != NULL) {
-          const char *guid = guid_128_to_string(r_ctx->mail_guid);
-          index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
-        }
-        uint32_t recv_date = _ctx->data.received_date;
-        index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
-       sizeof(recv_date));
-    */
+/*TODO create cache: #229
+    if (r_ctx->mail_guid != NULL) {
+      const char *guid = guid_128_to_string(r_ctx->mail_guid);
+      index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
+    }
+    uint32_t recv_date = _ctx->data.received_date;
+    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
+   sizeof(recv_date));
+*/
 
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;

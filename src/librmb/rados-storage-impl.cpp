@@ -48,6 +48,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     return -1;
   }
 
+  current_object->set_completion(librados::Rados::aio_create_completion());
+
   librados::ObjectWriteOperation *op =
       write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;
   int ret_val = 0;
@@ -85,7 +87,6 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     current_object->set_active_op(i + 1);
   }
   ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), op);
-  // current_object->set_completion(completion);
   current_object->set_write_operation(op);
 
   return ret_val;

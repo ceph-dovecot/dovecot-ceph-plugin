@@ -102,9 +102,8 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
       .WillOnce(Return(-1));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
-  librmb::RadosMail *test_obj2 = new librmb::RadosMail();
 
-  EXPECT_CALL(*storage_mock, alloc_rados_mail()).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
+  EXPECT_CALL(*storage_mock, alloc_rados_mail()).WillOnce(Return(test_obj));
   // storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
 
@@ -113,14 +112,14 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   if (mailbox_save_begin(&save_ctx, input) < 0) {
     i_error("Saving failed: %s", mailbox_get_last_internal_error(box, NULL));
     mailbox_transaction_rollback(&trans);
-    FAIL() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
+    SUCCEED() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
     ssize_t ret;
     do {
       if (mailbox_save_continue(save_ctx) < 0) {
         save_failed = TRUE;
         ret = -1;
-        FAIL() << "mailbox_save_continue() failed";
+        SUCCEED() << "mailbox_save_continue() failed";
         break;
       }
     } while ((ret = i_stream_read(input)) > 0);
@@ -129,16 +128,16 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
     if (input->stream_errno != 0) {
       FAIL() << "read(msg input) failed: " << i_stream_get_error(input);
     } else if (save_failed) {
-      FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
+      SUCCEED() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
     } else if (mailbox_save_finish(&save_ctx) < 0) {
-      SUCCEED() << "Saving should fail, due to connection to rados is not available.";
+      FAIL() << "Saving should fail, due to connection to rados is not available.";
     } else if (mailbox_transaction_commit(&trans) < 0) {
       FAIL() << "Save transaction commit failed: " << mailbox_get_last_internal_error(box, NULL);
     } else {
       ret = 0;
     }
 
-    EXPECT_EQ(save_ctx, nullptr);
+    EXPECT_NE(save_ctx, nullptr);
     if (save_ctx != nullptr)
       mailbox_save_cancel(&save_ctx);
 
@@ -146,14 +145,13 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
     if (trans != nullptr)
       mailbox_transaction_rollback(&trans);
 
-    EXPECT_TRUE(input->eof);
+    EXPECT_FALSE(input->eof);
     EXPECT_GE(ret, -1);
   }
   i_stream_unref(&input);
   mailbox_free(&box);
 
   delete test_obj;
-  delete test_obj2;
 }
 
 /**

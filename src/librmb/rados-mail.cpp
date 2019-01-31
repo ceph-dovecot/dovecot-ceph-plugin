@@ -32,7 +32,7 @@ RadosMail::RadosMail()
       valid(true),
       index_ref(false) {}
 
-RadosMail::~RadosMail() { delete completion; }
+RadosMail::~RadosMail() {}
 
 std::string RadosMail::to_string(const string& padding) {
   char* uid = NULL;

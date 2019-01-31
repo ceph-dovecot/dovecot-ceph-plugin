@@ -47,9 +47,7 @@ static void rbox_ostream_destroy(struct iostream_private *stream) {
   // wait for write operation
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
   i_assert(bstream->buf != nullptr);
-  if (bstream->execute_write_ops) {
-    delete bstream->buf;
-  }
+
 }
 
 static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struct const_iovec *iov,
@@ -70,6 +68,7 @@ static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struc
   if (bstream->execute_write_ops) {
     librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
     write_op->write(val, *bstream->buf);
+
     bstream->rados_storage->aio_operate(&bstream->rados_storage->get_io_ctx(), *bstream->rados_mail->get_oid(),
                                         bstream->rados_mail->get_completion(), write_op);
   }
@@ -91,11 +90,14 @@ struct ostream *o_stream_create_bufferlist(librmb::RadosMail *rados_mail, const 
   bstream->ostream.sendv = o_stream_buffer_sendv;
   bstream->ostream.write_at = o_stream_buffer_write_at;
   bstream->ostream.iostream.destroy = rbox_ostream_destroy;
-  bstream->buf = execute_write_ops ? new librados::bufferlist() : rados_mail->get_mail_buffer();
+//  bstream->buf = execute_write_ops ? new librados::bufferlist() : rados_mail->get_mail_buffer();
+	bstream->buf = rados_mail->get_mail_buffer();
   bstream->rados_storage = rados_storage;
   bstream->rados_mail = rados_mail;
   bstream->execute_write_ops = execute_write_ops;
-
+  if (execute_write_ops) {
+    rados_mail->set_completion(librados::Rados::aio_create_completion());
+  }
   output = o_stream_create(&bstream->ostream, NULL, -1);
   o_stream_set_name(output, "(buffer)");
   return output;

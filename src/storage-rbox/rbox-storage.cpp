@@ -875,9 +875,8 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(
-        ns->list, "*",
-        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {
