@@ -43,10 +43,10 @@ extern "C" {
 #include "rados-dovecot-ceph-cfg-impl.h"
 #include "../../storage-rbox/istream-bufferlist.h"
 #include "../../storage-rbox/ostream-bufferlist.h"
-using ::testing::AtLeast;
-using ::testing::Return;
 using ::testing::_;
+using ::testing::AtLeast;
 using ::testing::Matcher;
+using ::testing::Return;
 using ::testing::ReturnRef;
 #pragma GCC diagnostic pop
 
@@ -557,12 +557,14 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
  */
 TEST_F(StorageTest, copy_input_to_output_stream) {
   librados::bufferlist buffer;
-  librados::bufferlist buffer_out;
+  // librados::bufferlist buffer_out;
+  librmb::RadosMail mail;
+
   buffer.append("\r\t\0\nJAN");
   unsigned long physical_size = buffer.length();
   struct istream *input;  // = *stream_r;
   struct ostream *output;
-  output = o_stream_create_bufferlist(&buffer_out);
+  output = o_stream_create_bufferlist(&mail, nullptr, false);
   input = i_stream_create_from_bufferlist(&buffer, physical_size);
 
   do {
@@ -572,13 +574,15 @@ TEST_F(StorageTest, copy_input_to_output_stream) {
 
   } while (i_stream_read(input) > 0);
 
-  EXPECT_EQ(buffer.to_str(), buffer_out.to_str());
+  EXPECT_EQ(buffer.to_str(), mail.get_mail_buffer()->to_str());
   o_stream_unref(&output);
   i_stream_unref(&input);
 }
+/*
 TEST_F(StorageTest, eval_output_append) {
   librados::bufferlist buffer;
   librados::bufferlist buffer_out;
+
 
   struct ostream *output;
   output = o_stream_create_bufferlist(&buffer_out);
@@ -597,7 +601,7 @@ TEST_F(StorageTest, eval_output_append) {
   EXPECT_EQ("abcdefghijk", buffer_out.to_str());
   o_stream_unref(&output);
 }
-
+*/
 TEST_F(StorageTest, deinit) {}
 
 int main(int argc, char **argv) {

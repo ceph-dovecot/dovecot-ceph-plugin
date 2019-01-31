@@ -56,7 +56,6 @@ class RadosMail {
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
   AioCompletion* get_completion() { return completion; }
-  void set_completion(AioCompletion* completion_) { this->completion = completion_; }
 
   ObjectWriteOperation* get_write_operation() { return write_operation; }
   void set_write_operation(ObjectWriteOperation* write_operation_) { this->write_operation = write_operation_; }

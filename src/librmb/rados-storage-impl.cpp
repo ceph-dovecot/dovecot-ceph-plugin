@@ -50,7 +50,6 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   librados::ObjectWriteOperation *op =
       write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
@@ -85,8 +84,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     }
     current_object->set_active_op(i + 1);
   }
-  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), completion, op);
-  current_object->set_completion(completion);
+  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), op);
+  // current_object->set_completion(completion);
   current_object->set_write_operation(op);
 
   return ret_val;
@@ -251,7 +250,7 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
 
       ctx_failed = ctx_failed ? ctx_failed : op_failed;
       (*it_cur_obj)->set_active_op(0);
-      (*it_cur_obj)->set_completion(nullptr);
+      // (*it_cur_obj)->set_completion(nullptr);
       (*it_cur_obj)->set_write_operation(nullptr);
     }
   }
