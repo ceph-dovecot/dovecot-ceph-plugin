@@ -481,7 +481,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 // guid is saved in the obox header, and should be available when rbox_mail does exist. (rbox_get_index_record)
 int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   if (!guid_128_is_empty(mail->index_guid)) {
-    *value_r = guid_128_to_string(mail->index_guid);
+    *value_r = i_strdup(guid_128_to_string(mail->index_guid));
     return 0;
   }
   // lost for some reason, use fallback
