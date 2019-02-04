@@ -82,10 +82,10 @@ class RadosStorageMetadataMock : public RadosStorageMetadataModule {
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {
     // delete write_op to avoid memory leak in case mocks are used
     // if you need to change this, design your test so that storage is not a mock!
-    if (write_op != nullptr) {
+    /*if (write_op != nullptr) {
       delete write_op;
       write_op = nullptr;
-    }
+    }*/
   }
   MOCK_METHOD2(update_keyword_metadata, int(const std::string &oid, librmb::RadosMetadata *metadata));
   MOCK_METHOD2(remove_keyword_metadata, int(const std::string &oid, std::string &key));

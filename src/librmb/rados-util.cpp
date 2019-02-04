@@ -272,14 +272,14 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   mail.set_oid(dest_oid);
 
-  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
-  metadata->get_storage()->save_metadata(write_op, &mail);
+  librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
+  metadata->get_storage()->save_metadata(&write_op, &mail);
 
   bool success;
   if (inverse) {
-    success = primary->save_mail(write_op, &mail, true);
+    success = primary->save_mail(&write_op, &mail, true);
   } else {
-    success = alt_storage->save_mail(write_op, &mail, true);
+    success = alt_storage->save_mail(&write_op, &mail, true);
   }
 
   if (!success) {

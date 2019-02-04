@@ -448,15 +448,15 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-    /*TODO create cache: #229
-        if (r_ctx->mail_guid != NULL) {
-          const char *guid = guid_128_to_string(r_ctx->mail_guid);
-          index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
-        }
-        uint32_t recv_date = _ctx->data.received_date;
-        index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
-       sizeof(recv_date));
-    */
+/*TODO create cache: #229
+    if (r_ctx->mail_guid != NULL) {
+      const char *guid = guid_128_to_string(r_ctx->mail_guid);
+      index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
+    }
+    uint32_t recv_date = _ctx->data.received_date;
+    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
+   sizeof(recv_date));
+*/
 
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;
@@ -512,14 +512,14 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
-      librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
-      r_storage->ms->get_storage()->save_metadata(write_op, r_ctx->rados_mail);
+      librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();     
+      r_storage->ms->get_storage()->save_metadata(&write_op, r_ctx->rados_mail);
 
       if (!r_storage->config->is_create_write_op_in_write_continue()) {
-        r_ctx->failed = !r_storage->s->save_mail(write_op, r_ctx->rados_mail, async_write);
+        r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
       } else {
         int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
-                                            r_ctx->rados_mail->get_completion(), write_op);
+                                            r_ctx->rados_mail->get_completion(), &write_op);
         r_ctx->failed = ret < 0;
       }
       if (r_ctx->failed) {
