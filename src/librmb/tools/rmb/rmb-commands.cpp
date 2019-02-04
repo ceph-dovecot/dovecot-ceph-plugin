@@ -329,7 +329,7 @@ bool RmbCommands::sort_uid(librmb::RadosMail *i, librmb::RadosMail *j) {
   } catch (std::exception &e) {
     char *uid;
     RadosUtils::get_metadata(librmb::RBOX_METADATA_MAIL_UID, i->get_metadata(), &uid);
-    std::cerr << " sort_uid: " << t << "(" << i->get_oid() << ") or " << uid << " (" << j->get_oid()
+    std::cerr << " sort_uid: " << t << "(" << *i->get_oid() << ") or " << uid << " (" << j->get_oid()
               << ") is not a number" << std::endl;
     return false;
   }
@@ -459,7 +459,7 @@ int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms, std::vecto
 
     ++iter;
     if (is_debug) {
-      std::cout << "added: mail " << mail->get_oid() << std::endl;
+      std::cout << "added: mail " << *mail->get_oid() << std::endl;
     }
   }
 
@@ -531,7 +531,7 @@ int RmbCommands::query_mail_storage(std::vector<librmb::RadosMail *> *mail_objec
     RadosUtils::get_metadata(mailbox_orig_name_key, (*it)->get_metadata(), &mailbox_orig_name);
 
     if (mailbox_guid == NULL || mailbox_orig_name == NULL) {
-      std::cout << " mail " << (*it)->get_oid() << " with empty mailbox guid  is not valid: " << std::endl;
+      std::cout << " mail " << *(*it)->get_oid() << " with empty mailbox guid is not valid: " << std::endl;
       continue;
     }
 
