@@ -53,13 +53,13 @@ script:
 
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
 - docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 error_quit secs=60 copybox=INBOX.Drafts output=/var/log/imaptest.log'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Internal error\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"killed\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Panic:\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Fatal:\""'
-- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/imaptest.log | grep \"BUG:\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"Error:\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"failed:\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"Internal error\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"killed\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"Panic:\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep -c \"Fatal:\""'
+- docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/imaptest.log | grep -c \"BUG:\""'
 
 after_script:
 - docker stop build ceph_demo
