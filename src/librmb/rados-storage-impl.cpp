@@ -86,8 +86,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     }
     current_object->set_active_op(i + 1);
   }
-  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), op);
-  current_object->set_write_operation(op);
+  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), write_op_xattr);
+  current_object->set_write_operation(write_op_xattr);
 
   return ret_val;
 }
@@ -232,7 +232,7 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
   // clean up
   completion->release();
   write_operation->remove();
-//  delete write_operation;
+  //  delete write_operation;
 
   return failed;
 }
