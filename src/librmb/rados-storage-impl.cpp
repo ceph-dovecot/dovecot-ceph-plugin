@@ -211,7 +211,7 @@ void RadosStorageImpl::close_connection() {
 }
 bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletion *completion,
                                                           librados::ObjectWriteOperation *write_operation) {
-  if (completion == nullptr || write_operation == nullptr) {
+  if (completion == nullptr) {
     return true;  // failed!
   }
 
@@ -231,8 +231,6 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
   failed = completion->get_return_value() < 0 || failed ? true : false;
   // clean up
   completion->release();
-  write_operation->remove();
-  //  delete write_operation;
 
   return failed;
 }
