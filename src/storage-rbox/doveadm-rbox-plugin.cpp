@@ -193,9 +193,11 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
   if (download) {
     rmb_cmds.set_output_path(&parser);
   }
-  ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
-  if (ret < 0) {
-    i_error("Error query mail storage. Errorcode: %d", ret);
+  if(load_metadata){
+    ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
+    if (ret < 0) {
+      i_error("Error query mail storage. Errorcode: %d", ret);
+    }
   }
   delete ms;
 
