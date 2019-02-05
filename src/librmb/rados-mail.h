@@ -52,7 +52,9 @@ class RadosMail {
   /*!
    * @return ptr to internal buffer .
    */
-  librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
+  librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
+  void set_mail_buffer(librados::bufferlist* buffer) { this->mail_buffer = buffer; }
+
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
   AioCompletion* get_completion() { return completion; }
@@ -112,7 +114,7 @@ class RadosMail {
   ObjectWriteOperation* write_operation;
 
   int active_op;
-  ceph::bufferlist mail_buffer;
+  ceph::bufferlist* mail_buffer;
   time_t save_date_rados;
 
   map<string, ceph::bufferlist> attrset;

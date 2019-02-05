@@ -47,9 +47,9 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
 
-  librados::bufferlist i_stream_buffer;
-  i_stream_buffer.append(message);
-  struct istream *input = i_stream_create_from_bufferlist(&i_stream_buffer, i_stream_buffer.length());
+  librados::bufferlist *i_stream_buffer = new librados::bufferlist();
+  i_stream_buffer->append(message);
+  struct istream *input = i_stream_create_from_bufferlist(i_stream_buffer, i_stream_buffer->length());
 
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);
@@ -100,9 +100,9 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   struct mailbox *box = mailbox_alloc(ns->list, mailbox, (mailbox_flags)0);
   ASSERT_NE(box, nullptr);
   ASSERT_GE(mailbox_open(box), 0);
-  librados::bufferlist i_stream_buffer;
-  i_stream_buffer.append(message);
-  struct istream *input = i_stream_create_from_bufferlist(&i_stream_buffer, i_stream_buffer.length());
+  librados::bufferlist *i_stream_buffer = new librados::bufferlist();
+  i_stream_buffer->append(message);
+  struct istream *input = i_stream_create_from_bufferlist(i_stream_buffer, i_stream_buffer->length());
 
 #ifdef DOVECOT_CEPH_PLUGIN_HAVE_MAIL_STORAGE_TRANSACTION_OLD_SIGNATURE
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL);

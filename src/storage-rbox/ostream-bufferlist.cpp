@@ -36,7 +36,7 @@ static int o_stream_buffer_seek(struct ostream_private *stream, uoff_t offset) {
 
 int o_stream_buffer_write_at(struct ostream_private *stream, const void *data, size_t size, uoff_t offset) {
   i_assert(stream != NULL);
-  i_error("unused !");
+  i_error("unused (o_stream_buffer_write_at) !");
   return -1;
 }
 
@@ -47,6 +47,9 @@ static void rbox_ostream_destroy(struct iostream_private *stream) {
   // wait for write operation
   struct bufferlist_ostream *bstream = (struct bufferlist_ostream *)stream;
   i_assert(bstream->buf != nullptr);
+
+  // do not free the outbut stream! cause, it is needed until all write operations are finished!
+  // delete bstream->buf;
 }
 
 static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struct const_iovec *iov,
@@ -98,7 +101,6 @@ struct ostream *o_stream_create_bufferlist(librmb::RadosMail *rados_mail, const 
   if (execute_write_ops) {
     rados_mail->set_completion(librados::Rados::aio_create_completion());
     rados_mail->set_active_op(1);
-    // rados_mail->set_write_operation(new librados::ObjectWriteOperation());
   }
   output = o_stream_create(&bstream->ostream, NULL, -1);
   o_stream_set_name(output, "(buffer)");

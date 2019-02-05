@@ -251,6 +251,9 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
   RadosMail mail;
   mail.set_oid(src_oid);
 
+  librados::bufferlist *bl = new librados::bufferlist();
+  mail.set_mail_buffer(bl);
+
   if (inverse) {
     ret = alt_storage->read_mail(src_oid, mail.get_mail_buffer());
     metadata->get_storage()->set_io_ctx(&alt_storage->get_io_ctx());

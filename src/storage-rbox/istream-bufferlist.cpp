@@ -18,6 +18,10 @@ extern "C" {
 #include "istream-bufferlist.h"
 #include <rados/librados.hpp>
 
+struct bufferlist_istream {
+  struct istream_private istream;
+  librados::bufferlist *bl;
+};
 static ssize_t i_stream_data_read(struct istream_private *stream) {
   stream->istream.eof = TRUE;  // all in!
   return -1;
@@ -31,30 +35,33 @@ static void i_stream_data_seek(struct istream_private *stream, uoff_t v_offset, 
 static void rbox_istream_destroy(struct iostream_private *stream) {
   // nothing to do. but required, so that default destroy is not evoked!
   // buffer is member of RboxMailObjec, which destroys the bufferlist
+  struct bufferlist_istream *bstream = (struct bufferlist_istream *)stream;
+  delete bstream->bl;
 }
 struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, const size_t &size) {
-  struct istream_private *stream;
+  struct bufferlist_istream *bstream;
 
-  stream = i_new(struct istream_private, 1);
+  bstream = i_new(struct bufferlist_istream, 1);
   // use unsigned char* for binary data!
-  stream->buffer = reinterpret_cast<const unsigned char *>(data->c_str());
-  stream->pos = size;
-  stream->max_buffer_size = (size_t)-1;
+  bstream->istream.buffer = reinterpret_cast<unsigned char *>(data->c_str());
+  bstream->istream.pos = size;
+  bstream->istream.max_buffer_size = (size_t)-1;
 
-  stream->read = i_stream_data_read;
-  stream->seek = i_stream_data_seek;  // use default
+  bstream->istream.read = i_stream_data_read;
+  bstream->istream.seek = i_stream_data_seek;  // use default
 
-  stream->istream.readable_fd = FALSE;
-  stream->istream.blocking = TRUE;
-  stream->istream.seekable = TRUE;
-  stream->iostream.destroy = rbox_istream_destroy;
+  bstream->istream.istream.readable_fd = FALSE;
+  bstream->istream.istream.blocking = TRUE;
+  bstream->istream.istream.seekable = TRUE;
+  bstream->istream.iostream.destroy = rbox_istream_destroy;
+  bstream->bl = data;
 
 #if DOVECOT_PREREQ(2, 3)
-  i_stream_create(stream, NULL, -1, ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);
+  i_stream_create(&bstream->istream, NULL, -1, ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);
 #else
-  i_stream_create(stream, NULL, -1);
+  i_stream_create(&bstream->istream, NULL, -1);
 #endif
-  stream->statbuf.st_size = size - 1;
-  i_stream_set_name(&stream->istream, "(buffer)");
-  return &stream->istream;
+  bstream->istream.statbuf.st_size = size - 1;
+  i_stream_set_name(&bstream->istream.istream, "(buffer)");
+  return &bstream->istream.istream;
 }

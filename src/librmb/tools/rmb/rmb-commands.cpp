@@ -505,7 +505,8 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
     for (std::vector<librmb::RadosMail *>::iterator it_mail = it->second->get_mails().begin();
          it_mail != it->second->get_mails().end(); ++it_mail) {
       const std::string oid = *(*it_mail)->get_oid();
-
+      librados::bufferlist bl;
+      (*it_mail)->set_mail_buffer(&bl);
       if (storage->read_mail(oid, (*it_mail)->get_mail_buffer()) > 0) {
         if (tools.save_mail((*it_mail)) < 0) {
           std::cout << " error saving mail : " << oid << " to " << tools.get_mailbox_path() << std::endl;
@@ -520,7 +521,7 @@ int RmbCommands::print_mail(std::map<std::string, librmb::RadosMailBox *> *mailb
 int RmbCommands::query_mail_storage(std::vector<librmb::RadosMail *> *mail_objects, librmb::CmdLineParser *parser,
                                     bool download, bool silent) {
   print_debug("entry: query_mail_storage");
-
+  
   std::map<std::string, librmb::RadosMailBox *> mailbox;
   for (std::vector<librmb::RadosMail *>::iterator it = mail_objects->begin(); it != mail_objects->end(); ++it) {
     std::string mailbox_key = std::string(1, static_cast<char>(librmb::RBOX_METADATA_MAILBOX_GUID));

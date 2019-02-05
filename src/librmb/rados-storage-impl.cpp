@@ -252,6 +252,9 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
       // (*it_cur_obj)->set_completion(nullptr);
       (*it_cur_obj)->set_write_operation(nullptr);
     }
+    // free mail's buffer cause we don't need it anymore
+    librados::bufferlist *mail_buffer = (*it_cur_obj)->get_mail_buffer();
+    delete mail_buffer;
   }
   return ctx_failed;
 }
@@ -405,6 +408,8 @@ bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
 }
 librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
 void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
-  delete mail;
-  mail = nullptr;
+  if (mail != nullptr) {
+    delete mail;
+    mail = nullptr;
+  }
 }

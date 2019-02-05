@@ -410,7 +410,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     }
-    rmail->rados_mail->get_mail_buffer()->clear();
+    // create mail buffer!
+    rmail->rados_mail->set_mail_buffer(new librados::bufferlist());
 
     uint64_t psize;
     time_t save_date;
@@ -436,11 +437,13 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
                   rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), getpid(), alt_storage);
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
+        delete rmail->rados_mail->get_mail_buffer();
         return -1;
       } else {
         i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", ret,
                 rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
         FUNC_END_RET("ret == -1");
+        delete rmail->rados_mail->get_mail_buffer();
         return -1;
       }
     }
@@ -457,16 +460,19 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
           rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage, _mail->uid);
       FUNC_END_RET("ret == 0");
       rbox_mail_set_expunged(rmail);
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     } else if (physical_size == INT_MAX) {
       i_error("trying to read a mail with INT_MAX size. (uid=%d,oid=%s,namespace=%s,alt_storage=%d)", _mail->uid,
               rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
       FUNC_END_RET("ret == -1");
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     }
 
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
       FUNC_END_RET("ret == -1");
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     }
 
@@ -650,6 +656,7 @@ static void rbox_mail_close(struct mail *_mail) {
 
   if (rmail_->rados_mail != nullptr) {
     r_storage->s->free_rados_mail(rmail_->rados_mail);
+    i_debug("freeing mail");
     rmail_->rados_mail = nullptr;
   }
 
@@ -664,6 +671,7 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
   if (rmail_->rados_mail == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+
     rmail_->rados_mail = r_storage->s->alloc_rados_mail();
     rbox_get_index_record(_mail);
   }

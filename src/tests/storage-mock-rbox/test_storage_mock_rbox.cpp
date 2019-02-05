@@ -199,7 +199,9 @@ TEST_F(StorageTest, save_mail_fail_test) {
   EXPECT_CALL(*storage_mock, save_mail(_, _, Matcher<bool>(_))).Times(1).WillOnce(Return(false));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
+  test_obj->set_mail_buffer(nullptr);
   librmb::RadosMail *test_obj2 = new librmb::RadosMail();
+  test_obj2->set_mail_buffer(nullptr);
   EXPECT_CALL(*storage_mock, alloc_rados_mail()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
   EXPECT_CALL(*storage_mock, free_rados_mail(_)).Times(2);
 
@@ -272,7 +274,13 @@ TEST_F(StorageTest, save_mail_fail_test) {
   i_stream_unref(&input);
   mailbox_free(&box);
 
+  if (test_obj->get_mail_buffer() != nullptr) {
+    delete test_obj->get_mail_buffer();
+  }
   delete test_obj;
+  if (test_obj2->get_mail_buffer() != nullptr) {
+    delete test_obj2->get_mail_buffer();
+  }
   delete test_obj2;
 }
 /**
@@ -330,7 +338,9 @@ TEST_F(StorageTest, write_op_fails) {
   EXPECT_CALL(*storage_mock, read_mail(_, _)).WillRepeatedly(Return(-2));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
+  test_obj->set_mail_buffer(nullptr);
   librmb::RadosMail *test_obj2 = new librmb::RadosMail();
+  test_obj2->set_mail_buffer(nullptr);
   EXPECT_CALL(*storage_mock, alloc_rados_mail()).Times(2).WillOnce(Return(test_obj)).WillOnce(Return(test_obj2));
 
   EXPECT_CALL(*storage_mock, free_rados_mail(_)).Times(2);
@@ -404,7 +414,13 @@ TEST_F(StorageTest, write_op_fails) {
   i_stream_unref(&input);
   mailbox_free(&box);
 
+  if (test_obj->get_mail_buffer() != nullptr) {
+    delete test_obj->get_mail_buffer();
+  }
   delete test_obj;
+  if (test_obj2->get_mail_buffer() != nullptr) {
+    delete test_obj2->get_mail_buffer();
+  }
   delete test_obj2;
 }
 /**
@@ -440,6 +456,9 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   librmb::RadosMail *test_obj_save = new librmb::RadosMail();
   librmb::RadosMail *test_obj_save2 = new librmb::RadosMail();
+  test_obj_save->set_mail_buffer(nullptr);
+  test_obj_save2->set_mail_buffer(nullptr);
+
   EXPECT_CALL(*storage_mock, alloc_rados_mail())
       .Times(2)
       .WillOnce(Return(test_obj_save))
@@ -448,7 +467,13 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces, storage_mock);
 
+  if (test_obj_save->get_mail_buffer() != nullptr) {
+    delete test_obj_save->get_mail_buffer();
+  }
   delete test_obj_save;
+  if (test_obj_save2->get_mail_buffer() != nullptr) {
+    delete test_obj_save2->get_mail_buffer();
+  }
   delete test_obj_save2;
 
   search_args = mail_search_build_init();
@@ -467,6 +492,8 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   librmbtest::RadosStorageMock *storage_mock_copy = new librmbtest::RadosStorageMock();
   librmb::RadosMail *test_object = new librmb::RadosMail();
   librmb::RadosMail *test_object2 = new librmb::RadosMail();
+  test_object->set_mail_buffer(nullptr);
+  test_object2->set_mail_buffer(nullptr);
 
   librmb::RadosMetadata recv_date = librmb::RadosMetadata(librmb::RBOX_METADATA_RECEIVED_TIME, time(NULL));
   test_object->add_metadata(recv_date);
@@ -545,7 +572,13 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_EQ(ret2, -1);
   mailbox_free(&box);
 
+  if (test_object->get_mail_buffer() != nullptr) {
+    delete test_object->get_mail_buffer();
+  }
   delete test_object;
+  if (test_object2->get_mail_buffer() != nullptr) {
+    delete test_object2->get_mail_buffer();
+  }
   delete test_object2;
 }
 /**
@@ -554,16 +587,18 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
  * - eval copy from input to output stream
  */
 TEST_F(StorageTest, copy_input_to_output_stream) {
-  librados::bufferlist buffer;
+  librados::bufferlist *buffer = new librados::bufferlist();
   // librados::bufferlist buffer_out;
   librmb::RadosMail mail;
-
-  buffer.append("\r\t\0\nJAN");
-  unsigned long physical_size = buffer.length();
+  buffer->append("\r\t\0\nJAN");
+  unsigned long physical_size = buffer->length();
   struct istream *input;  // = *stream_r;
   struct ostream *output;
+
+  librados::bufferlist buffer2;
+  mail.set_mail_buffer(&buffer2);
   output = o_stream_create_bufferlist(&mail, nullptr, false);
-  input = i_stream_create_from_bufferlist(&buffer, physical_size);
+  input = i_stream_create_from_bufferlist(buffer, physical_size);
 
   do {
     if (o_stream_send_istream(output, input) < 0) {
@@ -572,7 +607,7 @@ TEST_F(StorageTest, copy_input_to_output_stream) {
 
   } while (i_stream_read(input) > 0);
 
-  EXPECT_EQ(buffer.to_str(), mail.get_mail_buffer()->to_str());
+  EXPECT_EQ(buffer->to_str(), mail.get_mail_buffer()->to_str());
   o_stream_unref(&output);
   i_stream_unref(&input);
 }

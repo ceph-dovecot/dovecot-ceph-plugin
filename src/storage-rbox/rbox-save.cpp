@@ -194,6 +194,8 @@ void init_output_stream(mail_save_context *_ctx) {
     o_stream_unref(&_ctx->data.output);
   }
 
+	// create buffer ( delete is in wait_for_write_operations)
+  r_ctx->rados_mail->set_mail_buffer(new librados::bufferlist());
   r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage,
                                                     rbox->storage->config->is_create_write_op_in_write_continue());
   o_stream_cork(r_ctx->output_stream);
@@ -389,10 +391,10 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
   if (wait_for_operations) {
-    /*   if (r_storage->s->wait_for_rados_operations(r_ctx->rados_mails)) {
-         i_error("Librados waiting for rados operations failed (mails: %lu), namespace=%s", r_ctx->rados_mails.size(),
-                 r_storage->s->get_namespace().c_str());
-       }*/
+    if (r_storage->s->wait_for_rados_operations(r_ctx->rados_mails)) {
+      i_error("Librados waiting for rados operations failed (mails: %lu), namespace=%s", r_ctx->rados_mails.size(),
+              r_storage->s->get_namespace().c_str());
+    }
   }
   // try to clean up!
   int delete_ret = 0;
@@ -512,7 +514,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
 
       // write_op will be deleted in [wait_for_operations]
-      librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();     
+      librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
       r_storage->ms->get_storage()->save_metadata(&write_op, r_ctx->rados_mail);
 
       if (!r_storage->config->is_create_write_op_in_write_continue()) {
