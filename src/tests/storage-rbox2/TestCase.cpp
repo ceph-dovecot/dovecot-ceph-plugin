@@ -51,7 +51,7 @@ extern "C" {
 #define i_zero(p) memset(p, 0, sizeof(*(p)))
 #endif
 static const char *rbox_pool_name = "rbox_pool_name";
-static const char *user_env_save_continue = "rbox_ceph_write_ops_in_save_continue";
+static const char *user_env_save_continue = "rbox_ceph_write_chunks";
 static const char *user_env_save_continue_value = "true";
 
 static int set_user_env(struct mail_user *user, const char *val) {

@@ -144,7 +144,7 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD1(set_update_attributes, void(const std::string &update_attributes_));
   MOCK_METHOD0(is_ceph_posix_bugfix_enabled, bool());
   MOCK_METHOD0(is_ceph_aio_wait_for_safe_and_cb, bool());
-  MOCK_METHOD0(is_create_write_op_in_write_continue, bool());
+  MOCK_METHOD0(is_write_chunks, bool());
 
   MOCK_METHOD1(update_mail_attributes, void(const char *value));
   MOCK_METHOD1(update_updatable_attributes, void(const char *value));

@@ -196,8 +196,8 @@ void init_output_stream(mail_save_context *_ctx) {
 
 	// create buffer ( delete is in wait_for_write_operations)
   r_ctx->rados_mail->set_mail_buffer(new librados::bufferlist());
-  r_ctx->output_stream = o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage,
-                                                    rbox->storage->config->is_create_write_op_in_write_continue());
+  r_ctx->output_stream =
+      o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage, rbox->storage->config->is_write_chunks());
   o_stream_cork(r_ctx->output_stream);
   _ctx->data.output = r_ctx->output_stream;
   FUNC_END();
@@ -517,7 +517,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
       r_storage->ms->get_storage()->save_metadata(&write_op, r_ctx->rados_mail);
 
-      if (!r_storage->config->is_create_write_op_in_write_continue()) {
+      if (!r_storage->config->is_write_chunks()) {
         r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
       } else {
         int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),

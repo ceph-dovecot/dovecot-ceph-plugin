@@ -57,8 +57,8 @@ class RadosConfig {
   bool is_ceph_aio_wait_for_safe_and_cb() {
     return config[rbox_ceph_aio_wait_for_safe_and_cb].compare("true") == 0 ? true : false;
   }
-  bool is_create_write_op_in_write_continue() {
-    return config[rbox_ceph_write_ops_in_save_continue].compare("true") == 0 ? true : false;
+  bool is_write_chunks() {
+    return config[rbox_ceph_write_chunks].compare("true") == 0 ? true : false;
   }
 
   /*!
@@ -81,7 +81,7 @@ class RadosConfig {
   std::string save_log;
   std::string rbox_check_empty_mailboxes;
   std::string rbox_ceph_aio_wait_for_safe_and_cb;
-  std::string rbox_ceph_write_ops_in_save_continue;
+  std::string rbox_ceph_write_chunks;
   bool is_valid;
 };
 
