@@ -656,7 +656,6 @@ static void rbox_mail_close(struct mail *_mail) {
 
   if (rmail_->rados_mail != nullptr) {
     r_storage->s->free_rados_mail(rmail_->rados_mail);
-    i_debug("freeing mail");
     rmail_->rados_mail = nullptr;
   }
 
