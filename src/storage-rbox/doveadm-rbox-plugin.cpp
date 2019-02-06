@@ -186,16 +186,18 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
   }
   if (user->namespaces != NULL) {
     struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
-    for (; ns != NULL; ns = ns->next) {
+    for (; ns != NULL; ns = ns->next) {  
       check_namespace_mailboxes(ns, mail_objects);
     }
   }
   if (download) {
     rmb_cmds.set_output_path(&parser);
   }
-  ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
-  if (ret < 0) {
-    i_error("Error query mail storage. Errorcode: %d", ret);
+  if(load_metadata){
+    ret = rmb_cmds.query_mail_storage(&mail_objects, &parser, download, silent);
+    if (ret < 0) {
+      i_error("Error query mail storage. Errorcode: %d", ret);
+    }
   }
   delete ms;
 
@@ -685,10 +687,8 @@ int check_namespace_mailboxes(const struct mail_namespace *ns, const std::vector
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
-  std::cout << "INDEX: Check" << std::endl;
-  iter = mailbox_list_iter_init(
-      ns->list, "*",
-      static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                   MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       ret = iterate_mailbox(ns, info, mail_objects);

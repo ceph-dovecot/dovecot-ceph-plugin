@@ -48,13 +48,13 @@ class RadosUtils {
    * @param[in] s string if s is empty => false
    * @return true if given string is numeric.
    */
-  static bool is_numeric(const std::string &s);
+  static bool is_numeric(const char *s);
   /*!
    * check if given string is a numeric value.
    * @param[in] text string, if string is empty => true
    * @return true if given string is numeric.
    */
-  static bool is_numeric_optional(std::string &text);
+  static bool is_numeric_optional(const char *text);
   /*!
    * checks if key is a data attribute
    */
@@ -170,7 +170,8 @@ class RadosUtils {
    * @param[int] valid pointer to metadata map
    * @return the metadata value
    */
-  static std::string get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata);
+  static void get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata, char **value);
+
   /*!
    * get metadata
    *
@@ -178,7 +179,7 @@ class RadosUtils {
    * @param[int] valid pointer to metadata map
    * @return the metadata value
    */
-  static std::string get_metadata(const string &key, std::map<std::string, ceph::bufferlist> *metadata);
+  static void get_metadata(rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata, char **value);
 };
 
 }  // namespace librmb

@@ -1,7 +1,20 @@
 # Change Log
 
-## [0.0.18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.18)
+## [0.0.19](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.19)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.18...0.0.19)
+
+**Implemented enhancements:**
+
+- MetadataStorage Module: \(improvement\) [\#243](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/243)
+- remove duplicate get\_metadata function [\#242](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/242)
+
+**Fixed bugs:**
+
+- sdbox-\>rbox changes [\#244](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/244)
+- remove duplicate get\\_metadata function [\#242](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/242)
+
+## [0.0.18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.18) (2019-01-25)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.17...0.0.18)
 
 **Implemented enhancements:**
@@ -20,6 +33,7 @@
 
 - \#239: invalid reinterpret\_cast in istream\_bufferlist  [\#241](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/241) ([jrse](https://github.com/jrse))
 - Jrse \#238\#237 [\#240](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/240) ([jrse](https://github.com/jrse))
+- release 0.0.18 preparations  CHANGELOG and version info in configure.ac and .spec file [\#236](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/236) ([jrse](https://github.com/jrse))
 - PR: Code Cleanup \#233, \#234 and missing \0 for mail metadata and mail \(if not compressed\) [\#235](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/235) ([jrse](https://github.com/jrse))
 
 ## [0.0.17](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.17) (2019-01-14)

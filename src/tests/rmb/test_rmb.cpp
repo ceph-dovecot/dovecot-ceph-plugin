@@ -104,6 +104,8 @@ TEST(rmb1, save_mail) {
   bl.append(attr_val.c_str(), attr_val.length() + 1);
   (*mail.get_metadata())["U"] = bl;
   std::string mail_guid = "defg";
+  librados::bufferlist buffer;
+  mail.set_mail_buffer(&buffer);
   mail.get_mail_buffer()->append("hallo welt\nbababababa\n");
   mail.set_oid(mail_guid);
   mail.set_mail_size(mail.get_mail_buffer()->length() - 1);

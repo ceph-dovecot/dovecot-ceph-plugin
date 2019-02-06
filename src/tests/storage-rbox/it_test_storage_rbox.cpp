@@ -228,7 +228,7 @@ TEST_F(StorageTest, mail_save_to_inbox_with_flags) {
       obj.set_oid((*iter).get_oid());
       r_storage->ms->get_storage()->load_metadata(&obj);
       char *str;
-      obj.get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &str);
+      librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, obj.get_metadata(), &str);
       uint8_t flags;
       librmb::RadosUtils::string_to_flags(str, &flags);
       EXPECT_EQ(0x01, flags);

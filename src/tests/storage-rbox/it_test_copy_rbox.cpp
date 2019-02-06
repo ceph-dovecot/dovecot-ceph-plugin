@@ -40,6 +40,7 @@ extern "C" {
 #include "../mocks/mock_test.h"
 #include "dovecot-ceph-plugin-config.h"
 #include "../test-utils/it_utils.h"
+#include "rados-util.h"
 
 using ::testing::AtLeast;
 using ::testing::Return;
@@ -105,13 +106,11 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
-
+  int ret2 = 0;
   while (mailbox_search_next(search_ctx, &mail)) {
     save_ctx = mailbox_save_alloc(desttrans);  // src save context
     mailbox_save_copy_flags(save_ctx, mail);
-
-    int ret2 = mailbox_copy(&save_ctx, mail);
-    EXPECT_EQ(ret2, 0);
+    ret2 = mailbox_copy(&save_ctx, mail);
     break;  // only move one mail.
   }
 
@@ -125,6 +124,8 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
+
+  EXPECT_EQ(ret2, 0);
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
   std::vector<librmb::RadosMail *> objects;
@@ -144,68 +145,68 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
 
   char *val = NULL;
   char *val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_OLDV1_FLAGS, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
 
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_EXT_REF, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_EXT_REF, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_EXT_REF, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_EXT_REF, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
 
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_FROM_ENVELOPE, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
 
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_GUID, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_GUID, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_GUID, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_GUID, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_MAILBOX_GUID, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_ORIG_MAILBOX, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_PHYSICAL_SIZE, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
 
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_POP3_ORDER, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_POP3_ORDER, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_POP3_ORDER, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_POP3_ORDER, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_POP3_UIDL, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_POP3_UIDL, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_POP3_UIDL, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_POP3_UIDL, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_PVT_FLAGS, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_RECEIVED_TIME, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_VERSION, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_VERSION, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_VERSION, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_VERSION, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_VIRTUAL_SIZE, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_OLDV1_SAVE_TIME, mail2->get_metadata(), &val2);
   ASSERT_STREQ(val, val2);
   val = val2 = NULL;
-  mail1->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val);
-  mail2->get_metadata(librmb::RBOX_METADATA_MAIL_UID, &val2);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_MAIL_UID, mail1->get_metadata(), &val);
+  librmb::RadosUtils::get_metadata(librmb::RBOX_METADATA_MAIL_UID, mail2->get_metadata(), &val2);
   ASSERT_STRNE(val, val2);
 
   ASSERT_EQ(2, (int)box->index->map->hdr.messages_count);

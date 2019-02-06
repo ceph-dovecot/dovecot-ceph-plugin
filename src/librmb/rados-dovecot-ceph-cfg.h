@@ -40,6 +40,8 @@ class RadosDovecotCephCfg {
   virtual void update_pool_name_metadata(const char *value) = 0;
   virtual bool is_ceph_posix_bugfix_enabled() = 0;
   virtual bool is_ceph_aio_wait_for_safe_and_cb() = 0;
+  virtual bool is_write_chunks() = 0;
+
   virtual const std::string &get_pool_name_metadata_key() = 0;
   virtual const std::string &get_update_attributes_key() = 0;
   virtual const std::string &get_mail_attributes_key() = 0;

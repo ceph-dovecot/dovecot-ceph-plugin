@@ -65,7 +65,7 @@ struct mail_storage *rbox_storage_alloc(void) {
 
   struct rbox_storage *r_storage;
   pool_t pool;
-  pool = pool_alloconly_create("rbox storage", 256);
+  pool = pool_alloconly_create("rbox storage", 512 + 256);
   r_storage = p_new(pool, struct rbox_storage, 1);
   i_zero(r_storage);
   r_storage->storage = rbox_storage;
@@ -234,9 +234,8 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
   /* rados can't work without index files */
   int intflags = flags & ~MAILBOX_FLAG_NO_INDEX_FILES;
 
-  pool_t pool = pool_alloconly_create("rbox mailbox", 1024);
+  pool_t pool = pool_alloconly_create("rbox mailbox", 1024 * 3);
   rbox = p_new(pool, struct rbox_mailbox, 1);
-  i_zero(rbox);
   rbox_mailbox.v = rbox_mailbox_vfuncs;
   rbox->box = rbox_mailbox;
   rbox->box.pool = pool;
@@ -266,18 +265,18 @@ struct mailbox *rbox_mailbox_alloc(struct mail_storage *storage, struct mailbox_
 
 static int rbox_mailbox_alloc_index(struct rbox_mailbox *rbox) {
   FUNC_START();
+  struct rbox_index_header hdr;
 
   if (index_storage_mailbox_alloc_index(&rbox->box) < 0)
     return -1;
 
   rbox->hdr_ext_id = mail_index_ext_register(rbox->box.index, "dbox-hdr", sizeof(struct rbox_index_header), 0, 0);
   /* set the initialization data in case the mailbox is created */
-  struct rbox_index_header hdr;
+
   i_zero(&hdr);
   guid_128_generate(hdr.mailbox_guid);
   mail_index_set_ext_init_data(rbox->box.index, rbox->hdr_ext_id, &hdr, sizeof(hdr));
-
-  memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
+  // memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
 
   // register index record holding the mail guid
   rbox->ext_id = mail_index_ext_register(rbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
@@ -303,7 +302,7 @@ int rbox_read_header(struct rbox_mailbox *rbox, struct rbox_index_header *hdr, b
     }
     ret = -1;
   } else {
-    memset(hdr, 0, sizeof(*hdr));
+    i_zero(hdr);
     memcpy(hdr, data, I_MIN(data_size, sizeof(*hdr)));
     if (guid_128_is_empty(hdr->mailbox_guid)) {
       ret = -1;
@@ -551,10 +550,12 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 
   const struct mail_index_header *hdr;
   uint32_t uid_validity, uid_next;
+  struct mail_index_transaction *new_trans = NULL;
   struct mail_index_view *view;
 
   if (trans == NULL) {
-    trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
+    new_trans = mail_index_transaction_begin(box->view, static_cast<mail_index_transaction_flags>(0));
+    trans = new_trans;
   }
   view = mail_index_view_open(box->index);
   hdr = mail_index_get_header(view);
@@ -596,8 +597,8 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
 #endif
 
   rbox_update_header((struct rbox_mailbox *)box, trans, update);
-  if (trans != NULL) {
-    if (mail_index_transaction_commit(&trans) < 0) {
+  if (new_trans != NULL) {
+    if (mail_index_transaction_commit(&new_trans) < 0) {
       mailbox_set_index_error(box);
 
       FUNC_END_RET("ret == -1");
@@ -630,7 +631,6 @@ int rbox_mailbox_open(struct mailbox *box) {
     return 0;
   }
 
-  i_zero(&hdr);
   /* get/generate mailbox guid */
   if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0) {
     /* looks like the mailbox is corrupted */
@@ -658,7 +658,6 @@ void rbox_set_mailbox_corrupted(struct mailbox *box) {
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   bool need_resize;
   struct rbox_index_header hdr;
-  i_zero(&hdr);
 
   if (rbox_read_header(rbox, &hdr, TRUE, &need_resize) < 0 || hdr.rebuild_count == 0)
     rbox->storage->corrupted_rebuild_count = 1;
@@ -743,6 +742,9 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
   struct mail_index_sync_ctx *sync_ctx;
   struct mail_index_view *view;
   struct mail_index_transaction *trans;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
+  struct rbox_index_header hdr;
+  bool need_resize;
 
   if ((ret = index_storage_mailbox_create(box, directory)) <= 0) {
     FUNC_END_RET("index_storage_mailbox_create: ret <= 0");
@@ -794,9 +796,22 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
       return -1;
     }
   }
+  if (mail_index_sync_commit(&sync_ctx) < 0) {
+    return -1;
+  }
+
+  if (directory || !guid_128_is_empty(rbox->mailbox_guid))
+    return 0;
+
+  /* another process just created the mailbox. read the mailbox_guid. */
+  if (rbox_read_header(rbox, &hdr, FALSE, &need_resize) < 0) {
+    mail_storage_set_critical(box->storage, "rbox %s: Failed to read newly created rbox header",
+                              mailbox_get_path(&rbox->box));
+    return -1;
+  }
+  memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
 
   FUNC_END();
-  return mail_index_sync_commit(&sync_ctx);
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
@@ -808,7 +823,10 @@ static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update 
     }
   }
 
-  // TODO(peter): if (sdbox_mailbox_create_indexes(box, update, NULL) < 0) return -1;
+  if (rbox_mailbox_create_indexes(box, update, NULL) < 0) {
+    return -1;
+  }
+
   FUNC_END();
   return index_storage_mailbox_update(box, update);
 }
@@ -857,9 +875,8 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
   for (; ns != NULL; ns = ns->next) {
     struct mailbox_list_iterate_context *iter;
     const struct mailbox_info *info;
-    iter = mailbox_list_iter_init(
-        ns->list, "*",
-        static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+    iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                     MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
 
     int total_mails = 0;
     while ((info = mailbox_list_iter_next(iter)) != NULL) {

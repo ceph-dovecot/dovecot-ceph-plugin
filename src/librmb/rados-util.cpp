@@ -14,11 +14,12 @@
 #endif
 
 #include "rados-util.h"
+#include <limits.h>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <sstream>
-#include <limits.h>
+#include <set>
 #include "encoding.h"
 
 namespace librmb {
@@ -48,12 +49,20 @@ bool RadosUtils::convert_string_to_date(const std::string &date_string, std::str
   return false;
 }
 
-bool RadosUtils::is_numeric(const std::string &s) {
-  std::string::const_iterator it = s.begin();
-  while (it != s.end() && std::isdigit(*it)) {
-    ++it;
+bool RadosUtils::is_numeric(const char *s) {
+  if (s == NULL) {
+    return false;
   }
-  return !s.empty() && it == s.end();
+  bool is_numeric = true;
+  int len = strlen(s);
+  for (int i = 0; i < len; i++) {
+    if (!std::isdigit(s[i])) {
+      is_numeric = false;
+      break;
+    }
+  }
+
+  return is_numeric;
 }
 
 bool RadosUtils::is_date_attribute(const rbox_metadata_key &key) {
@@ -155,47 +164,53 @@ int RadosUtils::osd_sub(librados::IoCtx *ioctx, const std::string &oid, const st
   return osd_add(ioctx, oid, key, -value_to_subtract);
 }
 
-/*TODO(jrse): fix this get_metadata stuff */
-std::string RadosUtils::get_metadata(librmb::rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata) {
-  string str_key = librmb::rbox_metadata_key_to_char(key);
-  return get_metadata(str_key, metadata);
-}
+/*!
+   * @return reference to all write operations related with this object
+   */
 
-std::string RadosUtils::get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata) {
-  std::string value;
+void RadosUtils::get_metadata(const std::string &key, std::map<std::string, ceph::bufferlist> *metadata, char **value) {
   if (metadata->find(key) != metadata->end()) {
-    value = (*metadata)[key].c_str();
+    *value = (*metadata)[key].c_str();
+    return;
   }
-  return value;
+  *value = NULL;
 }
-
-/*  bool RadosUtils::is_numeric(std::string &text) {
-  if (text.empty()) {
-    return false;
+void RadosUtils::get_metadata(rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata, char **value) {
+  string str_key(librmb::rbox_metadata_key_to_char(key));
+  get_metadata(str_key, metadata, value);
+}
+bool RadosUtils::is_numeric_optional(const char *text) {
+  if (text == NULL) {
+    return true;  // optional
   }
-  return text.find_first_not_of("0123456789") == std::string::npos;
-}*/
-bool RadosUtils::is_numeric_optional(std::string &text) {
-  if (text.empty()) {
-    return true;
-  }
-  return text.find_first_not_of("0123456789") == std::string::npos;
+  return is_numeric(text);
 }
 
 bool RadosUtils::validate_metadata(map<string, ceph::bufferlist> *metadata) {
-  string uid = get_metadata(RBOX_METADATA_MAIL_UID, metadata);
-  string recv_time_str = get_metadata(RBOX_METADATA_RECEIVED_TIME, metadata);
-  string p_size = get_metadata(RBOX_METADATA_PHYSICAL_SIZE, metadata);
-  string v_size = get_metadata(RBOX_METADATA_VIRTUAL_SIZE, metadata);
+  char *uid = NULL;
+  get_metadata(RBOX_METADATA_MAIL_UID, metadata, &uid);
+  char *recv_time_str = NULL;
+  get_metadata(RBOX_METADATA_RECEIVED_TIME, metadata, &recv_time_str);
+  char *p_size = NULL;
+  get_metadata(RBOX_METADATA_PHYSICAL_SIZE, metadata, &p_size);
+  char *v_size = NULL;
+  get_metadata(RBOX_METADATA_VIRTUAL_SIZE, metadata, &v_size);
 
-  string rbox_version = get_metadata(RBOX_METADATA_VERSION, metadata);
-  string mailbox_guid = get_metadata(RBOX_METADATA_MAILBOX_GUID, metadata);
-  string mail_guid = get_metadata(RBOX_METADATA_GUID, metadata);
-  string mb_orig_name = get_metadata(RBOX_METADATA_ORIG_MAILBOX, metadata);
+  char *rbox_version;
+  get_metadata(RBOX_METADATA_VERSION, metadata, &rbox_version);
+  char *mailbox_guid = NULL;
+  get_metadata(RBOX_METADATA_MAILBOX_GUID, metadata, &mailbox_guid);
+  char *mail_guid = NULL;
+  get_metadata(RBOX_METADATA_GUID, metadata, &mail_guid);
+  char *mb_orig_name = NULL;
+  get_metadata(RBOX_METADATA_ORIG_MAILBOX, metadata, &mb_orig_name);
 
-  string flags = get_metadata(RBOX_METADATA_OLDV1_FLAGS, metadata);
-  string pvt_flags = get_metadata(RBOX_METADATA_PVT_FLAGS, metadata);
-  string from_envelope = get_metadata(RBOX_METADATA_FROM_ENVELOPE, metadata);
+  char *flags = NULL;
+  get_metadata(RBOX_METADATA_OLDV1_FLAGS, metadata, &flags);
+  char *pvt_flags = NULL;
+  get_metadata(RBOX_METADATA_PVT_FLAGS, metadata, &pvt_flags);
+  char *from_envelope = NULL;
+  get_metadata(RBOX_METADATA_FROM_ENVELOPE, metadata, &from_envelope);
 
   int test = 0;
   test += is_numeric(uid) ? 0 : 1;
@@ -206,8 +221,8 @@ bool RadosUtils::validate_metadata(map<string, ceph::bufferlist> *metadata) {
   test += is_numeric_optional(flags) ? 0 : 1;
   test += is_numeric_optional(pvt_flags) ? 0 : 1;
 
-  test += mailbox_guid.empty() ? 1 : 0;
-  test += mail_guid.empty() ? 1 : 0;
+  test += mailbox_guid == NULL ? 1 : 0;
+  test += mail_guid == NULL ? 1 : 0;
   return test == 0;
 }
 // assumes that destination is open and initialized with uses namespace
@@ -228,13 +243,16 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
                             RadosStorage *alt_storage, RadosMetadataStorage *metadata, bool inverse) {
   int ret = 0;
 
-  // TODO; check that storage is connected and open.
+  // TODO(jrse) check that storage is connected and open.
   if (primary == nullptr || alt_storage == nullptr) {
     return 0;
   }
 
   RadosMail mail;
   mail.set_oid(src_oid);
+
+  librados::bufferlist *bl = new librados::bufferlist();
+  mail.set_mail_buffer(bl);
 
   if (inverse) {
     ret = alt_storage->read_mail(src_oid, mail.get_mail_buffer());
@@ -257,14 +275,14 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   mail.set_oid(dest_oid);
 
-  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
-  metadata->get_storage()->save_metadata(write_op, &mail);
+  librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
+  metadata->get_storage()->save_metadata(&write_op, &mail);
 
   bool success;
   if (inverse) {
-    success = primary->save_mail(write_op, &mail, true);
+    success = primary->save_mail(&write_op, &mail, true);
   } else {
-    success = alt_storage->save_mail(write_op, &mail, true);
+    success = alt_storage->save_mail(&write_op, &mail, true);
   }
 
   if (!success) {

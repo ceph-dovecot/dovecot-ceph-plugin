@@ -34,9 +34,10 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   FUNC_START();
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
   char *xattr_mail_uid = NULL;
-  mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID, &xattr_mail_uid);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_MAIL_UID, mail_obj->get_metadata(),
+                                   &xattr_mail_uid);
   char *xattr_guid = NULL;
-  mail_obj->get_metadata(rbox_metadata_key::RBOX_METADATA_GUID, &xattr_guid);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_GUID, mail_obj->get_metadata(), &xattr_guid);
   struct mail_storage *storage = ctx->box->storage;
   struct rbox_storage *r_storage = (struct rbox_storage *)storage;
   uint32_t seq;

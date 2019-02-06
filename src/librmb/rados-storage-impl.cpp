@@ -47,10 +47,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   if (!cluster->is_connected() || !io_ctx_created) {
     return -1;
   }
+  std::cout << "splitting buffer and exec op " << std::endl;
+  current_object->set_completion(librados::Rados::aio_create_completion());
 
-  librados::ObjectWriteOperation *op =
-      write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  /* librados::ObjectWriteOperation *op =
+       write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;*/
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
@@ -72,22 +73,21 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       length = rest;
     }
 #ifdef HAVE_ALLOC_HINT_2
-    op->set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
+    write_op_xattr->set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
 #else
-    op->set_alloc_hint(write_buffer_size, length);
+    write_op_xattr->set_alloc_hint(write_buffer_size, length);
 #endif
     if (div == 1) {
-      op->write(0, *current_object->get_mail_buffer());
+      write_op_xattr->write(0, *current_object->get_mail_buffer());
     } else {
       tmp_buffer.clear();
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
-      op->write(offset, tmp_buffer);
+      write_op_xattr->write(offset, tmp_buffer);
     }
     current_object->set_active_op(i + 1);
   }
-  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), completion, op);
-  current_object->set_completion(completion);
-  current_object->set_write_operation(op);
+  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), write_op_xattr);
+  current_object->set_write_operation(write_op_xattr);
 
   return ret_val;
 }
@@ -211,7 +211,7 @@ void RadosStorageImpl::close_connection() {
 }
 bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletion *completion,
                                                           librados::ObjectWriteOperation *write_operation) {
-  if (completion == nullptr || write_operation == nullptr) {
+  if (completion == nullptr) {
     return true;  // failed!
   }
 
@@ -231,8 +231,6 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
   failed = completion->get_return_value() < 0 || failed ? true : false;
   // clean up
   completion->release();
-  write_operation->remove();
-  delete write_operation;
 
   return failed;
 }
@@ -251,9 +249,12 @@ bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::Rados
 
       ctx_failed = ctx_failed ? ctx_failed : op_failed;
       (*it_cur_obj)->set_active_op(0);
-      (*it_cur_obj)->set_completion(nullptr);
+      // (*it_cur_obj)->set_completion(nullptr);
       (*it_cur_obj)->set_write_operation(nullptr);
     }
+    // free mail's buffer cause we don't need it anymore
+    librados::bufferlist *mail_buffer = (*it_cur_obj)->get_mail_buffer();
+    delete mail_buffer;
   }
   return ctx_failed;
 }
@@ -392,21 +393,23 @@ bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
     return false;
   }
   // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-  librados::ObjectWriteOperation *write_op_xattr = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation write_op_xattr;  // = new librados::ObjectWriteOperation();
 
   // set metadata
   for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
        it != mail->get_metadata()->end(); ++it) {
-    write_op_xattr->setxattr(it->first.c_str(), it->second);
+    write_op_xattr.setxattr(it->first.c_str(), it->second);
   }
 
   if (mail->get_extended_metadata()->size() > 0) {
-    write_op_xattr->omap_set(*mail->get_extended_metadata());
+    write_op_xattr.omap_set(*mail->get_extended_metadata());
   }
-  return save_mail(write_op_xattr, mail, save_async);
+  return save_mail(&write_op_xattr, mail, save_async);
 }
 librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
 void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
-  delete mail;
-  mail = nullptr;
+  if (mail != nullptr) {
+    delete mail;
+    mail = nullptr;
+  }
 }

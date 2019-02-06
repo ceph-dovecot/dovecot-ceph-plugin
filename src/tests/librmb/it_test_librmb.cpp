@@ -34,25 +34,32 @@ using ::testing::Return;
 TEST(librmb, split_write_operation) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
+  std::cout << "jsjjsjssjs" << std::endl;
   size_t buffer_length = obj.get_mail_buffer()->length();
+  std::cout << "lenght" << std::endl;
+
   obj.set_mail_size(buffer_length);
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
   std::string pool_name("test");
   std::string ns("t");
-
+  std::cout << "open" << std::endl;
   int open_connection = storage.open_connection(pool_name);
+  std::cout << "pok" << std::endl;
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
+  std::cout << "accccc" << std::endl;
 
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
-
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
+  std::cout << "lsdlslslss" << std::endl;
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
@@ -79,6 +86,8 @@ TEST(librmb, split_write_operation) {
  */
 TEST(librmb1, split_write_operation_1) {
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("HALLO_WELT_");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -87,7 +96,7 @@ TEST(librmb1, split_write_operation_1) {
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  //= new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -98,7 +107,7 @@ TEST(librmb1, split_write_operation_1) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
@@ -157,6 +166,8 @@ TEST(librmb1, convert_types) {
  */
 TEST(librmb1, read_mail) {
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -165,7 +176,7 @@ TEST(librmb1, read_mail) {
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -176,7 +187,7 @@ TEST(librmb1, read_mail) {
   storage.set_namespace(ns);
   EXPECT_EQ(0, open_connection);
 
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
@@ -216,6 +227,8 @@ TEST(librmb1, read_mail) {
 TEST(librmb, load_metadata) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -223,7 +236,7 @@ TEST(librmb, load_metadata) {
   obj.set_oid("test_oid");
   librados::IoCtx io_ctx;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
   std::string pool_name("test");
@@ -236,11 +249,11 @@ TEST(librmb, load_metadata) {
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   ceph::bufferlist bl;
-  bl.append("xyz");
-  op->setxattr("A", bl);
-  op->setxattr("B", bl);
+  bl.append("xyz\0");
+  op.setxattr("A", bl);
+  op.setxattr("B", bl);
 
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
 
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
@@ -278,6 +291,8 @@ TEST(librmb, load_metadata) {
 TEST(librmb, AttributeVersions) {
   uint64_t max_size = 3;
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -285,7 +300,7 @@ TEST(librmb, AttributeVersions) {
   obj.set_oid("test_oid2");
   librados::IoCtx io_ctx;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -299,10 +314,10 @@ TEST(librmb, AttributeVersions) {
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   ceph::bufferlist bl;
-  bl.append("xyz");
-  op->setxattr("A", bl);
+  bl.append("xyz\0");
+  op.setxattr("A", bl);
 
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
   // wait for op to finish.
   storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
@@ -342,7 +357,7 @@ TEST(librmb, json_ima) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -359,6 +374,8 @@ TEST(librmb, json_ima) {
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -376,8 +393,8 @@ TEST(librmb, json_ima) {
   obj.add_metadata(attr3);
   obj.add_metadata(attr4);
 
-  ms.save_metadata(op, &obj);
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  ms.save_metadata(&op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
@@ -410,7 +427,7 @@ TEST(librmb, json_ima_2) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -428,6 +445,8 @@ TEST(librmb, json_ima_2) {
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -445,8 +464,8 @@ TEST(librmb, json_ima_2) {
   obj.add_metadata(attr3);
   obj.add_metadata(attr4);
 
-  ms.save_metadata(op, &obj);
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  ms.save_metadata(&op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
@@ -480,7 +499,7 @@ TEST(librmb, json_ima_3) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -497,6 +516,8 @@ TEST(librmb, json_ima_3) {
   librmb::RadosMetadataStorageIma ms(&storage.get_io_ctx(), &cfg);
 
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -521,8 +542,8 @@ TEST(librmb, json_ima_3) {
     obj.add_extended_metadata(ext_metadata);
   }
 
-  ms.save_metadata(op, &obj);
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  ms.save_metadata(&op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
@@ -561,7 +582,7 @@ TEST(librmb, test_default_metadata_load_attributes) {
   librados::IoCtx io_ctx;
   uint64_t max_size = 3;
 
-  librados::ObjectWriteOperation *op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation op;  // = new librados::ObjectWriteOperation();
   librmb::RadosClusterImpl cluster;
   librmb::RadosStorageImpl storage(&cluster);
 
@@ -578,6 +599,8 @@ TEST(librmb, test_default_metadata_load_attributes) {
   librmb::RadosMetadataStorageDefault ms(&storage.get_io_ctx());
 
   librmb::RadosMail obj;
+  librados::bufferlist buffer;
+  obj.set_mail_buffer(&buffer);
   obj.get_mail_buffer()->append("abcdefghijklmn");
   size_t buffer_length = obj.get_mail_buffer()->length();
   obj.set_mail_size(buffer_length);
@@ -602,8 +625,8 @@ TEST(librmb, test_default_metadata_load_attributes) {
     obj.add_extended_metadata(ext_metadata);
   }
 
-  ms.save_metadata(op, &obj);
-  int ret_storage = storage.split_buffer_and_exec_op(&obj, op, max_size);
+  ms.save_metadata(&op, &obj);
+  int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
 
   // wait for op to finish.
@@ -950,10 +973,12 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   storage.set_namespace(ns);
 
   librmb::RadosMail obj2;
+  librados::bufferlist *buffer = new librados::bufferlist();
+  obj2.set_mail_buffer(buffer);
   obj2.set_oid("myobject_valid");
   obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
   obj2.set_mail_size(obj2.get_mail_buffer()->length());
-  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
   {
     std::string key = "M";
     std::string val = "8eed840764b05359f12718004d2485ee";
@@ -1033,9 +1058,9 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
     obj2.add_metadata(m);
   }
   // convert metadata to xattr. and add to write_op
-  ms->save_metadata(write_op, &obj2);
+  ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
   std::vector<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
@@ -1096,10 +1121,12 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   storage.set_namespace(ns);
 
   librmb::RadosMail obj2;
+  librados::bufferlist *buffer = new librados::bufferlist();
+  obj2.set_mail_buffer(buffer);
   obj2.set_oid("myobject_invalid");
   obj2.get_mail_buffer()->append("hallo_welt");  // make sure obj is not empty.
   obj2.set_mail_size(obj2.get_mail_buffer()->length());
-  librados::ObjectWriteOperation *write_op = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
   {
     std::string key = "M";
     std::string val = "8eed840764b05359f12718004d2485ee";
@@ -1179,9 +1206,9 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
     obj2.add_metadata(m);
   }
   // convert metadata to xattr. and add to write_op
-  ms->save_metadata(write_op, &obj2);
+  ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
   std::vector<librmb::RadosMail *> list;
   list.push_back(&obj2);
 

@@ -30,36 +30,37 @@ RadosMail::RadosMail()
       active_op(0),
       save_date_rados(-1),
       valid(true),
-      index_ref(false) {}
+      index_ref(false),
+      mail_buffer(nullptr) {}
 
 RadosMail::~RadosMail() {}
 
 std::string RadosMail::to_string(const string& padding) {
   char* uid = NULL;
-  get_metadata(RBOX_METADATA_MAIL_UID, &uid);
+  RadosUtils::get_metadata(RBOX_METADATA_MAIL_UID, &attrset, &uid);
   char* recv_time_str = NULL;
-  get_metadata(RBOX_METADATA_RECEIVED_TIME, &recv_time_str);
+  RadosUtils::get_metadata(RBOX_METADATA_RECEIVED_TIME, &attrset, &recv_time_str);
   char* p_size = NULL;
-  get_metadata(RBOX_METADATA_PHYSICAL_SIZE, &p_size);
+  RadosUtils::get_metadata(RBOX_METADATA_PHYSICAL_SIZE, &attrset, &p_size);
   char* v_size = NULL;
-  get_metadata(RBOX_METADATA_VIRTUAL_SIZE, &v_size);
+  RadosUtils::get_metadata(RBOX_METADATA_VIRTUAL_SIZE, &attrset, &v_size);
 
   char* rbox_version = NULL;
-  get_metadata(RBOX_METADATA_VERSION, &rbox_version);
+  RadosUtils::get_metadata(RBOX_METADATA_VERSION, &attrset, &rbox_version);
   char* mailbox_guid = NULL;
-  get_metadata(RBOX_METADATA_MAILBOX_GUID, &mailbox_guid);
+  RadosUtils::get_metadata(RBOX_METADATA_MAILBOX_GUID, &attrset, &mailbox_guid);
   char* mail_guid = NULL;
-  get_metadata(RBOX_METADATA_GUID, &mail_guid);
+  RadosUtils::get_metadata(RBOX_METADATA_GUID, &attrset, &mail_guid);
   char* mb_orig_name = NULL;
-  get_metadata(RBOX_METADATA_ORIG_MAILBOX, &mb_orig_name);
+  RadosUtils::get_metadata(RBOX_METADATA_ORIG_MAILBOX, &attrset, &mb_orig_name);
 
   // string keywords = get_metadata(RBOX_METADATA_OLDV1_KEYWORDS);
   char* flags = NULL;
-  get_metadata(RBOX_METADATA_OLDV1_FLAGS, &flags);
+  RadosUtils::get_metadata(RBOX_METADATA_OLDV1_FLAGS, &attrset, &flags);
   char* pvt_flags = NULL;
-  get_metadata(RBOX_METADATA_PVT_FLAGS, &pvt_flags);
+  RadosUtils::get_metadata(RBOX_METADATA_PVT_FLAGS, &attrset, &pvt_flags);
   char* from_envelope = NULL;
-  get_metadata(RBOX_METADATA_FROM_ENVELOPE, &from_envelope);
+  RadosUtils::get_metadata(RBOX_METADATA_FROM_ENVELOPE, &attrset, &from_envelope);
 
   time_t ts = -1;
   if (recv_time_str != NULL) {

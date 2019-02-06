@@ -42,6 +42,7 @@ extern "C" {
 #include "../librmb/rados-storage-impl.h"
 #include "istream-bufferlist.h"
 #include "rbox-mail.h"
+#include "rados-util.h"
 
 using librmb::RadosMail;
 using librmb::rbox_metadata_key;
@@ -133,7 +134,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
   char *val = NULL;
-  rmail->rados_mail->get_metadata(key, &val);
+
+  librmb::RadosUtils::get_metadata(key, rmail->rados_mail->get_metadata(), &val);
   if (val != NULL) {
     *value_r = i_strdup(val);
   } else {
@@ -158,7 +160,8 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   }
   // in case we already read the metadata this gives us the value
   // void get_metadata(rbox_metadata_key key, std::string* value) {
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     ret = rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, &value);
@@ -261,8 +264,8 @@ int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r) {
     FUNC_END_RET("ret == -1; mail_object == nullptr ");
     return -1;
   }
-
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_VIRTUAL_SIZE, &value) < 0) {
@@ -321,7 +324,8 @@ static int rbox_mail_get_physical_size(struct mail *_mail, uoff_t *size_r) {
     return -1;
   }
 
-  rmail->rados_mail->get_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value);
+  librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, rmail->rados_mail->get_metadata(),
+                                   &value);
 
   if (value == NULL) {
     if (rbox_mail_metadata_get(rmail, rbox_metadata_key::RBOX_METADATA_PHYSICAL_SIZE, &value) < 0) {
@@ -406,7 +410,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     }
-    rmail->rados_mail->get_mail_buffer()->clear();
+    // create mail buffer!
+    rmail->rados_mail->set_mail_buffer(new librados::bufferlist());
 
     uint64_t psize;
     time_t save_date;
@@ -432,11 +437,13 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
                   rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), getpid(), alt_storage);
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
+        delete rmail->rados_mail->get_mail_buffer();
         return -1;
       } else {
         i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", ret,
                 rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
         FUNC_END_RET("ret == -1");
+        delete rmail->rados_mail->get_mail_buffer();
         return -1;
       }
     }
@@ -453,16 +460,19 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
           rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage, _mail->uid);
       FUNC_END_RET("ret == 0");
       rbox_mail_set_expunged(rmail);
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     } else if (physical_size == INT_MAX) {
       i_error("trying to read a mail with INT_MAX size. (uid=%d,oid=%s,namespace=%s,alt_storage=%d)", _mail->uid,
               rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
       FUNC_END_RET("ret == -1");
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     }
 
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
       FUNC_END_RET("ret == -1");
+      delete rmail->rados_mail->get_mail_buffer();
       return -1;
     }
 
@@ -477,7 +487,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 // guid is saved in the obox header, and should be available when rbox_mail does exist. (rbox_get_index_record)
 int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   if (!guid_128_is_empty(mail->index_guid)) {
-    *value_r = guid_128_to_string(mail->index_guid);
+    struct index_mail *imail = &mail->imail;
+    string_t *str = str_new(imail->mail.data_pool, 64);
+    str_truncate(str, 0);
+    str_append(str, guid_128_to_string(mail->index_guid));
+    *value_r = str_c(str);
     return 0;
   }
   // lost for some reason, use fallback
@@ -656,6 +670,7 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
   if (rmail_->rados_mail == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+
     rmail_->rados_mail = r_storage->s->alloc_rados_mail();
     rbox_get_index_record(_mail);
   }

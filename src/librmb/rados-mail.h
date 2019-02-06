@@ -52,30 +52,32 @@ class RadosMail {
   /*!
    * @return ptr to internal buffer .
    */
-  librados::bufferlist* get_mail_buffer() { return &this->mail_buffer; }
+  librados::bufferlist* get_mail_buffer() { return this->mail_buffer; }
+  void set_mail_buffer(librados::bufferlist* buffer) { this->mail_buffer = buffer; }
+
   map<string, ceph::bufferlist>* get_metadata() { return &this->attrset; }
 
   AioCompletion* get_completion() { return completion; }
-  void set_completion(AioCompletion* completion_) { this->completion = completion_; }
 
   ObjectWriteOperation* get_write_operation() { return write_operation; }
   void set_write_operation(ObjectWriteOperation* write_operation_) { this->write_operation = write_operation_; }
+  void set_completion(AioCompletion* completion_) { this->completion = completion_; }
 
   /*!
    * @return reference to all write operations related with this object
    */
 
-  void get_metadata(const std::string& key, char** value) {
-    if (attrset.find(key) != attrset.end()) {
-      *value = attrset[key].c_str();
-      return;
+  /*  void get_metadata(const std::string& key, char** value) {
+      if (attrset.find(key) != attrset.end()) {
+        *value = attrset[key].c_str();
+        return;
+      }
+      *value = NULL;
     }
-    *value = NULL;
-  }
-  void get_metadata(rbox_metadata_key key, char** value) {
-    string str_key(librmb::rbox_metadata_key_to_char(key));
-    get_metadata(str_key, value);
-  }
+    void get_metadata(rbox_metadata_key key, char** value) {
+      string str_key(librmb::rbox_metadata_key_to_char(key));
+      get_metadata(str_key, value);
+    }*/
 
   bool is_index_ref() { return index_ref; }
   void set_index_ref(bool ref) { this->index_ref = ref; }
@@ -112,7 +114,7 @@ class RadosMail {
   ObjectWriteOperation* write_operation;
 
   int active_op;
-  ceph::bufferlist mail_buffer;
+  ceph::bufferlist* mail_buffer;
   time_t save_date_rados;
 
   map<string, ceph::bufferlist> attrset;

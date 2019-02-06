@@ -26,7 +26,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  public:
   explicit RadosDovecotCephCfgImpl(librados::IoCtx *io_ctx_);
   RadosDovecotCephCfgImpl(RadosConfig &dovecot_cfg_, RadosCephConfig &rados_cfg_);
-  virtual ~RadosDovecotCephCfgImpl(){};
+  virtual ~RadosDovecotCephCfgImpl() {}
 
   // dovecot config
 
@@ -45,7 +45,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
   bool is_rbox_check_empty_mailboxes() override { return dovecot_cfg.is_rbox_check_empty_mailboxes(); }
   bool is_ceph_posix_bugfix_enabled() override { return dovecot_cfg.is_ceph_posix_bugfix_enabled(); }
   bool is_ceph_aio_wait_for_safe_and_cb() override { return dovecot_cfg.is_ceph_aio_wait_for_safe_and_cb(); }
-
+  bool is_write_chunks() override { return dovecot_cfg.is_write_chunks(); }
   // rados config
   bool is_user_mapping() override { return rados_cfg.is_user_mapping(); }
   void set_config_valid(bool is_valid_) override {
