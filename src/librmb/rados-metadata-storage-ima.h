@@ -42,6 +42,7 @@ class RadosMetadataStorageIma : public RadosStorageMetadataModule {
   void set_io_ctx(librados::IoCtx *io_ctx_) override { this->io_ctx = io_ctx_; }
   int load_metadata(RadosMail *mail) override;
   int set_metadata(RadosMail *mail, RadosMetadata &xattr) override;
+  int set_metadata(RadosMail *mail, RadosMetadata &xattr, librados::ObjectWriteOperation *write_op) override;
   bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) override;
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) override;
 

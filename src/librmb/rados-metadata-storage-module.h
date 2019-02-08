@@ -26,6 +26,8 @@ class RadosStorageMetadataModule {
   virtual int load_metadata(RadosMail *mail) = 0;
   /* set a new metadata attribute to a mail object */
   virtual int set_metadata(RadosMail *mail, RadosMetadata &xattr) = 0;
+  /* set a new metadata attribute to a mail object */
+  virtual int set_metadata(RadosMail *mail, RadosMetadata &xattr, librados::ObjectWriteOperation *write_op) = 0;
   /* update the given metadata attributes */
   virtual bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) = 0;
   /* add all metadata of RadosMail to write_operation */

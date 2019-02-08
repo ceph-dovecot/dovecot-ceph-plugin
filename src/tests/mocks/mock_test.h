@@ -77,6 +77,8 @@ class RadosStorageMetadataMock : public RadosStorageMetadataModule {
   MOCK_METHOD1(set_io_ctx, void(librados::IoCtx *io_ctx));
   MOCK_METHOD1(load_metadata, int(RadosMail *mail));
   MOCK_METHOD2(set_metadata, int(RadosMail *mail, RadosMetadata &xattr));
+  MOCK_METHOD3(set_metadata, int(RadosMail *mail, RadosMetadata &xattr, librados::ObjectWriteOperation *write_op));
+
   MOCK_METHOD2(update_metadata, bool(const std::string &oid, std::list<RadosMetadata> &to_update));
   // MOCK_METHOD2(save_metadata, void(librados::ObjectWriteOperation *write_op, RadosMailObject *mail));
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {

@@ -108,6 +108,21 @@ int RadosMetadataStorageIma::set_metadata(RadosMail *mail, RadosMetadata &xattr)
   }
 }
 
+// TODO(jrse): make set metadata async!
+int RadosMetadataStorageIma::set_metadata(RadosMail *mail, RadosMetadata &xattr,
+                                          librados::ObjectWriteOperation *write_op) {
+  enum rbox_metadata_key k = static_cast<enum rbox_metadata_key>(*xattr.key.c_str());
+  if (!cfg->is_updateable_attribute(k)) {
+    mail->add_metadata(xattr);
+    librados::ObjectWriteOperation op;
+    save_metadata(&op, mail);
+    return io_ctx->operate(*mail->get_oid(), &op);
+  } else {
+    return io_ctx->setxattr(*mail->get_oid(), xattr.key.c_str(), xattr.bl);
+  }
+
+}  // namespace librmb
+
 void RadosMetadataStorageIma::save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {
   char *s = NULL;
   json_t *root = json_object();
