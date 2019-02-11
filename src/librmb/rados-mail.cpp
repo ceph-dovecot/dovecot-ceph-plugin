@@ -77,7 +77,7 @@ std::string RadosMail::to_string(const string& padding) {
     ss << padding << "<<<   MAIL OBJECT IS NOT VALID <<<<" << endl;
   }
   if (!index_ref) {
-    ss << padding << "<<<   MAIL OBJECT HAS NO INDEX REFERENCE <<<<" << endl;
+    ss << padding << "<<<   MAIL OBJECT HAS NO INDEX REFERENCE <<<< oid: " << oid << endl;
   }
   ss << padding << "MAIL:   ";
   if (uid != NULL) {
