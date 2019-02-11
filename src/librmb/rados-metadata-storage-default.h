@@ -34,6 +34,7 @@ class RadosMetadataStorageDefault : public RadosStorageMetadataModule {
   int set_metadata(RadosMail *mail, RadosMetadata &xattr) override;
   bool update_metadata(const std::string &oid, std::list<RadosMetadata> &to_update) override;
   void save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) override;
+  int set_metadata(RadosMail *mail, RadosMetadata &xattr, librados::ObjectWriteOperation *write_op) override;
 
   int update_keyword_metadata(const std::string &oid, RadosMetadata *metadata) override;
   int remove_keyword_metadata(const std::string &oid, std::string &key) override;

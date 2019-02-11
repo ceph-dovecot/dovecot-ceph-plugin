@@ -194,7 +194,7 @@ void init_output_stream(mail_save_context *_ctx) {
     o_stream_unref(&_ctx->data.output);
   }
 
-	// create buffer ( delete is in wait_for_write_operations)
+  // create buffer ( delete is in wait_for_write_operations)
   r_ctx->rados_mail->set_mail_buffer(new librados::bufferlist());
   r_ctx->output_stream =
       o_stream_create_bufferlist(r_ctx->rados_mail, &r_ctx->rados_storage, rbox->storage->config->is_write_chunks());
@@ -450,15 +450,15 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
     }
-/*TODO create cache: #229
-    if (r_ctx->mail_guid != NULL) {
-      const char *guid = guid_128_to_string(r_ctx->mail_guid);
-      index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
-    }
-    uint32_t recv_date = _ctx->data.received_date;
-    index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
-   sizeof(recv_date));
-*/
+    /*TODO create cache: #229
+        if (r_ctx->mail_guid != NULL) {
+          const char *guid = guid_128_to_string(r_ctx->mail_guid);
+          index_mail_cache_add_idx((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_GUID, guid, strlen(guid) + 1);
+        }
+        uint32_t recv_date = _ctx->data.received_date;
+        index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_RECEIVED_DATE, &recv_date,
+       sizeof(recv_date));
+    */
 
 #if DOVECOT_PREREQ(2, 3)
     int ret = 0;
@@ -567,7 +567,11 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
       i_assert(ret);
       if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
         metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
-        if (r_storage->ms->get_storage()->set_metadata(r_ctx->rados_mail, metadata) < 0) {
+
+        librados::ObjectWriteOperation write_mail_uid;
+        write_mail_uid.setxattr(metadata.key.c_str(), metadata.bl);
+
+        if (r_storage->ms->get_storage()->set_metadata(r_ctx->rados_mail, metadata, &write_mail_uid) < 0) {
           return -1;
         }
       }

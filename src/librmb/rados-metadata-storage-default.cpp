@@ -41,6 +41,16 @@ int RadosMetadataStorageDefault::set_metadata(RadosMail *mail, RadosMetadata &xa
   return io_ctx->setxattr(*mail->get_oid(), xattr.key.c_str(), xattr.bl);
 }
 
+int RadosMetadataStorageDefault::set_metadata(RadosMail *mail, RadosMetadata &xattr,
+                                              librados::ObjectWriteOperation *write_op) {
+  mail->add_metadata(xattr);
+  if (mail->get_completion() == nullptr) {
+    mail->set_completion(librados::Rados::aio_create_completion());
+    mail->set_active_op(1);
+  }
+  return io_ctx->aio_operate(*mail->get_oid(), mail->get_completion(), write_op);
+}
+
 void RadosMetadataStorageDefault::save_metadata(librados::ObjectWriteOperation *write_op, RadosMail *mail) {
   // update metadata
   for (std::map<string, ceph::bufferlist>::iterator it = mail->get_metadata()->begin();

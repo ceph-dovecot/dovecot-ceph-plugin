@@ -1,7 +1,20 @@
 # Change Log
 
-## [0.0.19](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.19)
+## [0.0.20](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.20)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.19...0.0.20)
+
+**Implemented enhancements:**
+
+- doveadm rmb  [\#247](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/247)
+- Performance: rbox backup [\#246](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/246)
+
+**Fixed bugs:**
+
+- Performance: rbox backup [\#246](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/246)
+- doveadm rmb check indices shows duplicate folder in output. [\#224](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/224)
+
+## [0.0.19](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.19) (2019-02-06)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.18...0.0.19)
 
 **Implemented enhancements:**
@@ -13,6 +26,10 @@
 
 - sdbox-\>rbox changes [\#244](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/244)
 - remove duplicate get\\_metadata function [\#242](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/242)
+
+**Merged pull requests:**
+
+- Metadata improvements jrse + zlib fix \(read buffer\) [\#245](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/245) ([jrse](https://github.com/jrse))
 
 ## [0.0.18](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.18) (2019-01-25)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.17...0.0.18)
