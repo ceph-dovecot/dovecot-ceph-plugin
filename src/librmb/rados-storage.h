@@ -14,7 +14,6 @@
 
 #include <string>
 #include <map>
-#include <vector>
 #include <list>
 
 #include <rados/librados.hpp>
@@ -133,7 +132,7 @@ class RadosStorage {
    *
    * @return true if successful
    */
-  virtual bool wait_for_rados_operations(const std::vector<librmb::RadosMail *> &object_list) = 0;
+  virtual bool wait_for_rados_operations(const std::list<librmb::RadosMail *> &object_list) = 0;
 
   /*! save the mail object
    *

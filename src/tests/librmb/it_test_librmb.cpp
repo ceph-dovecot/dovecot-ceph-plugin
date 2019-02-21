@@ -922,13 +922,13 @@ TEST(librmb, rmb_load_objects) {
   ceph::bufferlist mail_buf;
   storage.save_mail(*obj2.get_oid(), mail_buf);
 
-  std::vector<librmb::RadosMail *> mail_objects;
+  std::list<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
   EXPECT_EQ(1, mail_objects.size());
 
-  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+  for (std::list<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     librmb::RadosMail *obj = *it;
     delete obj;
   }
@@ -1061,12 +1061,12 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
   EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
-  std::vector<librmb::RadosMail *> list;
+  std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
 
-  std::vector<librmb::RadosMail *> mail_objects;
+  std::list<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
@@ -1075,7 +1075,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
 
   storage.delete_mail(&obj2);
   storage.delete_mail(ceph_cfg.get_cfg_object_name());
-  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+  for (std::list<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     librmb::RadosMail *obj = *it;
     storage.delete_mail(obj);
     delete obj;
@@ -1209,19 +1209,19 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
   EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
-  std::vector<librmb::RadosMail *> list;
+  std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
   EXPECT_EQ(true, !storage.wait_for_rados_operations(list));
 
-  std::vector<librmb::RadosMail *> mail_objects;
+  std::list<librmb::RadosMail *> mail_objects;
   std::string sort_string = "uid";
 
   EXPECT_EQ(0, rmb_commands.load_objects(ms, mail_objects, sort_string));
   // no mail
   EXPECT_EQ(1, mail_objects.size());
 
-  for (std::vector<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+  for (std::list<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
     librmb::RadosMail *obj = *it;
     delete obj;
   }

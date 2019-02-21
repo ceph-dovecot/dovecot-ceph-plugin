@@ -146,7 +146,7 @@ TEST(rmb1, rmb_commands_no_objects_found) {
 
   std::map<std::string, std::string> opts;
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMail *> mails;
+  std::list<librmb::RadosMail *> mails;
   std::string search_string = "uid";
   const librados::NObjectIterator iter = librados::NObjectIterator::__EndObjectIterator;
   librados::IoCtx test_ioctx;
@@ -168,7 +168,7 @@ TEST(rmb1, rmb_command_filter_result) {
   opts["ls"] = "-";
   librmb::CmdLineParser parser(opts["ls"]);
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMail *> mails;
+  std::list<librmb::RadosMail *> mails;
   librmb::RadosMail obj1;
   obj1.set_oid("oid_1");
   obj1.set_mail_size(200);
@@ -266,7 +266,7 @@ TEST(rmb1, rmb_command_filter_result2) {
   opts["ls"] = "-";
   librmb::CmdLineParser parser(opts["ls"]);
   librmb::RmbCommands rmb_cmd(&storage_mock, &cluster_mock, &opts);
-  std::vector<librmb::RadosMail *> mails;
+  std::list<librmb::RadosMail *> mails;
   librmb::RadosMail obj1;
   obj1.set_oid("oid_1");
   obj1.set_mail_size(200);

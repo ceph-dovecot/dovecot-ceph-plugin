@@ -60,6 +60,7 @@ int RadosClusterImpl::init(const std::string &clustername, const std::string &ra
   int ret = 0;
   if (RadosClusterImpl::cluster_ref_count == 0) {
     RadosClusterImpl::cluster = new librados::Rados();
+
     ret = RadosClusterImpl::cluster->init2(rados_username.c_str(), clustername.c_str(), 0);
     if (ret == 0) {
       ret = initialize();
@@ -94,6 +95,9 @@ int RadosClusterImpl::initialize() {
     RadosClusterImpl::cluster->conf_set(RADOS_OSD_OP_TIMEOUT, RADOS_OSD_OP_TIMEOUT_DEFAULT);
   }
 
+  for (std::map<const char *, const char *>::iterator it = client_options.begin(); it != client_options.end(); ++it) {
+    RadosClusterImpl::cluster->conf_set(it->first, it->second);
+  }
   return ret;
 }
 
@@ -115,6 +119,7 @@ void RadosClusterImpl::deinit() {
         RadosClusterImpl::cluster->shutdown();
         RadosClusterImpl::connected = false;
         delete RadosClusterImpl::cluster;
+        RadosClusterImpl::cluster = nullptr;
       }
     }
   }
@@ -175,3 +180,5 @@ int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx)
 int RadosClusterImpl::get_config_option(const char *option, string *value) {
   return RadosClusterImpl::cluster->conf_get(option, *value);
 }
+
+void RadosClusterImpl::set_config_option(const char *option, const char *value) { client_options[option] = value; }

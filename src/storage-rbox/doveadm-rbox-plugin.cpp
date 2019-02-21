@@ -14,7 +14,7 @@
 #include <list>
 #include <map>
 #include <string>
-#include <vector>
+#include <list>
 
 extern "C" {
 
@@ -59,7 +59,7 @@ extern "C" {
 #include "rbox-save.h"
 #include "rbox-storage.hpp"
 
-int check_namespace_mailboxes(const struct mail_namespace *ns, const std::vector<librmb::RadosMail *> &mail_objects);
+int check_namespace_mailboxes(const struct mail_namespace *ns, const std::list<librmb::RadosMail *> &mail_objects);
 
 class RboxDoveadmPlugin {
  public:
@@ -156,8 +156,8 @@ static int cmd_rmb_config(std::map<std::string, std::string> &opts) {
   return 0;
 }
 static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct mail_user *user, bool download,
-                              librmb::CmdLineParser &parser, std::vector<librmb::RadosMail *> &mail_objects,
-                              bool silent, bool load_metadata = true) {
+                              librmb::CmdLineParser &parser, std::list<librmb::RadosMail *> &mail_objects, bool silent,
+                              bool load_metadata = true) {
   RboxDoveadmPlugin plugin;
   int open = open_connection_load_config(&plugin);
   if (open < 0) {
@@ -220,7 +220,7 @@ static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user
   librmb::CmdLineParser parser(opts["ls"]);
 
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    std::vector<librmb::RadosMail *> mail_objects;
+    std::list<librmb::RadosMail *> mail_objects;
 
     ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
 
@@ -246,7 +246,7 @@ static int cmd_rmb_ls_mb_run(struct doveadm_mail_cmd_context *ctx, struct mail_u
   opts["sort"] = "uid";
   librmb::CmdLineParser parser(opts["ls"]);
   if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    std::vector<librmb::RadosMail *> mail_objects;
+    std::list<librmb::RadosMail *> mail_objects;
     ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, false);
   } else {
     i_error("invalid ls search query");
@@ -274,7 +274,7 @@ static int cmd_rmb_get_run(struct doveadm_mail_cmd_context *ctx, struct mail_use
 
   librmb::CmdLineParser parser(opts["get"]);
   if (opts["get"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
-    std::vector<librmb::RadosMail *> mail_objects;
+    std::list<librmb::RadosMail *> mail_objects;
     ctx->exit_code = cmd_rmb_search_run(opts, user, true, parser, mail_objects, false);
     for (auto mo : mail_objects) {
       delete mo;
@@ -610,7 +610,7 @@ static int cmd_rmb_revert_log_run(struct doveadm_mail_cmd_context *ctx, struct m
 }
 
 static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox_info *info,
-                           const std::vector<librmb::RadosMail *> &mail_objects) {
+                           const std::list<librmb::RadosMail *> &mail_objects) {
   int ret = 0;
   struct mailbox_transaction_context *mailbox_transaction;
   struct mail_search_context *search_ctx;
@@ -683,13 +683,12 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
   return ret;
 }
 
-int check_namespace_mailboxes(const struct mail_namespace *ns, const std::vector<librmb::RadosMail *> &mail_objects) {
+int check_namespace_mailboxes(const struct mail_namespace *ns, const std::list<librmb::RadosMail *> &mail_objects) {
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
   int ret = 0;
-  iter = mailbox_list_iter_init(
-      ns->list, "*",
-      static_cast<enum mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+  iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                   MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       ret = iterate_mailbox(ns, info, mail_objects);
@@ -712,7 +711,7 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   opts["sort"] = "uid";
   librmb::CmdLineParser parser(opts["ls"]);
   parser.parse_ls_string();
-  std::vector<librmb::RadosMail *> mail_objects;
+  std::list<librmb::RadosMail *> mail_objects;
   ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, true, false);
   if (ctx->exit_code < 0) {
     return 0;

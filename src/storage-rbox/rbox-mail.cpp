@@ -20,7 +20,6 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <vector>
 
 extern "C" {
 
@@ -160,6 +159,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   }
   // in case we already read the metadata this gives us the value
   // void get_metadata(rbox_metadata_key key, std::string* value) {
+
   librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, rmail->rados_mail->get_metadata(),
                                    &value);
 
