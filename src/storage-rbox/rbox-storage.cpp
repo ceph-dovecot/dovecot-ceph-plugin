@@ -434,9 +434,7 @@ void read_plugin_configuration(struct mailbox *box) {
 
   FUNC_END();
 }
-read_plugin_ceph_client_settings bool is_alternate_storage_set(uint8_t flags) {
-  return (flags & RBOX_INDEX_FLAG_ALT) != 0;
-}
+bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_ALT) != 0; }
 
 bool is_alternate_pool_valid(struct mailbox *_box) {
   return _box->list->set.alt_dir != NULL && strlen(_box->list->set.alt_dir) > 0;
