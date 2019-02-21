@@ -244,14 +244,14 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
 
   struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
   for (; ns != NULL; ns = ns->next) {
-    repair_namespace(ns, force);
+    repair_namespace(ns, force, r_storage);
   }
 
   FUNC_END();
   return 0;
 }
 
-int repair_namespace(struct mail_namespace *ns, bool force) {
+int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage) {
   FUNC_START();
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
@@ -262,7 +262,11 @@ int repair_namespace(struct mail_namespace *ns, bool force) {
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
-
+      if (box->storage != &r_storage->storage) {
+        /* the namespace has multiple storages. */
+        mailbox_free(&box);
+        return 0;
+      }
       if (mailbox_open(box) < 0) {
         FUNC_END();
         return -1;
