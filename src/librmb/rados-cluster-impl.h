@@ -16,7 +16,7 @@
 #include <string>
 
 #include <rados/librados.hpp>
-
+#include <map>
 #include "rados-cluster.h"
 namespace librmb {
 
@@ -38,6 +38,7 @@ class RadosClusterImpl : public RadosCluster {
                         RadosDictionary **dictionary);
   bool is_connected() override;
   librados::Rados &get_cluster() { return *cluster; }
+  void set_config_option(const char *option, const char *value);
 
  private:
   int initialize();
@@ -46,6 +47,7 @@ class RadosClusterImpl : public RadosCluster {
   static librados::Rados *cluster;
   static int cluster_ref_count;
   static bool connected;
+  std::map<const char *, const char *> client_options;
 
   static const char *CLIENT_MOUNT_TIMEOUT;
   static const char *RADOS_MON_OP_TIMEOUT;

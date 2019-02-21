@@ -61,6 +61,16 @@ class RadosCluster {
    *
    */
   virtual int get_config_option(const char *option, std::string *value) = 0;
+
+  /*!
+     * set ceph configuration
+     * @param[in] option option name as described in the ceph documentation
+     * @param[out] value valid ptr to a string buffer.
+     * @return linux error code or 0 if successful
+     *
+     */
+  virtual void set_config_option(const char *option, const char *value) = 0;
+
   /*!
    * Check if cluster connection does exist and is working-
    * @return true if connected

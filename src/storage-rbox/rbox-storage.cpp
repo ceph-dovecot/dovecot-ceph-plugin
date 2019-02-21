@@ -385,6 +385,30 @@ static int rbox_open_mailbox(struct mailbox *box) {
   FUNC_END();
   return 0;
 }
+static void read_plugin_ceph_client_settings(struct mailbox *box, const char *prefix) {
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+  const char *const *envs;
+  unsigned int i, count;
+  char errstr[512];
+
+  if (!array_is_created(&r_storage->storage.user->set->plugin_envs)) {
+    return;
+  }
+
+  if (prefix == NULL) {
+    return;
+  }
+
+  envs = array_get(&r_storage->storage.user->set->plugin_envs, &count);
+  for (i = 0; i < count; i += 2) {
+    if (strlen(envs[i]) > strlen(prefix)) {
+      if (strncmp(envs[i], prefix, strlen(prefix)) == 0) {
+        const char *s = envs[i] + strlen(prefix) + 1;
+        r_storage->cluster->set_config_option(s, envs[i + 1]);
+      }
+    }
+  }
+}
 
 void read_plugin_configuration(struct mailbox *box) {
   FUNC_START();
@@ -410,8 +434,9 @@ void read_plugin_configuration(struct mailbox *box) {
 
   FUNC_END();
 }
-
-bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_ALT) != 0; }
+read_plugin_ceph_client_settings bool is_alternate_storage_set(uint8_t flags) {
+  return (flags & RBOX_INDEX_FLAG_ALT) != 0;
+}
 
 bool is_alternate_pool_valid(struct mailbox *_box) {
   return _box->list->set.alt_dir != NULL && strlen(_box->list->set.alt_dir) > 0;
@@ -425,6 +450,10 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
 
   // initialize storage with plugin configuration
   read_plugin_configuration(box);
+
+  // set the ceph client options!
+  read_plugin_ceph_client_settings(box, "rbox_ceph_client");
+
   int ret = 0;
   try {
     rados_storage->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
