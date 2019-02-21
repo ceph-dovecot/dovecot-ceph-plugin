@@ -10,7 +10,7 @@
  * Foundation.  See file COPYING.
  */
 #include <string>
-#include <list>;
+#include <list>
 
 extern "C" {
 #include "lib.h"
@@ -78,7 +78,7 @@ static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struc
   return ret;
 }
 
-struct ostream *o_stream_create_bufferlist(librmb::RadosMail *rados_mail, const librmb::RadosStorage *rados_storage,
+struct ostream *o_stream_create_bufferlist(librmb::RadosMail *rados_mail, librmb::RadosStorage *rados_storage,
                                            bool execute_write_ops) {
   struct bufferlist_ostream *bstream;
   struct ostream *output;

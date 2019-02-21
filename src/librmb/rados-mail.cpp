@@ -28,10 +28,10 @@ RadosMail::RadosMail()
       completion(nullptr),
       write_operation(nullptr),
       active_op(0),
+      mail_buffer(nullptr),
       save_date_rados(-1),
       valid(true),
-      index_ref(false),
-      mail_buffer(nullptr) {}
+      index_ref(false) {}
 
 RadosMail::~RadosMail() {}
 

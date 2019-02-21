@@ -389,7 +389,6 @@ static void read_plugin_ceph_client_settings(struct mailbox *box, const char *pr
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   const char *const *envs;
   unsigned int i, count;
-  char errstr[512];
 
   if (!array_is_created(&r_storage->storage.user->set->plugin_envs)) {
     return;
@@ -445,12 +444,13 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
 
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   librmb::RadosStorage *rados_storage = rbox->storage->s;
-
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   // initialize storage with plugin configuration
-  read_plugin_configuration(box);
-
-  // set the ceph client options!
-  read_plugin_ceph_client_settings(box, "rbox_ceph_client");
+  if (!r_storage->config->is_config_valid()) {
+    read_plugin_configuration(box);
+    // set the ceph client options!
+    read_plugin_ceph_client_settings(box, "rbox_ceph_client");
+  }
 
   int ret = 0;
   try {
@@ -839,6 +839,7 @@ int rbox_mailbox_create(struct mailbox *box, const struct mailbox_update *update
   memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
 
   FUNC_END();
+  return 0;
 }
 
 static int rbox_mailbox_update(struct mailbox *box, const struct mailbox_update *update) {
