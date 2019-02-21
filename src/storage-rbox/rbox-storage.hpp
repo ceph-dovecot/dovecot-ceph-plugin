@@ -46,6 +46,7 @@ struct rbox_storage {
 
   uint32_t corrupted_rebuild_count;
   bool corrupted;
+  bool initialized;
 };
 
 #endif

@@ -76,6 +76,7 @@ struct mail_storage *rbox_storage_alloc(void) {
   r_storage->ns_mgr = new librmb::RadosNamespaceManager(r_storage->config);
   r_storage->ms = new librmb::RadosMetadataStorageImpl();
   r_storage->alt = new librmb::RadosStorageImpl(r_storage->cluster);
+  r_storage->initialized = false;
 
   // logfile is set when 90-plugin.conf param rados_save_cfg is evaluated.
   r_storage->save_log = new librmb::RadosSaveLog();
@@ -222,6 +223,7 @@ void rbox_storage_destroy(struct mail_storage *storage) {
     delete r_storage->save_log;
     r_storage->save_log = nullptr;
   }
+  r_storage->initialized = false;
   index_storage_destroy(storage);
 
   FUNC_END();
@@ -443,14 +445,17 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
 
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
-  librmb::RadosStorage *rados_storage = rbox->storage->s;
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  // initialize storage with plugin configuration
-  if (!r_storage->config->is_config_valid()) {
-    read_plugin_configuration(box);
-    // set the ceph client options!
-    read_plugin_ceph_client_settings(box, "rbox_ceph_client");
+  if (r_storage->initialized) {
+    FUNC_END();
+    return 0;
   }
+
+  librmb::RadosStorage *rados_storage = rbox->storage->s;
+  // initialize storage with plugin configuration
+  read_plugin_configuration(box);
+  // set the ceph client options!
+  read_plugin_ceph_client_settings(box, "rbox_ceph_client");
 
   int ret = 0;
   try {
@@ -525,6 +530,8 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     i_error("error namespace not set: for uid %s error code is: %d", uid.c_str(), ret);
   }
 
+  // set storage initialized
+  r_storage->initialized = true;
   FUNC_END();
   return ret;
 }
