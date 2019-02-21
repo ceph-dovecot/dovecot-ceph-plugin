@@ -1,7 +1,18 @@
 # Change Log
 
-## [0.0.20](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.20)
+## [0.0.21](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.21)
 
+[Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.20...0.0.21)
+
+**Implemented enhancements:**
+
+- pass ceph client configuration via 90-plugin to [\#250](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/250)
+
+**Fixed bugs:**
+
+- doveadm force-resync & virtual Namespace [\#249](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/249)
+
+## [0.0.20](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.20) (2019-02-11)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.19...0.0.20)
 
 **Implemented enhancements:**
@@ -13,6 +24,10 @@
 
 - Performance: rbox backup [\#246](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/246)
 - doveadm rmb check indices shows duplicate folder in output. [\#224](https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/224)
+
+**Merged pull requests:**
+
+- Doveadm rmb update jrse & performance [\#248](https://github.com/ceph-dovecot/dovecot-ceph-plugin/pull/248) ([jrse](https://github.com/jrse))
 
 ## [0.0.19](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.19) (2019-02-06)
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.18...0.0.19)

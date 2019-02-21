@@ -8,7 +8,7 @@
 
 AC_PREREQ([2.59])
 
-AC_INIT([dovecot-ceph-plugin], [0.0.20], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
+AC_INIT([dovecot-ceph-plugin], [0.0.21], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
