@@ -13,7 +13,7 @@
 #define SRC_LIBRMB_TOOLS_RMB_LS_CMD_PARSER_H_
 
 #include <string>
-#include <vector>
+#include <list>
 #include <iostream>
 #include <ctime>
 #include <map>
@@ -46,7 +46,8 @@ class Predicate {
       try {
         val2 = std::stol(_p_value);
       } catch (std::exception &e) {
-        std::cerr << "eval: search criteria: RBOX_METADATA_RECEIVED_TIME or RBOX_METADATA_OLDV1_SAVE_TIME '" << _p_value << "' is not a number " << std::endl;
+        std::cerr << "eval: search criteria: RBOX_METADATA_RECEIVED_TIME or RBOX_METADATA_OLDV1_SAVE_TIME '" << _p_value
+                  << "' is not a number " << std::endl;
       }
       time_t obj_date = static_cast<time_t>(val2);
 
@@ -69,7 +70,9 @@ class Predicate {
         val = std::stol(_p_value);
         val2 = std::stol(this->value);
       } catch (std::exception &e) {
-        std::cerr << "eval: search criteria: RBOX_METADATA_VIRTUAL_SIZE or RBOX_METADATA_PHYSICAL_SIZE or RBOX_METADATA_MAIL_UID: _p_value " << _p_value << " or " << this->value << " is not a number" << std::endl;
+        std::cerr << "eval: search criteria: RBOX_METADATA_VIRTUAL_SIZE or RBOX_METADATA_PHYSICAL_SIZE or "
+                     "RBOX_METADATA_MAIL_UID: _p_value "
+                  << _p_value << " or " << this->value << " is not a number" << std::endl;
       }
 
       if (this->op.compare("=") == 0) {
@@ -114,7 +117,7 @@ class CmdLineParser {
   Predicate *get_predicate(const std::string &key) { return predicates[key]; }
   Predicate *create_predicate(const std::string &ls_value);
 
-  void set_output_dir(const std::string& out);
+  void set_output_dir(const std::string &out);
   std::string &get_output_dir() { return this->out_dir; }
 
  private:

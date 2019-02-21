@@ -16,7 +16,6 @@
 #include <set>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <rados/librados.hpp>
 #include "encoding.h"
@@ -235,13 +234,13 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
   return failed;
 }
 
-bool RadosStorageImpl::wait_for_rados_operations(const std::vector<librmb::RadosMail *> &object_list) {
+bool RadosStorageImpl::wait_for_rados_operations(const std::list<librmb::RadosMail *> &object_list) {
   bool ctx_failed = false;
   // wait for all writes to finish!
   // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
   // rbox_transaction_save_commit_pre is called.
-  for (std::vector<librmb::RadosMail *>::const_iterator it_cur_obj = object_list.begin();
-       it_cur_obj != object_list.end(); ++it_cur_obj) {
+  for (std::list<librmb::RadosMail *>::const_iterator it_cur_obj = object_list.begin(); it_cur_obj != object_list.end();
+       ++it_cur_obj) {
     // if we come from copy mail, there is no operation to wait for.
     if ((*it_cur_obj)->has_active_op()) {
       bool op_failed =
@@ -380,7 +379,7 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
     delete write_op_xattr;
     mail->set_active_op(0);
   } else if (!save_async) {
-    std::vector<librmb::RadosMail *> objects;
+    std::list<librmb::RadosMail *> objects;
     objects.push_back(mail);
     return wait_for_rados_operations(objects);
   }

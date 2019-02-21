@@ -15,7 +15,6 @@
 
 #include <cstring>
 #include <sstream>
-#include <vector>
 #include "rados-util.h"
 
 using std::endl;

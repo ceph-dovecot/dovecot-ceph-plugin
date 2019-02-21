@@ -20,7 +20,6 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <vector>
 
 extern "C" {
 

@@ -13,7 +13,7 @@
 #define SRC_STORAGE_RBOX_RBOX_SAVE_H_
 
 #include <string>
-#include <vector>
+#include <list>
 
 #include "../librmb/rados-storage-impl.h"
 #include "mail-storage-private.h"
@@ -72,7 +72,7 @@ class rbox_save_context {
   /** storage rerference **/
   const librmb::RadosStorage &rados_storage;
   /** mails in the current save context **/
-  std::vector<librmb::RadosMail *> rados_mails;
+  std::list<librmb::RadosMail *> rados_mails;
   /** current mail in the context **/
   librmb::RadosMail *rados_mail;
 #if DOVECOT_PREREQ(2, 3)
