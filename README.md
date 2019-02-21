@@ -79,6 +79,11 @@ If you are using CentOS make sure you also have the following package installed:
     ./configure --with-dovecot=/home/user/workspace/core
     make install
 
+## Packages
+
+Packages of the latest tagged versions for different versions of openSUSE, SLES and CentOS 7
+can be downloaded from the [Open Build Service](https://download.opensuse.org/repositories/home:/dalgaaf:/dovecot-ceph-plugin/).
+
 ## Thanks
 
 <table border="0">
