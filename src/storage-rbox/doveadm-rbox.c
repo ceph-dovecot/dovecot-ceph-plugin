@@ -25,7 +25,7 @@
 const char *doveadm_rbox_plugin_version = DOVECOT_ABI_VERSION;
 
 static struct doveadm_mail_cmd rmb_commands[] = {
-
+    {cmd_rmb_ls_oid_alloc, "rmb ls oid", "unreferenced | invalid"},
     {cmd_rmb_ls_alloc, "rmb ls", "-|key=value uid|recv_date|save_date|phy_size"},
     {cmd_rmb_get_alloc, "rmb get", "-|key=value output_path uid|recv_date|save_date|phy_size"},
     {cmd_rmb_set_alloc, "rmb set", "oid key=value"},

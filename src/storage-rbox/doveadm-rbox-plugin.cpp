@@ -203,7 +203,49 @@ static int cmd_rmb_search_run(std::map<std::string, std::string> &opts, struct m
 
   return ret;
 }
+static int cmd_rmb_ls_oid_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  const char *search_query = ctx->args[0];
 
+  if (search_query == NULL) {
+    i_error("no search query given");
+    ctx->exit_code = -1;
+    return 0;
+  }
+
+  std::map<std::string, std::string> opts;
+  opts["ls"] = "-";
+  opts["sort"] = "uid";
+  librmb::CmdLineParser parser(opts["ls"]);
+
+  if (opts["ls"].compare("all") == 0 || opts["ls"].compare("-") == 0 || parser.parse_ls_string()) {
+    std::list<librmb::RadosMail *> mail_objects;
+
+    ctx->exit_code = cmd_rmb_search_run(opts, user, false, parser, mail_objects, true);
+    if (strcmp(search_query, "unreferenced") == 0) {
+      std::cout << "Unreferenced objects " << std::endl;
+      for (std::list<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+        if (!(*it)->is_index_ref()) {
+          std::cout << *(*it)->get_oid() << std::endl;
+        }
+      }
+    } else {
+      std::cout << "invalid objects " << std::endl;
+      for (std::list<librmb::RadosMail *>::iterator it = mail_objects.begin(); it != mail_objects.end(); ++it) {
+        if (!(*it)->is_valid()) {
+          std::cout << *(*it)->get_oid() << std::endl;
+        }
+      }
+    }
+
+    for (auto mo : mail_objects) {
+      delete mo;
+    }
+  } else {
+    i_error("invalid ls search query, %s", search_query);
+    ctx->exit_code = -1;
+  }
+  return 0;
+}
 static int cmd_rmb_ls_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
   const char *search_query = ctx->args[0];
   const char *sort = ctx->args[1];
@@ -882,7 +924,11 @@ static int cmd_rmb_mailbox_delete_run(struct doveadm_mail_cmd_context *ctx, stru
   }
   return 0;
 }
-
+static void cmd_rmb_ls_oid_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (args[0] == NULL) {
+    doveadm_mail_help_name("rmb ls oid");
+  }
+}
 static void cmd_rmb_ls_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
   if (args[0] == NULL) {
     doveadm_mail_help_name("rmb ls");
@@ -939,6 +985,14 @@ static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx AT
     array_append(&ctx->mailboxes, &name, 1);
   }
   array_sort(&ctx->mailboxes, i_strcmp_reverse_p);
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_ls_oid_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_ls_oid_run;
+  ctx->v.init = cmd_rmb_ls_oid_init;
+  return ctx;
 }
 
 struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void) {

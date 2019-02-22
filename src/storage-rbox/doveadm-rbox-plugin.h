@@ -35,7 +35,7 @@ void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED);
  * @brief: doveadm plugin exit function
  */
 void doveadm_rbox_plugin_deinit(void);
-
+extern struct doveadm_mail_cmd_context *cmd_rmb_ls_oid_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_ls_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_get_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_set_alloc(void);

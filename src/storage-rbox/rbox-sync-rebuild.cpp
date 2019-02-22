@@ -181,7 +181,17 @@ int search_objects(struct index_rebuild_context *ctx, struct rbox_sync_rebuild_c
   // rebuild index.
 
   librados::NObjectIterator iter_guid(storage->find_mails(&attr_guid));
-  ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
+  if (iter_guid == librados::NObjectIterator::__EndObjectIterator) {
+    // seems like there are no mails with mailbox_guid in user namespace,
+    // try to find mails based on original mailbox name.!
+    std::string boxname(ctx->box->name);
+    librmb::RadosMetadata attr_guid(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, boxname);
+    librados::NObjectIterator iter_guid(storage->find_mails(&attr_guid));
+    ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
+  } else {
+    ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
+  }
+
   FUNC_END();
   return ret;
 }
