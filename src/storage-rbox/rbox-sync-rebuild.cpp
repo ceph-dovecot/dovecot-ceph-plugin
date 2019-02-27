@@ -10,6 +10,8 @@
  * Foundation.  See file COPYING.
  */
 #include <list>
+#include <algorithm>
+
 extern "C" {
 #include "dovecot-all.h"
 
@@ -105,7 +107,15 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
 
   int found = 0;
   int sync_add_objects_ret = 0;
+  bool already_restored = false;
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
+    already_restored = (std::find(rebuild_ctx->added_objects->begin(), rebuild_ctx->added_objects->end(),
+                                  (*iter).get_oid()) != rebuild_ctx->added_objects->end());
+    if (already_restored) {
+      continue;
+    }
+    rebuild_ctx->added_objects->push_back((*iter).get_oid());
+
     std::map<std::string, ceph::bufferlist> attrset;
     librmb::RadosMail mail_object;
     mail_object.set_oid((*iter).get_oid());
@@ -230,6 +240,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   i_zero(rebuild_ctx);
   rebuild_ctx->alt_storage = false;
   rebuild_ctx->next_uid = INT_MAX;
+  rebuild_ctx->added_objects = new std::list<std::string>();
 
   search_objects(ctx, rebuild_ctx);
   if (alt_storage) {
@@ -240,7 +251,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
 #endif
     search_objects(ctx, rebuild_ctx);
   }
-
+  delete rebuild_ctx->added_objects;
   rbox_sync_update_header(ctx);
   pool_unref(&pool);
   FUNC_END();
@@ -344,6 +355,7 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force) {
 #endif
     ret = mail_index_transaction_commit(&trans);
   }
+
   hdr.rebuild_count++;
   rbox->storage->corrupted_rebuild_count = 0;
   mail_index_view_close(&view);

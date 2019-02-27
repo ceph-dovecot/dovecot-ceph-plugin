@@ -13,6 +13,7 @@
 #define SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
 
 #include <map>
+#include <list>
 #include <string>
 #include <rados/librados.hpp>
 
@@ -25,6 +26,7 @@ extern "C" {
 struct rbox_sync_rebuild_ctx {
   bool alt_storage;
   uint32_t next_uid;
+  std::list<std::string> *added_objects;
 };
 extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 
