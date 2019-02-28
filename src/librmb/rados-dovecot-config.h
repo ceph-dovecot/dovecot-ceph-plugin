@@ -57,9 +57,9 @@ class RadosConfig {
   bool is_ceph_aio_wait_for_safe_and_cb() {
     return config[rbox_ceph_aio_wait_for_safe_and_cb].compare("true") == 0 ? true : false;
   }
-  bool is_write_chunks() {
-    return config[rbox_ceph_write_chunks].compare("true") == 0 ? true : false;
-  }
+  bool is_write_chunks() { return config[rbox_ceph_write_chunks].compare("true") == 0 ? true : false; }
+
+  bool is_configured_for_pre_cache(enum rbox_metadata_key key);
 
   /*!
    * print configuration

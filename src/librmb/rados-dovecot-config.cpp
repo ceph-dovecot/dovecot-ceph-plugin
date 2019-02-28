@@ -38,6 +38,7 @@ RadosConfig::RadosConfig()
   config[rbox_check_empty_mailboxes] = "false";
   config[rbox_ceph_aio_wait_for_safe_and_cb] = "false";
   config[rbox_ceph_write_chunks] = "false";
+  config["rbox_index_cache_fields"] = "";
   is_valid = false;
 }
 
@@ -72,9 +73,19 @@ std::string RadosConfig::to_string() {
   ss << "  " << save_log << "=" << config[save_log] << std::endl;
   ss << "  " << rbox_check_empty_mailboxes << "=" << config[rbox_check_empty_mailboxes] << std::endl;
   ss << "  " << rbox_ceph_aio_wait_for_safe_and_cb << "=" << config[rbox_ceph_aio_wait_for_safe_and_cb] << std::endl;
-  ss << "  " << rbox_ceph_write_chunks << "=" << config[rbox_ceph_write_chunks]
-     << std::endl;
+  ss << "  " << rbox_ceph_write_chunks << "=" << config[rbox_ceph_write_chunks] << std::endl;
+  ss << "  "
+     << "rbox_index_cache_fields"
+     << "=" << config["rbox_index_cache_fields"] << std::endl;
+
   return ss.str();
+}
+
+bool RadosConfig::is_configured_for_pre_cache(enum rbox_metadata_key key) {
+  if (config["rbox_index_cache_fields"].length() == 0) {
+    return false;
+  }
+  return string_contains_key(config["rbox_index_cache_fields"], key);
 }
 
 RadosConfig::~RadosConfig() {}
