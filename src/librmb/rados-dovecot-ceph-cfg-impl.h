@@ -57,7 +57,6 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
 
   void set_rbox_cfg_object_name(const std::string &value) override { dovecot_cfg.set_rbox_cfg_object_name(value); }
 
-  bool is_configured_for_pre_cache(enum rbox_metadata_key key) { return dovecot_cfg.is_configured_for_pre_cache(key); }
   std::map<std::string, std::string> *get_config() override { return dovecot_cfg.get_config(); }
   void set_io_ctx(librados::IoCtx *io_ctx_) override { rados_cfg.set_io_ctx(io_ctx_); }
   int load_rados_config() override {

@@ -59,8 +59,6 @@ class RadosConfig {
   }
   bool is_write_chunks() { return config[rbox_ceph_write_chunks].compare("true") == 0 ? true : false; }
 
-  bool is_configured_for_pre_cache(enum rbox_metadata_key key);
-
   /*!
    * print configuration
    */

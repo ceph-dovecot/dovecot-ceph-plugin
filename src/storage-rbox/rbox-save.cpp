@@ -26,14 +26,13 @@ extern "C" {
 #include "istream-crlf.h"
 #include "ostream.h"
 #include "str.h"
-#include "mail-cache-private.h"
+
 #include "rbox-sync.h"
 #include "rados-types.h"
 #include "debug-helper.h"
 #if DOVECOT_PREREQ(2, 3)
 #include "index-pop3-uidl.h"
 #endif
-#include "index-mail.h"
 }
 
 #include "../librmb/rados-mail.h"
@@ -200,28 +199,6 @@ void init_output_stream(mail_save_context *_ctx) {
   FUNC_END();
 }
 
-static int pre_cache_metadata(struct mail_save_context *_ctx) {
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct mail_cache *cache = _ctx->transaction->box->cache;
-
-  struct index_mail *mail = (struct index_mail *)_ctx->dest_mail;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-
-  if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_OLDV1_SAVE_TIME)) {
-    cache->fields[MAIL_CACHE_SAVE_DATE].field.decision = MAIL_CACHE_DECISION_YES;
-  }
-  if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_RECEIVED_TIME)) {
-    cache->fields[MAIL_CACHE_RECEIVED_DATE].field.decision = MAIL_CACHE_DECISION_YES;
-  }
-  if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_PHYSICAL_SIZE)) {
-    cache->fields[MAIL_CACHE_PHYSICAL_FULL_SIZE].field.decision = MAIL_CACHE_DECISION_YES;
-  }
-  if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_VIRTUAL_SIZE)) {
-    cache->fields[MAIL_CACHE_VIRTUAL_FULL_SIZE].field.decision = MAIL_CACHE_DECISION_YES;
-  }
-  
-}
-
 int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
 
@@ -251,11 +228,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
       _ctx->data.received_date = ioloop_time;
     }
   }
-
-  // set cache field enable
-  // see additional cache settings in 
-  // rbox_save_finish! 
-  pre_cache_metadata(_ctx);
 
   FUNC_END();
   return 0;
@@ -534,17 +506,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       }
 
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
-
-			/// additional cache fields!
-      if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_POP3_UIDL)) {
-        // pre cache pop3 uidls...
-        index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_POP3_UIDL, &_ctx->data.pop3_uidl,
-                             sizeof(_ctx->data.pop3_uidl));
-      }
-      if (r_storage->config->is_configured_for_pre_cache(librmb::RBOX_METADATA_POP3_ORDER)) {
-        index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_POP3_ORDER, &_ctx->data.pop3_order,
-                             sizeof(_ctx->data.pop3_order));
-      }
 
       librados::ObjectWriteOperation write_op;
       struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;

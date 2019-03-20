@@ -148,8 +148,6 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(is_ceph_aio_wait_for_safe_and_cb, bool());
   MOCK_METHOD0(is_write_chunks, bool());
 
-  MOCK_METHOD1(is_configured_for_pre_cache, bool(enum librmb::rbox_metadata_key key));
-
   MOCK_METHOD1(update_mail_attributes, void(const char *value));
   MOCK_METHOD1(update_updatable_attributes, void(const char *value));
   MOCK_METHOD1(update_pool_name_metadata, void(const char *value));
