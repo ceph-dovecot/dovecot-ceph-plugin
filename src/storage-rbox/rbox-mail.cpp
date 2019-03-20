@@ -425,6 +425,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     // we could also use get_physical size for this, but if its not in the cache, this way be faster
     if (index_mail_get_physical_size(_mail, &psize) == 0) {
       read_mail_op.stat(&psize, &save_date, &stat_err);
+      i_debug("using stat operation to determine physical size");
+    } else {
+      i_debug("ok physical size found in the cache %d", psize);
     }
 
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
