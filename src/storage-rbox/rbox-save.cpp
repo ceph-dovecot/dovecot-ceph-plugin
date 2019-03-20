@@ -515,9 +515,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       if (!r_storage->config->is_write_chunks()) {
         r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
       } else {
-        int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
-                                            r_ctx->rados_mail->get_completion(), &write_op);
-        r_ctx->failed = ret < 0;
+        r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
+                                                  r_ctx->rados_mail->get_completion(), &write_op) < 0;
       }
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
@@ -561,8 +560,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
     RadosMetadata metadata;
     for (std::list<RadosMail *>::iterator it = r_ctx->rados_mails.begin(); it != r_ctx->rados_mails.end(); ++it) {
       r_ctx->rados_mail = *it;
-      bool ret = seq_range_array_iter_nth(&iter, n++, &uid);
-      i_assert(ret);
+      i_assert(seq_range_array_iter_nth(&iter, n++, &uid));
       if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_MAIL_UID)) {
         metadata.convert(rbox_metadata_key::RBOX_METADATA_MAIL_UID, uid);
 

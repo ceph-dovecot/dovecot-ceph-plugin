@@ -69,7 +69,7 @@ class rbox_save_context {
   struct istream *input;
   /** stream to write the mail data to **/
   struct ostream *output_stream;
-  /** storage rerference **/
+  /** storage reference **/
   const librmb::RadosStorage &rados_storage;
   /** mails in the current save context **/
   std::list<librmb::RadosMail *> rados_mails;
@@ -86,13 +86,20 @@ class rbox_save_context {
   unsigned int dest_mail_allocated : 1;
 };
 
+/* intialize mail object */
 void setup_mail_object(struct mail_save_context *_ctx);
+/* add the new mail entry to the index */
 void rbox_add_to_index(struct mail_save_context *_ctx);
+/* move old index entry to new index */
 void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail);
+/* initialize the output stream  */
 void init_output_stream(mail_save_context *_ctx);
-int allocate_mail_buffer(mail_save_context *_ctx, int &initial_mail_buffer_size);
+/* clean mail object list*/
 void clean_up_mail_object_list(struct rbox_save_context *r_ctx, struct rbox_storage *r_storage);
+
 void rbox_save_update_header_flags(struct rbox_save_context *r_ctx, struct mail_index_view *sync_view, uint32_t ext_id,
                                    unsigned int flags_offset);
+
 void rbox_index_append(struct mail_save_context *_ctx);
+
 #endif  // SRC_STORAGE_RBOX_RBOX_SAVE_H_

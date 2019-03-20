@@ -175,7 +175,7 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
 
     if (value == NULL) {
       // file exists but receive date is unkown, due to missing index entry and missing
-      // rados xattribute, as in sdbox this is not necessarily a error so return 0;
+      // rados xattribute
       i_error("receive_date for object(%s) is not in index and not in xattribues!",
               rmail->rados_mail->get_oid()->c_str());
       return -1;
@@ -419,17 +419,20 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     int stat_err = 0;
     int read_err = 0;
 
-    librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
-    read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
-    read_mail->stat(&psize, &save_date, &stat_err);
+    librados::ObjectReadOperation read_mail_op;
+    read_mail_op.read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
+
+    // we could also use get_physical size for this, but if its not in the cache, this way be faster
+    if (index_mail_get_physical_size(_mail, &psize) == 0) {
+      read_mail_op.stat(&psize, &save_date, &stat_err);
+    }
 
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
+    ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, &read_mail_op,
                                                   rmail->rados_mail->get_mail_buffer());
     completion->wait_for_complete_and_cb();
     ret = completion->get_return_value();
     completion->release();
-    delete read_mail;
 
     if (ret < 0) {
       if (ret == -ENOENT) {
