@@ -104,6 +104,13 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
   librmb::RadosMail *test_obj = new librmb::RadosMail();
 
   EXPECT_CALL(*storage_mock, alloc_rados_mail()).WillOnce(Return(test_obj));
+
+  delete storage->ms;
+  librmbtest::RadosMetadataStorageProducerMock *storage_ms_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  librmbtest::RadosStorageMetadataMock mod;
+  EXPECT_CALL(*storage_ms_mock, create_metadata_storage(_, _)).WillRepeatedly(Return(&mod));
+  storage->ms = storage_ms_mock;
+
   // storage->ns_mgr->set_storage(storage_mock);
   storage->s = storage_mock;
 
@@ -207,6 +214,8 @@ TEST_F(StorageTest, save_mail_fail_test) {
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  librmbtest::RadosStorageMetadataMock mod;
+  EXPECT_CALL(*ms_p_mock, create_metadata_storage(_, _)).WillRepeatedly(Return(&mod));
   storage->ms = ms_p_mock;
 
   librmbtest::RadosStorageMetadataMock ms_mock;
@@ -363,6 +372,8 @@ TEST_F(StorageTest, write_op_fails) {
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  librmbtest::RadosStorageMetadataMock mod;
+  EXPECT_CALL(*ms_p_mock, create_metadata_storage(_, _)).WillRepeatedly(Return(&mod));
   storage->ms = ms_p_mock;
 
   librmbtest::RadosStorageMetadataMock ms_mock;
@@ -520,6 +531,8 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  librmbtest::RadosStorageMetadataMock mod;
+  EXPECT_CALL(*ms_p_mock, create_metadata_storage(_, _)).WillRepeatedly(Return(&mod));
   storage->ms = ms_p_mock;
 
   librmbtest::RadosStorageMetadataMock ms_mock;

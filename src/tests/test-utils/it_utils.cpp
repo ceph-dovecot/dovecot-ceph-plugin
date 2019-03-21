@@ -71,6 +71,8 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
 
   delete storage->ms;
   librmbtest::RadosMetadataStorageProducerMock *ms_p_mock = new librmbtest::RadosMetadataStorageProducerMock();
+  librmbtest::RadosStorageMetadataMock mod;
+  EXPECT_CALL(*ms_p_mock, create_metadata_storage(_, _)).WillRepeatedly(Return(&mod));
   storage->ms = ms_p_mock;
 
   librmbtest::RadosStorageMetadataMock ms_mock;
