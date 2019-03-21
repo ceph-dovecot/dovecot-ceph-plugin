@@ -402,6 +402,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       // make sure that mail_object is initialized,
       // else create and load guid from index.
       rmail->rados_mail = rados_storage->alloc_rados_mail();
+      if (rmail->rados_mail == nullptr) {
+        i_error("Bad alloc exception rados_mail");
+        FUNC_END();
+        return -1;
+      }
       if (rbox_get_index_record(_mail) < 0) {
         i_error("Error rbox_get_index uid(%d)", _mail->uid);
         FUNC_END();
@@ -669,6 +674,9 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
 
     rmail_->rados_mail = r_storage->s->alloc_rados_mail();
+    if (rmail_->rados_mail == nullptr) {
+      i_error("bad alloc exception: alloc rados mail in rbox_index_mail_set_seq");
+    }
     rbox_get_index_record(_mail);
   }
 }

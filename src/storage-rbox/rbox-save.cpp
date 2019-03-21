@@ -87,13 +87,18 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   return t->save_ctx;
 }
 
-void setup_mail_object(struct mail_save_context *_ctx) {
+int setup_mail_object(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
 
   guid_128_generate(r_ctx->mail_oid);
   r_ctx->rados_mail = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s->alloc_rados_mail();
+  if (r_ctx->rados_mail == nullptr) {
+    i_error("bad_alloc exception setup_mail_object");
+    FUNC_END();
+    return -1;
+  }
   r_ctx->rados_mail->set_oid(guid_128_to_string(r_ctx->mail_oid));
 
   if (_ctx->data.guid != NULL) {
@@ -105,6 +110,7 @@ void setup_mail_object(struct mail_save_context *_ctx) {
   }
 
   FUNC_END();
+  return 0;
 }
 
 void rbox_index_append(struct mail_save_context *_ctx) {
@@ -217,7 +223,11 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
     r_ctx->dest_mail_allocated = TRUE;
   }
-  setup_mail_object(_ctx);
+
+  if (setup_mail_object(_ctx) < 0) {
+    FUNC_END();
+    return -1;
+  }
   // always save to primary storage
   if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_save_finish)");

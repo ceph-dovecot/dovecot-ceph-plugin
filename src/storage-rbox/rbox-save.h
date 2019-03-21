@@ -87,7 +87,7 @@ class rbox_save_context {
 };
 
 /* intialize mail object */
-void setup_mail_object(struct mail_save_context *_ctx);
+int setup_mail_object(struct mail_save_context *_ctx);
 /* add the new mail entry to the index */
 void rbox_add_to_index(struct mail_save_context *_ctx);
 /* move old index entry to new index */

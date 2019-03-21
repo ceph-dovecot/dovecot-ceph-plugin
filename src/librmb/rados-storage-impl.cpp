@@ -405,7 +405,15 @@ bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
   }
   return save_mail(&write_op_xattr, mail, save_async);
 }
-librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
+librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() {
+  RadosMail *mail = nullptr;
+  try {
+    mail = new librmb::RadosMail();
+  } catch (std::bad_alloc &db) {
+    return nullptr;
+  }
+  return mail;
+}
 void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
   if (mail != nullptr) {
     delete mail;
