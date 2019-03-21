@@ -240,8 +240,13 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx) {
   i_zero(rebuild_ctx);
   rebuild_ctx->alt_storage = false;
   rebuild_ctx->next_uid = INT_MAX;
-  rebuild_ctx->added_objects = new std::list<std::string>();
-
+  try {
+    rebuild_ctx->added_objects = new std::list<std::string>();
+  } catch (std::bad_alloc &bd) {
+    i_error("Error allocation memory: bad_alloc (%s)", bd);
+    FUNC_END();
+    return -1;
+  }
   search_objects(ctx, rebuild_ctx);
   if (alt_storage) {
     rebuild_ctx->alt_storage = true;

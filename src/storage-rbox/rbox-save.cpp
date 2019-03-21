@@ -63,7 +63,15 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
   i_assert((t->flags & MAILBOX_TRANSACTION_FLAG_EXTERNAL) != 0);
 
   if (r_ctx == 0 || r_ctx == NULL) {
-    r_ctx = new rbox_save_context(*(r_storage->s));
+    try {
+      r_ctx = new rbox_save_context(*(r_storage->s));
+    } catch (std::bad_alloc &bd) {
+      i_error("Bad alloc exception (%s)", bd.what());
+      // returning null here is not an option,
+      // interally dovecot will access mail_save_context->unfinished directly after this call.
+      i_assert(false);
+    }
+
     r_ctx->ctx.transaction = t;
     r_ctx->mbox = rbox;
     r_ctx->trans = t->itrans;

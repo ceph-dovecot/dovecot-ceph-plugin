@@ -150,7 +150,16 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
   }
 
   dict = i_new(struct rados_dict, 1);
-  dict->cluster = new librmb::RadosClusterImpl();
+  try {
+    dict->cluster = new librmb::RadosClusterImpl();
+    dict->guid_generator = new DictGuidGenerator();
+    dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator, ceph_cfg);
+  } catch (std::bad_alloc &ba) {
+    i_free(dict);
+    *error_r = t_strdup_printf("Error initializing RadosCluster bad_alloc: %s", ba.what());
+    return -1;
+  }
+
   int ret = dict->cluster->init(clustername, rados_username);
   if (ret < 0) {
     i_free(dict);
@@ -160,8 +169,6 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     return -1;
   }
 
-  dict->guid_generator = new DictGuidGenerator();
-  dict->d = new librmb::RadosDictionaryImpl(dict->cluster, poolname, username, oid, dict->guid_generator, ceph_cfg);
   dict->dict = *driver;
   *dict_r = &dict->dict;
 
@@ -282,7 +289,14 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
   RadosDictionary *d = ((struct rados_dict *)_dict)->d;
   set<string> keys;
   keys.insert(key);
-  auto lc = new rados_dict_lookup_context(d);
+
+  rados_dict_lookup_context *lc = nullptr;
+  try {
+    lc = new rados_dict_lookup_context(d);
+  } catch (std::bad_alloc &ba) {
+    i_error("Error creating rados_dict_lookup_context bad_alloc exception: (%s)", ba.what());
+    return NULL;
+  }
 
   lc->key = key;
   lc->context = context;
@@ -664,8 +678,13 @@ struct dict_iterate_context *rados_dict_iterate_init(struct dict *_dict, const c
   i_assert((flags & DICT_ITERATE_FLAG_SORT_BY_KEY) == 0);
   i_assert((flags & DICT_ITERATE_FLAG_ASYNC) == 0);
 
-  auto iter = new rados_dict_iterate_context(_dict, flags);
-
+  rados_dict_iterate_context *iter = nullptr;
+  try {
+    iter = new rados_dict_iterate_context(_dict, flags);
+  } catch (std::bad_alloc &ba) {
+    i_error("Error initializing rados_dict_iterate_context bad_alloc (%s)", ba.what());
+    return NULL;
+  }
   set<string> private_keys;
   set<string> shared_keys;
   while (*paths) {

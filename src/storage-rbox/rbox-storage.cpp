@@ -70,15 +70,20 @@ struct mail_storage *rbox_storage_alloc(void) {
   i_zero(r_storage);
   r_storage->storage = rbox_storage;
   r_storage->storage.pool = pool;
-  r_storage->cluster = new librmb::RadosClusterImpl();
-  r_storage->s = new librmb::RadosStorageImpl(r_storage->cluster);
-  r_storage->config = new librmb::RadosDovecotCephCfgImpl(&r_storage->s->get_io_ctx());
-  r_storage->ns_mgr = new librmb::RadosNamespaceManager(r_storage->config);
-  r_storage->ms = new librmb::RadosMetadataStorageImpl();
-  r_storage->alt = new librmb::RadosStorageImpl(r_storage->cluster);
 
-  // logfile is set when 90-plugin.conf param rados_save_cfg is evaluated.
-  r_storage->save_log = new librmb::RadosSaveLog();
+  try {
+    r_storage->cluster = new librmb::RadosClusterImpl();
+    r_storage->s = new librmb::RadosStorageImpl(r_storage->cluster);
+    r_storage->config = new librmb::RadosDovecotCephCfgImpl(&r_storage->s->get_io_ctx());
+    r_storage->ns_mgr = new librmb::RadosNamespaceManager(r_storage->config);
+    r_storage->ms = new librmb::RadosMetadataStorageImpl();
+    r_storage->alt = new librmb::RadosStorageImpl(r_storage->cluster);
+    // logfile is set when 90-plugin.conf param rados_save_cfg is evaluated.
+    r_storage->save_log = new librmb::RadosSaveLog();
+  } catch (std::bad_alloc &ba) {
+    i_error("bad_alloc exception caught: (%s)", ba.what());
+    i_assert(false);
+  }
 
   FUNC_END();
   return &r_storage->storage;
@@ -503,7 +508,10 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     i_error("unable to read rados_config return value : %d", ret);
     return ret;
   }
-  rbox->storage->ms->create_metadata_storage(&rbox->storage->s->get_io_ctx(), rbox->storage->config);
+  if (rbox->storage->ms->create_metadata_storage(&rbox->storage->s->get_io_ctx(), rbox->storage->config) == nullptr) {
+    i_error("error creating metadata storage");
+    return -1;
+  }
 
   std::string uid;
   if (box->list->ns->owner != nullptr) {

@@ -250,8 +250,14 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   RadosMail mail;
   mail.set_oid(src_oid);
+  librados::bufferlist *bl = nullptr;
 
-  librados::bufferlist *bl = new librados::bufferlist();
+  try {
+    bl = new librados::bufferlist();
+  } catch (std::bad_alloc &bl) {
+    return false;
+  }
+
   mail.set_mail_buffer(bl);
 
   if (inverse) {
@@ -275,7 +281,7 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   mail.set_oid(dest_oid);
 
-  librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation write_op;
   metadata->get_storage()->save_metadata(&write_op, &mail);
 
   bool success;

@@ -98,8 +98,11 @@ bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
   if (cfg != nullptr) {
     return loaded;
   }
-
-  cfg = new librmb::RadosDovecotCephCfgImpl(io_ctx);
+  try {
+    cfg = new librmb::RadosDovecotCephCfgImpl(io_ctx);
+  } catch (std::bad_alloc &bd) {
+    return false;
+  }
   cfg->set_rbox_cfg_object_name(cfg_object_name);
   cfg->set_config_valid(true);
   int load_cfg = cfg->load_rados_config();
@@ -118,7 +121,11 @@ bool RadosDictionaryImpl::load_configuration(librados::IoCtx *io_ctx) {
 
 bool RadosDictionaryImpl::lookup_namespace(std::string &username_, librmb::RadosDovecotCephCfg *cfg_, std::string *ns) {
   if (namespace_mgr == nullptr) {
-    namespace_mgr = new librmb::RadosNamespaceManager(cfg_);
+    try {
+      namespace_mgr = new librmb::RadosNamespaceManager(cfg_);
+    } catch (std::bad_alloc &bd) {
+      return false;
+    }
   }
   if (!namespace_mgr->lookup_key(username_, ns)) {
     return namespace_mgr->add_namespace_entry(username_, ns, guid_generator) ? true : false;

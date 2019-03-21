@@ -392,7 +392,7 @@ bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
     return false;
   }
   // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-  librados::ObjectWriteOperation write_op_xattr;  // = new librados::ObjectWriteOperation();
+  librados::ObjectWriteOperation write_op_xattr;
 
   // set metadata
   for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();

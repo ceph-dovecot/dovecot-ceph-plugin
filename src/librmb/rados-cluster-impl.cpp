@@ -45,7 +45,11 @@ RadosClusterImpl::~RadosClusterImpl() {}
 int RadosClusterImpl::init() {
   int ret = 0;
   if (RadosClusterImpl::cluster_ref_count == 0) {
-    RadosClusterImpl::cluster = new librados::Rados();
+    try {
+      RadosClusterImpl::cluster = new librados::Rados();
+    } catch (std::bad_alloc &bd) {
+      return -1;
+    }
     ret = RadosClusterImpl::cluster->init(nullptr);
     if (ret == 0) {
       ret = initialize();
@@ -59,8 +63,11 @@ int RadosClusterImpl::init() {
 int RadosClusterImpl::init(const std::string &clustername, const std::string &rados_username) {
   int ret = 0;
   if (RadosClusterImpl::cluster_ref_count == 0) {
-    RadosClusterImpl::cluster = new librados::Rados();
-
+    try {
+      RadosClusterImpl::cluster = new librados::Rados();
+    } catch (std::bad_alloc &bd) {
+      return -1;
+    }
     ret = RadosClusterImpl::cluster->init2(rados_username.c_str(), clustername.c_str(), 0);
     if (ret == 0) {
       ret = initialize();

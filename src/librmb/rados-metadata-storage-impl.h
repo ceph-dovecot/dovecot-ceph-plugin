@@ -39,12 +39,17 @@ class RadosMetadataStorageImpl : public RadosMetadataStorage {
     if (storage == nullptr) {
       // decide metadata storage!
       std::string storage_module_name = cfg_->get_metadata_storage_module();
-      if (storage_module_name.compare(librmb::RadosMetadataStorageIma::module_name) == 0) {
-        storage = new librmb::RadosMetadataStorageIma(io_ctx, cfg_);
-      } else {
-        storage = new librmb::RadosMetadataStorageDefault(io_ctx);
+      try {
+        if (storage_module_name.compare(librmb::RadosMetadataStorageIma::module_name) == 0) {
+          storage = new librmb::RadosMetadataStorageIma(io_ctx, cfg_);
+        } else {
+          storage = new librmb::RadosMetadataStorageDefault(io_ctx);
+        }
+      } catch (std::bad_alloc &bd) {
+        return nullptr;
       }
     }
+
     return storage;
   }
 

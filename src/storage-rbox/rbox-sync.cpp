@@ -462,9 +462,9 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
   librmb::RadosStorage *rados_storage = item->alt_storage ? r_storage->alt : r_storage->s;
   ret_remove = rados_storage->get_io_ctx().remove(oid);
   if (ret_remove < 0) {
-    if(ret_remove != -ENOENT){
-    	i_error("rbox_sync_object_expunge: aio_remove failed with %d oid(%s), alt_storage(%d)", ret_remove, oid,
-            item->alt_storage);
+    if (ret_remove != -ENOENT) {
+      i_error("rbox_sync_object_expunge: aio_remove failed with %d oid(%s), alt_storage(%d)", ret_remove, oid,
+              item->alt_storage);
     }
   }
 
@@ -482,6 +482,7 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   items = array_get(&ctx->expunged_items, &count);
 
   if (count > 0) {
+    // in case the mail was only moved, do not delete it
     moved_items = array_get(&ctx->rbox->moved_items, &moved_count);
     for (unsigned int i = 0; i < count; i++) {
       T_BEGIN {
