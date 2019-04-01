@@ -15,7 +15,8 @@
 #include <map>
 #include <string>
 #include <list>
-
+#include <errno.h>
+#include <sys/stat.h>
 extern "C" {
 
 #include "lib.h"
@@ -1158,4 +1159,46 @@ int cmd_rmb_lspools(int argc, char *argv[]) { return librmb::RmbCommands::RmbCom
 int cmd_rmb_version(int argc, char *argv[]) {
   std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
   return 0;
+}
+
+static void cmd_rmb_check_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (args[0] != NULL) {
+    doveadm_mail_help_name("rmb check ");
+  }
+}
+static int cmd_rmb_check_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  struct check_indices_cmd_context *ctx_ = (struct check_indices_cmd_context *)ctx;
+
+  // if RboxDoveadmPlugin is freed, connection to rados will be closed.
+  RboxDoveadmPlugin plugin;
+  plugin.read_doveadm_plugin_configuration();
+  std::cout << "Checking ceph connection : ";
+  int open = plugin.open_connection();
+  if (open < 0) {
+    std::cout << " no : error is:  " << strerror(open * -1) << std::endl;
+    return -1;
+  } else {
+    std::cout << " yes " << std::endl;
+  }
+  std::cout << "Checking rw access to: " << user->_home << " : ";
+  struct stat sb;
+  if (stat(user->_home, &sb) == -1) {
+    std::cout << "Users home directory not accessible via stat" << std::endl;
+  }
+
+  if (access(user->_home, R_OK && W_OK) == 0) {
+    std::cout << " yes " << std::endl;
+  } else {
+    std::cout << " no " << std::endl;
+    std::cout << "Ownership:                UID=" << sb.st_uid << "   GID=" << sb.st_gid << std::endl;
+  }
+
+  return 0;
+}
+struct doveadm_mail_cmd_context *cmd_rmb_check_alloc(void) {
+  struct doveadm_mail_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+  ctx->v.run = cmd_rmb_check_run;
+  ctx->v.init = cmd_rmb_check_init;
+  return ctx;
 }
