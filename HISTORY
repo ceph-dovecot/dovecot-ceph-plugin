@@ -1,0 +1,16 @@
+# History for dovecot-ceph-plugin
+#
+# These symbols are used:
+# + new feature
+# - deleted feature
+# * change
+# ! bugfix
+
+Bereich: Email-Server
+System: dovecot-ceph-plugin
+
+0.0.23 2020-02-12 Jan Radon
+  * build with dovecot 2.3.8
+
+
+

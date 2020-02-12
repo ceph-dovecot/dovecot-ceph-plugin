@@ -8,12 +8,12 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-%{!?dovecot_devel: %define dovecot_devel dovecot22-devel}
+%{!?dovecot_devel: %define dovecot_devel tallence-dovecot-devel}
 %{!?librados_version: %define librados_version 10.2.5}
 
 Name:		dovecot-ceph-plugin
 Summary:	Dovecot Ceph RADOS plugins
-Version:	0.0.21
+Version:	0.0.23
 Release:	0%{?dist}
 URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
 Group:		Productivity/Networking/Email/Servers

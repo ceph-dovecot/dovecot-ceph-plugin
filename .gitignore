@@ -105,3 +105,4 @@ libtool
 
 #doxygen
 docs-generated/
+src/tests/googletest
