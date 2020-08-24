@@ -63,7 +63,7 @@ static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struc
   }
   for (i = 0; i < iov_count; i++) {
     // use unsigned char* for binary data!
-    bstream->buf->append(reinterpret_cast<const unsigned char *>(iov[i].iov_base), iov[i].iov_len);
+    bstream->buf->append(reinterpret_cast<const char *>(iov[i].iov_base), iov[i].iov_len);
     stream->ostream.offset += iov[i].iov_len;
     ret += iov[i].iov_len;
   }
