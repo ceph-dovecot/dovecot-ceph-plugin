@@ -275,10 +275,13 @@ int RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string
   dest_io_ctx = io_ctx;
 
   if (strcmp(src_ns, dest_ns) != 0) {
+    uint32_t src_fadvise_flags = LIBRADOS_OP_FLAG_FADVISE_SEQUENTIAL | LIBRADOS_OP_FLAG_FADVISE_NOCACHE;
+    uint32_t dest_fadvise_flags = LIBRADOS_OP_FLAG_FADVISE_SEQUENTIAL | LIBRADOS_OP_FLAG_FADVISE_DONTNEED;
     src_io_ctx.dup(dest_io_ctx);
     src_io_ctx.set_namespace(src_ns);
     dest_io_ctx.set_namespace(dest_ns);
-    write_op.copy_from(src_oid, src_io_ctx, 0);
+    write_op.copy_from(src_oid, src_io_ctx, 0, src_fadvise_flags);
+    write_op.set_op_flags2(dest_fadvise_flags);
 
   } else {
     src_io_ctx = dest_io_ctx;
@@ -335,7 +338,10 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
   } else {
     src_io_ctx = dest_io_ctx;
   }
-  write_op.copy_from(src_oid, src_io_ctx, 0);
+  uint32_t src_fadvise_flags = LIBRADOS_OP_FLAG_FADVISE_SEQUENTIAL | LIBRADOS_OP_FLAG_FADVISE_NOCACHE;
+  uint32_t dest_fadvise_flags = LIBRADOS_OP_FLAG_FADVISE_SEQUENTIAL | LIBRADOS_OP_FLAG_FADVISE_DONTNEED;
+  write_op.copy_from(src_oid, src_io_ctx, 0, src_fadvise_flags);
+  write_op.set_op_flags2(dest_fadvise_flags);
 
   // because we create a copy, save date needs to be updated
   // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata

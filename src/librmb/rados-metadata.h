@@ -19,6 +19,8 @@
 #include <sstream>
 #include <rados/librados.hpp>
 
+typedef unsigned int uint;
+
 namespace librmb {
 
 class RadosMetadata {
