@@ -23,7 +23,7 @@
 /* replacement for MODULE_CONTEXT (v 2.3, assigned void or long int, this is not allowed with c++) */
 #define RBOX_MODULE_CONTEXT(obj, id_ctx)                                                                  \
   (module_get_context_id(&(id_ctx).id) < array_count(&(obj)->module_contexts)                             \
-       ? (*((void **)array_idx_modifiable(&(obj)->module_contexts, module_get_context_id(&(id_ctx).id)) + \
+       ? (*((index_mailbox_context **)array_idx_modifiable(&(obj)->module_contexts, module_get_context_id(&(id_ctx).id)) + \
             OBJ_REGISTER_COMPATIBLE(obj, id_ctx)))                                                        \
        : NULL)
 
