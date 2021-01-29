@@ -9,7 +9,7 @@ env:
 before_install:
 - docker volume create --name ceph_config
 - docker network create --driver=bridge --subnet=192.168.100.0/24 --gateway=192.168.100.1 ceph_network
-- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo --mount type=tmpfs,destination=/etc/ceph -v ceph_config:/root/cfg -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 -e CEPH_DEMO_UID=$DOVECOT ceph/daemon:v3.0.5-stable-3.0-luminous-ubuntu-16.04-x86_64 demo
+- travis_wait 30 docker run -d --net=ceph_network --name ceph_demo --mount type=tmpfs,destination=/etc/ceph -v ceph_config:/root/cfg -e MON_IP=192.168.100.2 -e CEPH_PUBLIC_NETWORK=192.168.100.0/24 -e CEPH_DEMO_UID=$DOVECOT ceph/daemon:latest demo
 
 - travis_wait 30 docker run -itd --name build --net=ceph_network -e SOURCE_VERSION=$DOVECOT -v ceph_config:/etc/ceph -v $(pwd):/repo cephdovecot/travis-build:$DOVECOT sh
 - docker exec build sh -c 'printf "nameserver 8.8.8.8\n" > /etc/resolv.conf'

@@ -237,7 +237,6 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
 
   if (r_ctx->failed) {
     FUNC_END_RET("ret == -1");
@@ -251,6 +250,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
     return -1;
   }
 #else
+  struct mail_storage *storage = &r_ctx->mbox->storage->storage;
   do {
     if (o_stream_send_istream(_ctx->data.output, r_ctx->input) < 0) {
       if (!mail_storage_set_error_from_errno(storage)) {
@@ -523,9 +523,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       if (!r_storage->config->is_write_chunks()) {
         r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
       } else {
-        int ret = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
-                                            r_ctx->rados_mail->get_completion(), &write_op);
-        r_ctx->failed = ret < 0;
+        r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
+                                            r_ctx->rados_mail->get_completion(), &write_op) < 0;
       }
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),

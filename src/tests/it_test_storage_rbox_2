@@ -188,7 +188,7 @@ func_exec_program ()
 
   if test -f "$progdir/$program"; then
     # Add our own library path to LD_LIBRARY_PATH
-    LD_LIBRARY_PATH="/home/jan/tallence/dovecot-ceph-plugin/src/storage-rbox/.libs:/home/jan/dovecot-2.2.21/lib/dovecot:/home/jan/tallence/dovecot-ceph-plugin/src/librmb/.libs:$LD_LIBRARY_PATH"
+    LD_LIBRARY_PATH="/repo/src/storage-rbox/.libs:/usr/local/lib/dovecot:/repo/src/librmb/.libs:$LD_LIBRARY_PATH"
 
     # Some systems cannot cope with colon-terminated LD_LIBRARY_PATH
     # The second colon is a workaround for a bug in BeOS R4 sed
