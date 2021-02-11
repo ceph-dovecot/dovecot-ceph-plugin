@@ -61,4 +61,185 @@
    fun:_Z13RUN_ALL_TESTSv
    fun:main
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr8
+   fun:io_remove_full
+   fun:connection_disconnect
+   fun:connection_deinit
+   fun:stats_client_deinit
+   fun:master_service_deinit
+   fun:_ZN11StorageTest16TearDownTestCaseEv
+   fun:_ZN7testing8TestCase19RunTearDownTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr1
+   fun:io_remove_full
+   fun:connection_disconnect
+   fun:connection_deinit
+   fun:stats_client_deinit
+   fun:master_service_deinit
+   fun:_ZN11StorageTest16TearDownTestCaseEv
+   fun:_ZN7testing8TestCase19RunTearDownTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr4
+   obj:/usr/lib/librados.so.2.0.0
+   obj:/usr/lib/librados.so.2.0.0
+   obj:/usr/lib/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN11StorageTest13SetUpTestCaseEv
+   fun:_ZN7testing8TestCase16RunSetUpTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Addr4
+   obj:/usr/lib/librados.so.2.0.0
+   obj:/usr/lib/librados.so.2.0.0
+   obj:/usr/lib/librados.so.2.0.0
+   fun:rados_ioctx_create
+   fun:_ZN8SyncTest13SetUpTestCaseEv
+   fun:_ZN7testing8TestCase16RunSetUpTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
 
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:strdup
+   fun:__trans_list_add
+   obj:/usr/lib/x86_64-linux-gnu/libnl-route-3.so.200.24.0
+   fun:call_init
+   fun:_dl_init
+   obj:/lib/x86_64-linux-gnu/ld-2.27.so
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:pool_system_malloc
+   fun:p_malloc
+   fun:buffer_alloc
+   fun:buffer_create_dynamic
+   fun:array_create_i
+   fun:mail_index_alloc
+   fun:mailbox_list_index_init_finish
+   fun:mailbox_list_index_namespaces_added
+   fun:hook_mail_namespaces_added
+   fun:mail_user_add_namespace
+   fun:mail_namespaces_init_finish
+   fun:mail_namespaces_init_location
+   fun:mail_namespaces_init
+   fun:mail_storage_service_init_post
+   fun:mail_storage_service_next_real
+   fun:mail_storage_service_next_with_session_suffix
+   fun:_ZN11StorageTest13SetUpTestCaseEv
+   fun:_ZN7testing8TestCase16RunSetUpTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:NSSRWLock_New_Util
+   obj:/usr/lib/x86_64-linux-gnu/libnss3.so
+   obj:/usr/lib/x86_64-linux-gnu/libnss3.so
+   obj:/usr/lib/x86_64-linux-gnu/libnss3.so
+   fun:NSS_InitContext
+   fun:_ZN4ceph6crypto4initEP11CephContext
+   fun:_Z18common_init_finishP11CephContext
+   obj:/usr/lib/librados.so.2.0.0
+   fun:_ZN6librmb16RadosClusterImpl7connectEv
+   fun:_ZN6librmb16RadosClusterImpl13io_ctx_createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEPN8librados7v14_2_05IoCtxE
+   fun:_ZN6librmb16RadosStorageImpl17create_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_ZN6librmb16RadosStorageImpl15open_connectionERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_
+   fun:rbox_open_rados_connection
+   fun:_Z15rbox_save_beginP17mail_save_contextP7istream
+   fun:mailbox_save_begin
+   fun:_ZN9testutils7ItUtils8add_mailEP17mail_save_contextP7istreamP7mailboxP27mailbox_transaction_context
+   fun:_ZN9testutils7ItUtils8add_mailEPKcS2_P14mail_namespace
+   fun:_ZN44StorageTest_mail_lda_copy_mail_in_inbox_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
+
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:pool_system_malloc
+   fun:p_malloc
+   fun:io_loop_context_new
+   fun:_ZN11StorageTest13SetUpTestCaseEv
+   fun:_ZN7testing8TestCase16RunSetUpTestCaseEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_8TestCaseEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS0_12UnitTestImplEbEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8UnitTest3RunEv
+   fun:_Z13RUN_ALL_TESTSv
+   fun:main
+}
