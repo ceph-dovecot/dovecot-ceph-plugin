@@ -199,6 +199,7 @@ void StorageTest::SetUpTestCase() {
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "storage-rbox-test-pool", 1024);
   s_test_ioloop = io_loop_create();
+  io_loop_context_new(s_test_ioloop);
 
   ASSERT_NE(getcwd(path_buf, sizeof(path_buf)), nullptr);
 
