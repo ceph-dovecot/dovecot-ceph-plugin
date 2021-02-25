@@ -25,8 +25,9 @@ script:
 - docker logs ceph_demo
 - docker exec ceph_demo sh -c 'cp -r /etc/ceph/* /root/cfg'
 - docker exec build sh -c 'chmod 777 /etc/ceph/*'
-- travis_wait 30 docker exec build sh -c 'cd repo/src/tests; make check-valgrind'
-- docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
+#- travis_wait 30 docker exec build sh -c 'cd repo/src/tests; make check-valgrind'
+#- docker exec build sh -c 'cd repo; cat src/tests/test-suite-memcheck.log'
+- travis_wait 30 docker exec build sh -c 'cd repo/src/tests; make check'
 - docker exec build sh -c 'ldconfig'
 - docker exec build sh -c 'chmod -R 777 /usr/local/var/'
 - docker exec --detach build sh -c 'service dovecot.service start'
