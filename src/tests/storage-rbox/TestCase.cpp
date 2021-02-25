@@ -37,6 +37,8 @@ extern "C" {
 #include "libstorage-rbox-plugin.h"
 #include "array.h"
 #include "array-decl.h"
+#include "master-service-private.h"
+
 }
 
 #pragma GCC diagnostic pop
@@ -198,8 +200,7 @@ void StorageTest::SetUpTestCase() {
   master_service_init_finish(master_service);
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "storage-rbox-test-pool", 1024);
-  s_test_ioloop = io_loop_create();
-  io_loop_context_new(s_test_ioloop);
+  s_test_ioloop = master_service->ioloop;
 
   ASSERT_NE(getcwd(path_buf, sizeof(path_buf)), nullptr);
 
@@ -260,9 +261,12 @@ void StorageTest::TearDownTestCase() {
   mail_storage_service_deinit(&mail_storage_service);
   EXPECT_GE(unlink_directory(mail_home, UNLINK_DIRECTORY_FLAG_RMDIR, &error), 0);
 
-  io_loop_destroy(&s_test_ioloop);
+
+  //io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
   destroy_one_pool(pool_name, &s_cluster);
+  
+  
   rados_ioctx_destroy(s_ioctx);
 
   master_service_deinit(&master_service);
