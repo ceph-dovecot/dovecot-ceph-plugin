@@ -31,7 +31,7 @@ script:
 - docker exec build sh -c 'ldconfig'
 - docker exec build sh -c 'chmod -R 777 /usr/local/var/'
 - docker exec --detach build sh -c 'service dovecot.service start'
-- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 users=100 clients=25 error_quit secs=60 output=/var/log/imaptest.log'
+- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 users=100 clients=25 error_quit secs=15 output=/var/log/imaptest.log'
 - docker exec build sh -c 'smtp-source -v -L -s 1 -m 1 -c -F /root/lmtp_test_mail.tld -f test@example.com -t t1 inet:127.0.0.1:1024'
 - docker exec build sh -c 'doveadm -D altmove -u t2 ALL'
 - docker exec build sh -c 'doveadm -D altmove -r -u t2 ALL'
@@ -50,10 +50,10 @@ script:
 - docker exec build sh -c 'diff -y -W 1500 /root/rbox.t1.mails.sorted /root/mdbox.t1.mails.sorted'
 
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
-- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=60 output=/var/log/imaptest.log'
+- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10110 profile=/root/pop3-profile.conf users=100 clients=10 error_quit secs=15 output=/var/log/imaptest.log'
 
 - docker exec build sh -c 'rm -r /usr/local/var/mail/rbox'
-- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 error_quit secs=60 copybox=INBOX.Drafts output=/var/log/imaptest.log'
+- docker exec build sh -c 'cd /usr/local/bin; ./imaptest user=t%d pass=t port=10143 error_quit secs=15 copybox=INBOX.Drafts output=/var/log/imaptest.log'
 - docker exec build sh -c 'doveadm -D force-resync -u t1 INBOX'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Error:\""'
 - docker exec build bash -c '/usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"failed:\""'
