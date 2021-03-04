@@ -16,7 +16,8 @@ jobs:
            - ceph-data:/etc/ceph/ 
 
     container: 
-      image: cephdovecot/travis-build-master-2.3:latest      
+      image: cephdovecot/travis-build-master-2.3:latest  
+      options: "--entrypoint /bin/bash"    
       volumes:
         - ceph-data:/etc/ceph/
         - ${{ github.workspace }}/:/repo
