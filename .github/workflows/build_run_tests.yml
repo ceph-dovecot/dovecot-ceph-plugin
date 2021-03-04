@@ -3,7 +3,7 @@ name: build_and_test_plugin
 on: push
 
 jobs:
-  job-name:
+  build-plugin:
     runs-on: ubuntu-latest
   
     services:
@@ -31,10 +31,10 @@ jobs:
           ref: ${{ github.ref }}
                   
       - name: list all files
-        run: ls -lah /repo
+        run: ls -lah /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/
       - name: run build
-        run: /repo/.github/scripts/build_script.sh    
+        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/build_script.sh    
       - name: run unit tests
-        run: /repo/.github/scripts/run_unit_tests.sh  
+        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_unit_tests.sh  
       - name: run integration tests
-        run: /repo/.github/scripts/run_tests.sh      
+        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_tests.sh      
