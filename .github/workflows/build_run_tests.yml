@@ -28,7 +28,9 @@ jobs:
         uses: actions/checkout@v1
         with:
           submodules: true
-          ref: ${{ github.ref }}          
+          ref: ${{ github.ref }}
+      - name: list all files
+        run: ls -lah ${{ github.workspace }}
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
       - name: run unit tests
