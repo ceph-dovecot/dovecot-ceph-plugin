@@ -18,6 +18,8 @@ jobs:
     container: 
       image: cephdovecot/travis-build-master-2.3:latest  
       options: "--entrypoint /bin/bash"    
+      env:
+        GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
       volumes:
         - ceph-data:/etc/ceph/
         - ${{ github.workspace }}/:/repo
