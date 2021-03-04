@@ -1,6 +1,3 @@
-cd /repo
-git submodule update --init --recursive
-
 cd /usr/local/src/dovecot
 make install
 
