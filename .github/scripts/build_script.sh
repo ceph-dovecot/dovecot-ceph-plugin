@@ -8,7 +8,7 @@ make clean install
 
 chmod 777 /etc/ceph/*
 
-ldconfig
+#ldconfig
 
 chmod -R 777 /usr/local/var/
-service dovecot.service start
+#service dovecot.service start

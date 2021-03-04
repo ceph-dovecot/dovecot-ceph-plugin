@@ -1,3 +1,6 @@
+ldconfig
+service dovecot.service start 
+
 /usr/local/bin/imaptest user=t%d pass=t port=10143 users=100 clients=25 error_quit secs=15 output=/var/log/imaptest.log
 smtp-source -v -L -s 1 -m 1 -c -F /root/lmtp_test_mail.tld -f test@example.com -t t1 inet:127.0.0.1:1024
 doveadm -D altmove -u t2 ALL
@@ -29,3 +32,5 @@ doveadm -D force-resync -u t1 INBOX
 /usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Panic:\""
 /usr/local/bin/exec.sh "cat /var/log/dovecot.log | grep \"Fatal:\""
 /usr/local/bin/exec.sh "cat /var/log/imaptest.log | grep \"BUG:\""
+
+service dovecot.service stop
