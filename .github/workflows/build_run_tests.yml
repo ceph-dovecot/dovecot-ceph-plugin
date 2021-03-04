@@ -25,11 +25,10 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@master
         with:
-          ref: ${{ github.ref }}      
-        working-directory: /repo/
+          ref: ${{ github.ref }}              
       - name: Checkout submodules
-        uses: textbook/git-checkout-submodule-action@master 
-        working-directory: /repo/   
+        run: git submodule update --init --recursive
+        working-directory: /repo/
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
       - name: run unit tests
