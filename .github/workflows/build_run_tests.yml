@@ -27,8 +27,3 @@ jobs:
       - name: run tests
         run: ./github/scripts/run-tests.sh
         shell: bash
-
-   volumes:
-     ceph-data:
-        external: false
-
