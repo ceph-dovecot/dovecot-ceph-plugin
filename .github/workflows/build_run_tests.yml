@@ -16,17 +16,16 @@ jobs:
            - ceph-data:/etc/ceph/ 
 
     container: cephdovecot/travis-build-master-2.3:latest
-      steps:        
+      steps:
         - name: run build
           run: ./github/scripts/run-build.sh        
           shell: bash
-        - name: run tests  
+        - name: run tests
           run: ./github/scripts/run-tests.sh
           shell: bash
-
       volumes:
         - ceph-data:/etc/ceph/
-        - ./:/repo 
+        - ./:/repo
 
    volumes:
      ceph-data:
