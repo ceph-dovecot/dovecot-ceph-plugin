@@ -5,7 +5,7 @@ on: push
 jobs:
   job-name:
     runs-on: ubuntu-latest
-
+  
     services:
       ceph:
         image: ceph/daemon:latest
@@ -22,13 +22,14 @@ jobs:
         - ceph-data:/etc/ceph/
         - ${{ github.workspace }}/:/repo
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Checkout submodules
-        working-directory: ${{ github.workspace }}
-        uses: textbook/git-checkout-submodule-action@master
+      - name: Checkout source
+        uses: actions/checkout@master
         with:
-          remote: true
+          ref: ${{ github.ref }}      
+        working-directory: /repo/
+      - name: Checkout submodules
+        uses: textbook/git-checkout-submodule-action@master 
+        working-directory: /repo/   
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
       - name: run unit tests
