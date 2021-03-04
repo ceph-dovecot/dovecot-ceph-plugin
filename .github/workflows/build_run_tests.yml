@@ -25,11 +25,10 @@ jobs:
         - ${{ github.workspace }}/:/repo
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v1
         with:
-          submodules: recursive          
+          submodules: true
           ref: ${{ github.ref }}          
-                 
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
       - name: run unit tests
