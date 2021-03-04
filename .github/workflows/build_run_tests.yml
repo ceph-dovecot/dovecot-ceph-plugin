@@ -19,7 +19,7 @@ jobs:
       image: cephdovecot/travis-build-master-2.3:latest      
       volumes:
         - ceph-data:/etc/ceph/
-        - ./:/repo
+        - ${{ github.workspace }}/:/repo
     steps:
       - name: run build
         run: ./github/scripts/run-build.sh        
