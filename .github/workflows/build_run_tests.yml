@@ -10,8 +10,8 @@ jobs:
       ceph:
         image: ceph/daemon:latest
         env:
-           - CEPH_DEMO_UID=demo_uid 
-           - NETWORK_AUTO_DETECT=4
+           - CEPH_DEMO_UID: demo_uid
+           - NETWORK_AUTO_DETECT: 4
         volumes:
            - ceph-data:/etc/ceph/ 
 
