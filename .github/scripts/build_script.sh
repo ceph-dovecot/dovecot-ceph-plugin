@@ -11,4 +11,5 @@ chmod 777 /etc/ceph/*
 ldconfig
 
 chmod -R 777 /usr/local/var/
-service dovecot.service start
+#service dovecot.service start
+dovecot
