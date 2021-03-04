@@ -1,3 +1,6 @@
+cd /repo
+git submodule update --init --recursive
+
 cd /usr/local/src/dovecot
 make install
 
@@ -8,8 +11,6 @@ make clean install
 
 chmod 777 /etc/ceph/*
 
-cd /repo/src/tests
-make check-valgrind
 ldconfig
 
 chmod -R 777 /usr/local/var/

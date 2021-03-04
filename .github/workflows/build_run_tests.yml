@@ -24,9 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with:
-          ref: ${{ github.ref }}          
-          submodules: 'recursive'
+          ref: ${{ github.ref }}                 
       - name: run build
-        run: /repo/.github/scripts/build_script.sh      
-      - name: run tests
+        run: /repo/.github/scripts/build_script.sh    
+      - name: run unit tests
+        run: /repo/.github/scripts/run_unit_tests.sh  
+      - name: run integration tests
         run: /repo/.github/scripts/run_tests.sh      
