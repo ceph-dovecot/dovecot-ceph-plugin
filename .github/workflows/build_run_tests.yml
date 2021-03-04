@@ -21,11 +21,11 @@ jobs:
       volumes:
         - ceph-data:/etc/ceph/
         - ${{ github.workspace }}/:/repo
-      steps:
-        - uses: actions/checkout@master
-          with:
-            ref: ${{ github.ref }}          
-        - name: run build
-          run: /repo/.github/scripts/build_script.sh      
-        - name: run tests
-          run: ls ./        
+    steps:
+      - uses: actions/checkout@master
+        with:
+          ref: ${{ github.ref }}          
+      - name: run build
+        run: /repo/.github/scripts/build_script.sh      
+      - name: run tests
+        run: ls ./        
