@@ -22,7 +22,7 @@ jobs:
         GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
       volumes:
         - ceph-data:/etc/ceph/
-        - ${{ github.workspace }}/:/repo
+        - /home/runner/work/dovecot-ceph-plugin/dovecot-ceph-plugin/:/repo
     steps:
       - name: Checkout source
         uses: actions/checkout@v1
