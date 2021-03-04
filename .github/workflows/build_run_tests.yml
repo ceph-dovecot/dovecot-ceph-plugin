@@ -22,8 +22,8 @@ jobs:
         - ${{ github.workspace }}/:/repo
     steps:
       - name: run build
-        run: /repo/.github/scripts/build_script.sh        
+        run: ls /repo/
         shell: bash
       - name: run tests
-        run: /repo/.github/scripts/run-tests.sh
+        run: ls ./
         shell: bash
