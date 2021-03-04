@@ -2,6 +2,7 @@ cd /usr/local/src/dovecot
 make install
 
 cd /repo/
+git submodule update --init --recursive
 ./autogen.sh
 ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
 make clean install
