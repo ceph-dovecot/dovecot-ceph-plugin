@@ -25,6 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Checkout submodules
+        working-directory: ${{ github.workspace }}
         uses: textbook/git-checkout-submodule-action@master
         with:
           remote: true
