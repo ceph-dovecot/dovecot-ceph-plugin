@@ -27,11 +27,8 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
         with:
-          ref: ${{ github.ref }}       
-      - name: checkout submodules
-        run: | 
-        git submodules init 
-        git submodules update
+          submodules: recursive          
+          ref: ${{ github.ref }}          
                  
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
