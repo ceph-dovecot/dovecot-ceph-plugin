@@ -15,7 +15,8 @@ jobs:
         volumes:
            - ceph-data:/etc/ceph/ 
 
-    container: cephdovecot/travis-build-master-2.3:latest      
+    container: 
+      image: cephdovecot/travis-build-master-2.3:latest      
       volumes:
         - ceph-data:/etc/ceph/
         - ./:/repo
