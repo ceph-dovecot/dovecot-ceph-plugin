@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.ref }}
                   
       - name: list all files
-        run: ls -lah /github/workspace
+        run: ls -lah /home/runner/work/dovecot-ceph-plugin/dovecot-ceph-plugin/
       - name: run build
         run: /repo/.github/scripts/build_script.sh    
       - name: run unit tests
