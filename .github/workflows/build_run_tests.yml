@@ -33,8 +33,8 @@ jobs:
       - name: list all files
         run: ls -lah /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/
       - name: run build
-        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/build_script.sh    
+        run: /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/build_script.sh    
       - name: run unit tests
-        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_unit_tests.sh  
+        run: /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_unit_tests.sh  
       - name: run integration tests
-        run: /repo/repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_tests.sh      
+        run: /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/run_tests.sh      
