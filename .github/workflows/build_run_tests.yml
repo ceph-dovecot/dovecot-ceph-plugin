@@ -23,13 +23,12 @@ jobs:
       volumes:
         - ceph-data:/etc/ceph/
         - ${{ github.workspace }}/:/repo
-    steps:
-      - name: Checkout source
+    steps:      
         uses: actions/checkout@v1
         with:
           submodules: true
           ref: ${{ github.ref }}
-          path: /repo        
+          path: /repo/        
       - name: list all files
         run: ls -lah /repo
       - name: run build
