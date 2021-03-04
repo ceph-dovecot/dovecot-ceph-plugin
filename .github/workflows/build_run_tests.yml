@@ -29,6 +29,7 @@ jobs:
         with:
           submodules: true
           ref: ${{ github.ref }}
+        working-directory: /repo
       - name: list all files
         run: ls -lah /repo
       - name: run build
