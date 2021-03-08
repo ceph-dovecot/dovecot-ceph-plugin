@@ -32,6 +32,8 @@ jobs:
                   
       - name: list all files
         run: ls -lah /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/
+      - name: cat ceph conf
+        run: cat /etc/ceph/ceph.conf
       - name: run build
         run: /repo/dovecot-ceph-plugin/dovecot-ceph-plugin/.github/scripts/build_script.sh    
       - name: run unit tests
