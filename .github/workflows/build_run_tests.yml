@@ -5,6 +5,9 @@ on: push
 jobs:
   build-plugin:
     runs-on: ubuntu-latest
+    env:
+      ceph-config: ./
+
   
     services:
       ceph:
@@ -13,7 +16,7 @@ jobs:
           CEPH_DEMO_UID: demo_uid
           NETWORK_AUTO_DETECT: 4
         volumes:
-           - ceph-data:/etc/ceph/ 
+           - /home/runner/work/etc:/etc/ceph
 
     container: 
       image: cephdovecot/travis-build-master-2.3:latest  
@@ -21,7 +24,7 @@ jobs:
       env:
         GIT_DISCOVERY_ACROSS_FILESYSTEM: 1
       volumes:
-        - ceph-data:/etc/ceph/
+        - /home/runner/work/etc:/etc/ceph
         - /home/runner/work/:/repo
     steps:
       - name: Checkout source
