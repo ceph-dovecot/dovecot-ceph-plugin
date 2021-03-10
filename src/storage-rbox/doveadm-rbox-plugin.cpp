@@ -459,15 +459,8 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
     next_uid = 1;
   }
 /* add to index */
-#if DOVECOT_PREREQ(2, 3)
-  if ((save_ctx->transaction->flags & MAILBOX_TRANSACTION_FLAG_FILL_IN_STUB) == 0) {
-    mail_index_append(save_ctx->transaction->itrans, next_uid, &seq);
-  } else {
-    seq = save_ctx->data.stub_seq;
-  }
-#else
+
   mail_index_append(save_ctx->transaction->itrans, next_uid, &seq);
-#endif
 
   /* save the 128bit GUID/OID to index record */
   struct obox_mail_index_record rec;

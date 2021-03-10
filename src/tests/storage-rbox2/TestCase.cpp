@@ -202,7 +202,7 @@ void StorageTest::SetUpTestCase() {
 
   random_init();
 
-  master_service_init_log(master_service, t_strdup_printf("storage_rbox(%s): ", my_pid));
+  master_service_init_log(master_service);
   master_service_init_finish(master_service);
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "storage-rbox-test-pool", 1024);

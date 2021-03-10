@@ -8,7 +8,7 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-%{!?dovecot_devel: %define dovecot_devel dovecot22-devel}
+%{!?dovecot_devel: %define dovecot_devel dovecot-devel}
 %{!?librados_version: %define librados_version 10.2.5}
 
 Name:		dovecot-ceph-plugin
@@ -75,7 +75,7 @@ export LIBS="-pie"
 ./autogen.sh
 %configure \
 	--prefix=%{_prefix} \
-	--with-dovecot=%{_libdir}/dovecot
+	--with-dovecot=/opt/app/dovecot/lib/dovecot
 %{__make}
 
 %install
