@@ -261,21 +261,32 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
                                                                                     MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
+
+      
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
       if (box->storage != &r_storage->storage) {
         /* the namespace has multiple storages. */
         mailbox_free(&box);
         return 0;
       }
+      // lock index exclusively
+      //mail_index_lock_sync
+
       if (mailbox_open(box) < 0) {
         FUNC_END();
         return -1;
       }
+      mail_index_lock_sync(box->index, "LOCKED_FOR_REPAIR");
+      
       struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
       ret = rbox_sync_index_rebuild(rbox, force);
       if (ret < 0) {
         i_error("error resync (%s), error(%d), force(%d)", info->vname, ret, force);
       }
+
+      mail_index_unlock(box->index, "LOCKED_FOR_REPAIR");
+      // free index exclusively
+
       mailbox_free(&box);
     }
   }
