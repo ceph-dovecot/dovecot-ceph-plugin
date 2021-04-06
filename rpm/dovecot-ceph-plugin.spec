@@ -9,11 +9,11 @@
 # Foundation.  See file COPYING.
 
 %{!?dovecot_devel: %define dovecot_devel dovecot-devel}
-%{!?librados_version: %define librados_version 10.2.5}
+%{!?librados_version: %define librados_version 12.2.12}
 
 Name:		dovecot-ceph-plugin
 Summary:	Dovecot Ceph RADOS plugins
-Version:	0.0.21
+Version:	0.0.22
 Release:	0%{?dist}
 URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
 Group:		Productivity/Networking/Email/Servers
@@ -74,8 +74,10 @@ export LIBS="-pie"
 
 ./autogen.sh
 %configure \
-	--prefix=%{_prefix} \
+	--prefix=/opt/app/dovecot/ \
 	--with-dovecot=/opt/app/dovecot/lib/dovecot
+
+%{__make} clean
 %{__make}
 
 %install
