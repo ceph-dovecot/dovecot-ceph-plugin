@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.0.22](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.22)
+** upgrade ceph version **
+- upgrade ceph version 12.2.12 
+- build against dovecot 2.3.13
+
 ## [0.0.21](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.21)
 
 [Full Changelog](https://github.com/ceph-dovecot/dovecot-ceph-plugin/compare/0.0.20...0.0.21)
