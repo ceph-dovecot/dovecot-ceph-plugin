@@ -33,6 +33,7 @@ extern "C" {
 #include "mail-storage-service.h"
 #include "settings-parser.h"
 #include "unlink-directory.h"
+#include "master-service-private.h"
 
 #include "libstorage-rbox-plugin.h"
 #include "array.h"
@@ -194,11 +195,11 @@ void BackupTest::SetUpTestCase() {
 
   random_init();
 
-  master_service_init_log(master_service, t_strdup_printf("storage_rbox(%s): ", my_pid));
+  master_service_init_log(master_service);
   master_service_init_finish(master_service);
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "storage-rbox-test-pool", 1024);
-  s_test_ioloop = io_loop_create();
+  s_test_ioloop = master_service->ioloop;
 
   ASSERT_NE(getcwd(path_buf, sizeof(path_buf)), nullptr);
 
@@ -259,7 +260,7 @@ void BackupTest::TearDownTestCase() {
   mail_storage_service_deinit(&mail_storage_service);
   EXPECT_GE(unlink_directory(mail_home, UNLINK_DIRECTORY_FLAG_RMDIR, &error), 0);
 
-  io_loop_destroy(&s_test_ioloop);
+ // io_loop_destroy(&s_test_ioloop);
   pool_unref(&s_test_pool);
   destroy_one_pool(pool_name, &s_cluster);
   rados_ioctx_destroy(s_ioctx);

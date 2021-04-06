@@ -1,0 +1,44 @@
+version: '2'
+services:
+  ceph:
+    image: ceph/daemon:latest
+    command: "demo"
+    container_name: 'ceph_demo'
+    volumes:
+      - ceph-data:/etc/ceph/
+    environment:
+      - MON_IP=192.168.100.2
+      - CEPH_PUBLIC_NETWORK=192.168.100.0/24
+      - CEPH_DEMO_UID=demo_uid
+    ports:
+      - 3300:3300
+    networks:
+      - ceph_network
+      
+  dovecot:
+  #  image: cephdovecot/travis-build-master-2.3:latest
+    image: cephdovecot/travis-build:master-2.3
+    command: tail -f /dev/null
+    container_name: 'build'
+    volumes:
+      - ceph-data:/etc/ceph/
+      - ./../:/repo
+    environment:
+      - SOURCE_VERSION=master-2.3
+    ports:
+      - 10143:10143
+      - 1024:1024
+      - 10110:10110
+    networks:
+      - ceph_network
+
+volumes:
+    ceph-data:
+        external: false
+
+networks:
+  ceph_network:
+    ipam:
+      config:
+      - subnet: 192.168.100.0/24
+        gateway: 192.168.100.1

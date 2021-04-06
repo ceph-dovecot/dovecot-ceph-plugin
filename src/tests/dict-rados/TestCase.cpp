@@ -132,7 +132,7 @@ void DictTest::SetUpTestCase() {
 
   random_init();
 
-  master_service_init_log(master_service, t_strdup_printf("dict(%s): ", my_pid));
+  master_service_init_log(master_service);
   master_service_init_finish(master_service);
 
   s_test_pool = pool_alloconly_create(MEMPOOL_GROWING "dict-rados-test-pool", 64 * 1024);
