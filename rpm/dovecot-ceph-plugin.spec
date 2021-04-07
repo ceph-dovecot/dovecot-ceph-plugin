@@ -8,7 +8,7 @@
 # License version 2.1, as published by the Free Software
 # Foundation.  See file COPYING.
 
-%{!?dovecot_devel: %define dovecot_devel dovecot-devel}
+%{!?dovecot_devel: %define dovecot_devel tallence-dovecot-devel}
 %{!?librados_version: %define librados_version 12.2.12}
 
 Name:		dovecot-ceph-plugin
