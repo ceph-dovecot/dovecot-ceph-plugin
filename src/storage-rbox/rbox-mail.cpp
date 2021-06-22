@@ -496,7 +496,7 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   }
   // lost for some reason, use fallback
   // index is empty. we have to check the object attributes do we have to tell someone that the index is broken?
-  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, value_r) < 0) {
+  if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, const_cast<char**>(value_r)) < 0) {
     return -1;
   }
 
