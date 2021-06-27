@@ -106,7 +106,7 @@ static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
   const char *home;
 
   if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
-    const char *path = t_strconcat(home, "/rbox", NULL);
+    const char *path = t_strconcat(home, "/rbox", static_cast<const char*>(NULL));
     if (access(path, R_OK | W_OK | X_OK) == 0) {
 #ifdef DEBUG
       i_debug("rbox: root exists (%s)", path);
@@ -142,7 +142,7 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
     }
   }
 
-  path = t_strconcat(root_dir, "/" RBOX_MAILBOX_DIR_NAME, NULL);
+  path = t_strconcat(root_dir, "/" RBOX_MAILBOX_DIR_NAME, static_cast<const char*>(NULL));
   if (stat(path, &st) < 0) {
 #ifdef DEBUG
     i_debug("rbox autodetect: stat(%s) failed: %m", path);
@@ -343,7 +343,7 @@ static int rbox_open_mailbox(struct mailbox *box) {
     if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &box_path) < 0)
       return -1;
     i_assert(box_path != NULL);
-    box_path = t_strconcat(box_path, "/", box->index_prefix, ".log", NULL);
+    box_path = t_strconcat(box_path, "/", box->index_prefix, ".log", static_cast<const char*>(NULL));
     ret = stat(box_path, &st);
   }
 #endif
@@ -566,7 +566,7 @@ uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
 
   const char *path;
   path = mailbox_list_get_root_forced(list, MAILBOX_LIST_PATH_TYPE_CONTROL);
-  path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, NULL);
+  path = t_strconcat(path, "/" RBOX_UIDVALIDITY_FILE_NAME, static_cast<const char*>(NULL));
 
   FUNC_END();
   return mailbox_uidvalidity_next(list, path);

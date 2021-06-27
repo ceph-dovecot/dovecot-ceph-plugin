@@ -101,7 +101,7 @@ static int rbox_list_is_maildir_mailbox(struct mailbox_list *list, const char *d
   }
 
   /* we have at least one directory. see if this mailbox is selectable */
-  maildir_path = t_strconcat(path, "/", list->set.maildir_name, NULL);
+  maildir_path = t_strconcat(path, "/", list->set.maildir_name, static_cast<const char*>(NULL));
   if (stat(maildir_path, &st2) < 0)
     *flags_r |= MAILBOX_NOSELECT | MAILBOX_CHILDREN;
   else if (!S_ISDIR(st2.st_mode)) {
@@ -205,7 +205,7 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
   }
 
   /* we've done all filtering we can before stat()ing */
-  path = t_strconcat(dir, "/", fname, NULL);
+  path = t_strconcat(dir, "/", fname, static_cast<const char*>(NULL));
   if (stat(path, &st) < 0) {
     if (ENOTFOUND(errno)) {
       *flags_r |= MAILBOX_NONEXISTENT;
