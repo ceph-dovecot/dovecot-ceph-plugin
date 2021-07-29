@@ -87,8 +87,12 @@ struct mail *rbox_mail_alloc(struct mailbox_transaction_context *t, enum mail_fe
   mail = p_new(pool, struct rbox_mail, 1);
   i_zero(mail);
 
+#ifdef HAVE_INDEX_MAIL_INIT_OLD_SIGNATURE
   mail->imail.mail.pool = pool;
   index_mail_init(&mail->imail, t, wanted_fields, wanted_headers);
+#else
+  index_mail_init(&mail->imail, t, wanted_fields, wanted_headers, pool, NULL);
+#endif
 
   FUNC_END();
   return &mail->imail.mail.mail;
