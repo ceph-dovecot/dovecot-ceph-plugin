@@ -32,6 +32,10 @@ BuildRequires:	gcc-c++
 BuildRequires:	libtool
 BuildRequires:	pkg-config
 
+%if 0%{?sle_version} > 150000
+BuildRequires:	libradospp-devel >= %librados_version
+%endif
+
 %description
 Dovecot is an IMAP and POP3 server for Linux and UNIX-like systems,
 written primarily with security in mind. Although it is written in C,

@@ -278,8 +278,12 @@ int RadosStorageImpl::move(std::string &src_oid, const char *src_ns, std::string
     src_io_ctx.dup(dest_io_ctx);
     src_io_ctx.set_namespace(src_ns);
     dest_io_ctx.set_namespace(dest_ns);
-    write_op.copy_from(src_oid, src_io_ctx, 0);
 
+#if LIBRADOS_VERSION_CODE >= 30000
+    write_op.copy_from(src_oid, src_io_ctx, 0, 0);
+#else
+    write_op.copy_from(src_oid, src_io_ctx, 0);
+#endif
   } else {
     src_io_ctx = dest_io_ctx;
     time_t t;
@@ -335,7 +339,12 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
   } else {
     src_io_ctx = dest_io_ctx;
   }
+
+#if LIBRADOS_VERSION_CODE >= 30000
+  write_op.copy_from(src_oid, src_io_ctx, 0, 0);
+#else
   write_op.copy_from(src_oid, src_io_ctx, 0);
+#endif
 
   // because we create a copy, save date needs to be updated
   // as an alternative we could use &ctx->data.save_date here if we save it to xattribute in write_metadata
