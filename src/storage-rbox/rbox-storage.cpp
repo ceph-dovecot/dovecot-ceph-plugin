@@ -519,6 +519,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   }
   if (ret >= 0) {
     rados_storage->set_namespace(ns);
+    i_info("namespace set!");
     if (alt_storage) {
       rbox->storage->alt->set_namespace(ns);
     }
@@ -654,7 +655,10 @@ int rbox_mailbox_open(struct mailbox *box) {
   }
 
   if (box->creating) {
+    
     /* wait for mailbox creation to initialize the index */
+    int anker_create = rbox->storage->s->create_anker();
+    i_info("create anker %d", anker_create);
     FUNC_END();
     return 0;
   }

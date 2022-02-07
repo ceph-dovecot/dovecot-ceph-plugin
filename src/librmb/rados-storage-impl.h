@@ -70,6 +70,8 @@ class RadosStorageImpl : public RadosStorage {
   librmb::RadosMail *alloc_rados_mail() override;
 
   void free_rados_mail(librmb::RadosMail *mail) override;
+  int create_anker();
+
 
  private:
   int create_connection(const std::string &poolname);
