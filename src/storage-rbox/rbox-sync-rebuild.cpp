@@ -293,6 +293,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
           FUNC_END();
           return -1;
         }
+        i_info("ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
         iter_guid = new librados::NObjectIterator(r_storage->s->find_mails(nullptr));
       }
 
