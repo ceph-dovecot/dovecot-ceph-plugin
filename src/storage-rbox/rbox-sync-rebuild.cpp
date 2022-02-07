@@ -136,7 +136,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
       if(guid != mailbox_guid) {
         // mail object does not belong to this mailbox, 
         // skip it and hope that other mailboxes exist and we can assign it.
-        i_warning("mail : %s is not part of mailbox %s found mailbox guid: %s ", 
+        i_warning("mail_guid : %s is not part of mailbox_guid %s mails mailbox_guid is: %s ", 
                 mail_object.get_oid()->c_str(), 
                 guid.c_str(), 
                 mails_guid.c_str() 
@@ -147,7 +147,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
 
       sync_add_objects_ret =
           rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
-      i_info("re-adding mail : %s to mailbox %s ", mail_object.get_oid()->c_str(), guid.c_str() );
+      i_debug("re-adding mail : %s to mailbox %s ", mail_object.get_oid()->c_str(), guid.c_str() );
       if (sync_add_objects_ret < 0) {
         i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", (*iter).get_oid().c_str(),
                 rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
@@ -158,8 +158,8 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     ++found;
     ++rebuild_ctx->next_uid;
   }
-  i_info("----- warnings may be okay, as we do not track if a mail was already assigned to a mailbox ---- ");
-  
+  i_info("----- warnings may be okay, as we do not track if a mail was already assigned to a another mailbox, if unsure check all indexes for guids. ---- ");
+
   if (sync_add_objects_ret < 0) {
     i_error("error rbox_sync_add_objects for mbox %s", ctx->box->name);
     mailbox_set_deleted(ctx->box);
@@ -220,7 +220,6 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, librados:
 
   rbox_sync_set_uidvalidity(ctx);
   struct rbox_sync_rebuild_ctx *rebuild_ctx;
-  bool alt_storage = is_alternate_pool_valid(ctx->box);
 
   pool = pool_alloconly_create("rbox rebuild pool", 256);
 
@@ -288,8 +287,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
 
       mail_index_lock_sync(box->index, "LOCKED_FOR_REPAIR");
       
-      if(iter_guid == nullptr){
-      
+      if(iter_guid == nullptr) {
         if (rbox_open_rados_connection(box, false) < 0) {
           i_error("rbox_sync_index_rebuild_objects: cannot open rados connection");
           FUNC_END();
