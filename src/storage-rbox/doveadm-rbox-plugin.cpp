@@ -610,12 +610,20 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
   struct mail_search_args *search_args;
   struct mail *mail;
 
-  struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
+  struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_READONLY);
 
-  if (mailbox_open(box) < 0) {
+  if( box->virtual_vfuncs != NULL) {
+    i_info("skipping virtual box for object scan");
+    mailbox_free(&box);
+    return 0;
+  }
+
+ if (mailbox_open(box) < 0) {
     i_error("Error opening mailbox %s", info->vname);
+    mailbox_free(&box);
     return -1;
   }
+ 
 #if DOVECOT_PREREQ(2, 3)
   char reason[256];
   memset(reason, '\0', sizeof(reason));
@@ -634,6 +642,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
   std::cout << "box: " << info->vname << std::endl;
   int mail_count = 0;
   int mail_count_missing = 0;
+
   while (mailbox_search_next(search_ctx, &mail)) {
     ++mail_count;
     const struct obox_mail_index_record *obox_rec;
@@ -652,8 +661,9 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
                                 [oid](librmb::RadosMail *m) { return m->get_oid()->compare(oid) == 0; });
 
     if (it_mail == mail_objects.end()) {
-      /*  std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
-                  << " available: " << (it_mail != mail_objects.end()) << std::doveadm-rbox-plugin.cpp:1108:113:endl;*/
+      //std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
+      //            << " available: " << (it_mail != mail_objects.end()) << std::endl;
+
       ++mail_count_missing;
     } else {
       (*it_mail)->set_index_ref(true);

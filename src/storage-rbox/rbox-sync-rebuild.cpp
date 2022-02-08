@@ -158,7 +158,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     ++found;
     ++rebuild_ctx->next_uid;
   }
-  i_info("----- warnings may be okay, as we do not track if a mail was already assigned to a another mailbox, if unsure check all indexes for guids. ---- ");
+  i_info("----- warnings may be okay, as we do not track if a mail was already assigned to a another mailbox, if unsure check all indexes for guids. run: doveadm rmb ls mb -u <userid> uid -to validate all objects are assigned--- ");
 
   if (sync_add_objects_ret < 0) {
     i_error("error rbox_sync_add_objects for mbox %s", ctx->box->name);
@@ -274,8 +274,9 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
     if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
 
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
-      if (box->storage != &r_storage->storage) {
-        /* the namespace has multiple storages. */
+      if (box->storage != &r_storage->storage ||
+          box->virtual_vfuncs != NULL) {
+        /* the namespace has multiple storages. or is virtual box */
         mailbox_free(&box);
         return 0;
       }
