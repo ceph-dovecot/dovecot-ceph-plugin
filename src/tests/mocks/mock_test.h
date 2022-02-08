@@ -69,6 +69,9 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD0(alloc_rados_mail, librmb::RadosMail *());
 
   MOCK_METHOD1(free_rados_mail, void(librmb::RadosMail *mail));
+
+  MOCK_METHOD0(create_anker, int());
+
 };
 
 class RadosStorageMetadataMock : public RadosStorageMetadataModule {

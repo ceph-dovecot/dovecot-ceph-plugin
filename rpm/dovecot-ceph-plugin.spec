@@ -13,7 +13,7 @@
 
 Name:		dovecot-ceph-plugin
 Summary:	Dovecot Ceph RADOS plugins
-Version:	0.0.22
+Version:	0.0.24
 Release:	0%{?dist}
 URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
 Group:		Productivity/Networking/Email/Servers
@@ -31,6 +31,10 @@ BuildRequires:	libjansson-devel >= 2.9
 BuildRequires:	gcc-c++
 BuildRequires:	libtool
 BuildRequires:	pkg-config
+
+%if 0%{?sle_version} > 150000
+BuildRequires:	libradospp-devel >= %librados_version
+%endif
 
 %description
 Dovecot is an IMAP and POP3 server for Linux and UNIX-like systems,

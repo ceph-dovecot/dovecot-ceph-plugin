@@ -1,7 +1,16 @@
 # Change Log
+## [0.0.24](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.24) (2022-02-07)
+
+- list namespace object only once, in case of force-resync
+
+## [0.0.23](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.23) (2021-08-09)
+
+- Support SLES 15
+- Support Dovecot 2.3.15
+- Support Ceph v14.2.x
 
 ## [0.0.22](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.22)
-** upgrade ceph version **
+**upgrade ceph version**
 - upgrade ceph version 12.2.12 
 - build against dovecot 2.3.13
 

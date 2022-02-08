@@ -196,6 +196,8 @@ class RadosStorage {
    * @param[in] mail ptr to valid mail object
    * */
   virtual void free_rados_mail(librmb::RadosMail *mail) = 0;
+
+  virtual int create_anker() = 0;
 };
 
 }  // namespace librmb

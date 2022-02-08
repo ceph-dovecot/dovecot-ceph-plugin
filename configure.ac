@@ -8,7 +8,7 @@
 
 AC_PREREQ([2.59])
 
-AC_INIT([dovecot-ceph-plugin], [0.0.21], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
+AC_INIT([dovecot-ceph-plugin], [0.0.24], [https://github.com/ceph-dovecot/dovecot-ceph-plugin/issues/new], ,[https://github.com/ceph-dovecot/dovecot-ceph-plugin])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_MACRO_DIR([m4])
@@ -169,6 +169,10 @@ AS_IF([$GREP -A 1 'mailbox_transaction_begin(struct mailbox \*box' $dovecot_pkgi
 AC_MSG_CHECKING([for HAVE_ITER_FROM_INDEX_DIR])
 AS_IF([$GREP -A 1 'bool iter_from_index_dir;' $dovecot_pkgincludedir/mailbox-list.h | grep 'bool iter_from_index_dir;'], [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_ITER_FROM_INDEX_DIR],,[HAVE_ITER_FROM_INDEX_DIR supported])],[AC_MSG_RESULT(no)])
 
+AC_MSG_CHECKING([for HAVE_INDEX_MAIL_INIT_OLD_SIGNATURE])
+AS_IF([$GREP -A 3 'index_mail_init(struct index_mail \*mail' $dovecot_pkgincludedir/index-mail.h | $GREP -q 'struct mailbox_header_lookup_ctx \*_wanted_headers);'],
+      [AC_MSG_RESULT(yes) AC_DEFINE([HAVE_INDEX_MAIL_INIT_OLD_SIGNATURE],,[HAVE_INDEX_MAIL_INIT_OLD_SIGNATURE supported])],
+      [AC_MSG_RESULT(no)])
 
 AC_CONFIG_HEADERS([config-local.h])
 AX_PREFIX_CONFIG_H([$PACKAGE-config.h], [$PACKAGE], [config-local.h])

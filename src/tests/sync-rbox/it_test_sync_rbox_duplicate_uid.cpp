@@ -73,7 +73,12 @@ static void copy_object(struct mail_namespace *_ns, struct mailbox *box) {
   i_debug("Last Version = %lu for obj: %s , stat =%d, %ld", r_storage->s->get_io_ctx().get_last_version(), oid.c_str(),
           stat_ret, size);
 
+#if LIBRADOS_VERSION_CODE >= 30000
+  write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version(), 0);
+#else
   write_op.copy_from(oid, r_storage->s->get_io_ctx(), r_storage->s->get_io_ctx().get_last_version());
+#endif
+
   int ret = r_storage->s->get_io_ctx().operate(test_oid, &write_op);
 
   i_debug("copy operate: %d for %s", ret, test_oid.c_str());
