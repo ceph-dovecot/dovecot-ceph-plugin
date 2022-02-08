@@ -439,7 +439,7 @@ bool is_alternate_storage_set(uint8_t flags) { return (flags & RBOX_INDEX_FLAG_A
 bool is_alternate_pool_valid(struct mailbox *_box) {
   return _box->list->set.alt_dir != NULL && strlen(_box->list->set.alt_dir) > 0;
 }
-
+/**TODO: reduce cyclomatic complexity */
 int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
   FUNC_START();
 
@@ -571,7 +571,7 @@ uint32_t rbox_get_uidvalidity_next(struct mailbox_list *list) {
   FUNC_END();
   return mailbox_uidvalidity_next(list, path);
 }
-
+/*TODO: fix cyclomatic complexity */
 int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                 struct mail_index_transaction *trans) {
   FUNC_START();
@@ -654,7 +654,10 @@ int rbox_mailbox_open(struct mailbox *box) {
   }
 
   if (box->creating) {
+    
     /* wait for mailbox creation to initialize the index */
+    int anker_create = rbox->storage->s->create_anker();
+    i_info("create anker %d", anker_create);
     FUNC_END();
     return 0;
   }

@@ -137,6 +137,13 @@ int RadosStorageImpl::stat_mail(const std::string &oid, uint64_t *psize, time_t 
   }
   return get_io_ctx().stat(oid, psize, pmtime);
 }
+
+int RadosStorageImpl::create_anker() {
+  if (!cluster->is_connected() || !io_ctx_created) {
+    return -1;
+  }
+  return get_io_ctx().write_full("anker","anker");
+}
 void RadosStorageImpl::set_namespace(const std::string &_nspace) {
   get_io_ctx().set_namespace(_nspace);
   this->nspace = _nspace;
@@ -148,6 +155,7 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
   }
 
   if (attr != nullptr) {
+   // int hashpos = get_io_ctx().get_object_hash_position("t1_u");
     std::string filter_name = PLAIN_FILTER_NAME;
     ceph::bufferlist filter_bl;
 
