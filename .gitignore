@@ -1,7 +1,7 @@
 .settings/org.eclipse.cdt.ui.prefs
 dovecot-rados-plugin-config.h
 # eclipse project files
-
+.vscode/
 .project
 .cproject
 .autotools
