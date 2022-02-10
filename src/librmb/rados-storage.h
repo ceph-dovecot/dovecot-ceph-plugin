@@ -197,7 +197,6 @@ class RadosStorage {
    * */
   virtual void free_rados_mail(librmb::RadosMail *mail) = 0;
 
-  virtual int create_anker() = 0;
 };
 
 }  // namespace librmb
