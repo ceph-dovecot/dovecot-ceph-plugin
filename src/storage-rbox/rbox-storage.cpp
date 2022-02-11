@@ -654,10 +654,6 @@ int rbox_mailbox_open(struct mailbox *box) {
   }
 
   if (box->creating) {
-    
-    /* wait for mailbox creation to initialize the index */
-    int anker_create = rbox->storage->s->create_anker();
-    i_info("create anker %d", anker_create);
     FUNC_END();
     return 0;
   }

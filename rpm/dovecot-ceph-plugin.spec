@@ -121,7 +121,5 @@ find %{buildroot}%{_libdir}/dovecot/ -type f -name \*.a  -delete
 %files -n rmb-tools
 %defattr(-,root,root)
 %attr(0755, root, root) %{_bindir}/rmb
-%doc %{_mandir}/man1/rmb.1*
-
 %changelog
 

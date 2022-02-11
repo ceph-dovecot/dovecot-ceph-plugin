@@ -136,7 +136,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
       if(guid != mailbox_guid) {
         // mail object does not belong to this mailbox, 
         // skip it and hope that other mailboxes exist and we can assign it.
-        i_warning("mail_guid : %s is not part of mailbox_guid %s mails mailbox_guid is: %s ", 
+        i_debug("mail_guid : %s is not part of mailbox_guid %s mails mailbox_guid is: %s ", 
                 mail_object.get_oid()->c_str(), 
                 guid.c_str(), 
                 mails_guid.c_str() 
