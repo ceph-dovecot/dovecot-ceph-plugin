@@ -112,7 +112,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     FUNC_END();
     return -1;
   }
-
+  
   // update metadata storage io_ctx and load metadata
   if (alt_storage) {
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
@@ -120,6 +120,18 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
   }
 
+  /*#283: virtual mailbox needs this (different initialisation path)*/
+  if (rmail->rados_mail == nullptr) {
+    // make sure that mail_object is initialized,
+    // else create and load guid from index.
+    rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    if (rbox_get_index_record(mail) < 0) {
+      i_error("Error rbox_get_index_record uid(%d)", mail->uid);
+      FUNC_END();
+      return -1;
+    }
+  }
+  
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
     std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
@@ -127,9 +139,9 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       i_warning("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
                 metadata_key.c_str(), key, rmail->rados_mail->get_oid()->c_str(), getpid());
       rbox_mail_set_expunged(rmail);
-    } else {
+    } else {    
       i_error("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
-              metadata_key.c_str(), key, rmail->rados_mail->get_oid()->c_str(), getpid());
+              metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->get_oid()->c_str() : " no oid", getpid());
     }
     FUNC_END();
     return -1;
@@ -391,7 +403,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   int ret = -1;
   enum mail_flags flags = index_mail_get_flags(_mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(_mail->box);
-
+  
   if (data->stream == NULL) {
     if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
@@ -503,7 +515,7 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, value_r) < 0) {
     return -1;
   }
-
+  
   // restore the index extension header quietly.
   guid_128_from_string(*value_r, mail->index_guid);
   struct index_mail *imail = &mail->imail;
@@ -605,7 +617,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
-#endif
+#endif      
       return ret;
     case MAIL_FETCH_POP3_ORDER:
       if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
