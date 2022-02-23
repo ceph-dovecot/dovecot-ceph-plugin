@@ -1,4 +1,8 @@
 # Change Log
+## [0.0.25](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.25) (2022-02-23)
+
+- virtual_mailbox: bugfix fetch fields (x-guid, date.saved..)
+
 ## [0.0.24](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.24) (2022-02-07)
 
 - list namespace object only once, in case of force-resync
