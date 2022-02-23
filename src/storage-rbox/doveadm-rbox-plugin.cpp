@@ -661,8 +661,8 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
                                 [oid](librmb::RadosMail *m) { return m->get_oid()->compare(oid) == 0; });
 
     if (it_mail == mail_objects.end()) {
-      //std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
-      //            << " available: " << (it_mail != mail_objects.end()) << std::endl;
+      std::cout << "   missing mail object: uid=" << mail->uid << " guid=" << guid << " oid : " << oid
+                    << " available: " << (it_mail != mail_objects.end()) << std::endl;
 
       ++mail_count_missing;
     } else {

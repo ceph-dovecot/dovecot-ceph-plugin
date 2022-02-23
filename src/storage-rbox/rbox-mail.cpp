@@ -176,6 +176,17 @@ static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   // in case we already read the metadata this gives us the value
   // void get_metadata(rbox_metadata_key key, std::string* value) {
 
+  if (rmail->rados_mail == nullptr) {
+    // make sure that mail_object is initialized,
+    // else create and load guid from index.
+    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+    rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    if (rbox_get_index_record(_mail) < 0) {
+      i_error("Error rbox_get_index uid(%d)", _mail->uid);
+      FUNC_END();
+      return -1;
+    }
+  }
   librmb::RadosUtils::get_metadata(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, rmail->rados_mail->get_metadata(),
                                    &value);
 
@@ -235,6 +246,19 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     FUNC_END_RET("ret == 0");
     return 0;
   }
+  
+  if (rmail->rados_mail == nullptr) {
+    // make sure that mail_object is initialized,
+    // else create and load guid from index.
+    struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
+    rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    if (rbox_get_index_record(_mail) < 0) {
+      i_error("Error rbox_get_index uid(%d)", _mail->uid);
+      FUNC_END();
+      return -1;
+    }
+  }
+
   if (rmail->rados_mail->get_rados_save_date() != -1) {
     *date_r = data->save_date = rmail->rados_mail->get_rados_save_date();
     return 0;
@@ -409,13 +433,14 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       FUNC_END_RET("ret == -1;  connection to rados failed");
       return -1;
     }
+    
     librmb::RadosStorage *rados_storage = alt_storage ? ((struct rbox_storage *)_mail->box->storage)->alt
                                                       : ((struct rbox_storage *)_mail->box->storage)->s;
     if (alt_storage) {
       rados_storage->set_namespace(rados_storage->get_namespace());
     }
 
-    /* Pop3 needs this. it looks like rbox_index_mail_set_seq is not called. */
+    /* Pop3 and virtual box needs this. it looks like rbox_index_mail_set_seq is not called. */
     if (rmail->rados_mail == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
@@ -515,7 +540,7 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   if (rbox_mail_metadata_get(mail, rbox_metadata_key::RBOX_METADATA_GUID, value_r) < 0) {
     return -1;
   }
-  
+
   // restore the index extension header quietly.
   guid_128_from_string(*value_r, mail->index_guid);
   struct index_mail *imail = &mail->imail;
