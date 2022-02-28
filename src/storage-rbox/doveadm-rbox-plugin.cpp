@@ -470,7 +470,7 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
   guid_128_t mail_guid, mail_oid;
 
   if(guid_128_from_uuid_string(str_mail_guid.c_str(), mail_guid)< 0){
-      i_error("guid_128 xattr_guid string '%s'", str_mail_guid);
+      i_error("guid_128 xattr_guid string '%s'", str_mail_guid.c_str());
       return -1; 
   }
   guid_128_from_string(str_mail_oid.c_str(), mail_oid);
