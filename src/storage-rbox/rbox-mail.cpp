@@ -494,7 +494,8 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
     struct index_mail *imail = &mail->imail;
     string_t *str = str_new(imail->mail.data_pool, 64);
     str_truncate(str, 0);
-    str_append(str, guid_128_to_string(mail->index_guid));
+    // always provide uuid compact format.
+    str_append(str, guid_128_to_uuid_string(mail->index_guid, FORMAT_COMPACT));
     *value_r = str_c(str);
     return 0;
   }
@@ -505,7 +506,10 @@ int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r) {
   }
 
   // restore the index extension header quietly.
-  guid_128_from_string(*value_r, mail->index_guid);
+  if(guid_128_from_uuid_string(*value_r, mail->index_guid)< 0){  
+    i_error("guid_128 xattr_guid string '%s'", *value_r);
+    return -1; 
+  }
   struct index_mail *imail = &mail->imail;
   struct mail *_mail = (struct mail *)mail;
   struct rbox_mailbox *mbox = (struct rbox_mailbox *)_mail->box;
