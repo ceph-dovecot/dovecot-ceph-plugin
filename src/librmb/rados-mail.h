@@ -88,7 +88,7 @@ class RadosMail {
   string to_string(const string& padding);
   void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
   bool is_deprecated_uid() {return deprecated_uid;}
-  bool set_deprecated_uid(bool deprecated_uid_) {deprecated_uid = deprecated_uid_;}
+  void set_deprecated_uid(bool deprecated_uid_) {deprecated_uid = deprecated_uid_;}
   /*!
    * Some metadata isn't saved as xattribute (default). To access those, get_extended_metadata can
    * be used.
