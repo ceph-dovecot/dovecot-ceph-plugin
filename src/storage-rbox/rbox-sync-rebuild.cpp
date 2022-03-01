@@ -58,10 +58,9 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     return -1;
   }
   guid_128_t guid;
-  if (guid_128_from_string(xattr_guid, guid) < 0) {
-    i_error("guid_128 xattr_guid string '%s', next_uid(%d)", xattr_guid, next_uid);
-    FUNC_END();
-    return -1;
+  if (guid_128_from_uuid_string(xattr_guid, guid) < 0) {
+      FUNC_END();
+      return -1; 
   }
   memcpy(rec.guid, guid, sizeof(guid));
   memcpy(rec.oid, oid, sizeof(oid));
