@@ -627,8 +627,11 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
      used. */
   switch (field) {
     case MAIL_FETCH_GUID:
-      return rbox_get_guid_metadata(mail, value_r);
-    //  return rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r);
+      ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_GUID, MAIL_CACHE_GUID, value_r); 
+      if( ret < 0){
+          return rbox_get_guid_metadata(mail, value_r);
+      }    
+      return ret;
     case MAIL_FETCH_UIDL_BACKEND:
       if (!rbox_header_have_flag(_mail->box, mbox->hdr_ext_id, offsetof(struct rbox_index_header, flags),
                                  RBOX_INDEX_HEADER_FLAG_HAVE_POP3_UIDLS)) {
