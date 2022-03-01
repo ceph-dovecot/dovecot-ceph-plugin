@@ -87,7 +87,8 @@ class RadosMail {
   int get_num_active_op() { return active_op; }
   string to_string(const string& padding);
   void add_metadata(const RadosMetadata& metadata) { attrset[metadata.key] = metadata.bl; }
-
+  bool is_deprecated_uid() {return deprecated_uid;}
+  bool set_deprecated_uid(bool deprecated_uid_) {deprecated_uid = deprecated_uid_;}
   /*!
    * Some metadata isn't saved as xattribute (default). To access those, get_extended_metadata can
    * be used.
@@ -121,6 +122,7 @@ class RadosMail {
   map<string, ceph::bufferlist> extended_attrset;
   bool valid;
   bool index_ref;
+  bool deprecated_uid;
 };
 
 }  // namespace librmb

@@ -90,6 +90,10 @@ void setup_mail_object(struct mail_save_context *_ctx) {
 
   if (_ctx->data.guid != NULL) {
     string str(_ctx->data.guid);
+    //#286: use deprecated_flag to save original uuid format to G xattr
+    if (str.find("-")<str.length()) {
+      r_ctx->rados_mail->set_deprecated_uid(true);
+    }
     librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
     mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
@@ -162,6 +166,10 @@ void rbox_move_index(struct mail_save_context *_ctx, struct mail *src_mail) {
 
   if (_ctx->data.guid != NULL) {
     string str(_ctx->data.guid);
+    //#286: use deprecated_flag to save original uuid format to G xattr
+    if (str.find("-")<str.length()) {
+      r_ctx->rados_mail->set_deprecated_uid(true);
+    }
     librmb::RadosUtils::find_and_replace(&str, "-", "");  // remove hyphens if they exist
     mail_generate_guid_128_hash(str.c_str(), r_ctx->mail_guid);
   } else {
@@ -288,9 +296,17 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
     mail_object->add_metadata(xattr);
   }
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_GUID)) {
-    RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(r_ctx->mail_guid));
-    mail_object->add_metadata(xattr);
+    //#286: use deprecated_flag to save original uuid format to G xattr
+    if(!mail_object->is_deprecated_uid()){
+      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_string(r_ctx->mail_guid));
+      mail_object->add_metadata(xattr);
+    }
+    else{
+      RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_GUID, guid_128_to_uuid_string(r_ctx->mail_guid,FORMAT_RECORD));
+      mail_object->add_metadata(xattr);
+    }    
   }
+  
   if (r_storage->config->is_mail_attribute(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME)) {
     RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, mdata->received_date);
     mail_object->add_metadata(xattr);
