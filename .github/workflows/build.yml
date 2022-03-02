@@ -1,0 +1,37 @@
+name: container build
+
+on:
+  push:
+    branches: 
+      - '**'
+  
+jobs:
+  container-job:
+
+    runs-on: ubuntu-latest
+    container: cephdovecot/travis-build-master-2.3:latest
+
+    steps:
+    - name: clean outdated repos 
+      run: rm /etc/apt/sources.list.d/*
+    - name: add git
+      run: add-apt-repository ppa:git-core/ppa -y
+    - name: update
+      run: (DEBIAN_FRONTEND=noninteractive apt update & apt-get install -qq -y flex bison git)
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: update dovecot
+      run: (cd /usr/local/src/dovecot; git fetch origin)
+    - name: update dovecot branch 
+      run: (cd /usr/local/src/dovecot; git checkout 2.3.15)
+    - name: install missing packages apt-get
+      run: (DEBIAN_FRONTEND=noninteractive apt-get install -qq -y flex bison)
+    - name: autogen dovecot 
+      run: (cd /usr/local/src/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode --enable-devel-checks --with-zlib)
+    - name: build dovecot 
+      run: (cd /usr/local/src/dovecot; make install)
+    - name: configure
+      run: ./autogen.sh && ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
+    - name: build
+      run:  make clean install
