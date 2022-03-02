@@ -12,6 +12,10 @@ jobs:
     container: cephdovecot/travis-build-master-2.3:latest
 
     steps:
+    - name: add git
+      run: add-apt-repository ppa:git-core/ppa -y
+    - name: update
+      run: (DEBIAN_FRONTEND=noninteractive apt update & apt-get install -qq -y flex bison git)
     - uses: actions/checkout@v2
       with:
         submodules: 'true'
