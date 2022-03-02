@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
     - name: update dovecot
       run: (cd /usr/local/src/dovecot; git fetch origin)
     - name: update dovecot branch 
@@ -23,8 +25,6 @@ jobs:
       run: (cd /usr/local/src/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode --enable-devel-checks --with-zlib)
     - name: build dovecot 
       run: (cd /usr/local/src/dovecot; make install)
-    - name: update submodules
-      run: git submodule update --recursive
     - name: configure
       run: ./autogen.sh && ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
     - name: build
