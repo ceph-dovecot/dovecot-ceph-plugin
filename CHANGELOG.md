@@ -1,4 +1,8 @@
 # Change Log
+## [0.0.27](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.25) (2022-02-28)
+
+- bugfix initialisation rados_mail->deprecated_uid
+
 ## [0.0.26](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.25) (2022-02-28)
 
 - support deprecated uuid format RECORD and MICROSOFT

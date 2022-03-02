@@ -30,7 +30,8 @@ RadosMail::RadosMail()
       mail_buffer(nullptr),
       save_date_rados(-1),
       valid(true),
-      index_ref(false) {}
+      index_ref(false),
+      deprecated_uid(false) {}
 
 RadosMail::~RadosMail() {}
 

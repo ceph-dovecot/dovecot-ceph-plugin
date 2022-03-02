@@ -61,6 +61,18 @@ using ::testing::ReturnRef;
 #endif
 
 TEST_F(StorageTest, init) {}
+
+/** 
+ * make sure is deprecated uid is always false initialy  
+ **/
+TEST_F(StorageTest, create_rados_mail) {
+
+  for(int i = 0 ; i < 10000 ;i++) {
+    librmb::RadosMail *mail = new librmb::RadosMail();
+    ASSERT_EQ(false, mail->is_deprecated_uid());
+    delete mail;
+  }
+}
 /**
  * Error test:
  * - open_connection to rados will fail with -1 .
