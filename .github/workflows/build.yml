@@ -13,9 +13,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: autogen
-      run: ./autogen.sh
+      with:
+        submodules: recursive
+    - name: update dovecot
+      run: (cd /usr/local/src/dovecot; git fetch origin)
+    - name: update dovecot branch 
+      run: (cd /usr/local/src/dovecot; git checkout 2.3.15)
+    - name: install missing packages apt-get
+      run: (DEBIAN_FRONTEND=noninteractive apt-get install -qq -y flex bison)
+    - name: autogen dovecot 
+      run: (cd /usr/local/src/dovecot; ./autogen.sh && ./configure --enable-maintainer-mode --enable-devel-checks --with-zlib)
+    - name: build dovecot 
+      run: (cd /usr/local/src/dovecot; make install)
     - name: configure
-      run: ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
+      run: ./autogen.sh && ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
     - name: build
       run:  make clean install
