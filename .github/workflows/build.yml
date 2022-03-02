@@ -12,6 +12,8 @@ jobs:
     container: cephdovecot/travis-build-master-2.3:latest
 
     steps:
+    - name: clean outdated repos 
+      run: rm /etc/apt/sources.list.d/*
     - name: add git
       run: add-apt-repository ppa:git-core/ppa -y
     - name: update
