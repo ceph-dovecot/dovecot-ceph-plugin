@@ -474,7 +474,11 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     if (ret < 0) {
       if (ret == -ENOENT) {
-        i_warning("Mail not found. %s, ns='%s', process %d, alt_storage(%d) -> marking mail as expunged!",
+        // This can happen, if we have more then 2 processes running at the same time.
+        // if one deletes a mail, the other will only notice, when it tries to access it.
+        // so its reasonable to set this to debug log level. Other plugins not even do that
+        // in this case.
+        i_debug("Mail not found. %s, ns='%s', process %d, alt_storage(%d) -> marking mail as expunged!",
                   rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), getpid(), alt_storage);
         rbox_mail_set_expunged(rmail);
         FUNC_END_RET("ret == -1");
