@@ -266,7 +266,6 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   guid_128_from_string(src_oid.c_str(), item->oid);
   array_append(&rbox->moved_items, &item, 1);
 
-  rbox_move_index(ctx, mail);
   if (r_storage->save_log->is_open()) {
     std::list<librmb::RadosMetadata *> metadata;
     librmb::RadosMetadata mailbox_guid(librmb::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(rbox->mailbox_guid));
@@ -283,6 +282,10 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
         dest_oid, *ns_dest, rados_storage->get_pool_name(),
         librmb::RadosSaveLogEntry::op_mv(*ns_src, src_oid, dest_mbox->list->ns->owner->username, metadata)));
   }
+  //#295: move index after updating the meterdata to avoid having a index entry with a 
+  //      reference to an object with nonexisting metadata.
+  rbox_move_index(ctx, mail);
+
 #ifdef DEBUG
   i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src->c_str(), src_oid.c_str(),
           ns_dest->c_str());
