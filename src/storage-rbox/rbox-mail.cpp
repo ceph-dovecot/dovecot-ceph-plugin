@@ -48,6 +48,8 @@ using librmb::rbox_metadata_key;
 
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
   FUNC_START();
+
+  
   //we need to do this here to make sure that everything is in sync.
   //#222 describes error with this approach, but to be honest, slow
   //     recovery by resyncing the index is maybe the only thing 
@@ -58,6 +60,7 @@ void rbox_mail_set_expunged(struct rbox_mail *mail) {
   if (mail_index_is_expunged(_mail->transaction->view, _mail->seq)) {
     mail_set_expunged(_mail);
   } else {
+    i_info("rbox_mail_set_expunged call, mail is not expunged!");
     mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
                               _mail->uid);
     /* the message was probably just purged */
@@ -145,22 +148,16 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       return -1;
     }
   }
-  
   if(rmail->rados_mail->get_oid()->length() == 0){
-    // try to reinitialize the oid again from the index header!
-    if (rbox_get_index_record(mail) < 0) {
-      i_error("Error rbox_get_index_record uid(%d) for rados_mail: %s", mail->uid, 
-              rmail->rados_mail->to_string(" ").c_str());
-      FUNC_END();
-      return -1;
-    }
+    i_info("mail uid: %d , oid '%s', guid: %s, index-oid: %s ",mail->uid,rmail->rados_mail->get_oid()->c_str(), guid_128_to_string(rmail->index_guid),  guid_128_to_string(rmail->index_oid) );
+    rmail->rados_mail->set_oid(rmail->index_oid);
   }
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
     std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
     if (ret_load_metadata == -ENOENT) {
-      i_warning("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
-              metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+      //i_debug("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
+      //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
       rbox_mail_set_expunged(rmail);
     } else {    
       i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
