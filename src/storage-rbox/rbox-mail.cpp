@@ -60,7 +60,6 @@ void rbox_mail_set_expunged(struct rbox_mail *mail) {
   if (mail_index_is_expunged(_mail->transaction->view, _mail->seq)) {
     mail_set_expunged(_mail);
   } else {
-    i_info("rbox_mail_set_expunged call, mail is not expunged!");
     mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
                               _mail->uid);
     /* the message was probably just purged */
