@@ -158,7 +158,12 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       //i_debug("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
       //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
       rbox_mail_set_expunged(rmail);
-    } else {    
+    } else if(ret_load_metadata == -ETIMEDOUT) {
+      i_warning("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+      FUNC_END();
+      return -1;
+    } 
+    else {    
       i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
               metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
     }
