@@ -48,8 +48,24 @@ using librmb::rbox_metadata_key;
 
 void rbox_mail_set_expunged(struct rbox_mail *mail) {
   FUNC_START();
-  // only set mail to expunge. see #222 rbox_set_expunge => index rebuild!
-  mail_set_expunged((struct mail *)mail);
+
+  
+  //we need to do this here to make sure that everything is in sync.
+  //#222 describes error with this approach, but to be honest, slow
+  //     recovery by resyncing the index is maybe the only thing 
+  //     we can do here!
+  struct mail *_mail = &mail->imail.mail.mail;
+
+  mail_index_refresh(_mail->box->index);
+  if (mail_index_is_expunged(_mail->transaction->view, _mail->seq)) {
+    mail_set_expunged(_mail);
+  } else {
+    mail_storage_set_critical(_mail->box->storage, "rbox %s: Unexpectedly lost uid=%u", mailbox_get_path(_mail->box),
+                              _mail->uid);
+    /* the message was probably just purged */
+    mail_storage_set_error(_mail->box->storage, MAIL_ERROR_EXPUNGED, "requested messages no longer exist.");
+    rbox_set_mailbox_corrupted(_mail->box);
+  }
   FUNC_END();
 }
 
@@ -131,17 +147,25 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       return -1;
     }
   }
-  
+  if(rmail->rados_mail->get_oid()->length() == 0){
+    i_info("mail uid: %d , oid '%s', guid: %s, index-oid: %s ",mail->uid,rmail->rados_mail->get_oid()->c_str(), guid_128_to_string(rmail->index_guid),  guid_128_to_string(rmail->index_oid) );
+    rmail->rados_mail->set_oid(rmail->index_oid);
+  }
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
     std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
     if (ret_load_metadata == -ENOENT) {
-      i_warning("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
-                metadata_key.c_str(), key, rmail->rados_mail->get_oid()->c_str(), getpid());
+      //i_debug("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
+      //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
       rbox_mail_set_expunged(rmail);
-    } else {    
-      i_error("Errorcode: %d cannot get x_attr(%s,%c) from object %s, process %d", ret_load_metadata,
-              metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->get_oid()->c_str() : " no oid", getpid());
+    } else if(ret_load_metadata == -ETIMEDOUT) {
+      i_warning("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+      FUNC_END();
+      return -1;
+    } 
+    else {    
+      i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
+              metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
     }
     FUNC_END();
     return -1;
@@ -149,7 +173,6 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
 
   // we need to copy the pointer. Because dovecots memory mgmnt will free it!
   char *val = NULL;
-
   librmb::RadosUtils::get_metadata(key, rmail->rados_mail->get_metadata(), &val);
   if (val != NULL) {
     *value_r = i_strdup(val);

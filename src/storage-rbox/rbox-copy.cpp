@@ -221,7 +221,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
 #endif
   return 0;
 }
-
+//unused!
 static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_storage, struct mail *mail,
                      const std::string *ns_src, const std::string *ns_dest) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
@@ -324,13 +324,14 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     }
 
     librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
-    if (ctx->moving != TRUE) {
+   // if (ctx->moving != TRUE) {
       if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
         FUNC_END_RET("ret == -1, copy mail failed");
         return -1;
       }
-    }
-    if (ctx->moving) {
+    //}
+    // Avoid using move directly : use copy and expunge instead
+    /*if (ctx->moving) {
       int ret = 0;
       T_BEGIN {
         if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
@@ -342,7 +343,7 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       if (ret < 0) {
         return ret;
       }
-    }
+    }*/
 
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     if (ctx->dest_mail != NULL) {

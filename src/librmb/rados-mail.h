@@ -83,6 +83,10 @@ class RadosMail {
   void set_index_ref(bool ref) { this->index_ref = ref; }
   bool is_valid() { return valid; }
   void set_valid(bool valid_) { valid = valid_; }
+  
+  bool is_restored() { return restored; }
+  void set_restored(bool restored_) { restored = restored_; }
+  
   bool has_active_op() { return active_op > 0; }
   int get_num_active_op() { return active_op; }
   string to_string(const string& padding);
@@ -123,6 +127,7 @@ class RadosMail {
   bool valid;
   bool index_ref;
   bool deprecated_uid;
+  bool restored;
 };
 
 }  // namespace librmb

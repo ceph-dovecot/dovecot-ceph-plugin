@@ -87,30 +87,21 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   FUNC_END();
   return 0;
 }
-// find objects with mailbox_guid 'U' attribute
-int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
-                            struct rbox_sync_rebuild_ctx *rebuild_ctx) {
-  FUNC_START();
-  struct mail_storage *storage = ctx->box->storage;
-  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
-  struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
 
-  const struct mail_index_header *hdr = mail_index_get_header(ctx->trans->view);
-
-  if (rebuild_ctx->next_uid == INT_MAX) {
-    rebuild_ctx->next_uid = hdr->next_uid != 0 ? hdr->next_uid : 1;
-  }
-
-  int found = 0;
-  int sync_add_objects_ret = 0;
+std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(
+            bool alt_storage,     
+            struct rbox_storage *r_storage,
+            librados::NObjectIterator &iter) {
   
+  std::map<std::string, std::list<librmb::RadosMail>> rados_mails;
+
   while (iter != librados::NObjectIterator::__EndObjectIterator) {
     
     librmb::RadosMail mail_object;
     mail_object.set_oid((*iter).get_oid());
 
     int load_metadata_ret;
-    if (rebuild_ctx->alt_storage) {
+    if (alt_storage) {
       r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
       load_metadata_ret = r_storage->ms->get_storage()->load_metadata(&mail_object);
     } else {
@@ -129,35 +120,64 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
                                        mail_object.get_metadata(), 
                                        &mailbox_guid
                                       );
-      
       std::string mails_guid(mailbox_guid);
-      std::string guid(guid_128_to_string(rbox->mailbox_guid));  
-      if(guid != mailbox_guid) {
-        // mail object does not belong to this mailbox, 
-        // skip it and hope that other mailboxes exist and we can assign it.
-        i_debug("mail_guid : %s is not part of mailbox_guid %s mails mailbox_guid is: %s ", 
-                mail_object.get_oid()->c_str(), 
-                guid.c_str(), 
-                mails_guid.c_str() 
-              );
-        ++iter;
-        continue;
-      }
 
-      sync_add_objects_ret =
-          rbox_sync_add_object(ctx, (*iter).get_oid(), &mail_object, rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
-      i_debug("re-adding mail : %s to mailbox %s ", mail_object.get_oid()->c_str(), guid.c_str() );
-      if (sync_add_objects_ret < 0) {
-        i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", (*iter).get_oid().c_str(),
-                rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
-        break;
+      if(rados_mails.count(mailbox_guid)){
+        rados_mails[mailbox_guid].push_back(mail_object);
+      }else{
+        std::list<librmb::RadosMail> list_mail_objects;
+        list_mail_objects.push_back(mail_object);
+        rados_mails[mailbox_guid]= list_mail_objects;
       }
     }
-    ++iter;
-    ++found;
+    ++iter;   
+  }
+  return rados_mails;
+}
+
+// find objects with mailbox_guid 'U' attribute
+int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails,
+                            struct rbox_sync_rebuild_ctx *rebuild_ctx) {
+  FUNC_START();
+  struct mail_storage *storage = ctx->box->storage;
+  struct rbox_storage *r_storage = (struct rbox_storage *)storage;
+  struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
+
+  const struct mail_index_header *hdr = mail_index_get_header(ctx->trans->view);
+
+  if (rebuild_ctx->next_uid == INT_MAX) {
+    rebuild_ctx->next_uid = hdr->next_uid != 0 ? hdr->next_uid : 1;
+  }
+
+  int found = 0;
+  int sync_add_objects_ret = 0;
+  
+  std::string mailbox_guid(guid_128_to_string(rbox->mailbox_guid));  
+
+  
+  if(!rados_mails.count(mailbox_guid)){
+      i_info("no mails for mailbox guid: %s",mailbox_guid.c_str());
+      FUNC_END();
+      return 0;
+  }
+  
+  std::list<librmb::RadosMail>::iterator it;
+  for(it=rados_mails[mailbox_guid].begin(); it!=rados_mails[mailbox_guid].end(); ++it){   
+    
+    sync_add_objects_ret =
+        rbox_sync_add_object(ctx, *it->get_oid(), &(*it), rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
+    i_debug("re-adding mail : %s to mailbox %s ", it->get_oid()->c_str(), mailbox_guid.c_str() );
+    if (sync_add_objects_ret < 0) {
+      i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", it->get_oid()->c_str(),
+              rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
+      break;
+    }
+    it->set_restored(true);
+    it->set_index_ref(true);
+    i_info("restored rados_mail: %s",it->to_string(" ").c_str());  
+
     ++rebuild_ctx->next_uid;
   }
-  i_info("----- warnings may be okay, as we do not track if a mail was already assigned to a another mailbox, if unsure check all indexes for guids. run: doveadm rmb ls mb -u <userid> uid -to validate all objects are assigned--- ");
 
   if (sync_add_objects_ret < 0) {
     i_error("error rbox_sync_add_objects for mbox %s", ctx->box->name);
@@ -165,15 +185,6 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObject
     mail_storage_set_critical(storage, "find mailbox(%s) failed: %m", ctx->box->name);
     FUNC_END();
     return -1;
-  }
-
-  if (found == 0) {
-#ifdef DEBUG
-    i_debug("no entry to restore can be found for mailbox %s", ctx->box->name);
-#endif
-    mailbox_set_deleted(ctx->box);
-    FUNC_END();
-    return 0;
   }
 
   FUNC_END();
@@ -211,7 +222,7 @@ void rbox_sync_update_header(struct index_rebuild_context *ctx) {
   FUNC_END();
 }
 
-int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, librados::NObjectIterator &iter_guid) {
+int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails) {
   FUNC_START();
   
   int ret = 0;
@@ -227,7 +238,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, librados:
   rebuild_ctx->alt_storage = false;
   rebuild_ctx->next_uid = INT_MAX;
 
-  ret = rbox_sync_rebuild_entry(ctx, iter_guid, rebuild_ctx);
+  ret = rbox_sync_rebuild_entry(ctx, rados_mails, rebuild_ctx);
 
   rbox_sync_update_header(ctx);
   pool_unref(&pool);
@@ -240,7 +251,7 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
   FUNC_START();
 
   struct mail_user *user = r_storage->storage.user;
-  librados::NObjectIterator *iter_guid = nullptr;
+  std::map<std::string, std::list<librmb::RadosMail>> rados_mails;
 
   struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
   
@@ -249,18 +260,28 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
     // as we first need to call open_mailbox to initialize
     // the rados_connection successfully and list objects in
     // the user namespace
-    repair_namespace(ns, force, r_storage, iter_guid);
+    repair_namespace(ns, force, r_storage, rados_mails);
   }
+  i_info("repair done checking for unassigned mails ");
+  std::map<std::string, std::list<librmb::RadosMail>>::iterator it;
+  long count_not_assigned = 0;
 
-  if( iter_guid != nullptr ){
-    delete iter_guid;
+  for(it=rados_mails.begin(); it!=rados_mails.end(); ++it){      
+    std::list<librmb::RadosMail>::iterator list_it;
+    for(list_it=it->second.begin(); list_it!=it->second.end(); ++list_it){
+      if(!list_it->is_restored()){
+        i_info("unassigned mail: %s",list_it->to_string("  ").c_str());
+      }
+      count_not_assigned += list_it->is_restored() ? 0 : 1;
+    }    
   }
+  i_info("total unassigned mails %ld", count_not_assigned);
 
   FUNC_END();
   return 0;
 }
 
-int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, librados::NObjectIterator *iter_guid) {
+int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails) {
   FUNC_START();
   struct mailbox_list_iterate_context *iter;
   const struct mailbox_info *info;
@@ -287,17 +308,25 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
 
       mail_index_lock_sync(box->index, "LOCKED_FOR_REPAIR");
       
-      if(iter_guid == nullptr) {
+      if(rados_mails.size() == 0) {
         if (rbox_open_rados_connection(box, false) < 0) {
           i_error("rbox_sync_index_rebuild_objects: cannot open rados connection");
           FUNC_END();
           return -1;
         }
         i_info("ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
-        iter_guid = new librados::NObjectIterator(r_storage->s->find_mails(nullptr));
+        i_info("loading mails... ");
+        librados::NObjectIterator *iter_guid = new librados::NObjectIterator(r_storage->s->find_mails(nullptr));
+        i_info("loading mail metadata...");
+        rados_mails = load_rados_mail_metadata(false,r_storage,*iter_guid);
+        i_info("mails completely loaded ");
+        std::map<std::string, std::list<librmb::RadosMail>>::iterator it;
+        for(it=rados_mails.begin(); it!=rados_mails.end(); ++it){          
+          i_info("found mails for mailbox_guid: %s: mails : %ld",it->first.c_str(), it->second.size());
+        }
       }
 
-      ret = rbox_sync_index_rebuild((struct rbox_mailbox *)box, force, iter_guid);
+      ret = rbox_sync_index_rebuild((struct rbox_mailbox *)box, force, rados_mails);
 
       if (ret < 0) {
         i_error("error resync (%s), error(%d), force(%d)", info->vname, ret, force);
@@ -317,7 +346,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
   return ret;
 }
 
-int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, librados::NObjectIterator *iter) {
+int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails) {
   struct index_rebuild_context *ctx;
   struct mail_index_view *view;
   struct mail_index_transaction *trans;
@@ -349,7 +378,7 @@ int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, librados::NOb
 
   ctx = index_index_rebuild_init(&rbox->box, view, trans);
 
-  ret = rbox_sync_index_rebuild_objects(ctx, *iter);
+  ret = rbox_sync_index_rebuild_objects(ctx, rados_mails);
 
 #ifdef DEBUG
   i_debug("rebuild finished");
