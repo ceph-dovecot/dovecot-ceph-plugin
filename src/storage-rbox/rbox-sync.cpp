@@ -462,7 +462,22 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
   librmb::RadosStorage *rados_storage = item->alt_storage ? r_storage->alt : r_storage->s;
   ret_remove = rados_storage->get_io_ctx().remove(oid);
   if (ret_remove < 0) {
-    if(ret_remove != -ENOENT){
+    if(ret_remove == -ETIMEDOUT) {
+      i_warning("rbox_sync connection timeout during oid (%s) deletion, mail stays in object store.",oid);
+      int max_retry = 3;
+      for(int i = 0;i<max_retry;i++){
+          ret_remove = rados_storage->get_io_ctx().remove(oid);
+          if(ret_remove >=0){
+            break;
+          }
+          i_warning("rbox_sync (retry %d) deletion failed with %d during oid (%s) deletion, mail stays in object store.",i, ret_remove, oid);
+      }
+      
+    }
+    else if (ret_remove == -ENOENT){
+      i_debug("mail oid(%s) already deleted",oid);
+    }
+    else {
     	i_error("rbox_sync_object_expunge: aio_remove failed with %d oid(%s), alt_storage(%d)", ret_remove, oid,
             item->alt_storage);
     }

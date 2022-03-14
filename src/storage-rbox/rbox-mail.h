@@ -36,4 +36,8 @@ extern int rbox_mail_get_virtual_size(struct mail *_mail, uoff_t *size_r);
 
 extern int rbox_get_guid_metadata(struct rbox_mail *mail, const char **value_r);
 
+extern int read_mail_from_storage(librmb::RadosStorage *rados_storage,
+                                  struct rbox_mail *rmail,
+                                  uint64_t *psize,
+                                  time_t *save_date);
 #endif  // SRC_STORAGE_RBOX_RBOX_MAIL_H_

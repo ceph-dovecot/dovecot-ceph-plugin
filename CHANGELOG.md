@@ -1,4 +1,8 @@
 # Change Log
+## [0.0.30](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.30) (2022-03-14)
+
+- bugfix: retry ceph operation in case of connection timeout
+
 ## [0.0.29](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.29) (2022-03-10)
 
 - bugfix: force-resync
