@@ -160,7 +160,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       rbox_mail_set_expunged(rmail);
     } else if(ret_load_metadata == -ETIMEDOUT) {
       i_warning("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
-      int max_retry = 3;
+      int max_retry = 10;
       for(int i=0;i<max_retry;i++){
         ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
         if(ret_load_metadata>=0){
@@ -545,7 +545,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       else if(ret == -ETIMEDOUT) {
         i_warning("READ TIMEOUT %d reading mail object %s ", ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
 
-        int max_retry = 3;
+        int max_retry = 10;
         for(int i=0;i<max_retry;i++){
           ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
           if(ret >= 0){

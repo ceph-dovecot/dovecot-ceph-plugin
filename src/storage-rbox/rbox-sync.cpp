@@ -464,7 +464,7 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
   if (ret_remove < 0) {
     if(ret_remove == -ETIMEDOUT) {
       i_warning("rbox_sync connection timeout during oid (%s) deletion, mail stays in object store.",oid);
-      int max_retry = 3;
+      int max_retry = 10;
       for(int i = 0;i<max_retry;i++){
           ret_remove = rados_storage->get_io_ctx().remove(oid);
           if(ret_remove >=0){
