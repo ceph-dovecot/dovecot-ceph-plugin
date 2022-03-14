@@ -6,6 +6,7 @@
 
 ## [0.0.28](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.28) (2022-02-28)
 
+
 - bugfix: wait for metadata copy before updating index (MOVE Mail)
 - enhancement: in case we have more then one mail process (imap, pop3,..) running at the same time, 
                do not print warning message if mail access fails due to old index entry .       
