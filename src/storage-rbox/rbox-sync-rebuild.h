@@ -14,6 +14,7 @@
 
 #include <map>
 #include <string>
+#include <list>
 #include <rados/librados.hpp>
 
 #include "../librmb/rados-mail.h"
@@ -31,15 +32,17 @@ extern void rbox_sync_update_header(struct index_rebuild_context *ctx);
 extern int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &oi, librmb::RadosMail *mail_obj,
                                 bool alt_storage, uint32_t next_uid);
 
-extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
+extern int rbox_sync_index_rebuild(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails,
                                    struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern void rbox_sync_set_uidvalidity(struct index_rebuild_context *ctx);
 
-extern int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, librados::NObjectIterator &iter_guid);
-extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, librados::NObjectIterator &iter,
+extern int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
+extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails,
                                    struct rbox_sync_rebuild_ctx *rebuild_ctx);
-extern int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, librados::NObjectIterator *iter);
+extern int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
 extern int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force);
-extern int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, librados::NObjectIterator *iter_guid);
+extern int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
 
+extern std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(bool alt_storage, struct rbox_storage *r_storage, librados::NObjectIterator &iter);
+  
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
