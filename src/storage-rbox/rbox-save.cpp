@@ -413,10 +413,9 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
     }
   }
   // try to clean up!
-  int delete_ret = 0;
   for (std::list<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
        ++it_cur_obj) {
-    delete_ret = r_storage->s->delete_mail(*it_cur_obj);
+    int delete_ret = r_storage->s->delete_mail(*it_cur_obj);
     if (delete_ret < 0 && delete_ret != -ENOENT) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid()->c_str());
     }
@@ -424,8 +423,6 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
   // clean up index
   if (r_ctx->seq > 0) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
-  } else {
-    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0", r_ctx->seq);
   }
 
   if (r_ctx->ctx.transaction != NULL) {

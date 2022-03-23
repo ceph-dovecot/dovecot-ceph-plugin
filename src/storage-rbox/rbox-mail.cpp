@@ -159,9 +159,19 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
       rbox_mail_set_expunged(rmail);
     } else if(ret_load_metadata == -ETIMEDOUT) {
-      i_warning("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
-      FUNC_END();
-      return -1;
+      int max_retry = 10;
+      for(int i=0;i<max_retry;i++){
+        ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
+        if(ret_load_metadata>=0){
+          i_error("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+          break;
+        }
+        i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");  
+      }
+      if(ret_load_metadata<0){        
+        FUNC_END();
+        return -1;
+      }
     } 
     else {    
       i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
@@ -441,6 +451,30 @@ static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer,
   return ret;
 }
 
+static int read_mail_from_storage(librmb::RadosStorage *rados_storage, 
+                                  struct rbox_mail *rmail,
+                                  uint64_t *psize,
+                                  time_t *save_date) {
+    
+    int stat_err = 0;
+    int read_err = 0;
+
+    /* duplicate code: get_attribute */
+    librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
+    read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
+    read_mail->stat(psize, save_date, &stat_err);
+
+    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+    int ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
+                                                  rmail->rados_mail->get_mail_buffer());
+    completion->wait_for_complete_and_cb();
+    ret = completion->get_return_value();
+    completion->release();
+    delete read_mail;
+
+    return ret;
+}
+
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
                                 struct message_size *body_size, struct istream **stream_r) {
   FUNC_START();
@@ -480,21 +514,21 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     uint64_t psize;
     time_t save_date;
 
-    int stat_err = 0;
-    int read_err = 0;
+    ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
 
-    librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
-    read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
-    read_mail->stat(&psize, &save_date, &stat_err);
+    /* duplicate code: get_attribute 
+      librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
+      read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
+      read_mail->stat(&psize, &save_date, &stat_err);
 
-    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
-                                                  rmail->rados_mail->get_mail_buffer());
-    completion->wait_for_complete_and_cb();
-    ret = completion->get_return_value();
-    completion->release();
-    delete read_mail;
-
+      librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+      ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
+                                                    rmail->rados_mail->get_mail_buffer());
+      completion->wait_for_complete_and_cb();
+      ret = completion->get_return_value();
+      completion->release();
+      delete read_mail;
+    */
     if (ret < 0) {
       if (ret == -ENOENT) {
         // This can happen, if we have more then 2 processes running at the same time.
@@ -507,7 +541,25 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         FUNC_END_RET("ret == -1");
         delete rmail->rados_mail->get_mail_buffer();
         return -1;
-      } else {
+      } 
+      else if(ret == -ETIMEDOUT) {
+        int max_retry = 10;
+        for(int i=0;i<max_retry;i++){
+          ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
+          if(ret >= 0){
+            i_error("READ TIMEOUT %d reading mail object %s ", ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+            break;
+          }
+          i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+        }
+      
+        if(ret <0){          
+          delete rmail->rados_mail->get_mail_buffer();
+          FUNC_END();
+          return -1;
+        }
+      } 
+      else {
         i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", ret,
                 rmail->rados_mail->get_oid()->c_str(), rados_storage->get_namespace().c_str(), alt_storage);
         FUNC_END_RET("ret == -1");

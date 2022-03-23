@@ -191,7 +191,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
   int ret_val = rados_storage->copy(src_oid, ns_src->c_str(), dest_oid, ns_dest->c_str(), metadata_update);
   if (ret_val < 0) {
     if (ret_val == -ENOENT) {
-      i_warning(
+      i_debug(
           "copy mail failed from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code: %d, "
           "storage_pool: %s , most likely concurrency issue => marking mail as expunged",
           ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
@@ -241,7 +241,7 @@ static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
       rados_storage->move(src_oid, ns_src->c_str(), dest_oid, ns_dest->c_str(), metadata_update, delete_source);
   if (ret_val < 0) {
     if (ret_val == -ENOENT) {
-      i_warning(
+      i_debug(
           "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
           "pool_name: %s. most likely due to concurency issues => marking mail as expunged",
           ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
