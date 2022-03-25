@@ -44,6 +44,12 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
   uint32_t seq;
 
   mail_index_append(ctx->trans, next_uid, &seq);
+
+  T_BEGIN { 
+    uint32_t uid = atoi(xattr_mail_uid);
+    index_rebuild_index_metadata(ctx, seq, uid); }
+  T_END;
+
 #ifdef DEBUG
   i_debug("added to index %d", next_uid);
 #endif
@@ -70,8 +76,6 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     mail_index_update_flags(ctx->trans, seq, MODIFY_ADD, (enum mail_flags)RBOX_INDEX_FLAG_ALT);
   }
 
-  T_BEGIN { index_rebuild_index_metadata(ctx, seq, next_uid); }
-  T_END;
 
   // update uid.
   librmb::RadosMetadata mail_uid(librmb::RBOX_METADATA_MAIL_UID, next_uid);
@@ -154,7 +158,6 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
   
   std::string mailbox_guid(guid_128_to_string(rbox->mailbox_guid));  
 
-  
   if(!rados_mails.count(mailbox_guid)){
       i_info("no mails for mailbox guid: %s",mailbox_guid.c_str());
       FUNC_END();
