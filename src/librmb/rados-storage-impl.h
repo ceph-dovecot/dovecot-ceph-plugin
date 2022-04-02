@@ -39,6 +39,7 @@ class RadosStorageImpl : public RadosStorage {
   void set_ceph_wait_method(enum rbox_ceph_aio_wait_method wait_method_) { this->wait_method = wait_method_; }
   int get_max_write_size() override { return max_write_size; }
   int get_max_write_size_bytes() override { return max_write_size * 1024 * 1024; }
+  int get_max_object_size() override {return max_object_size;}
 
   int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                const uint64_t &max_write) override;
@@ -77,6 +78,7 @@ class RadosStorageImpl : public RadosStorage {
  private:
   RadosCluster *cluster;
   int max_write_size;
+  int max_object_size;
   std::string nspace;
   librados::IoCtx io_ctx;
   bool io_ctx_created;
@@ -84,7 +86,10 @@ class RadosStorageImpl : public RadosStorage {
   enum rbox_ceph_aio_wait_method wait_method;
 
   static const char *CFG_OSD_MAX_WRITE_SIZE;
+  static const char *CFG_OSD_MAX_OBJECT_SIZE;
 };
+  
+
 
 }  // namespace librmb
 
