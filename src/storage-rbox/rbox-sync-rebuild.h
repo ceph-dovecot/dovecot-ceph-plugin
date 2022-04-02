@@ -44,5 +44,9 @@ extern int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool 
 extern int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
 
 extern std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(bool alt_storage, struct rbox_storage *r_storage, librados::NObjectIterator &iter);
-  
+
+extern int find_default_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid);
+extern int find_inbox_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid);
+
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
+
