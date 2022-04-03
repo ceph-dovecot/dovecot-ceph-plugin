@@ -413,10 +413,9 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
     }
   }
   // try to clean up!
-  int delete_ret = 0;
   for (std::list<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
        ++it_cur_obj) {
-    delete_ret = r_storage->s->delete_mail(*it_cur_obj);
+    int delete_ret = r_storage->s->delete_mail(*it_cur_obj);
     if (delete_ret < 0 && delete_ret != -ENOENT) {
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid()->c_str());
     }
@@ -424,8 +423,6 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
   // clean up index
   if (r_ctx->seq > 0) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
-  } else {
-    i_warning("clean_up_failed, index entry for seq %d, not removed r_ctx->seq <= 0", r_ctx->seq);
   }
 
   if (r_ctx->ctx.transaction != NULL) {
@@ -518,7 +515,6 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       r_ctx->failed = true;
       i_error("ERROR, mailsize is <= 0 ");
     } else {
-      bool async_write = true;
 
       if (!zlib_plugin_active) {
         // write \0 to ceph (length()+1) if stream is not binary
@@ -536,11 +532,21 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
       r_storage->ms->get_storage()->save_metadata(&write_op, r_ctx->rados_mail);
 
-      if (!r_storage->config->is_write_chunks()) {
-        r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
-      } else {
-        r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
-                                            r_ctx->rados_mail->get_completion(), &write_op) < 0;
+      int max_object_size = r_storage->s->get_max_object_size();
+      i_debug("max_object_size %d mail_size %d",max_object_size, r_ctx->rados_mail->get_mail_size() );
+      if(max_object_size < r_ctx->rados_mail->get_mail_size()) {
+        i_error("configured CEPH Object size %d < then mail size %d ", r_storage->s->get_max_object_size(), r_ctx->rados_mail->get_mail_size() );
+        r_ctx->failed = true;  
+      }else {
+        if (!r_storage->config->is_write_chunks()) {
+          bool async_write = true;
+          i_info("write chunks enabled %d ", r_storage->s->get_max_write_size_bytes() );
+          r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
+          i_info("write failed? %d",r_ctx->failed);
+        } else {
+          r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
+                                              r_ctx->rados_mail->get_completion(), &write_op) < 0;
+        }
       }
       if (r_ctx->failed) {
         i_error("saved mail: %s failed metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
