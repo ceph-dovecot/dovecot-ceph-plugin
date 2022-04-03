@@ -1,4 +1,9 @@
 # Change Log
+## [0.0.31](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.30) (2022-03-14)
+- #304: force-resync: preserve mail flags 
+- #306: force-resync: restore all mail objects to inbox in case they have no reference to existing mailboxes
+- #310: save-mail: check ceph osd_max_object size option, if mail size is bigger abort save.
+
 ## [0.0.30](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.30) (2022-03-14)
 
 - bugfix: retry ceph operation in case of connection timeout
