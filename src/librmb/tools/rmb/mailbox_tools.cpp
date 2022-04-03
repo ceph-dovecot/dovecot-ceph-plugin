@@ -82,7 +82,6 @@ int MailboxTools::save_mail(librmb::RadosMail* mail_obj) {
   }
 
   std::string file_path = mailbox_path + "/" + filename;
-  std::cout << " writing mail to " << file_path << std::endl;
   std::ofstream myfile(file_path, std::ofstream::binary | std::ofstream::out);
   if (!myfile.is_open()) {
     return -1;

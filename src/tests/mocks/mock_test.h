@@ -40,6 +40,8 @@ class RadosStorageMock : public RadosStorage {
 
   MOCK_METHOD0(get_max_write_size, int());
   MOCK_METHOD0(get_max_write_size_bytes, int());
+  MOCK_METHOD0(get_max_object_size, int());
+  
 
   MOCK_METHOD3(split_buffer_and_exec_op, int(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                              const uint64_t &max_write));

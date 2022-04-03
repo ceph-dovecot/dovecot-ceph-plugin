@@ -30,10 +30,12 @@ using librmb::RadosStorageImpl;
 
 #define DICT_USERNAME_SEPARATOR '/'
 const char *RadosStorageImpl::CFG_OSD_MAX_WRITE_SIZE = "osd_max_write_size";
+const char *RadosStorageImpl::CFG_OSD_MAX_OBJECT_SIZE= "osd_max_object_size";
 
 RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
   cluster = _cluster;
   max_write_size = 10;
+  max_object_size = 134217728; //ceph default 128MB
   io_ctx_created = false;
   wait_method = WAIT_FOR_COMPLETE_AND_CB;
 }
@@ -46,7 +48,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   if (!cluster->is_connected() || !io_ctx_created) {
     return -1;
   }
-  std::cout << "splitting buffer and exec op " << std::endl;
+
   current_object->set_completion(librados::Rados::aio_create_completion());
 
   /* librados::ObjectWriteOperation *op =
@@ -58,10 +60,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   ceph::bufferlist tmp_buffer;
   assert(max_write > 0);
 
-  if (write_buffer_size <= 0 || max_write <= 0) {
+  if (write_buffer_size <= 0 || 
+      max_write <= 0) {      
     ret_val = -1;
+    return ret_val;
   }
-
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
@@ -197,9 +200,18 @@ int RadosStorageImpl::create_connection(const std::string &poolname) {
     return err;
   }
   max_write_size = std::stoi(max_write_size_str);
+ 
+  string max_object_size_str;
+  err = cluster->get_config_option(RadosStorageImpl::CFG_OSD_MAX_OBJECT_SIZE, &max_object_size_str);
+  if (err < 0) {
+    return err;
+  }
+  max_object_size = std::stoi(max_object_size_str);
+  
   if (err == 0) {
     io_ctx_created = true;
   }
+  
   // set the poolname
   pool_name = poolname;
   return 0;
@@ -384,6 +396,7 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   }
   time_t save_date = mail->get_rados_save_date();
   write_op_xattr->mtime(&save_date);
+  
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
   if (ret != 0) {
     write_op_xattr->remove();

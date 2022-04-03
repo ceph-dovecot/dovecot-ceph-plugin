@@ -56,12 +56,16 @@ class RadosStorage {
   /* set the wait method for async operations */
   virtual void set_ceph_wait_method(enum rbox_ceph_aio_wait_method wait_method) = 0;
 
-  /*! get the max object size in mb
+  /*! get the max operation size in mb
    * @return the maximal number of mb to write in a single write operation*/
   virtual int get_max_write_size() = 0;
-  /*! get the max object size in bytes
+  /*! get the max operation size in bytes
    * @return max number of bytes to write in a single write operation*/
   virtual int get_max_write_size_bytes() = 0;
+
+  /*! get the max ceph object size 
+   */
+  virtual int get_max_object_size() = 0;
 
   /*! In case the current object size exceeds the max_write (bytes), object should be split into
    * max smaller operations and executed separately.
