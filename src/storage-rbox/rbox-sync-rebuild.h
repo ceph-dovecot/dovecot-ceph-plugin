@@ -48,5 +48,8 @@ extern std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metad
 extern int find_default_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid);
 extern int find_inbox_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid);
 
+
+extern std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(bool alt_storage, struct rbox_storage *r_storage, librados::NObjectIterator &iter);
+  
 #endif  // SRC_STORAGE_RBOX_RBOX_SYNC_REBUILD_H_
 

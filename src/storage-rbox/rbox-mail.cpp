@@ -172,6 +172,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
         FUNC_END();
         return -1;
       }
+
     } 
     else {    
       i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,

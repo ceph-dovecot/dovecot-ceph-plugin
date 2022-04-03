@@ -151,6 +151,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
                             struct rbox_sync_rebuild_ctx *rebuild_ctx) {
   FUNC_START();
   struct mail_storage *storage = ctx->box->storage;
+
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)ctx->box;
 
   const struct mail_index_header *hdr = mail_index_get_header(ctx->trans->view);
@@ -175,6 +176,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
     sync_add_objects_ret =
         rbox_sync_add_object(ctx, *it->get_oid(), &(*it), rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
     i_info("re-adding mail oid:(%s) with uid: %d to mailbox %s (%s) ", it->get_oid()->c_str(), rebuild_ctx->next_uid, mailbox_guid.c_str(), ctx->box->name );
+
     if (sync_add_objects_ret < 0) {
       i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", it->get_oid()->c_str(),
               rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
@@ -185,6 +187,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
     i_debug("restored rados_mail: %s",it->to_string(" ").c_str());  
 
     rebuild_ctx->next_uid++;
+
   }
 
   if (sync_add_objects_ret < 0) {
@@ -284,8 +287,10 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
     for(list_it=it->second.begin(); list_it!=it->second.end(); ++list_it){
       count_not_assigned += list_it->is_restored() ? 0 : 1;
       count_assigned += list_it->is_restored() ? 1 : 0;
+
     }    
   }
+  i_info("total unassigned mails %ld", count_not_assigned);
 
   i_info("Total assigned mails %ld", count_assigned);
   i_info("Total unassigned mails %ld", count_not_assigned);
@@ -386,6 +391,7 @@ int find_inbox_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid
   FUNC_END();
   return ret;
 }
+
 
 int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails) {
   FUNC_START();
