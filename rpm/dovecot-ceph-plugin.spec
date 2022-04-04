@@ -16,7 +16,7 @@ Summary:	Dovecot Ceph RADOS plugins
 
 Version:	0.0.31
 
-Release:	0%{?dist}
+Release:	1%{?dist}
 URL:		https://github.com/ceph-dovecot/dovecot-ceph-plugin
 Group:		Productivity/Networking/Email/Servers
 License:	LGPL-2.1
