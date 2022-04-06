@@ -1,8 +1,12 @@
 # Change Log
-## [0.0.31](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.30) (2022-03-14)
+
+## [0.0.32](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.32) (2022-04-05)
+- #313: fix crash if append is interrupted. 
+
+## [0.0.31](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.31) (2022-04-03)
 - #304: force-resync: preserve mail flags 
 - #306: force-resync: restore all mail objects to inbox in case they have no reference to existing mailboxes
-- #310: save-mail: check ceph osd_max_object size option, if mail size is bigger abort save.
+- #310: save-mail: check ceph dove size option, if mail size is bigger abort save.
 
 ## [0.0.30](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.30) (2022-03-14)
 

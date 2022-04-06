@@ -412,6 +412,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
               r_storage->s->get_namespace().c_str());
     }
   }
+  
   // try to clean up!
   for (std::list<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
        ++it_cur_obj) {
@@ -420,17 +421,18 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
       i_error("Librados obj: %s, could not be removed", (*it_cur_obj)->get_oid()->c_str());
     }
   }
-  // clean up index
-  if (r_ctx->seq > 0) {
+  
+  // clean up index only if index entry was added.
+  if (r_ctx->seq > 0  && r_ctx->seq  != r_ctx->trans->last_new_seq) {
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
   }
-
+  
   if (r_ctx->ctx.transaction != NULL) {
     mail_cache_transaction_reset(r_ctx->ctx.transaction->cache_trans);
   }
+  
   clean_up_mail_object_list(r_ctx, r_storage);
   r_ctx->mail_count--;
-
   FUNC_END();
 }
 
@@ -460,11 +462,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   bool zlib_plugin_active = false;
 
-  if (!r_ctx->failed) {
-    if (_ctx->data.save_date != (time_t)-1) {
-      uint32_t t = _ctx->data.save_date;
-      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
-    }
+
+
+  
 /*TODO create cache: #229
     if (r_ctx->mail_guid != NULL) {
       const char *guid = guid_128_to_string(r_ctx->mail_guid);
@@ -475,7 +475,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
    sizeof(recv_date));
 */
 
-#if DOVECOT_PREREQ(2, 3)
+// clean stream if still open
+#if DOVECOT_PREREQ(2, 3)    
     int ret = 0;
     if (r_ctx->ctx.data.output != r_ctx->output_stream) {
       /* e.g. zlib plugin had changed this. make sure we
@@ -500,6 +501,13 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_assert(r_ctx->failed);
     }
 #endif
+  if (!r_ctx->failed) {
+    
+    if (_ctx->data.save_date != (time_t)-1) {
+      uint32_t t = _ctx->data.save_date;
+      index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
+    }
+    
     if (r_ctx->ctx.data.output != r_ctx->output_stream) {
       /* e.g. zlib plugin had changed this */
       o_stream_ref(r_ctx->output_stream);
