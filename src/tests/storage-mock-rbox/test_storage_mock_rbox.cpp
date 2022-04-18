@@ -339,6 +339,9 @@ TEST_F(StorageTest, write_op_fails) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
 
+  EXPECT_CALL(*storage_mock, get_max_object_size())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(65000));
   // simulate wait_for_rados_operations fail
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_))
       .Times(AtLeast(1))
@@ -404,14 +407,16 @@ TEST_F(StorageTest, write_op_fails) {
     } else if (save_failed) {
       FAIL() << "Saving failed: " << mailbox_get_last_internal_error(box, NULL);
     } else if (mailbox_save_finish(&save_ctx) < 0) {
-      FAIL() << "Saving should fail, due to connection to rados is not available.";
+      FAIL() << "Saving should not  fail";
+      
     } else if (mailbox_transaction_commit(&trans) < 0) {
       SUCCEED() << "should fail here";
       i_debug("failed at correct place");
+      i_info("mailbox_transaction_commit <0 ");
     } else {
       ret = 0;
+      i_info("ELSE RET = 0");
     }
-
     EXPECT_EQ(save_ctx, nullptr);
     if (save_ctx != nullptr)
       mailbox_save_cancel(&save_ctx);
@@ -459,6 +464,10 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   const char *mailbox = "INBOX";
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
+
+ EXPECT_CALL(*storage_mock, get_max_object_size())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(65000));
 
   EXPECT_CALL(*storage_mock, wait_for_rados_operations(_)).Times(AtLeast(1)).WillRepeatedly(Return(false));
   librados::IoCtx test_ioctx;

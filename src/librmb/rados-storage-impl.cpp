@@ -57,7 +57,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   uint64_t write_buffer_size = current_object->get_mail_size();
 
   // split the buffer.
-  ceph::bufferlist tmp_buffer;
+  librados::bufferlist tmp_buffer;
+
   assert(max_write > 0);
 
   if (write_buffer_size <= 0 || 
@@ -387,7 +388,10 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
 
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
-bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) {
+bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, 
+                                 RadosMail *mail, 
+                                 bool save_async) {
+                                   
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
@@ -397,7 +401,9 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   time_t save_date = mail->get_rados_save_date();
   write_op_xattr->mtime(&save_date);
   
-  int ret = split_buffer_and_exec_op(mail, write_op_xattr, get_max_write_size_bytes());
+  uint32_t max_op_size = get_max_write_size_bytes();
+
+  int ret = split_buffer_and_exec_op(mail, write_op_xattr, max_op_size);
   if (ret != 0) {
     write_op_xattr->remove();
     delete write_op_xattr;
@@ -405,7 +411,9 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   } else if (!save_async) {
     std::list<librmb::RadosMail *> objects;
     objects.push_back(mail);
-    return wait_for_rados_operations(objects);
+    // if false => save failed
+    bool wait_for_rados = wait_for_rados_operations(objects);
+    return wait_for_rados;
   }
   return ret == 0;
 }
