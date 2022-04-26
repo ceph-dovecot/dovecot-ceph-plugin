@@ -45,30 +45,38 @@ RadosStorageImpl::~RadosStorageImpl() {}
 int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
                                                librados::ObjectWriteOperation *write_op_xattr,
                                                const uint64_t &max_write) {
+  
   if (!cluster->is_connected() || !io_ctx_created) {
     return -1;
   }
 
-  current_object->set_completion(librados::Rados::aio_create_completion());
-
-  /* librados::ObjectWriteOperation *op =
-       write_op_xattr == nullptr ? new librados::ObjectWriteOperation() : write_op_xattr;*/
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size();
 
-  // split the buffer.
-  librados::bufferlist tmp_buffer;
-
   assert(max_write > 0);
 
-  if (write_buffer_size <= 0 || 
+  if (write_buffer_size == 0 || 
       max_write <= 0) {      
     ret_val = -1;
     return ret_val;
   }
+
+  ret_val = get_io_ctx().operate(*current_object->get_oid(), write_op_xattr, NULL);
+
+  if(ret_val< 0){
+    ret_val = -1;
+    return ret_val;
+  }
+
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
+
+    // split the buffer.
+    librados::bufferlist tmp_buffer;
+    
+    librados::ObjectWriteOperation write_op;
+
     int offset = i * max_write;
 
     uint64_t length = max_write;
@@ -76,22 +84,28 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       length = rest;
     }
 #ifdef HAVE_ALLOC_HINT_2
-    write_op_xattr->set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
+    write_op.set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
 #else
-    write_op_xattr->set_alloc_hint(write_buffer_size, length);
+    write_op.set_alloc_hint(write_buffer_size, length);
 #endif
     if (div == 1) {
-      write_op_xattr->write(0, *current_object->get_mail_buffer());
+      write_op.write(0, *current_object->get_mail_buffer());
     } else {
       tmp_buffer.clear();
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
-      write_op_xattr->write(offset, tmp_buffer);
+      write_op.write(offset, tmp_buffer);
     }
-    current_object->set_active_op(i + 1);
+    ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op, NULL);
+    if(ret_val < 0){
+      ret_val = -1;
+      break;
+    }
   }
-  ret_val = get_io_ctx().aio_operate(*current_object->get_oid(), current_object->get_completion(), write_op_xattr);
-  current_object->set_write_operation(write_op_xattr);
-
+  // deprecated unused
+  current_object->set_write_operation(nullptr);
+  current_object->set_completion(nullptr);
+  current_object->set_active_op(0);
+    
   return ret_val;
 }
 
@@ -248,9 +262,12 @@ bool RadosStorageImpl::wait_for_write_operations_complete(librados::AioCompletio
 
   return failed;
 }
-
+//DEPRECATED and buggy
 bool RadosStorageImpl::wait_for_rados_operations(const std::list<librmb::RadosMail *> &object_list) {
   bool ctx_failed = false;
+  if(object_list.size() == 0){
+    return ctx_failed;
+  }
   // wait for all writes to finish!
   // imaptest shows it's possible that begin -> continue -> finish cycle is invoked several times before
   // rbox_transaction_save_commit_pre is called.
@@ -389,8 +406,7 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
 bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, 
-                                 RadosMail *mail, 
-                                 bool save_async) {
+                                 RadosMail *mail) {
                                    
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
@@ -399,27 +415,18 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
     return false;
   }
   time_t save_date = mail->get_rados_save_date();
-  write_op_xattr->mtime(&save_date);
-  
-  uint32_t max_op_size = get_max_write_size_bytes();
-
-  int ret = split_buffer_and_exec_op(mail, write_op_xattr, max_op_size);
+  write_op_xattr->mtime(&save_date);  
+  uint32_t max_op_size = get_max_write_size_bytes() - 1024;
+  //TODO: make this configurable
+  int ret = split_buffer_and_exec_op(mail, write_op_xattr, 10240);
   if (ret != 0) {
-    write_op_xattr->remove();
-    delete write_op_xattr;
     mail->set_active_op(0);
-  } else if (!save_async) {
-    std::list<librmb::RadosMail *> objects;
-    objects.push_back(mail);
-    // if false => save failed
-    bool wait_for_rados = wait_for_rados_operations(objects);
-    return wait_for_rados;
-  }
+  } 
   return ret == 0;
 }
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
-bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
+bool RadosStorageImpl::save_mail(RadosMail *mail) {
   if (!cluster->is_connected() || !io_ctx_created) {
     return false;
   }
@@ -435,7 +442,7 @@ bool RadosStorageImpl::save_mail(RadosMail *mail, bool &save_async) {
   if (mail->get_extended_metadata()->size() > 0) {
     write_op_xattr.omap_set(*mail->get_extended_metadata());
   }
-  return save_mail(&write_op_xattr, mail, save_async);
+  return save_mail(&write_op_xattr, mail);
 }
 librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
 void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {

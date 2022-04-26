@@ -1060,7 +1060,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   // convert metadata to xattr. and add to write_op
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2));
   std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
@@ -1208,7 +1208,7 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   // convert metadata to xattr. and add to write_op
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2));
   std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 

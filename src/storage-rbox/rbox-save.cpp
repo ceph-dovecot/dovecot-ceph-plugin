@@ -220,6 +220,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     r_ctx->dest_mail_allocated = TRUE;
   }
   setup_mail_object(_ctx);
+  // init stream in any case.
+  init_output_stream(_ctx);
+
   // always save to primary storage
   if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_save_finish)");
@@ -233,8 +236,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     struct istream *crlf_input = i_stream_create_lf(input);
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
-
-    init_output_stream(_ctx);
 
     if (_ctx->data.received_date == (time_t)-1) {
       _ctx->data.received_date = ioloop_time;
@@ -410,13 +411,6 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
 
   struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
 
-  if (wait_for_operations) {
-    if (r_storage->s->wait_for_rados_operations(r_ctx->rados_mails)) {
-      i_error("Librados waiting for rados operations failed (mails: %lu), namespace=%s", r_ctx->rados_mails.size(),
-              r_storage->s->get_namespace().c_str());
-    }
-  }
-  
   // try to clean up!
   for (std::list<RadosMail *>::iterator it_cur_obj = r_ctx->rados_mails.begin(); it_cur_obj != r_ctx->rados_mails.end();
        ++it_cur_obj) {
@@ -451,7 +445,6 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
     i_stream_unref(&r_ctx->input);
   }
   if (_ctx->data.output != NULL) {
-    // will wait for all open transactions.
     o_stream_unref(&_ctx->data.output);
     _ctx->data.output = NULL;
   }
@@ -466,20 +459,26 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   bool zlib_plugin_active = false;
-  
 // clean stream if still open
 #if DOVECOT_PREREQ(2, 3)    
     int ret = 0;
-    if (r_ctx->ctx.data.output != r_ctx->output_stream) {
+
+    if (r_ctx->ctx.data.output != r_ctx->output_stream && 
+    r_ctx->ctx.data.output != NULL) {
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */
+      i_info("check state2 %ld",r_ctx->ctx.data.output);
+
       ret = o_stream_finish(r_ctx->ctx.data.output);
-    } else {
+    } else if(r_ctx->ctx.data.output != NULL) {
       //TODO: check for error in the stream before using flush
       /* no plugins - flush the output so far */
+
       ret = o_stream_flush(r_ctx->ctx.data.output);
+
     }
     if (ret < 0) {
+
       mail_set_critical(r_ctx->ctx.dest_mail, "write(%s) failed: %s", o_stream_get_name(r_ctx->ctx.data.output),
                         o_stream_get_error(r_ctx->ctx.data.output));
       r_ctx->failed = TRUE;
@@ -494,8 +493,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_assert(r_ctx->failed);
     }
 #endif
-  if (!r_ctx->failed) {
-    
+if (!r_ctx->failed) {
+
     if (_ctx->data.save_date != (time_t)-1) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
@@ -543,9 +542,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       }else {
         
         if (!r_storage->config->is_write_chunks()) {
-          bool async_write = true;
-          i_debug("not write chunks enabled %d ", r_storage->s->get_max_write_size_bytes() );
-          r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail, async_write);
+          i_debug("not write chunks enabled max write size: %d ", r_storage->s->get_max_write_size_bytes() );
+          r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail);
+          i_debug("SAVE_MAIL result: %d", r_ctx->failed);
         } else {
           r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
                                               r_ctx->rados_mail->get_completion(), &write_op) < 0;
@@ -690,14 +689,6 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
   }
   _ctx->transaction->changes->uid_validity = hdr->uid_validity;
 
-  librmb::RadosStorage *storage = ((struct rbox_storage *)&r_ctx->mbox->storage->storage)->s;
-
-  if (!r_ctx->failed) {
-    // the last moment to wait for our mail storage to finish.
-    r_ctx->failed = storage->wait_for_rados_operations(r_ctx->rados_mails);    
-  }
-
-
   FUNC_END();
   return 0;
 }
@@ -713,9 +704,9 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
   if (rbox_sync_finish(&r_ctx->sync_ctx, TRUE) < 0) {
-    r_ctx->failed = TRUE;
+    r_ctx->failed = r_ctx->failed ? TRUE : FALSE;
   } else {
-    r_ctx->failed = FALSE;
+    r_ctx->failed = r_ctx->failed ? TRUE : FALSE;
   }
   rbox_transaction_save_rollback(_ctx);
 
