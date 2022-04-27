@@ -80,9 +80,10 @@ TEST_F(StorageTest, check_metadata) {
 
   const char *mailbox = "INBOX";
 
+  i_info("adding mail");
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces);
-
+  i_info("mail added");
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
   ASSERT_NE(sarg, nullptr);
@@ -123,9 +124,12 @@ TEST_F(StorageTest, check_metadata) {
     // test re-write guid to index. simulate index_guid is empty.
     guid_128_empty(rmail->index_guid);
     char *value_2 = NULL;
+
+    i_info("FETCH SPECIAL");
     if (mail_get_special(mail, MAIL_FETCH_GUID, &value_2) < 0) {
       FAIL();
     }
+    i_info("DONE");
     // we need to free it here!!!
     i_free(value_2);
 
@@ -211,18 +215,20 @@ TEST_F(StorageTest, check_metadata) {
     ASSERT_EQ(rmail->rados_mail->get_metadata()->size(), 8);
     break;  // only move one mail.
   }
-
+  i_info("################deiint");
   if (mailbox_search_deinit(&search_ctx) < 0) {
     FAIL() << "search deinit failed";
   }
-
+i_info("################ tnx commit");
   if (mailbox_transaction_commit(&desttrans) < 0) {
     FAIL() << "tnx commit failed";
   }
+  i_info("################ sync");
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
 
+  i_info("nearly done...");
   mailbox_free(&box);
 }
 

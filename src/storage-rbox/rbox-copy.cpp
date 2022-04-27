@@ -210,6 +210,7 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
     mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
     return -1;
   }
+  r_ctx->failed = ret_val < 0 ? true : false;
 
   rbox_add_to_index(ctx);
   if (r_storage->save_log->is_open()) {

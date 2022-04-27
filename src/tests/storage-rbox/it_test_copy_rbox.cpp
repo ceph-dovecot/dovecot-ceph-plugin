@@ -134,6 +134,7 @@ TEST_F(StorageTest, mail_copy_mail_in_inbox) {
     obj->set_oid((*iter).get_oid());
     r_storage->ms->get_storage()->load_metadata(obj);
     objects.push_back(obj);
+    i_info("found mail....");
     iter++;
   }
   // i_debug("load metadat finished");

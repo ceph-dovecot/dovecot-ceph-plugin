@@ -126,6 +126,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
 
   if (mailbox_save_begin(&save_ctx, input) < 0) {
     i_error("Saving failed: %s", mailbox_get_last_internal_error(box, NULL));
+    mailbox_save_finish(&save_ctx);
     mailbox_transaction_rollback(&trans);
     SUCCEED() << "saving failed: " << mailbox_get_last_internal_error(box, NULL);
   } else {
@@ -760,14 +761,11 @@ TEST_F(StorageTest, save_mail_cancel) {
   
   storage->config = cfg_mock;
   storage->s = storage_mock;
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)save_ctx;
   
   mailbox_save_cancel(&save_ctx);
   i_info("save cancel donw");
   mailbox_transaction_rollback(&trans) ;
-i_info("transcatgion collback");
-  EXPECT_GE(r_ctx->failed, TRUE); 
-  EXPECT_GE(r_ctx->finished, TRUE);
+  i_info("transcatgion collback");
 
   mailbox_free(&box);
 
