@@ -61,7 +61,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     return ret_val;
   }
 
-  ret_val = get_io_ctx().operate(*current_object->get_oid(), write_op_xattr, NULL);
+  ret_val = get_io_ctx().operate(*current_object->get_oid(), write_op_xattr);
 
   if(ret_val< 0){
     ret_val = -1;
@@ -95,7 +95,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       write_op.write(offset, tmp_buffer);
     }
-    ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op, NULL);
+    ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op);
     if(ret_val < 0){
       ret_val = -1;
       break;

@@ -114,7 +114,7 @@ int RadosUtils::get_all_keys_and_values(librados::IoCtx *io_ctx, const std::stri
 #else
   first_read.omap_get_keys("", LONG_MAX, &extended_keys, &err);
 #endif
-  int ret = io_ctx->operate(oid.c_str(), &first_read, NULL);
+  int ret = io_ctx->operate(oid.c_str(), &first_read);
   if (ret < 0) {
     return ret;
   }
