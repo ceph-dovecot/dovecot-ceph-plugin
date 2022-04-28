@@ -421,6 +421,7 @@ static void clean_up_failed(struct rbox_save_context *r_ctx, bool wait_for_opera
   }
   
   // clean up index only if index entry was added.
+
   if (r_ctx->seq > 0) {
     i_debug("expunge index for seq: %d",r_ctx->seq);
     mail_index_expunge(r_ctx->trans, r_ctx->seq);
@@ -459,6 +460,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   bool zlib_plugin_active = false;
+
 // clean stream if still open
 #if DOVECOT_PREREQ(2, 3)    
     int ret = 0;
@@ -493,8 +495,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_assert(r_ctx->failed);
     }
 #endif
-if (!r_ctx->failed) {
-
+  if (!r_ctx->failed) {
+    
     if (_ctx->data.save_date != (time_t)-1) {
       uint32_t t = _ctx->data.save_date;
       index_mail_cache_add((struct index_mail *)_ctx->dest_mail, MAIL_CACHE_SAVE_DATE, &t, sizeof(t));
