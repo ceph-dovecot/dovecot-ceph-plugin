@@ -69,8 +69,8 @@ struct mail_save_context *rbox_save_alloc(struct mailbox_transaction_context *t)
     r_ctx->trans = t->itrans;
     t->save_ctx = &r_ctx->ctx;
   } else {
-    r_ctx->failed = false;
-    r_ctx->finished = false;
+    r_ctx->failed = FALSE;
+    r_ctx->finished = FALSE;
     r_ctx->output_stream = NULL;
   }
   r_ctx->rados_mail = nullptr;
@@ -213,7 +213,7 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   FUNC_START();
 
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  r_ctx->failed = true;
+  r_ctx->failed = FALSE;
 
   if (_ctx->dest_mail == NULL) {
     _ctx->dest_mail = mail_alloc(_ctx->transaction, static_cast<mail_fetch_field>(0), NULL);
@@ -258,7 +258,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
 
 #if DOVECOT_PREREQ(2, 3)
   if (index_storage_save_continue(_ctx, r_ctx->input, _ctx->dest_mail) < 0) {
-    r_ctx->failed = true;
+    r_ctx->failed = TRUE;
     FUNC_END();
     return -1;
   }
@@ -269,7 +269,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
       if (!mail_storage_set_error_from_errno(storage)) {
         mail_storage_set_critical(storage, "write(%s) failed: %m", o_stream_get_name(_ctx->data.output));
       }
-      r_ctx->failed = true;
+      r_ctx->failed = TRUE;
       FUNC_END_RET("ret == -1");
       return -1;
     }
@@ -481,13 +481,13 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
       mail_set_critical(r_ctx->ctx.dest_mail, "write(%s) failed: %s", o_stream_get_name(r_ctx->ctx.data.output),
                         o_stream_get_error(r_ctx->ctx.data.output));
-      r_ctx->failed = true;
+      r_ctx->failed = TRUE;
     }
 #else
     if (o_stream_nfinish(r_ctx->ctx.data.output) < 0) {
       mail_storage_set_critical(r_ctx->ctx.transaction->box->storage, "write(%s) failed: %m",
                                 o_stream_get_name(r_ctx->ctx.data.output));
-      r_ctx->failed = true;
+      r_ctx->failed = TRUE;
     }
     if (r_ctx->ctx.data.output == NULL) {
       i_assert(r_ctx->failed);
@@ -571,7 +571,7 @@ void rbox_save_cancel(struct mail_save_context *_ctx) {
   FUNC_START();
 
   struct rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
-  r_ctx->failed = true;
+  r_ctx->failed = TRUE;
 
   (void)rbox_save_finish(_ctx);
 
@@ -655,7 +655,7 @@ int rbox_transaction_save_commit_pre(struct mail_save_context *_ctx) {
 
   if (rbox_sync_begin(r_ctx->mbox, &r_ctx->sync_ctx,
                       static_cast<enum rbox_sync_flags>(RBOX_SYNC_FLAG_FORCE | RBOX_SYNC_FLAG_FSYNC)) < 0) {
-    r_ctx->failed = true;
+    r_ctx->failed = TRUE;
     rbox_transaction_save_rollback(_ctx);
     FUNC_END_RET("ret == -1");
     return -1;
@@ -704,9 +704,8 @@ void rbox_transaction_save_commit_post(struct mail_save_context *_ctx,
   mail_index_sync_set_commit_result(r_ctx->sync_ctx->index_sync_ctx, result);
 
   if (rbox_sync_finish(&r_ctx->sync_ctx, TRUE) < 0) {
-    r_ctx->failed = true;
-  } 
-
+    r_ctx->failed = TRUE;    
+  }
   rbox_transaction_save_rollback(_ctx);
 
   FUNC_END();
