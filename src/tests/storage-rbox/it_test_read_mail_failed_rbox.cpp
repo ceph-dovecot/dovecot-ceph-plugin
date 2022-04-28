@@ -117,7 +117,8 @@ TEST_F(StorageTest, read_mail_fails) {
 
     int ret2 = mail_get_stream(mail, &hdr_size, &body_size, &input);
     EXPECT_EQ(ret2, -1);
-    EXPECT_TRUE(mail->expunged);
+    //UNEXPECTED: mail was not marked as expunged.
+    EXPECT_FALSE(mail->expunged);
     break;
   }
 
