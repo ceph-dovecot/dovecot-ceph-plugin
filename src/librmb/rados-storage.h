@@ -177,20 +177,18 @@ class RadosStorage {
   virtual int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                    std::list<RadosMetadata> &to_update) = 0;
   /*! save the mail
-   * @param[in] mail valid rados mail.
-   * @param[in] save_async if false save will be synchronous.
+   * @param[in] mail valid rados mail.   
    * @return false in case of error
    * */
-  virtual bool save_mail(RadosMail *mail, bool &save_async) = 0;
+  virtual bool save_mail(RadosMail *mail) = 0;
   /*!
    * save the mail
    * @param[in] write_op_xattr write operation to use
-   * @param[in] mail valid mail object
-   * @param[in] save_async if false save will be synchronous.
+   * @param[in] mail valid mail object   
    * @return false in case of error.
    *
    */
-  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) = 0;
+  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;
   /*! create a new RadosMail
    * create new rados Mail Object.
    *  return pointer to mail object or nullptr

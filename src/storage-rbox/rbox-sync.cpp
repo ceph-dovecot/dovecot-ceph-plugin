@@ -410,12 +410,14 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
     sync_flags |= MAIL_INDEX_SYNC_FLAG_FSYNC;
   /* don't write unnecessary dirty flag updates */
   sync_flags |= MAIL_INDEX_SYNC_FLAG_AVOID_FLAG_UPDATES;
-
   if (ret >= 0) {
     ret = index_storage_expunged_sync_begin(&rbox->box, &ctx->index_sync_ctx, &ctx->sync_view, &ctx->trans,
                                             static_cast<enum mail_index_sync_flags>(sync_flags));
-    if (mail_index_reset_fscked(rbox->box.index))
+    if (mail_index_reset_fscked(rbox->box.index)){
+      // if we set mailbox corrupted then we have a force-resync issue for no reason
+      // if we expunged the created index for a appended mail.
       rbox_set_mailbox_corrupted(&rbox->box);
+    }
   }
   if (ret <= 0) {
     array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);

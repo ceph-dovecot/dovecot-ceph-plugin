@@ -639,7 +639,7 @@ class rados_dict_iterate_context {
     i_zero(&this->ctx);
     ctx.dict = dict;
     flags = _flags;
-    failed = FALSE;
+    failed = false;
     result_pool = pool_alloconly_create("iterate value pool", 1024);
     guid_128_generate(this->guid);
     guid_to_str = guid_128_to_string(this->guid);

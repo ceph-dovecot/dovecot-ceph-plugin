@@ -66,8 +66,8 @@ class RadosStorageImpl : public RadosStorage {
            std::list<RadosMetadata> &to_update) override;
 
   int save_mail(const std::string &oid, librados::bufferlist &buffer) override;
-  bool save_mail(RadosMail *mail, bool &save_async) override;
-  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail, bool save_async) override;
+  bool save_mail(RadosMail *mail) override;
+  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) override;
   librmb::RadosMail *alloc_rados_mail() override;
 
   void free_rados_mail(librmb::RadosMail *mail) override;
