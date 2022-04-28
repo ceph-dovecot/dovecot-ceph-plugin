@@ -35,3 +35,7 @@ jobs:
       run: ./autogen.sh && ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
     - name: build
       run:  make clean install
+    - name: test-storage
+      run: src/tests/test_storage_mock_rbox
+    - name: test-storage-bugs
+      run: src/tests/test_storage_mock_rbox_bugs

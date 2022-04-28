@@ -28,9 +28,9 @@ const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT = "client_mount_timeout";
 const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT = "rados_mon_op_timeout";
 const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT = "rados_osd_op_timeout";
 
-const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT_DEFAULT = "10";
-const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "10";
-const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "10";
+const char *RadosClusterImpl::CLIENT_MOUNT_TIMEOUT_DEFAULT = "600";
+const char *RadosClusterImpl::RADOS_MON_OP_TIMEOUT_DEFAULT = "600";
+const char *RadosClusterImpl::RADOS_OSD_OP_TIMEOUT_DEFAULT = "600";
 
 // Note: Using Dictionary und RadosStorage with different ceph cluster / user is currently
 //       not supported.
