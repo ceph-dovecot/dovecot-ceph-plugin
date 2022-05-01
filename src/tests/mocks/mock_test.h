@@ -66,8 +66,8 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD5(copy, int(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
                          std::list<RadosMetadata> &to_update));
   MOCK_METHOD2(save_mail, int(const std::string &oid, librados::bufferlist &bufferlist));
-  MOCK_METHOD2(save_mail, bool(RadosMail *mail, bool &save_async));
-  MOCK_METHOD3(save_mail, bool(librados::ObjectWriteOperation *write_op, RadosMail *mail, bool save_async));
+  MOCK_METHOD1(save_mail, bool(RadosMail *mail));
+  MOCK_METHOD2(save_mail, bool(librados::ObjectWriteOperation *write_op, RadosMail *mail));
   MOCK_METHOD0(alloc_rados_mail, librmb::RadosMail *());
 
   MOCK_METHOD1(free_rados_mail, void(librmb::RadosMail *mail));

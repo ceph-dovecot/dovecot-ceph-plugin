@@ -280,23 +280,13 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
 
   bool success;
   if (inverse) {
-    success = primary->save_mail(&write_op, &mail, true);
+    success = primary->save_mail(&write_op, &mail);
   } else {
-    success = alt_storage->save_mail(&write_op, &mail, true);
+    success = alt_storage->save_mail(&write_op, &mail);
   }
 
   if (!success) {
     return 0;
-  }
-
-  std::list<librmb::RadosMail *> objects;
-  objects.push_back(&mail);
-  if (inverse) {
-    success = primary->wait_for_rados_operations(objects);
-    // ret = primary->aio_operate(&primary->get_io_ctx(), dest_oid, completion, &write_op);
-  } else {
-    success = alt_storage->wait_for_rados_operations(objects);
-    // ret = alt_storage->aio_operate(&alt_storage->get_io_ctx(), dest_oid, completion, &write_op);
   }
 
   return success ? 0 : 1;

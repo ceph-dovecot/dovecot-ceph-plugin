@@ -60,8 +60,6 @@ TEST(librmb, split_write_operation) {
 
   int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   std::cout << "lsdlslslss" << std::endl;
-  // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
 
   // stat the object
   uint64_t size;
@@ -78,7 +76,7 @@ TEST(librmb, split_write_operation) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(5, (int)obj.get_num_active_op());
+  EXPECT_EQ(0, (int)obj.get_num_active_op());
 }
 /**
  * Test object split operation
@@ -109,9 +107,6 @@ TEST(librmb1, split_write_operation_1) {
 
   int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
 
-  // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
-
   // stat the object
   uint64_t size;
   time_t save_date;
@@ -127,7 +122,7 @@ TEST(librmb1, split_write_operation_1) {
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
   EXPECT_EQ(0, ret_remove);
-  EXPECT_EQ(1, (int)obj.get_num_active_op());
+  EXPECT_EQ(0, (int)obj.get_num_active_op());
 }
 /**
  * Test Rados Metadata type conversion
@@ -255,9 +250,6 @@ TEST(librmb, load_metadata) {
 
   int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
 
-  // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
-
   ms.load_metadata(&obj);
   std::cout << "load metadata ok" << std::endl;
   // stat the object
@@ -268,7 +260,7 @@ TEST(librmb, load_metadata) {
   EXPECT_EQ(buffer_length, size);
   EXPECT_EQ(0, ret_storage);
   EXPECT_EQ(0, ret_stat);
-  EXPECT_EQ(5, (int)obj.get_num_active_op());
+  EXPECT_EQ(0, (int)obj.get_num_active_op());
   EXPECT_EQ(2, (int)obj.get_metadata()->size());
   std::cout << " load with null" << std::endl;
   int i = ms.load_metadata(nullptr);
@@ -319,9 +311,7 @@ TEST(librmb, AttributeVersions) {
 
   int ret_storage = storage.split_buffer_and_exec_op(&obj, &op, max_size);
   EXPECT_EQ(ret_storage, 0);
-  // wait for op to finish.
-  storage.wait_for_write_operations_complete(obj.get_completion(), obj.get_write_operation());
-
+  
   // stat the object
   uint64_t size;
   time_t save_date;
@@ -1060,7 +1050,7 @@ TEST(librmb, rmb_load_objects_valid_metadata) {
   // convert metadata to xattr. and add to write_op
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2));
   std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
@@ -1208,7 +1198,7 @@ TEST(librmb, rmb_load_objects_invalid_metadata) {
   // convert metadata to xattr. and add to write_op
   ms->save_metadata(&write_op, &obj2);
   // save complete mail.
-  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2, true));
+  EXPECT_EQ(true, storage.save_mail(&write_op, &obj2));
   std::list<librmb::RadosMail *> list;
   list.push_back(&obj2);
 
