@@ -32,7 +32,8 @@ RadosMail::RadosMail()
       valid(true),
       index_ref(false),
       deprecated_uid(false),
-      restored(false) {}
+      restored(false),
+      lost_object(false) {}
 
 RadosMail::~RadosMail() {}
 

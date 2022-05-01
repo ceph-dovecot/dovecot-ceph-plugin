@@ -390,7 +390,7 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   if (rebuild) {
     for (int i = 0; i < RBOX_REBUILD_COUNT; i++) {
       /* do a full resync and try again. */
-      ret = rbox_storage_rebuild_in_context(rbox->storage, force_rebuild);
+      ret = rbox_storage_rebuild_in_context(rbox->storage, force_rebuild, true);
       if (ret >= 0) {
         mailbox_recent_flags_reset(&rbox->box);
         success = true;

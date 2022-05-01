@@ -40,7 +40,7 @@ extern int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, st
 extern int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails,
                                    struct rbox_sync_rebuild_ctx *rebuild_ctx);
 extern int rbox_sync_index_rebuild(struct rbox_mailbox *rbox, bool force, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
-extern int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force);
+extern int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force, bool firstTry);
 extern int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails);
 
 extern std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(bool alt_storage, struct rbox_storage *r_storage, librados::NObjectIterator &iter);
