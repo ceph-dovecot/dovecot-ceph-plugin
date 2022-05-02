@@ -76,39 +76,53 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
+    try{
+          librados::ObjectWriteOperation write_op;
 
-    librados::ObjectWriteOperation write_op;
+          int offset = i * max_write;
 
-    int offset = i * max_write;
+          uint64_t length = max_write;
+          if (write_buffer_size < ((i + 1) * length)) {
+            length = rest;
+          }
+      #ifdef HAVE_ALLOC_HINT_2
+          write_op.set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
+      #else
+          write_op.set_alloc_hint(write_buffer_size, length);
+      #endif
+          if (div == 1) {
+            write_op.write(0, *current_object->get_mail_buffer());
+          } else {
+            tmp_buffer.clear();
 
-    uint64_t length = max_write;
-    if (write_buffer_size < ((i + 1) * length)) {
-      length = rest;
-    }
-#ifdef HAVE_ALLOC_HINT_2
-    write_op.set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
-#else
-    write_op.set_alloc_hint(write_buffer_size, length);
-#endif
-    if (div == 1) {
-      write_op.write(0, *current_object->get_mail_buffer());
-    } else {
-      tmp_buffer.clear();
+            if(current_object->get_mail_buffer()->length() < length){
+              // stream died!!!!
+              return -1;
+            }
+            tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+            write_op.write(offset, tmp_buffer);
+          }
+          // ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op);
+          // give it time to breath?
+          int ret = aio_operate(&get_io_ctx(),*current_object->get_oid(), completion, &write_op);
 
-      if(current_object->get_mail_buffer()->length() < length){
-        // stream died!!!!
-        return -1;
-      }
-      tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
-      write_op.write(offset, tmp_buffer);
-    }
-    // ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op);
-    // give it time to breath?
-    int ret = aio_operate(&get_io_ctx(),*current_object->get_oid(), completion, &write_op);
-    if(ret_val < 0){
-       ret_val = -1;
-       break;
-    }
+          if (ret >= 0) {
+                  
+              completion->wait_for_complete();
+              ret_val = completion->get_return_value();        
+          }
+                    // clean up
+          completion->release();
+
+
+          if(ret_val < 0){
+            ret_val = -1;
+            break;
+          }
+     }
+     catch (std::exception &e) {
+       return -1;
+     }
   }
   // deprecated unused
   current_object->set_write_operation(nullptr);
