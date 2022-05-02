@@ -68,13 +68,14 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     return ret_val;
   }
 
+
+  // split the buffer.
+  librados::bufferlist tmp_buffer;
+    
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
 
-    // split the buffer.
-    librados::bufferlist tmp_buffer;
-    
     librados::ObjectWriteOperation write_op;
 
     int offset = i * max_write;
@@ -418,7 +419,7 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   write_op_xattr->mtime(&save_date);  
   uint32_t max_op_size = get_max_write_size_bytes() - 1024;
   //TODO: make this configurable
-  int ret = split_buffer_and_exec_op(mail, write_op_xattr, 10240);
+  int ret = split_buffer_and_exec_op(mail, write_op_xattr, 1024);
   if (ret != 0) {
     mail->set_active_op(0);
   } 
