@@ -551,7 +551,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
           if (!r_ctx->failed) {
             
                 r_ctx->rados_mail->get_completion()->wait_for_complete();
-                ret = r_ctx->rados_mail->get_completion()->get_return_value();
+                int ret = r_ctx->rados_mail->get_completion()->get_return_value();
                 if(ret < 0){
                   r_ctx->failed = true;
                 }

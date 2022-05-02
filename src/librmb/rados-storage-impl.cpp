@@ -94,6 +94,11 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       write_op.write(0, *current_object->get_mail_buffer());
     } else {
       tmp_buffer.clear();
+
+      if(current_object->get_mail_buffer()->length() < length){
+        // stream died!!!!
+        return -1;
+      }
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       write_op.write(offset, tmp_buffer);
     }
