@@ -71,12 +71,13 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   // split the buffer.
   librados::bufferlist tmp_buffer;
-  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  
 
   uint64_t rest = write_buffer_size % max_write;
   int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
   for (int i = 0; i < div; ++i) {
     try{
+          librados::AioCompletion *completion = librados::Rados::aio_create_completion();
           librados::ObjectWriteOperation write_op;
 
           int offset = i * max_write;
@@ -126,8 +127,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   }
   // deprecated unused
   current_object->set_write_operation(nullptr);
-  current_object->set_completion(completion);
-  current_object->set_active_op(1);
+  current_object->set_completion(nullptr);
+  current_object->set_active_op(0);
     
   return ret_val;
 }
