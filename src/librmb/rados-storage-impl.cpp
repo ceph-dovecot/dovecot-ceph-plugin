@@ -441,7 +441,7 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   write_op_xattr->mtime(&save_date);  
   uint32_t max_op_size = get_max_write_size_bytes() - 1024;
   //TODO: make this configurable
-  int ret = split_buffer_and_exec_op(mail, write_op_xattr, 1024);
+  int ret = split_buffer_and_exec_op(mail, write_op_xattr, 10024);
   if (ret < 0) {
     mail->set_active_op(0);
   } 
