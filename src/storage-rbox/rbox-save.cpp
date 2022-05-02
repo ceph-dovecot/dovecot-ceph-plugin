@@ -547,6 +547,19 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
           i_debug("not write chunks enabled max write size: %d ", r_storage->s->get_max_write_size_bytes() );
           r_ctx->failed = !r_storage->s->save_mail(&write_op, r_ctx->rados_mail);
           i_debug("SAVE_MAIL result: %d", r_ctx->failed);
+
+          if (!r_ctx->failed) {
+            
+                r_ctx->rados_mail->get_completion()->wait_for_complete();
+                ret = r_ctx->rados_mail->get_completion()->get_return_value();
+                if(ret < 0){
+                  r_ctx->failed = true;
+                }
+          }
+    
+          // clean up
+          r_ctx->rados_mail->get_completion()->release();
+
         } else {
           r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
                                               r_ctx->rados_mail->get_completion(), &write_op) < 0;
