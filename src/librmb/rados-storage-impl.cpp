@@ -442,10 +442,10 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   uint32_t max_op_size = get_max_write_size_bytes() - 1024;
   //TODO: make this configurable
   int ret = split_buffer_and_exec_op(mail, write_op_xattr, 1024);
-  if (ret != 0) {
+  if (ret < 0) {
     mail->set_active_op(0);
   } 
-  return ret == 0;
+  return ret >= 0;
 }
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
