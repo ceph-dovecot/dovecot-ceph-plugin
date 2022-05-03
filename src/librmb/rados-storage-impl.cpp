@@ -107,7 +107,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   current_object->set_active_op(0);
     
   // free mail's buffer cause we don't need it anymore
-  librados::bufferlist *mail_buffer = *current_object->get_mail_buffer();
+  librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
   delete mail_buffer;
 
   return ret_val;
