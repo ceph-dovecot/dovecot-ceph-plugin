@@ -464,7 +464,7 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
                              const uint64_t &max_write) {
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size();
+  uint64_t write_buffer_size = current_object->get_mail_size() -1; // mail size -1;
 
   assert(max_write > 0);
 
@@ -507,9 +507,13 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
       i_info("write full mail at once");
       write_op.write(0, *current_object->get_mail_buffer());
     } else {
-      i_info("write chung offset=%d,lenght=%d",offset,length);
+      i_info("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);
       //tmp_buffer.clear();
-      tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+      if(offset + length > write_buffer_size){
+        i_info("offset and length (%d) is bigger then write_buffer size (%d)", (offste+length), write_buffer_size);
+      }else{
+        tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+      }
       write_op.write(offset, tmp_buffer);
     }
     
