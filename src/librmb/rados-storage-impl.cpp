@@ -42,6 +42,7 @@ RadosStorageImpl::RadosStorageImpl(RadosCluster *_cluster) {
 
 RadosStorageImpl::~RadosStorageImpl() {}
 
+//DEPRECATED!!!!! -> moved to rbox-save.cpp
 int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
                                                librados::ObjectWriteOperation *write_op_xattr,
                                                const uint64_t &max_write) {
@@ -51,7 +52,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   }
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size();
+  uint64_t write_buffer_size = current_object->get_mail_size() -1;
 
   assert(max_write > 0);
 
@@ -95,6 +96,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
       tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       write_op.write(offset, tmp_buffer);
     }
+    
     ret_val = get_io_ctx().operate(*current_object->get_oid(), &write_op);
     if(ret_val < 0){
       ret_val = -1;
@@ -407,6 +409,7 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
   return ret;
 }
 
+// DEPRECATED => MOVED to rbox-save.cpp
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
 bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, 

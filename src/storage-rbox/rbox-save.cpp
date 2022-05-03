@@ -111,7 +111,6 @@ void rbox_index_append(struct mail_save_context *_ctx) {
 
   i_debug("added index for seq: %d",r_ctx->seq);
 
-
   mail_index_update_flags(r_ctx->trans, r_ctx->seq, MODIFY_REPLACE,
                           static_cast<enum mail_flags>(_ctx->data.flags & ~MAIL_RECENT));
 
@@ -457,7 +456,7 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
-int split_buffer_and_exec_op(RadosStorage *rados_storage,
+int save_mail(RadosStorage *rados_storage,
                              RadosMail *current_object,
                              librados::ObjectWriteOperation *write_op_xattr,
                              const uint64_t &max_write) {
@@ -469,7 +468,7 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
 
   if (write_buffer_size == 0 || max_write <= 0) {
     ret_val = -1;
-    i_debug("write_buffr_size == 0 or max_write <=0 < -1" );
+    i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
     return ret_val;
   }
 
@@ -516,7 +515,7 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
     }
     
     ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
-    i_info("append mail (operate) return value: %d",ret_val);
+    i_debug("append mail (operate) return value: %d",ret_val);
     if(ret_val < 0){
       ret_val = -1;
       break;
@@ -527,11 +526,11 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
   current_object->set_completion(nullptr);
   current_object->set_active_op(0);
   
-  i_info("freeing mailbuffer");
+  i_debug("freeing mailbuffer");
   // free mail's buffer cause we don't need it anymore
   librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
   delete mail_buffer;
-  i_info("do e here");
+
   return ret_val;
 }
 
@@ -596,7 +595,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       // error mail size is null
       r_ctx->failed = true;
       i_error("ERROR, mailsize is <= 0 ");
-    } else {
+    } 
+    else {
 
       if (!zlib_plugin_active) {
         // write \0 to ceph (length()+1) if stream is not binary
@@ -623,29 +623,21 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         r_ctx->failed = true;  
       }else {
         
-        if (!r_storage->config->is_write_chunks()) {
-          i_debug("not write chunks enabled max write size: %d ", r_storage->s->get_max_write_size_bytes() );
+          time_t save_date = r_ctx->rados_mail->get_rados_save_date();
+          write_op.mtime(&save_date);  
 
-            time_t save_date = r_ctx->rados_mail->get_rados_save_date();
-            write_op.mtime(&save_date);  
-            //uint32_t max_op_size = get_max_write_size_bytes() - 1024;
-            //TODO: make this configurable
-            int ret = split_buffer_and_exec_op(r_storage->s,r_ctx->rados_mail, &write_op, 10240);
-            if (ret != 0) {
-              i_info("split_buffer %d",ret);
-              r_ctx->rados_mail->set_active_op(0);
-            } 
-            
-            r_ctx->failed = ret < 0;
-
-            i_debug("SAVE_MAIL result: %d", r_ctx->failed);
-        } else {
-          r_ctx->failed = r_storage->s->aio_operate(&r_storage->s->get_io_ctx(), *r_ctx->rados_mail->get_oid(),
-                                              r_ctx->rados_mail->get_completion(), &write_op) < 0;
-        }
+          uint32_t config_chunk_size = r_storage->config->get_chunk_size();
+          if(config_chunk_size > r_storage->s->get_max_write_size_bytes()){
+            config_chunk_size = r_storage->s->get_max_write_size_bytes();
+          }
+          i_debug("max chunk write size: %d ", config_chunk_size );
+          
+          int ret = save_mail(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);          
+          r_ctx->failed = ret < 0;
+          i_debug("SAVE_MAIL result: %d", r_ctx->failed);        
       }
       if (r_ctx->failed) {
-        i_error("saved mail: %s failed metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
+        i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
                 r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
       }
       if (r_storage->save_log->is_open()) {
@@ -676,10 +668,10 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
   FUNC_START();
 
   struct seq_range_iter iter;
-  unsigned int n = 0;
   uint32_t uid = -1;
 
   if (r_ctx->rados_mails.size() > 0) {
+    unsigned int n = 0;
     seq_range_array_iter_init(&iter, uids);
     struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
     RadosMetadata metadata;
