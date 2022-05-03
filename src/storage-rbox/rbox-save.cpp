@@ -196,6 +196,7 @@ void init_output_stream(mail_save_context *_ctx) {
   rbox_save_context *r_ctx = (struct rbox_save_context *)_ctx;
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)_ctx->transaction->box;
   if (_ctx->data.output != NULL) {
+    i_debug("freing data output stream!");
     o_stream_unref(&_ctx->data.output);
   }
 
@@ -220,8 +221,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     r_ctx->dest_mail_allocated = TRUE;
   }
   setup_mail_object(_ctx);
-  // init stream in any case.
-  init_output_stream(_ctx);
 
   // always save to primary storage
   if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
@@ -237,6 +236,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
 
+    // init stream in any case.
+    init_output_stream(_ctx);
+    
     if (_ctx->data.received_date == (time_t)-1) {
       _ctx->data.received_date = ioloop_time;
     }
