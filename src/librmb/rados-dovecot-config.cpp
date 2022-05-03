@@ -27,7 +27,8 @@ RadosConfig::RadosConfig()
       save_log("rados_save_log"),
       rbox_check_empty_mailboxes("rados_check_empty_mailboxes"),
       rbox_ceph_aio_wait_for_safe_and_cb("rbox_ceph_aio_wait_for_safe_and_cb"),
-      rbox_ceph_write_chunks("rbox_ceph_write_chunks") {
+      rbox_ceph_write_chunks("rbox_ceph_write_chunks"),
+      rbox_chunk_size("rbox_chunk_size") {
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
@@ -38,6 +39,7 @@ RadosConfig::RadosConfig()
   config[rbox_check_empty_mailboxes] = "false";
   config[rbox_ceph_aio_wait_for_safe_and_cb] = "false";
   config[rbox_ceph_write_chunks] = "false";
+  config[rbox_chunk_size] = "10240";
   is_valid = false;
 }
 
@@ -72,7 +74,8 @@ std::string RadosConfig::to_string() {
   ss << "  " << save_log << "=" << config[save_log] << std::endl;
   ss << "  " << rbox_check_empty_mailboxes << "=" << config[rbox_check_empty_mailboxes] << std::endl;
   ss << "  " << rbox_ceph_aio_wait_for_safe_and_cb << "=" << config[rbox_ceph_aio_wait_for_safe_and_cb] << std::endl;
-  ss << "  " << rbox_ceph_write_chunks << "=" << config[rbox_ceph_write_chunks]
+  ss << "  " << rbox_ceph_write_chunks << "=" << config[rbox_ceph_write_chunks] << std::endl;
+  ss << "  " << rbox_chunk_size << "=" << config[rbox_chunk_size]
      << std::endl;
   return ss.str();
 }
