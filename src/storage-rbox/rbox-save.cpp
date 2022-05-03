@@ -510,7 +510,7 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
       i_info("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);
       //tmp_buffer.clear();
       if(offset + length > write_buffer_size){
-        i_info("offset and length (%d) is bigger then write_buffer size (%d)", (offste+length), write_buffer_size);
+        i_info("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
       }else{
         tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       }
