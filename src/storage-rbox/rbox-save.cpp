@@ -222,6 +222,9 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
   }
   setup_mail_object(_ctx);
 
+  // init stream in any case.
+  init_output_stream(_ctx);
+  
   // always save to primary storage
   if (rbox_open_rados_connection(_ctx->transaction->box, false) < 0) {
     i_error("ERROR, cannot open rados connection (rbox_save_finish)");
@@ -235,9 +238,6 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     struct istream *crlf_input = i_stream_create_lf(input);
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
-
-    // init stream in any case.
-    init_output_stream(_ctx);
     
     if (_ctx->data.received_date == (time_t)-1) {
       _ctx->data.received_date = ioloop_time;
