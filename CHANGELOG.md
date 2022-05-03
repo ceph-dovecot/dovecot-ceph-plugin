@@ -1,5 +1,10 @@
 # Change Log
 
+
+## [0.0.34](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.34) (2022-05-03)
+- #322: [BUGFIX] memory crash appending big attachments (bufferlist)
+- #322: [CONFIGURATION] new configuration setting rbox_chunk_size with default 10240 Bytes 
+
 ## [0.0.33](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.33) (2022-04-27)
 - #316: wait synchronously for rados write operations
 
