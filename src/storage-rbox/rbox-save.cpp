@@ -457,28 +457,26 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
-
 int split_buffer_and_exec_op(RadosStorage *rados_storage,
                              RadosMail *current_object,
                              librados::ObjectWriteOperation *write_op_xattr,
                              const uint64_t &max_write) {
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size() -1; // mail size -1;
+  uint64_t write_buffer_size = current_object->get_mail_size() -1; // write buffer size needs to be length -1
 
   assert(max_write > 0);
 
-  if (write_buffer_size == 0 || 
-      max_write <= 0) {      
+  if (write_buffer_size == 0 || max_write <= 0) {
     ret_val = -1;
-    i_info("write_buffr_size == 0 or max_write <=0 < -1" );
+    i_debug("write_buffr_size == 0 or max_write <=0 < -1" );
     return ret_val;
   }
 
   ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), write_op_xattr);
 
   if(ret_val< 0){
-    i_info("write metadata did not work: %d",ret_val);
+    i_debug("write metadata did not work: %d",ret_val);
     ret_val = -1;
     return ret_val;
   }
@@ -504,13 +502,13 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
     write_op.set_alloc_hint(write_buffer_size, length);
 #endif
     if (div == 1) {
-      i_info("write full mail at once");
+      i_debug("write full mail at once");
       write_op.write(0, *current_object->get_mail_buffer());
     } else {
-      i_info("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);
-      //tmp_buffer.clear();
+      i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
       if(offset + length > write_buffer_size){
-        i_info("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        return -1;
       }else{
         tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       }
@@ -518,7 +516,7 @@ int split_buffer_and_exec_op(RadosStorage *rados_storage,
     }
     
     ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
-    i_info("operatee %d",ret_val);
+    i_info("append mail (operate) return value: %d",ret_val);
     if(ret_val < 0){
       ret_val = -1;
       break;
