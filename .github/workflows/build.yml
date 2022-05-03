@@ -35,3 +35,4 @@ jobs:
       run: ./autogen.sh && ./configure --with-dovecot=/usr/local/lib/dovecot --enable-maintainer-mode --enable-debug --with-integration-tests --enable-valgrind --enable-debug
     - name: build
       run:  make clean install   
+
