@@ -1,5 +1,7 @@
 # Change Log
 
+## [0.0.35](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.35) (2022-05-05)
+- #322: rbox_write_method parameter with implemtnation of different ways to save huge mails to rados
 
 ## [0.0.34](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.34) (2022-05-03)
 - #322: [BUGFIX] memory crash appending big attachments (bufferlist)
