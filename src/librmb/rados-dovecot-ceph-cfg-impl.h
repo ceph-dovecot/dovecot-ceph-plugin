@@ -38,7 +38,6 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
  
   int get_write_method() override { return std::stoi(dovecot_cfg.get_write_method());}
 
-
   int get_chunk_size() override { return std::stoi(dovecot_cfg.get_chunk_size());}
   std::string &get_pool_name() override { return dovecot_cfg.get_pool_name(); }
 

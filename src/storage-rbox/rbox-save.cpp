@@ -571,7 +571,6 @@ int save_mail_sync(RadosStorage *rados_storage,
 
     // split the buffer.
     librados::bufferlist tmp_buffer;
-
     librados::ObjectWriteOperation write_op;
 
     int offset = i * max_write;

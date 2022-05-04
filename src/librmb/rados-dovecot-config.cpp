@@ -30,6 +30,7 @@ RadosConfig::RadosConfig()
       rbox_ceph_write_chunks("rbox_ceph_write_chunks"),
       rbox_chunk_size("rbox_chunk_size"),
       rbox_write_method("rbox_write_method") {
+        
   config[pool_name] = "mail_storage";
 
   config[rbox_cfg_object_name] = "rbox_cfg";
