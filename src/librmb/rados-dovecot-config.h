@@ -44,6 +44,7 @@ class RadosConfig {
 
   std::string &get_rbox_cfg_object_name() { return config[rbox_cfg_object_name]; }
 
+  const std::string &get_write_method() { return config[rbox_write_method]; }
   const std::string &get_chunk_size() { return config[rbox_chunk_size]; }
 
   const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
@@ -85,6 +86,7 @@ class RadosConfig {
   std::string rbox_ceph_aio_wait_for_safe_and_cb;
   std::string rbox_ceph_write_chunks;
   std::string rbox_chunk_size;
+  std::string rbox_write_method;
   bool is_valid;
 };
 
