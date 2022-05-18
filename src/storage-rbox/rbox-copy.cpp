@@ -311,9 +311,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 #ifdef DEBUG
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 #endif
-
+ 
   if (r_ctx->copying == TRUE) {
     if (rbox_get_index_record(mail) < 0) {
+      r_ctx->mbox->storage->storage.error_string = "Mailbox: unsupported Mailbox. Header not found";
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;

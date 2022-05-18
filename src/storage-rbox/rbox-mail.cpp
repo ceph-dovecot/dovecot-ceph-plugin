@@ -84,6 +84,11 @@ int rbox_get_index_record(struct mail *_mail) {
       return -1;
     }
     const struct obox_mail_index_record *obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+    if(sizeof(obox_rec->guid) == 0 || sizeof(obox_rec->oid == 0)){
+      i_error("No obox header for this mailbox available: %s abort",_mail->box->name);
+      FUNC_END();
+      return -1;
+    }
     memcpy(rmail->index_guid, obox_rec->guid, sizeof(obox_rec->guid));
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
 
