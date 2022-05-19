@@ -311,9 +311,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
 #ifdef DEBUG
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 #endif
+  if(ctx->copy_src_mail->box->virtual_vfuncs != NULL) {
+    i_error("copy from virtual mailbox not supported");
+    r_ctx->mbox->storage->storage.error_string = "VirtualMailbox: unsupported Origin. Copy from virtual mailbox not possible";
+    return -1;
+  }
 
   if (r_ctx->copying == TRUE) {
     if (rbox_get_index_record(mail) < 0) {
+      
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;
@@ -376,6 +382,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
     mailbox_keywords_ref(ctx->data.keywords);
   }
 #endif
+  
 
   enum mail_flags flags = index_mail_get_flags(mail);
   bool alt_storage = is_alternate_storage_set(flags) && is_alternate_pool_valid(mail->box);
