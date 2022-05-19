@@ -312,9 +312,10 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 #endif
   if(ctx->copy_src_mail->box->virtual_vfuncs != NULL) {
-    i_error("copy from virtual mailbox not supported");
-    r_ctx->mbox->storage->storage.error_string = "VirtualMailbox: unsupported Origin. Copy from virtual mailbox not possible";
-    return -1;
+    i_debug("copy from virtual mailbox requires us to create the rados mail structure here!");    
+    if(rmail->rados_mail == nullptr){
+      rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    }  
   }
 
   if (r_ctx->copying == TRUE) {
