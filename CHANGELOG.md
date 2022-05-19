@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.0.36](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.36) (2022-05-19)
+- #319: force-resync: immediatelly assign unassigned objects to inbox 
+- #328: fix segmentation fault copy mail from virtual mailbox
+
 ## [0.0.35](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.35) (2022-05-05)
 - #322: rbox_write_method parameter with implemtnation of different ways to save huge mails to rados
 
