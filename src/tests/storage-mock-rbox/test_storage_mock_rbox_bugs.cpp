@@ -69,7 +69,7 @@ using ::testing::ReturnRef;
  * - save mail to rados fails.
  *
  */
-/* TEST_F(StorageTest, save_mail_rados_connection_failed) {
+TEST_F(StorageTest, save_mail_rados_connection_failed) {
   struct mail_namespace *ns = mail_namespace_find_inbox(s_test_mail_user->namespaces);
   ASSERT_NE(ns, nullptr);
   struct mailbox *box = mailbox_alloc(ns->list, "INBOX", (mailbox_flags)0);
@@ -99,6 +99,10 @@ using ::testing::ReturnRef;
   struct rbox_storage *storage = (struct rbox_storage *)box->storage;
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
+
+  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
+ 
   librados::IoCtx test_ioctx;
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
@@ -107,7 +111,7 @@ using ::testing::ReturnRef;
   EXPECT_CALL(*storage_mock, set_namespace(_)).Times(1);
   EXPECT_CALL(*storage_mock, get_namespace()).Times(0);
 
-  EXPECT_CALL(*storage_mock, delete_mail(Matcher<librmb::RadosMail*>(_))).Times(1);
+  EXPECT_CALL(*storage_mock, delete_mail(Matcher<librmb::RadosMail*>(_))).Times(0);
 
   EXPECT_CALL(*storage_mock, close_connection()).Times(0);
 
@@ -122,8 +126,8 @@ using ::testing::ReturnRef;
   EXPECT_CALL(*storage_mock, get_max_write_size_bytes())
       .Times(AtLeast(1))
       .WillRepeatedly(Return(10));
+      
 
-  EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _)).Times(1).WillOnce(Return(false));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
   test_obj->set_mail_buffer(nullptr);
@@ -160,7 +164,8 @@ using ::testing::ReturnRef;
   EXPECT_CALL(*cfg_mock, load_rados_config()).WillOnce(Return(0));
   EXPECT_CALL(*cfg_mock, is_mail_attribute(_)).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, is_user_mapping()).WillRepeatedly(Return(false));
-
+  EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -214,7 +219,7 @@ using ::testing::ReturnRef;
   }
   delete test_obj2;
 }
- */
+ 
 /**
  * Error test:
  *
