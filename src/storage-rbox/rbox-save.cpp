@@ -508,6 +508,7 @@ int save_mail_async(RadosStorage *rados_storage,
       }else{
         tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       }
+
       if(tmp_buffer.length() == 0){
         i_info("save buffer from %d to %d is empty => done",offset, length);
         break;
