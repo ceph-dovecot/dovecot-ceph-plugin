@@ -456,13 +456,174 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
-int save_mail(RadosStorage *rados_storage,
+int save_mail_async(RadosStorage *rados_storage,
+                    RadosMail *current_object,
+                    librados::ObjectWriteOperation *write_op_xattr,
+                    const uint64_t &max_write) {
+  
+  librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  
+  int ret_val = 0;
+  uint64_t write_buffer_size = current_object->get_mail_size() -1; // write buffer size needs to be length -1
+
+  assert(max_write > 0);
+
+  if (write_buffer_size == 0 || max_write == 0) {
+    ret_val = -1;
+    i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
+    return ret_val;
+  }
+  
+  ret_val = rados_storage->aio_operate(&rados_storage->get_io_ctx(),*current_object->get_oid(), completion, write_op_xattr);
+  
+  if(ret_val< 0){
+    i_debug("write metadata did not work: %d",ret_val);
+    ret_val = -1;
+    return ret_val;
+  }
+
+  uint64_t rest = write_buffer_size % max_write;
+  int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
+  for (int i = 0; i < div; ++i) {
+
+    // split the buffer.
+    librados::bufferlist tmp_buffer;
+
+    librados::ObjectWriteOperation write_op;
+
+    int offset = i * max_write;
+
+    uint64_t length = max_write;
+    if (write_buffer_size < ((i + 1) * length)) {
+      length = rest;
+    }
+
+    if (div == 1) {
+      write_op.write(0, *current_object->get_mail_buffer());
+    } else {
+      i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
+      if(offset + length > write_buffer_size){
+        i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        return -1;
+      }else{
+        tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+      }
+
+      if(tmp_buffer.length() == 0){
+        i_info("save buffer from %d to %d is empty => done",offset, length);
+        break;
+      }
+      write_op.write(offset, tmp_buffer);
+ 
+    }
+   
+    ret_val = rados_storage->aio_operate(&rados_storage->get_io_ctx(),*current_object->get_oid(), completion, &write_op);
+
+    i_debug("append mail (aio_operate) return value: %d",ret_val);
+    if(ret_val < 0){
+      ret_val = -1;
+      break;
+    }  
+  }
+
+  bool failed = rados_storage->wait_for_write_operations_complete(completion,nullptr);
+  
+  if(ret_val >= 0){
+    ret_val = failed ? -1 : 0;
+    i_debug("completion return value %d",ret_val);
+  }
+  completion->release();
+  
+  // deprecated unused
+  current_object->set_write_operation(nullptr);
+  current_object->set_completion(nullptr);
+  current_object->set_active_op(0);
+    // free mail's buffer cause we don't need it anymore
+  librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
+  delete mail_buffer;
+  current_object->set_mail_buffer(nullptr);
+  
+  return ret_val;
+}
+
+int save_mail_sync(RadosStorage *rados_storage,
                              RadosMail *current_object,
                              librados::ObjectWriteOperation *write_op_xattr,
                              const uint64_t &max_write) {
 
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size() -1; // write buffer size needs to be length -1
+
+  assert(max_write > 0);
+
+  if (write_buffer_size == 0 || max_write == 0) {
+    ret_val = -1;
+    i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
+    return ret_val;
+  }
+
+  ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), write_op_xattr);
+
+  if(ret_val< 0){
+    i_debug("write metadata did not work: %d",ret_val);
+    ret_val = -1;
+    return ret_val;
+  }
+
+  uint64_t rest = write_buffer_size % max_write;
+  int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
+  for (int i = 0; i < div; ++i) {
+
+    // split the buffer.
+    librados::bufferlist tmp_buffer;
+    librados::ObjectWriteOperation write_op;
+
+    int offset = i * max_write;
+
+    uint64_t length = max_write;
+    if (write_buffer_size < ((i + 1) * length)) {
+      length = rest;
+    }
+
+    if (div == 1) {
+      write_op.write(0, *current_object->get_mail_buffer());
+    } else {
+      i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
+      if(offset + length > write_buffer_size){
+        i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        return -1;
+      }else{
+        tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+      }
+      write_op.write(offset, tmp_buffer);
+    }
+    ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
+    i_debug("append mail (operate) return value: %d",ret_val);
+    if(ret_val < 0){
+      ret_val = -1;
+      break;
+    }
+  }
+  // deprecated unused
+  current_object->set_write_operation(nullptr);
+  current_object->set_completion(nullptr);
+  current_object->set_active_op(0);
+  
+  i_debug("freeing mailbuffer");
+  // free mail's buffer cause we don't need it anymore
+  librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
+  delete mail_buffer;
+
+  return ret_val;
+}
+
+int save_mail_write_append(RadosStorage *rados_storage,
+                             RadosMail *current_object,
+                             librados::ObjectWriteOperation *write_op_xattr,
+                             const uint64_t &max_write) {
+
+  int ret_val = 0;
+  uint64_t write_buffer_size = current_object->get_mail_size() -1;
 
   assert(max_write > 0);
 
@@ -486,7 +647,7 @@ int save_mail(RadosStorage *rados_storage,
 
     // split the buffer.
     librados::bufferlist tmp_buffer;
-    
+
     librados::ObjectWriteOperation write_op;
 
     int offset = i * max_write;
@@ -495,14 +656,11 @@ int save_mail(RadosStorage *rados_storage,
     if (write_buffer_size < ((i + 1) * length)) {
       length = rest;
     }
-#ifdef HAVE_ALLOC_HINT_2
-    write_op.set_alloc_hint2(write_buffer_size, length, librados::ALLOC_HINT_FLAG_COMPRESSIBLE);
-#else
-    write_op.set_alloc_hint(write_buffer_size, length);
-#endif
+
     if (div == 1) {
-      i_debug("write full mail at once");
       write_op.write(0, *current_object->get_mail_buffer());
+      ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
+    
     } else {
       i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
       if(offset + length > write_buffer_size){
@@ -510,12 +668,84 @@ int save_mail(RadosStorage *rados_storage,
         return -1;
       }else{
         tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
-      }
-      write_op.write(offset, tmp_buffer);
+      }      
+      i_debug("tmp_buffer %d ",tmp_buffer.length());
+      ret_val = rados_storage->get_io_ctx().append(*current_object->get_oid(), tmp_buffer, length); 
     }
+    i_debug("append mail (append) return value: %d",ret_val);
+    if(ret_val < 0){
+      ret_val = -1;
+      break;
+    }
+  }
+  // deprecated unused
+  current_object->set_write_operation(nullptr);
+  current_object->set_completion(nullptr);
+  current_object->set_active_op(0);
+  
+  i_debug("freeing mailbuffer");
+  // free mail's buffer cause we don't need it anymore
+  librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
+  delete mail_buffer;
+
+  return ret_val;
+}
+int save_mail_write_ioctx(RadosStorage *rados_storage,
+                         RadosMail *current_object,
+                         librados::ObjectWriteOperation *write_op_xattr,
+                         const uint64_t &max_write) {
+
+  int ret_val = 0;
+  uint64_t write_buffer_size = current_object->get_mail_size() -1;
+
+  assert(max_write > 0);
+
+  if (write_buffer_size == 0 || max_write == 0) {
+    ret_val = -1;
+    i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
+    return ret_val;
+  }
+
+  ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), write_op_xattr);
+
+  if(ret_val< 0){
+    i_debug("write metadata did not work: %d",ret_val);
+    ret_val = -1;
+    return ret_val;
+  }
+
+  uint64_t rest = write_buffer_size % max_write;
+  int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
+  for (int i = 0; i < div; ++i) {
+
+    // split the buffer.
+    librados::bufferlist tmp_buffer;
+
+    librados::ObjectWriteOperation write_op;
+
+    int offset = i * max_write;
+
+    uint64_t length = max_write;
+    if (write_buffer_size < ((i + 1) * length)) {
+      length = rest;
+    }
+
+    if (div == 1) {
+      write_op.write(0, *current_object->get_mail_buffer());
+      ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
     
-    ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
-    i_debug("append mail (operate) return value: %d",ret_val);
+    } else {
+      i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
+      if(offset + length > write_buffer_size){
+        i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        return -1;
+      }else{
+        tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+      }      
+      i_debug("tmp_buffer %d ",tmp_buffer.length());
+      ret_val = rados_storage->get_io_ctx().write(*current_object->get_oid(), tmp_buffer, length, offset); 
+    }
+    i_debug("append mail (io_ctx->write) return value: %d",ret_val);
     if(ret_val < 0){
       ret_val = -1;
       break;
@@ -618,8 +848,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_debug("max_object_size %d mail_size %d",max_object_size, r_ctx->rados_mail->get_mail_size() );
       if(max_object_size < r_ctx->rados_mail->get_mail_size()) {
         i_error("configured CEPH Object size %d < then mail size %d ", r_storage->s->get_max_object_size(), r_ctx->rados_mail->get_mail_size() );
-        mail_set_critical(r_ctx->ctx.dest_mail, "write(%s) failed: %s", o_stream_get_name(r_ctx->ctx.data.output),"MAX OBJECT SIZE REACHED");
-      
+        mail_set_critical(r_ctx->ctx.dest_mail, "write(%s) failed: %s", o_stream_get_name(r_ctx->ctx.data.output),"MAX OBJECT SIZE REACHED");      
         r_ctx->failed = true;  
       }else {
         
@@ -631,11 +860,25 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
             config_chunk_size = r_storage->s->get_max_write_size_bytes();
           }
           i_debug("max chunk write size: %d ", config_chunk_size );
-          
-          int ret = save_mail(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);          
+          uint32_t write_method = r_storage->config->get_write_method();
+
+          int ret = 0;
+          i_debug("write method: %d",write_method);
+          if(write_method == 0) {          
+            ret = save_mail_sync(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);          
+          }else if (write_method == 1){
+            ret = save_mail_async(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);
+          }else if (write_method == 2){
+            ret = save_mail_write_append(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);
+          }else if (write_method == 3){
+            ret = save_mail_write_ioctx(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);
+          }else {
+            r_ctx->failed = true;
+            i_error("SAVE_MAIL result: %d no save method set", r_ctx->failed);
+          }        
+           
           r_ctx->failed = ret < 0;
           i_debug("SAVE_MAIL result: %d", r_ctx->failed);        
-
       }
       if (r_ctx->failed) {
         i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
