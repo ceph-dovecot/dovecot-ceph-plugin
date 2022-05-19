@@ -457,9 +457,9 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
 }
 
 int save_mail_async(RadosStorage *rados_storage,
-                             RadosMail *current_object,
-                             librados::ObjectWriteOperation *write_op_xattr,
-                             const uint64_t &max_write) {
+                    RadosMail *current_object,
+                    librados::ObjectWriteOperation *write_op_xattr,
+                    const uint64_t &max_write) {
   
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   
@@ -473,9 +473,9 @@ int save_mail_async(RadosStorage *rados_storage,
     i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
     return ret_val;
   }
-
-  ret_val = rados_storage->get_io_ctx().aio_operate(*current_object->get_oid(), completion, write_op_xattr);
-
+  
+  ret_val = rados_storage->aio_operate(&rados_storage->get_io_ctx(),*current_object->get_oid(), completion, write_op_xattr);
+  
   if(ret_val< 0){
     i_debug("write metadata did not work: %d",ret_val);
     ret_val = -1;
@@ -508,11 +508,16 @@ int save_mail_async(RadosStorage *rados_storage,
       }else{
         tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
       }
+
+      if(tmp_buffer.length() == 0){
+        i_info("save buffer from %d to %d is empty => done",offset, length);
+        break;
+      }
       write_op.write(offset, tmp_buffer);
  
     }
    
-    ret_val = rados_storage->get_io_ctx().aio_operate(*current_object->get_oid(), completion, &write_op);
+    ret_val = rados_storage->aio_operate(&rados_storage->get_io_ctx(),*current_object->get_oid(), completion, &write_op);
 
     i_debug("append mail (aio_operate) return value: %d",ret_val);
     if(ret_val < 0){
@@ -521,9 +526,10 @@ int save_mail_async(RadosStorage *rados_storage,
     }  
   }
 
-  completion->wait_for_complete();
+  bool failed = rados_storage->wait_for_write_operations_complete(completion,nullptr);
+  
   if(ret_val >= 0){
-    ret_val = completion->get_return_value();  
+    ret_val = failed ? -1 : 0;
     i_debug("completion return value %d",ret_val);
   }
   completion->release();
@@ -532,12 +538,11 @@ int save_mail_async(RadosStorage *rados_storage,
   current_object->set_write_operation(nullptr);
   current_object->set_completion(nullptr);
   current_object->set_active_op(0);
-  
-  i_debug("freeing mailbuffer");
-  // free mail's buffer cause we don't need it anymore
+    // free mail's buffer cause we don't need it anymore
   librados::bufferlist *mail_buffer = current_object->get_mail_buffer();
   delete mail_buffer;
-
+  current_object->set_mail_buffer(nullptr);
+  
   return ret_val;
 }
 

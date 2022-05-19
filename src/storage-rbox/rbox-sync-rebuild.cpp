@@ -50,7 +50,7 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
     uint32_t uid = std::stoi(xattr_mail_uid);
     // uid = INT32_MAX if a previous force-resync detected, that the mail object has a mailbox guid which 
     //       is no longer valid.
-    if(uid != INT32_MAX){
+    if(uid != INT32_MAX && !mail_obj->is_lost_object()){
       // there should be a previous index entry available (if index exist)
       index_rebuild_index_metadata(ctx, seq, uid); }
     }
@@ -173,6 +173,12 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
   std::list<librmb::RadosMail>::iterator it;
   for(it=rados_mails[mailbox_guid].begin(); it!=rados_mails[mailbox_guid].end(); ++it){   
     
+    if(it->is_restored()){
+      // if this is second run, do not add the mail again.
+      i_debug("skipping already restored mail! oid: %s",it->get_oid()->c_str());
+      continue; 
+    }  
+    
     sync_add_objects_ret =
         rbox_sync_add_object(ctx, *it->get_oid(), &(*it), rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
     i_info("re-adding mail oid:(%s) with uid: %d to mailbox %s (%s) ", it->get_oid()->c_str(), rebuild_ctx->next_uid, mailbox_guid.c_str(), ctx->box->name );
@@ -258,7 +264,7 @@ int rbox_sync_index_rebuild_objects(struct index_rebuild_context *ctx, std::map<
   return ret;
 }
 
-int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) {
+int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force, bool firstTry) {
   FUNC_START();
 
   struct mail_user *user = r_storage->storage.user;
@@ -311,7 +317,7 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
     {      
       std::list<librmb::RadosMail>::iterator list_it;
       for(list_it=it->second.begin(); list_it!=it->second.end(); ++list_it){
-          if(list_it->is_restored()){
+        if(list_it->is_restored()){
           continue;
         }
         librmb::RadosMetadata metadata;
@@ -330,7 +336,18 @@ int rbox_storage_rebuild_in_context(struct rbox_storage *r_storage, bool force) 
             i_info("(%d) Mailbox guid for mail (oid=%s) restored to %s (INBOX) => re-run force-resync to assign them ",unassigned_counter, list_it->get_oid()->c_str(),last_known_mailbox_guid.c_str());
         }
         unassigned_counter++;
+        list_it->set_lost_object(true);
       }
+    }
+    if(unassigned_counter>0){
+      if(firstTry){
+        // try again.... but only once, as we do not want to end up in an endless loop.
+        return rbox_storage_rebuild_in_context(r_storage,force, false); 
+      }else{
+        i_error("still unassigned mail objects in ceph namespace, manual intervention required.");
+        return -1; 
+      }
+      
     }
     
   }
