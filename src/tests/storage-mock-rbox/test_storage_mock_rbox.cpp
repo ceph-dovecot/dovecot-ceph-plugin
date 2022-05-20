@@ -222,7 +222,9 @@ TEST_F(StorageTest, save_mail_fail_test) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(65000));
 
-  EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _)).Times(1).WillOnce(Return(false));
+
+  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(true));//failed = false
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
   test_obj->set_mail_buffer(nullptr);
@@ -251,7 +253,9 @@ TEST_F(StorageTest, save_mail_fail_test) {
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
-  
+  EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
+
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -363,8 +367,10 @@ TEST_F(StorageTest, write_op_fails) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(65000));
 
-  EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _))
-      .WillRepeatedly(Return(false));
+
+  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
+
 
   EXPECT_CALL(*storage_mock, read_mail(_, _)).WillRepeatedly(Return(-2));
 
@@ -395,7 +401,9 @@ TEST_F(StorageTest, write_op_fails) {
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
-
+  EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
+  
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
@@ -561,8 +569,9 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
       .WillOnce(Return(test_obj_save))
       .WillOnce(Return(test_obj_save2));
 
- EXPECT_CALL(*storage_mock, save_mail(Matcher<librados::ObjectWriteOperation *>(_), _))
-      .WillOnce(Return(true));
+  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
+  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
+
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces, storage_mock);
 
@@ -637,10 +646,13 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
+  EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
+  
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
-
+  
   if (mailbox_open(box) < 0) {
     i_error("######################### Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
@@ -756,7 +768,9 @@ TEST_F(StorageTest, save_mail_cancel) {
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
-  
+  EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
+
   storage->ns_mgr->set_config(cfg_mock);
   
   storage->config = cfg_mock;
@@ -779,30 +793,7 @@ TEST_F(StorageTest, save_mail_cancel) {
   delete test_obj2;
 }
 
-/*
-TEST_F(StorageTest, eval_output_append) {
-  librados::bufferlist buffer;
-  librados::bufferlist buffer_out;
 
-
-  struct ostream *output;
-  output = o_stream_create_bufferlist(&buffer_out);
-  std::string toappend = "def";
-  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toappend.c_str()), toappend.length(), 0);
-  EXPECT_EQ(toappend, buffer_out.to_str());
-  std::string toappend2 = "abc";
-  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toappend2.c_str()), toappend2.length(),
-                           0);
-  EXPECT_EQ("abcdef", buffer_out.to_str());
-  std::string toapend3 = "ghjk";
-  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toapend3.c_str()), toapend3.length(), 6);
-  EXPECT_EQ("abcdefghjk", buffer_out.to_str());
-  std::string toapend4 = "i";
-  o_stream_buffer_write_at(output->real_stream, reinterpret_cast<const void *>(toapend4.c_str()), toapend4.length(), 8);
-  EXPECT_EQ("abcdefghijk", buffer_out.to_str());
-  o_stream_unref(&output);
-}
-*/
 TEST_F(StorageTest, deinit) {}
 
 int main(int argc, char **argv) {
