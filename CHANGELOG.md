@@ -1,5 +1,7 @@
 # Change Log
 
+## [0.0.37](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.37) (2022-05-23)
+- #332: quota: notify message count and type invalid for imap move operation
 
 ## [0.0.36](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.36) (2022-05-19)
 - #319: force-resync: immediatelly assign unassigned objects to inbox 

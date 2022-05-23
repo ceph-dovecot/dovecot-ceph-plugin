@@ -101,9 +101,6 @@ struct rbox_mailbox {
   uint32_t ext_id;
   /** unique identifier **/
   guid_128_t mailbox_guid;
-  /** list of moved_items, after move mail will not be deleted immediately,
-   * but during next sync.   */
-  ARRAY(struct expunged_item *) moved_items;
 };
 
 enum rbox_index_header_flags {
