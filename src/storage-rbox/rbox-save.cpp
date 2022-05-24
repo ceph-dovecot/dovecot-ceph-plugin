@@ -532,8 +532,7 @@ int save_mail_async(RadosStorage *rados_storage,
     ret_val = failed ? -1 : 0;
     i_debug("completion return value %d",ret_val);
   }
-  completion->release();
-  
+
   // deprecated unused
   current_object->set_write_operation(nullptr);
   current_object->set_completion(nullptr);

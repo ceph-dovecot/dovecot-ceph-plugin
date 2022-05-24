@@ -468,7 +468,8 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                                    ? librmb::WAIT_FOR_SAFE_AND_CB
                                                    : librmb::WAIT_FOR_COMPLETE_AND_CB);
     }
-  } catch (std::exception &e) {
+  } catch (std::exception &e) {    
+    i_error("Exception: setting up ceph connection: %s",e.what());
     ret = -1;
   }
 
@@ -480,6 +481,7 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
 #endif
     return 0;
   }
+  
   if (ret < 0) {
     i_error(
         "Open rados connection. Error(%d,%s) (pool_name(%s), cluster_name(%s), rados_user_name(%s), "
