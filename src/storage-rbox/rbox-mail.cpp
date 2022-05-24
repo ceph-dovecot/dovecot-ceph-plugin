@@ -87,11 +87,6 @@ int rbox_get_index_record(struct mail *_mail) {
    
     memcpy(rmail->index_guid, obox_rec->guid, sizeof(obox_rec->guid));
     memcpy(rmail->index_oid, obox_rec->oid, sizeof(obox_rec->oid));
-    if(guid_128_is_empty(rmail->index_oid)){
-      i_error("No obox header for this mailbox available: %s abort",_mail->box->name);
-      FUNC_END();
-      return -1;
-    }
     rmail->rados_mail->set_oid(guid_128_to_string(rmail->index_oid));
     rmail->last_seq = _mail->seq;
   }

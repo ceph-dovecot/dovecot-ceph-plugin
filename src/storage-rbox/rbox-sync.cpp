@@ -60,6 +60,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
         i_error("rbox_sync_expunge: mail_index_lookup failed! for %d uid(%d)", seq1, uid);
         continue;  // skip further processing.
       }
+
       mail_index_expunge(ctx->trans, seq1);
 
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
@@ -71,6 +72,7 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
         item->alt_storage = is_alternate_storage_set(rec->flags) && is_alternate_pool_valid(box);
         array_append(&ctx->expunged_items, &item, 1);
       }
+        
     }
   }
   FUNC_END();
@@ -271,6 +273,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
 
     switch (sync_rec.type) {
       case MAIL_INDEX_SYNC_TYPE_EXPUNGE:
+        i_debug("DELETE: rbox_sync_expunge!");
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
@@ -303,6 +306,7 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
             i_error("Error updating flags seq (%d)", seq1);
           }
         }
+     
         break;
       case MAIL_INDEX_SYNC_TYPE_KEYWORD_ADD:
         if (r_storage->config->is_mail_attribute(librmb::RBOX_METADATA_OLDV1_KEYWORDS) &&
@@ -329,9 +333,6 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
         break;
     }
   }
-
-  if (box->v.sync_notify != NULL)
-    box->v.sync_notify(box, 0, static_cast<mailbox_sync_type>(0));
 
   FUNC_END();
   return 1;
@@ -492,38 +493,26 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
 static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
   FUNC_START();
   struct expunged_item *const *items, *item;
-  struct expunged_item *const *moved_items, *moved_item;
-  unsigned int count, moved_count = 0;
+  unsigned int count = 0;
 
   // rbox_sync_object_expunge;
   items = array_get(&ctx->expunged_items, &count);
 
   if (count > 0) {
-    moved_items = array_get(&ctx->rbox->moved_items, &moved_count);
     for (unsigned int i = 0; i < count; i++) {
       T_BEGIN {
         item = items[i];
-        bool moved = FALSE;
-        for (unsigned j = 0; j < moved_count; j++) {
-          moved_item = moved_items[j];
-          if (guid_128_equals(moved_item->oid, item->oid)) {
-            moved = TRUE;
-            break;
-          }
-        }
-        if (moved != TRUE) {
-          rbox_sync_object_expunge(ctx, item);
-          // directly notify
-          if (ctx->rbox->box.v.sync_notify != NULL) {
-            ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-          }
+        rbox_sync_object_expunge(ctx, item);
+        // directly notify
+        if (ctx->rbox->box.v.sync_notify != NULL) {
+          ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
         }
       }
       T_END;
     }
-    if (ctx->rbox->box.v.sync_notify != NULL) {
+  }
+  if (ctx->rbox->box.v.sync_notify != NULL){
       ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
-    }
   }
   FUNC_END();
 }

@@ -222,77 +222,6 @@ static int copy_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_
 #endif
   return 0;
 }
-//unused!
-static int move_mail(struct mail_save_context *ctx, librmb::RadosStorage *rados_storage, struct mail *mail,
-                     const std::string *ns_src, const std::string *ns_dest) {
-  struct rbox_save_context *r_ctx = (struct rbox_save_context *)ctx;
-  struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-  struct rbox_mailbox *rbox = (struct rbox_mailbox *)mail->box;
-  struct rbox_mail *rmail = (struct rbox_mail *)mail;
-  struct mailbox *dest_mbox = ctx->transaction->box;
-
-  std::list<librmb::RadosMetadata> metadata_update;
-  std::string src_oid = *rmail->rados_mail->get_oid();
-  std::string dest_oid = src_oid;
-
-  set_mailbox_metadata(ctx, &metadata_update);
-
-  bool delete_source = true;
-  int ret_val =
-      rados_storage->move(src_oid, ns_src->c_str(), dest_oid, ns_dest->c_str(), metadata_update, delete_source);
-  if (ret_val < 0) {
-    if (ret_val == -ENOENT) {
-      i_debug(
-          "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
-          "pool_name: %s. most likely due to concurency issues => marking mail as expunged",
-          ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
-          rados_storage->get_pool_name().c_str());
-      rbox_mail_set_expunged(rmail);
-      mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
-      return -1;
-    }
-    i_error(
-        "move mail failed: from namespace: %s to namespace %s: src_oid: %s, des_oid: %s, error_code : %d, "
-        "pool_name: %s",
-        ns_src->c_str(), ns_dest->c_str(), src_oid.c_str(), dest_oid.c_str(), ret_val,
-        rados_storage->get_pool_name().c_str());
-    mail_copy_set_failed(ctx, (struct mail *)rmail, "stream");
-    FUNC_END_RET("ret == -1, rados_storage->move failed");
-    return -1;
-  }
-
-  // set src as expunged
-  struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
-  i_zero(item);
-  guid_128_from_string(src_oid.c_str(), item->oid);
-  array_append(&rbox->moved_items, &item, 1);
-
-  if (r_storage->save_log->is_open()) {
-    std::list<librmb::RadosMetadata *> metadata;
-    librmb::RadosMetadata mailbox_guid(librmb::RBOX_METADATA_MAILBOX_GUID, guid_128_to_string(rbox->mailbox_guid));
-    librmb::RadosMetadata mb_name(librmb::RBOX_METADATA_ORIG_MAILBOX, rbox->box.vname);
-
-    librmb::RadosMetadata uid(librmb::RBOX_METADATA_MAIL_UID, mail->uid);
-    librmb::RadosMetadata guid(librmb::RBOX_METADATA_GUID, guid_128_to_string(r_ctx->mail_guid));
-    metadata.push_back(&mailbox_guid);
-    metadata.push_back(&mb_name);
-    metadata.push_back(&uid);
-    metadata.push_back(&guid);
-
-    r_storage->save_log->append(librmb::RadosSaveLogEntry(
-        dest_oid, *ns_dest, rados_storage->get_pool_name(),
-        librmb::RadosSaveLogEntry::op_mv(*ns_src, src_oid, dest_mbox->list->ns->owner->username, metadata)));
-  }
-  //#295: move index after updating the meterdata to avoid having a index entry with a 
-  //      reference to an object with nonexisting metadata.
-  rbox_move_index(ctx, mail);
-
-#ifdef DEBUG
-  i_debug("move successfully finished from %s (ns=%s) to %s (ns=%s)", src_oid.c_str(), ns_src->c_str(), src_oid.c_str(),
-          ns_dest->c_str());
-#endif
-  return 0;
-}
 
 static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct mail *mail, bool from_alt_storage) {
   FUNC_START();
@@ -312,14 +241,15 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 #endif
   if(ctx->copy_src_mail->box->virtual_vfuncs != NULL) {
-    i_error("copy from virtual mailbox not supported");
-    r_ctx->mbox->storage->storage.error_string = "VirtualMailbox: unsupported Origin. Copy from virtual mailbox not possible";
-    return -1;
+    i_debug("copy from virtual mailbox requires us to create the rados mail structure here!");    
+    if(rmail->rados_mail == nullptr){
+      rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    }  
   }
 
   if (r_ctx->copying == TRUE) {
     if (rbox_get_index_record(mail) < 0) {
-      
+
       rbox_mail_copy_set_failed(ctx, mail, "index record");
       FUNC_END_RET("ret == -1, rbox_get_index_record failed");
       return -1;
@@ -331,26 +261,11 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
     }
 
     librmb::RadosStorage *rados_storage = !from_alt_storage ? r_storage->s : r_storage->alt;
-   // if (ctx->moving != TRUE) {
-      if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
-        FUNC_END_RET("ret == -1, copy mail failed");
-        return -1;
-      }
-    //}
-    // Avoid using move directly : use copy and expunge instead
-    /*if (ctx->moving) {
-      int ret = 0;
-      T_BEGIN {
-        if (move_mail(ctx, rados_storage, mail, &ns_src, &ns_dest) < 0) {
-          FUNC_END_RET("ret == -1, move mail failed");
-          ret = -1;
-        }
-      }
-      T_END;
-      if (ret < 0) {
-        return ret;
-      }
-    }*/
+  
+    if (copy_mail(ctx, rados_storage, rmail, &ns_src, &ns_dest) < 0) {
+      FUNC_END_RET("ret == -1, copy mail failed");
+      return -1;
+    }    
 
     index_copy_cache_fields(ctx, mail, r_ctx->seq);
     if (ctx->dest_mail != NULL) {
