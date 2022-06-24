@@ -234,7 +234,19 @@ int rbox_save_begin(struct mail_save_context *_ctx, struct istream *input) {
     rbox_add_to_index(_ctx);
     mail_set_seq_saving(_ctx->dest_mail, r_ctx->seq);
 
-    struct istream *crlf_input = i_stream_create_lf(input);
+    struct istream *crlf_input;
+
+#ifdef HAVE_SAVE_FROM_LF_SRC
+    if (_ctx->save_from_lf_src) {
+      crlf_input = i_stream_create_crlf(input);
+    }
+    else {
+      crlf_input = i_stream_create_lf(input);
+    }
+#else
+    crlf_input = i_stream_create_lf(input);
+#endif
+
     r_ctx->input = index_mail_cache_parse_init(_ctx->dest_mail, crlf_input);
     i_stream_unref(&crlf_input);
 
