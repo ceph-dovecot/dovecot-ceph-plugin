@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.0.38](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.38) (2022-06-24)
+- Fix losing \r when saving mail from \n source
+
 ## [0.0.37](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.37) (2022-05-23)
 - #332: quota: notify message count and type invalid for imap move operation
 
