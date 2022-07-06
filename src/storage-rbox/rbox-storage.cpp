@@ -946,7 +946,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
   FUNC_START();
   int ret = index_storage_mailbox_delete(box);
   if (ret < 0) {
-    i_error("while processing index_storage_mailbox_delete: %d", ret);
+    i_debug("while processing index_storage_mailbox_delete: %d", ret);
     return ret;
   }
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
@@ -958,7 +958,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
 
   ret = rbox_open_rados_connection(box, false);
   if (ret < 0) {
-    i_error("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
+    i_debug("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
     return ret;
   }
   if (r_storage->config->is_user_mapping()) {  //
