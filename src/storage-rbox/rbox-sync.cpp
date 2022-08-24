@@ -12,6 +12,7 @@
 #include <string>
 #include <rados/librados.hpp>
 #include <list>
+#include <unistd.h>
 
 extern "C" {
 #include "dovecot-all.h"
@@ -474,6 +475,8 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
             break;
           }
           i_warning("rbox_sync (retry %d) deletion failed with %d during oid (%s) deletion, mail stays in object store.",i, ret_remove, oid);
+          // wait random time before try again!!
+          usleep(((rand() % 5) + 1) * 10000);
       }
       
     }

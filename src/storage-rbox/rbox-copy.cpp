@@ -307,6 +307,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 
   if (rbox_open_rados_connection(dest_mbox, alt_storage) < 0) {
     FUNC_END_RET("ret == -1, connection to rados failed");
+    i_error("ERROR, cannot open rados connection (rbox_mail_storage_copy)");
     return -1;
   }
 
