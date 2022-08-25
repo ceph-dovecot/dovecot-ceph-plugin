@@ -499,7 +499,9 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     ret = rbox->storage->config->save_default_rados_config();
   }
   if (ret < 0) {
-    i_error("unable to read rados_config return value : %d", ret);
+    // connection seems to be up, but read to object store is not okay. We can only fail hard!
+    i_error("unrecoverable, we cannot proceed without rados_config ceph returned : %d", ret);
+    assert(ret == 0);
     return ret;
   }
   rbox->storage->ms->create_metadata_storage(&rbox->storage->s->get_io_ctx(), rbox->storage->config);

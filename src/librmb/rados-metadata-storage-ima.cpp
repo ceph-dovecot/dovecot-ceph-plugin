@@ -13,6 +13,7 @@
 #include "rados-util.h"
 #include <string.h>
 #include <utility>
+#include <unistd.h>
 
 std::string librmb::RadosMetadataStorageIma::module_name = "ima";
 std::string librmb::RadosMetadataStorageIma::keyword_key = "K";
@@ -65,7 +66,18 @@ int RadosMetadataStorageIma::load_metadata(RadosMail *mail) {
   }
 
   std::map<string, ceph::bufferlist> attr;
-  int ret = io_ctx->getxattrs(*mail->get_oid(), attr);
+  // retry mechanism ..
+  int max_retry = 10;
+  int ret = -1;
+  for(int i=0;i<max_retry;i++){
+    ret = io_ctx->getxattrs(*mail->get_oid(), attr);
+    if(ret >= 0){      
+      break;
+    }
+    // wait random time before try again!!
+    usleep(((rand() % 5) + 1) * 10000);
+  }
+  
   if (ret < 0) {
     return ret;
   }
@@ -180,6 +192,8 @@ bool RadosMetadataStorageIma::update_metadata(const std::string &oid, std::list<
   // write update
   save_metadata(&write_op, &obj);
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
+  
+  //TODO: do we need a retry mechanism here?
   int ret = io_ctx->aio_operate(oid, completion, &write_op);
   completion->wait_for_complete();
   completion->release();

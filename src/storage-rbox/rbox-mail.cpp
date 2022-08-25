@@ -20,6 +20,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <unistd.h>
 
 extern "C" {
 
@@ -158,21 +159,6 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
       //i_debug("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
       //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
       rbox_mail_set_expunged(rmail);
-    } else if(ret_load_metadata == -ETIMEDOUT) {
-      int max_retry = 10;
-      for(int i=0;i<max_retry;i++){
-        ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
-        if(ret_load_metadata>=0){
-          i_error("READ TIMEOUT %d reading mail object %s ", ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
-          break;
-        }
-        i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret_load_metadata,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");  
-      }
-      if(ret_load_metadata<0){        
-        FUNC_END();
-        return -1;
-      }
-
     } 
     else {    
       i_error("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
@@ -300,6 +286,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
 
   if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {
     FUNC_END_RET("ret == -1;  connection to rados failed");
+    i_error("ERROR, cannot open rados connection (rbox_mail_get_save_date)");
     return -1;
   }
 
@@ -465,6 +452,7 @@ static int read_mail_from_storage(librmb::RadosStorage *rados_storage,
     read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
     read_mail->stat(psize, save_date, &stat_err);
 
+    //TODO: refactore to use operate instead of aio_operate.
     librados::AioCompletion *completion = librados::Rados::aio_create_completion();
     int ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
                                                   rmail->rados_mail->get_mail_buffer());
@@ -489,6 +477,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   if (data->stream == NULL) {
     if (rbox_open_rados_connection(_mail->box, alt_storage) < 0) {
       FUNC_END_RET("ret == -1;  connection to rados failed");
+      i_error("ERROR, cannot open rados connection (rbox_mail_get_stream)");
       return -1;
     }
     
@@ -552,6 +541,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
             break;
           }
           i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+          // wait random time before try again!!
+          usleep(((rand() % 5) + 1) * 10000);
         }
       
         if(ret <0){          
@@ -652,8 +643,9 @@ static int rbox_get_cached_metadata(struct rbox_mail *mail, enum rbox_metadata_k
   unsigned int order = 0;
 
   string_t *str = str_new(imail->mail.data_pool, 64);
-  if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, str, imail->mail.mail.seq,
-                              ibox->cache_fields[cache_field].idx) > 0) {
+  if (mail_cache_lookup_field(imail->mail.mail.transaction->cache_view, 
+                              str, imail->mail.mail.seq,
+                              ibox->cache_fields[cache_field].idx) > 0) {                              
     if (cache_field == MAIL_CACHE_POP3_ORDER) {
       i_assert(str_len(str) == sizeof(order));
       memcpy(&order, str_data(str), sizeof(order));

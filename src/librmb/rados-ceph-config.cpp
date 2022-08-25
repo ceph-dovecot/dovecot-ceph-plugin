@@ -12,6 +12,7 @@
 #include "rados-ceph-config.h"
 #include <jansson.h>
 #include <climits>
+#include <unistd.h>
 
 namespace librmb {
 
@@ -111,7 +112,22 @@ int RadosCephConfig::read_object(const std::string &oid, librados::bufferlist *b
   if (io_ctx == nullptr) {
     return -1;
   }
-  return io_ctx->read(oid, *buffer, max, 0);
+  // retry max times to read the object.
+  int max_retry = 10;
+  int ret_read = -1;
+
+  for(int i = 0;i<max_retry;i++){
+    ret_read = io_ctx->read(oid, *buffer, max, 0); 
+    if(ret_read >= 0 || ret_read == -ENOENT ){
+      // exit here if the file does not exist, or we were successful      
+      break;
+    }
+    buffer->clear();
+    // wait random time before try again!!
+    usleep(((rand() % 5) + 1) * 10000);
+  }
+
+  return ret_read;
 }
 
 void RadosCephConfig::set_io_ctx_namespace(const std::string &namespace_) {
