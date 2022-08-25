@@ -499,7 +499,9 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     ret = rbox->storage->config->save_default_rados_config();
   }
   if (ret < 0) {
-    i_error("unable to read rados_config return value : %d", ret);
+    // connection seems to be up, but read to object store is not okay. We can only fail hard!
+    i_error("unrecoverable, we cannot proceed without rados_config ceph returned : %d", ret);
+    assert(ret == 0);
     return ret;
   }
   rbox->storage->ms->create_metadata_storage(&rbox->storage->s->get_io_ctx(), rbox->storage->config);
@@ -946,7 +948,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
   FUNC_START();
   int ret = index_storage_mailbox_delete(box);
   if (ret < 0) {
-    i_error("while processing index_storage_mailbox_delete: %d", ret);
+    i_debug("while processing index_storage_mailbox_delete: %d", ret);
     return ret;
   }
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
@@ -958,7 +960,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
 
   ret = rbox_open_rados_connection(box, false);
   if (ret < 0) {
-    i_error("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
+    i_debug("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
     return ret;
   }
   if (r_storage->config->is_user_mapping()) {  //

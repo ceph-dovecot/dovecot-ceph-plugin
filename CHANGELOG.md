@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.0.39](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.39) (2022-08-25)
+- #339 fail with assert if rados_config cannot be found due to network/connection issue 
+       retry ceph read operations / read / xattr with timeout 
+
 ## [0.0.38](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.38) (2022-06-24)
 - Fix losing \r when saving mail from \n source
 
