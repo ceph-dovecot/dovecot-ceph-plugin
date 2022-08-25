@@ -504,7 +504,6 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     assert(ret == 0);
     return ret;
   }
-  i_error("creating metadata storage....");
   rbox->storage->ms->create_metadata_storage(&rbox->storage->s->get_io_ctx(), rbox->storage->config);
 
   std::string uid;
