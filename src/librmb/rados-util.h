@@ -16,6 +16,11 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include <iostream>
+#include <vector>
+#include <map>
+#include <regex>
+
 #include <string>
 #include <map>
 #include <rados/librados.hpp>
@@ -180,6 +185,14 @@ class RadosUtils {
    * @return the metadata value
    */
   static void get_metadata(rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata, char **value);
+
+
+  static std::vector<std::string> extractPgs(const std::string& str);
+
+  static std::map<std::string, std::vector<std::string>> extractPgAndPrimaryOsd(const std::string& str);
+
+  static std::vector<std::string> split(std::string str_to_split, char delimiter);
+
 };
 
 }  // namespace librmb

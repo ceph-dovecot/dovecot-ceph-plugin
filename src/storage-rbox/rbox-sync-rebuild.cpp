@@ -102,14 +102,19 @@ int rbox_sync_add_object(struct index_rebuild_context *ctx, const std::string &o
 std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(
             bool alt_storage,     
             struct rbox_storage *r_storage,
-            librados::NObjectIterator &iter) {
+            std::set<std::string> &mail_list)  {
   
   std::map<std::string, std::list<librmb::RadosMail>> rados_mails;
 
-  while (iter != librados::NObjectIterator::__EndObjectIterator) {
+  std::set<std::string>::iterator it;
+
+  for(it=mail_list.begin(); it!=mail_list.end(); ++it){          
+
+  //while (iter != librados::NObjectIterator::__EndObjectIterator) {
     
     librmb::RadosMail mail_object;
-    mail_object.set_oid((*iter).get_oid());
+   
+    mail_object.set_oid((*it));
 
     int load_metadata_ret;
     if (alt_storage) {
@@ -121,7 +126,7 @@ std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(
    
     if (load_metadata_ret < 0 || !librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {    
       i_warning("metadata for object : %s is not valid, skipping object ", mail_object.get_oid()->c_str());
-      ++iter;
+      //++iter;
       continue;
     }
     
@@ -141,7 +146,8 @@ std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(
         rados_mails[mailbox_guid]= list_mail_objects;
       }
     }
-    ++iter;   
+
+  //  ++iter;   
   }
   return rados_mails;
 }
@@ -416,6 +422,9 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
   const struct mailbox_info *info;
   int ret = 0;
 
+
+ 
+
   iter = mailbox_list_iter_init(ns->list, "*", static_cast<mailbox_list_iter_flags>(MAILBOX_LIST_ITER_RAW_LIST |
                                                                                     MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
   while ((info = mailbox_list_iter_next(iter)) != NULL) {
@@ -424,7 +433,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
 
       struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_SAVEONLY);
       if (box->storage != &r_storage->storage ||
-          box->virtual_vfuncs != NULL) {
+            box->virtual_vfuncs != NULL) {
         /* the namespace has multiple storages. or is virtual box */
         mailbox_free(&box);
         return 0;
@@ -443,11 +452,29 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
           FUNC_END();
           return -1;
         }
-        i_info("Ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
-        i_info("Loading mails... ");
-        librados::NObjectIterator *iter_guid = new librados::NObjectIterator(r_storage->s->find_mails(nullptr));
+
+       
+        std::set<std::string> mail_list;
+        std::string pool_name = r_storage->s->get_pool_name();
+        if( r_storage->config->get_object_search_method() == 1) {
+            mail_list = r_storage->s->find_mails_async(nullptr, 
+                                                       pool_name,
+                                                       r_storage->config->get_object_search_threads());
+            i_info("multithreading done");
+        }else{
+          i_info("Ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
+          i_info("Loading mails... ");
+          librados::NObjectIterator iter_guid  = r_storage->s->find_mails(nullptr);
+          while (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
+            mail_list.insert((*iter_guid).get_oid());
+            i_debug("iter mail list %s",(*iter_guid).get_oid().c_str());
+            iter_guid++;
+          } 
+
+        }           
+         
         i_info("Loading mail metadata...");
-        rados_mails = load_rados_mail_metadata(false,r_storage,*iter_guid);
+        rados_mails = load_rados_mail_metadata(false,r_storage, mail_list);
         i_info("Mails completely loaded ");
         std::map<std::string, std::list<librmb::RadosMail>>::iterator it;
         for(it=rados_mails.begin(); it!=rados_mails.end(); ++it){          

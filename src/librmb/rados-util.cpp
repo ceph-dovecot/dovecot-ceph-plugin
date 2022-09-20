@@ -20,6 +20,8 @@
 #include <iostream>
 #include <sstream>
 #include <set>
+#include <cctype>
+#include <algorithm>
 #include "encoding.h"
 
 namespace librmb {
@@ -290,6 +292,76 @@ int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosSt
   }
 
   return success ? 0 : 1;
+}
+
+static std::vector<std::string> RadosUtils::extractPgs(const std::string& str)
+{
+    std::vector<std::string> tokens;
+
+    std::stringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, '\n')) {
+        std::string pgs = token.substr(0, 10); //take first 10 chars for pgids
+        // trim the result.
+        pgs.erase(std::remove_if(pgs.begin(), pgs.end(), ::isspace), pgs.end()); 
+        tokens.push_back(pgs);
+    }
+    //skip first line (header)
+    tokens.erase(tokens.begin());
+    //remove last element (footer)
+    tokens.pop_back();
+    
+    return tokens;
+}
+
+static std::map<std::string, std::vector<std::string>> RadosUtils::extractPgAndPrimaryOsd(const std::string& str)
+{
+    std::map<std::string,std::vector<std::string>> tokens;
+
+    std::stringstream ss(str);
+    std::string token;
+    bool first_line = true;
+    while (std::getline(ss, token, '\n')) {
+        if(first_line){
+          first_line = false;
+          continue;
+        }
+        std::vector<std::string> line = split(token,' ');
+        if(line.size() < 14){
+          continue;
+        }
+        std::string tmp_primary_osd = split(line[13],',')[0];
+        std::string primary_osd = tmp_primary_osd.erase(0,1);        
+        std::string pgs = line[0];
+        
+        auto it = tokens.find(primary_osd);
+        if(it!=tokens.end()){
+          tokens[primary_osd].push_back(pgs);
+        }else{
+          std::vector<std::string> t;
+          t.push_back(pgs);
+          tokens.insert({primary_osd,t});    
+        }
+        
+    }
+    
+    return tokens;
+}
+
+static std::vector<std::string> RadosUtils::split(std::string str_to_split, char delimiter) {
+  std::vector<std::string> tokens;
+  std::stringstream stream(str_to_split);
+  std::string token;
+
+  while(getline(stream, token, delimiter)) {
+    token.erase(std::remove_if(token.begin(), token.end(), ::isspace), token.end()); 
+    if(token.length() > 0) {
+      tokens.push_back(token);
+    }
+ 
+  }
+
+  return tokens;
 }
 
 }  // namespace librmb

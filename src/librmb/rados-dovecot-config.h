@@ -49,6 +49,10 @@ class RadosConfig {
 
   const std::string &get_rbox_cluster_name() { return config[rbox_cluster_name]; }
   const std::string &get_rados_username() { return config[rados_username]; }
+  
+  const std::string &get_object_search_method()  { return config[rbox_object_search_method]; }
+  const std::string &get_object_search_threads() { return config[rbox_object_search_threads]; }
+
   void update_metadata(const std::string &key, const char *value_);
   bool is_ceph_posix_bugfix_enabled() {
     return config[bugfix_cephfs_posix_hardlinks].compare("true") == 0 ? true : false;
@@ -87,6 +91,8 @@ class RadosConfig {
   std::string rbox_ceph_write_chunks;
   std::string rbox_chunk_size;
   std::string rbox_write_method;
+  std::string rbox_object_search_method;
+  std::string rbox_object_search_threads;
   bool is_valid;
 };
 

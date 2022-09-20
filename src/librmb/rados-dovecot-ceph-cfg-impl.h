@@ -58,6 +58,8 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
       rados_cfg.set_cfg_object_name(dovecot_cfg.get_rbox_cfg_object_name());
     }
   }
+  int get_object_search_method()  override { return std::stoi(dovecot_cfg.get_object_search_method()); }
+  int get_object_search_threads() override { return std::stoi(dovecot_cfg.get_object_search_threads()); }
 
   void set_rbox_cfg_object_name(const std::string &value) override { dovecot_cfg.set_rbox_cfg_object_name(value); }
 

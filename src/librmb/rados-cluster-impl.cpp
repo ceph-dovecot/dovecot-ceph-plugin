@@ -17,7 +17,7 @@
 
 #include "rados-dictionary-impl.h"
 #include "rados-storage-impl.h"
-
+#include "rados-util.h"
 using std::list;
 using std::pair;
 using std::string;
@@ -72,6 +72,57 @@ int RadosClusterImpl::init(const std::string &clustername, const std::string &ra
   return ret;
 }
 
+
+std::vector<std::string> RadosClusterImpl::list_pgs_for_pool(std::string &pool_name) {
+    std::cout << " ola "  << RadosClusterImpl::cluster << std::endl;
+    
+    if(is_connected()){
+      std::cout << " is connected YES" << std::endl;
+    }else{
+      std::cout << " is connected NO" << std::endl;
+      connect();
+    }
+    
+    const string pool = "mail_storage";
+    const string cmd =
+    "{"
+    "\"prefix\": \"pg ls-by-pool\", "
+    "\"poolstr\": \"" + pool + "\""
+    "}";      
+    
+    std::cout << "cmd: " << cmd << std::endl;
+    
+    librados::bufferlist inbl;
+    librados::bufferlist outbl;
+    int res = RadosClusterImpl::cluster->mon_command(cmd, inbl, &outbl, nullptr);
+    std::cout << "inbl command " << inbl  <<std::endl;
+    std::cout << "outbl command " << outbl.c_str()  <<std::endl;
+
+    std::vector<std::string> list = RadosUtils::extractPgs(std::string(outbl.c_str()));
+  
+    for (auto const &token: list) {
+          std::cout << token << std::endl;        
+    }
+    return list;
+}
+
+std::map<std::string, std::vector<std::string>> RadosClusterImpl::list_pgs_osd_for_pool(std::string &pool_name) {    
+    
+    if(!is_connected()){      
+      connect();
+    }
+    
+    const string cmd =
+    "{"
+    "\"prefix\": \"pg ls-by-pool\", "
+    "\"poolstr\": \"" + pool_name + "\""
+    "}";      
+        
+    librados::bufferlist inbl;
+    librados::bufferlist outbl;
+    RadosClusterImpl::cluster->mon_command(cmd, inbl, &outbl, nullptr);
+    return RadosUtils::extractPgAndPrimaryOsd(std::string(outbl.c_str()));
+}
 int RadosClusterImpl::initialize() {
   int ret = 0;
 

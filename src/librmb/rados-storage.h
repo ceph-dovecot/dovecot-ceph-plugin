@@ -104,6 +104,11 @@ class RadosStorage {
    *
    * @return object iterator or librados::NObjectIterator::__EndObjectIterator */
   virtual librados::NObjectIterator find_mails(const RadosMetadata *attr) = 0;
+
+
+  virtual std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads) = 0;
+
+
   /*! open the rados connections with default cluster and username
    * @param[in] poolname the poolname to connect to, in case this one does not exists, it will be created.
    * */
@@ -198,6 +203,7 @@ class RadosStorage {
    * @param[in] mail ptr to valid mail object
    * */
   virtual void free_rados_mail(librmb::RadosMail *mail) = 0;
+
 
 };
 
