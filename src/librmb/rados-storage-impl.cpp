@@ -190,7 +190,12 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
     return get_io_ctx().nobjects_begin();
   }
 }
-
+/**
+ * POC Implementation: 
+ * 
+ * see in prod how it behaves. 
+ * 
+ **/
 std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *attr, 
                                                          std::string &pool_name,
                                                          int num_threads){
@@ -201,26 +206,19 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
     // Define a Lambda Expression
     auto f = [](const std::vector<std::string> &list, std::mutex &oid_mutex, std::set<std::string> &oids, librados::IoCtx *io_ctx) {
 
-      
-        //boost::optional<pg_t> pgid(i != opts.end(), pg_t());
-
         std::lock_guard<std::mutex> guard(oid_mutex);
         for (auto const &pg: list) {
           uint64_t ppool;
           uint32_t pseed;
           int r = sscanf(pg.c_str(), "%llu.%x", (long long unsigned *)&ppool, &pseed);
-
-          //std::cout << "cursor: " << io_ctx << std::endl;
+          
           librados::NObjectIterator iter= io_ctx->nobjects_begin(pseed);
-          //std::cout << "iterator "<< std::endl;
           
           while (iter != librados::NObjectIterator::__EndObjectIterator) {
             std::string oid = iter->get_oid();
-            //std::cout << "found "<< oid << " for: " << pg << std::endl;
             oids.insert(oid);  
             iter++;
-          }
-          
+          }          
         }           
     };
 
@@ -232,16 +230,13 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
     {
       if(threads.size() == num_threads){
         for (auto const &thread: threads) {
-          //std::cout << "joining : more threads enqueued" << std::endl;
           thread.join();
         }   
         threads.clear();      
       }
-      //std::cout << "pushing thread " << std::endl;
       threads.push_back(std::thread(f, std::ref(x.second),std::ref(oid_list_mutex),std::ref(oid_list), &get_io_ctx()));
     }
     for (auto const &thread: threads) {
-        //std::cout << "joining last thread" << std::endl;
         thread.join();
     }   
     return oid_list;

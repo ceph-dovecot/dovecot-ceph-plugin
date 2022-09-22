@@ -187,6 +187,9 @@ class RadosUtils {
   static void get_metadata(rbox_metadata_key key, std::map<std::string, ceph::bufferlist> *metadata, char **value);
 
 
+  /**
+   * POC Implemnentation to extract pgs and primary osds from mon_command output!
+   **/
   static std::vector<std::string> extractPgs(const std::string& str);
 
   static std::map<std::string, std::vector<std::string>> extractPgAndPrimaryOsd(const std::string& str);

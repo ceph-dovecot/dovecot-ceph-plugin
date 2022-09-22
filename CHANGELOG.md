@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.0.40](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.39) (2022-09-22)
+- #342 multithreading object search for doveadm force-resync (feature toggle) 
+       new config params: 
+       # search method default = 0 | 1 multithreading
+       rbox_object_search_method=1 
+       # number of threads to use in case of search_method=1
+       rbox_object_search_threads=4
+
 ## [0.0.39](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.39) (2022-08-25)
 - #339 fail with assert if rados_config cannot be found due to network/connection issue 
        retry ceph read operations / read / xattr with timeout 
