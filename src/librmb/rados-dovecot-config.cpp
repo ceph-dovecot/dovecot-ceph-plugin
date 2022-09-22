@@ -29,7 +29,9 @@ RadosConfig::RadosConfig()
       rbox_ceph_aio_wait_for_safe_and_cb("rbox_ceph_aio_wait_for_safe_and_cb"),
       rbox_ceph_write_chunks("rbox_ceph_write_chunks"),
       rbox_chunk_size("rbox_chunk_size"),
-      rbox_write_method("rbox_write_method") {
+      rbox_write_method("rbox_write_method"),
+      rbox_object_search_method("rbox_object_search_method"),
+      rbox_object_search_threads("rbox_object_search_threads") {
         
   config[pool_name] = "mail_storage";
 
@@ -43,6 +45,9 @@ RadosConfig::RadosConfig()
   config[rbox_ceph_write_chunks] = "false";
   config[rbox_chunk_size] = "10240";
   config[rbox_write_method] = "0";
+  config[rbox_object_search_method] = "0";
+  config[rbox_object_search_threads] = "4";
+  
   is_valid = false;
 }
 
@@ -79,8 +84,10 @@ std::string RadosConfig::to_string() {
   ss << "  " << rbox_ceph_aio_wait_for_safe_and_cb << "=" << config[rbox_ceph_aio_wait_for_safe_and_cb] << std::endl;
   ss << "  " << rbox_ceph_write_chunks << "=" << config[rbox_ceph_write_chunks] << std::endl;
   ss << "  " << rbox_write_method << "=" << config[rbox_write_method] << std::endl;
-  ss << "  " << rbox_chunk_size << "=" << config[rbox_chunk_size]
-     << std::endl;
+  ss << "  " << rbox_chunk_size << "=" << config[rbox_chunk_size] << std::endl;
+  ss << "  " << rbox_object_search_method << "=" << config[rbox_object_search_method] << std::endl;
+  ss << "  " << rbox_object_search_threads << "=" << config[rbox_object_search_threads] << std::endl;
+  
   return ss.str();
 }
 

@@ -67,12 +67,18 @@ test_storage_mock_rbox_bugs_SOURCES = storage-mock-rbox/test_storage_mock_rbox_b
 test_storage_mock_rbox_bugs_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
 test_storage_mock_rbox_bugs_LDADD = $(storage_shlibs) $(gtest_shlibs) 
 
+TESTS += test_repair_rbox
+test_repair_rbox_SOURCES = storage-mock-rbox/test_repair_rbox.cpp storage-mock-rbox/TestCase.cpp storage-mock-rbox/TestCase.h mocks/mock_test.h test-utils/it_utils.cpp test-utils/it_utils.h 
+test_repair_rbox_CPPFLAGS = $(AM_CPPFLAGS) $(LIBDOVECOT_INCLUDE) 
+test_repair_rbox_LDADD = $(storage_shlibs) $(gtest_shlibs) 
+
 
 TESTS += test_librmb_utils
 test_librmb_utils_SOURCES = librmb/test_librmb_utils.cpp
 test_librmb_utils_LDADD = $(rmb_shlibs) $(top_builddir)/src/librmb/tools/rmb/ls_cmd_parser.o  $(top_builddir)/src/librmb/tools/rmb/mailbox_tools.o $(gtest_shlibs)
     
 if BUILD_INTEGRATION_TESTS
+
 
 TESTS += it_test_librmb
 it_test_librmb_SOURCES = librmb/it_test_librmb.cpp 

@@ -40,6 +40,9 @@ class RadosClusterImpl : public RadosCluster {
   librados::Rados &get_cluster() { return *cluster; }
   void set_config_option(const char *option, const char *value);
 
+  std::vector<std::string> list_pgs_for_pool(std::string &pool_name) override;
+  std::map<std::string, std::vector<std::string>> list_pgs_osd_for_pool(std::string &pool_name) override;
+
  private:
   int initialize();
 
