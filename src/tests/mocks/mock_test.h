@@ -52,6 +52,9 @@ class RadosStorageMock : public RadosStorage {
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD1(open_connection, int(const std::string &poolname));
+
+  MOCK_METHOD3(find_mails_async, std::set<std::string>(const RadosMetadata *attr, std::string &pool_name,int num_threads));
+
   MOCK_METHOD3(open_connection,
                int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
   MOCK_METHOD0(close_connection, void());
@@ -135,6 +138,8 @@ class RadosClusterMock : public RadosCluster {
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
   MOCK_METHOD0(is_connected, bool());
   MOCK_METHOD2(set_config_option, void(const char *option, const char *value));
+  MOCK_METHOD1(list_pgs_for_pool, std::vector<std::string>(std::string &pool_name));
+  MOCK_METHOD1(list_pgs_osd_for_pool, std::map<std::string, std::vector<std::string>> (std::string &pool_name));
 };
 
 using librmb::RadosDovecotCephCfg;
@@ -154,6 +159,10 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(is_write_chunks, bool());
   MOCK_METHOD0(get_chunk_size,int());
   MOCK_METHOD0(get_write_method,int());
+
+  MOCK_METHOD0(get_object_search_method,int());
+
+  MOCK_METHOD0(get_object_search_threads,int());  
 
   MOCK_METHOD1(update_mail_attributes, void(const char *value));
   MOCK_METHOD1(update_updatable_attributes, void(const char *value));

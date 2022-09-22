@@ -76,6 +76,13 @@ class RadosCluster {
    * @return true if connected
    */
   virtual bool is_connected() = 0;
+
+  /*! get placement groups for mailbox storage pool 
+  */
+  virtual std::vector<std::string> list_pgs_for_pool(std::string &pool_name) = 0;
+  virtual std::map<std::string, std::vector<std::string>> list_pgs_osd_for_pool(std::string &pool_name) = 0;
+
+  
 };
 
 }  // namespace librmb

@@ -58,7 +58,7 @@ class RadosCephConfig {
   void set_update_attributes(const std::string &update_attributes_) {
     config.set_update_attributes(update_attributes_);
   }
-
+  
   void update_mail_attribute(const char *value) { config.update_mail_attribute(value); }
   void update_updateable_attribute(const char *value) { config.update_updateable_attribute(value); }
 

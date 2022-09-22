@@ -44,6 +44,9 @@ class RadosDovecotCephCfg {
   virtual int get_chunk_size() = 0;
   virtual int get_write_method() = 0;
 
+  virtual int get_object_search_method()  = 0;
+  virtual int get_object_search_threads() = 0;
+
   virtual const std::string &get_pool_name_metadata_key() = 0;
   virtual const std::string &get_update_attributes_key() = 0;
   virtual const std::string &get_mail_attributes_key() = 0;

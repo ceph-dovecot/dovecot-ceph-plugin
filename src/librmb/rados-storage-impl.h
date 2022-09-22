@@ -18,6 +18,8 @@
 #include <string>
 #include <cstdint>
 #include <list>
+#include <set>
+
 #include <algorithm>
 #include <rados/librados.hpp>
 
@@ -50,6 +52,9 @@ class RadosStorageImpl : public RadosStorage {
   int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                   librados::ObjectWriteOperation *op) override;
   librados::NObjectIterator find_mails(const RadosMetadata *attr) override;
+  
+  std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads) override;
+
   int open_connection(const std::string &poolname) override;
   int open_connection(const std::string &poolname, const std::string &clustername,
                       const std::string &rados_username) override;
@@ -72,6 +77,7 @@ class RadosStorageImpl : public RadosStorage {
 
   void free_rados_mail(librmb::RadosMail *mail) override;
 
+  
  private:
   int create_connection(const std::string &poolname);
 
