@@ -1,6 +1,9 @@
 # Change Log
 
-## [0.0.40](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.39) (2022-09-22)
+## [0.0.41](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.41) (2022-09-27)
+- #342 multithreading bugfix and additional logging        
+
+## [0.0.40](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.40) (2022-09-22)
 - #342 multithreading object search for doveadm force-resync (feature toggle) 
        new config params: 
        # search method default = 0 | 1 multithreading

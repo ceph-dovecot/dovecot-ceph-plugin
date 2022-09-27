@@ -106,7 +106,10 @@ class RadosStorage {
   virtual librados::NObjectIterator find_mails(const RadosMetadata *attr) = 0;
 
 
-  virtual std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads) = 0;
+  virtual std::set<std::string> find_mails_async(const RadosMetadata *attr, 
+                                                 std::string &pool_name, 
+                                                 int num_threads,
+                                                 void (*ptr)(std::string&)) = 0;
 
 
   /*! open the rados connections with default cluster and username
