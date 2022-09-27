@@ -53,7 +53,7 @@ class RadosStorageImpl : public RadosStorage {
                   librados::ObjectWriteOperation *op) override;
   librados::NObjectIterator find_mails(const RadosMetadata *attr) override;
   
-  std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads) override;
+  std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads, void (*ptr)(std::string&)) override;
 
   int open_connection(const std::string &poolname) override;
   int open_connection(const std::string &poolname, const std::string &clustername,

@@ -415,6 +415,9 @@ int find_inbox_mailbox_guid(struct mail_namespace *ns, std::string *mailbox_guid
   return ret;
 }
 
+void cb(std::string &pg){
+  i_debug("processing: %s",pg.c_str());
+}
 
 int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage *r_storage, std::map<std::string, std::list<librmb::RadosMail>> &rados_mails) {
   FUNC_START();
@@ -447,6 +450,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
       mail_index_lock_sync(box->index, "LOCKED_FOR_REPAIR");
       
       if(rados_mails.size() == 0) {
+
         if (rbox_open_rados_connection(box, false) < 0) {
           i_error("rbox_sync_index_rebuild_objects: cannot open rados connection");
           FUNC_END();
@@ -456,10 +460,12 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
        
         std::set<std::string> mail_list;
         std::string pool_name = r_storage->s->get_pool_name();
+        
         if( r_storage->config->get_object_search_method() == 1) {
             mail_list = r_storage->s->find_mails_async(nullptr, 
                                                        pool_name,
-                                                       r_storage->config->get_object_search_threads());
+                                                       r_storage->config->get_object_search_threads(),
+                                                       &cb);
             i_info("multithreading done");
         }else{
           i_info("Ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
