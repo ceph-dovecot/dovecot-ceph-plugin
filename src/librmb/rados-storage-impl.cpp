@@ -198,45 +198,54 @@ librados::NObjectIterator RadosStorageImpl::find_mails(const RadosMetadata *attr
  **/
 std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *attr, 
                                                          std::string &pool_name,
-                                                         int num_threads){
+                                                         int num_threads,
+                                                         void (*ptr)(std::string&)){
 
     std::set<std::string> oid_list;
     std::mutex oid_list_mutex;
 
     // Define a Lambda Expression
-    auto f = [](const std::vector<std::string> &list, std::mutex &oid_mutex, std::set<std::string> &oids, librados::IoCtx *io_ctx) {
+    auto f = [](const std::vector<std::string> &list, std::mutex &oid_mutex, std::set<std::string> &oids, librados::IoCtx *io_ctx,
+                void (*ptr)(std::string&), std::string osd) {
 
-        std::lock_guard<std::mutex> guard(oid_mutex);
         for (auto const &pg: list) {
+
           uint64_t ppool;
           uint32_t pseed;
           int r = sscanf(pg.c_str(), "%llu.%x", (long long unsigned *)&ppool, &pseed);
           
           librados::NObjectIterator iter= io_ctx->nobjects_begin(pseed);
-          
+                    
           while (iter != librados::NObjectIterator::__EndObjectIterator) {
             std::string oid = iter->get_oid();
-            oids.insert(oid);  
+            {
+              std::lock_guard<std::mutex> guard(oid_mutex);          
+              oids.insert(oid);  
+            }          
             iter++;
-          }          
-        }           
+          }       
+          std::string t = "osd "+ osd +" pg done " + pg;
+          (*ptr)(t);    
+        } 
+        std::string t = "done with osd "+ osd ;
+        (*ptr)(t);             
     };
 
     //std::string pool_mame = "mail_storage";
     std::map<std::string, std::vector<std::string>> osd_pg_map = cluster->list_pgs_osd_for_pool(pool_name);
     std::vector<std::thread> threads;
     
-    for (const auto& x : osd_pg_map)
-    {
-      if(threads.size() == num_threads){
-        for (auto const &thread: threads) {
-          thread.join();
-        }   
-        threads.clear();      
+    for (const auto& x : osd_pg_map){
+      if(threads.size() == num_threads){        
+        threads[0].join();
+        threads.erase(threads.begin());            
       }
-      threads.push_back(std::thread(f, std::ref(x.second),std::ref(oid_list_mutex),std::ref(oid_list), &get_io_ctx()));
+      threads.push_back(std::thread(f, std::ref(x.second),std::ref(oid_list_mutex),std::ref(oid_list), &get_io_ctx(), ptr, x.first));
+      std::string create_msg = "creating thread for osd: "+ x.first;
+      (*ptr)(create_msg);       
     }
-    for (auto const &thread: threads) {
+
+    for (auto const &thread: threads) {      
         thread.join();
     }   
     return oid_list;
