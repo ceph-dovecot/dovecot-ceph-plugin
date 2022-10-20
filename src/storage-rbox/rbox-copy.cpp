@@ -236,16 +236,14 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
   if (get_src_dest_namespace(r_storage, mail, dest_mbox, &ns_src, &ns_dest) < 0) {
     return -1;
   }
-
+  // always make sure rados mail is valid.
+  if(rmail->rados_mail == nullptr){
+    rmail->rados_mail = r_storage->s->alloc_rados_mail();
+  }  
 #ifdef DEBUG
   i_debug("namespaces: src=%s, dst=%s", ns_src.c_str(), ns_dest.c_str());
 #endif
-  if(ctx->copy_src_mail->box->virtual_vfuncs != NULL) {
-    i_debug("copy from virtual mailbox requires us to create the rados mail structure here!");    
-    if(rmail->rados_mail == nullptr){
-      rmail->rados_mail = r_storage->s->alloc_rados_mail();
-    }  
-  }
+
 
   if (r_ctx->copying == TRUE) {
     if (rbox_get_index_record(mail) < 0) {
