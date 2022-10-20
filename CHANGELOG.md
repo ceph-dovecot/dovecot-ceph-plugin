@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.0.42](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.42) (2022-10-18)
+- #346 segmentation fault (rbox_copy) if rbox_mail is null
+
 ## [0.0.41](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.41) (2022-09-27)
 - #342 multithreading bugfix and additional logging        
 
