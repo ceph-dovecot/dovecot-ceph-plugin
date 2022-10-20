@@ -214,6 +214,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
                 ceph::bufferlist &filter) {
 
         int total_count = 0;
+
         for (auto const &pg: list) {
 
           uint64_t ppool;
@@ -239,6 +240,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
         (*ptr)(t);             
     }; 
 
+
     //std::string pool_mame = "mail_storage";
     std::map<std::string, std::vector<std::string>> osd_pg_map = cluster->list_pgs_osd_for_pool(pool_name);
     std::vector<std::thread> threads;
@@ -257,7 +259,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
         threads[0].join();
         threads.erase(threads.begin());            
       }
-
+      //TODO: update parser that this will not end here filter out invalid osd
       if(x.first == "oon") {
         std::string create_msg = "skipping thread for osd: "+ x.first;
         (*ptr)(create_msg);         
@@ -267,6 +269,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
       std::string create_msg = "creating thread for osd: "+ x.first;
       (*ptr)(create_msg);       
     }
+
 
     for (auto const &thread: threads) {      
         thread.join();

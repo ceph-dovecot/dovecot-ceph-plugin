@@ -464,6 +464,7 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
         std::string pool_name = r_storage->s->get_pool_name();
         
         if( r_storage->config->get_object_search_method() == 1) {
+
             librmb::RadosMetadata filter(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, "INBOX");
             
             long milli_time, seconds, useconds;
