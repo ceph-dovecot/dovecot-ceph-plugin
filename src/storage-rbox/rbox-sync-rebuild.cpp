@@ -18,6 +18,8 @@ extern "C" {
 #include "data-stack.h"
 }
 
+#include <sys/time.h>
+
 #include "rbox-sync-rebuild.h"
 
 #include "rbox-storage.hpp"
@@ -187,7 +189,7 @@ int rbox_sync_rebuild_entry(struct index_rebuild_context *ctx, std::map<std::str
     
     sync_add_objects_ret =
         rbox_sync_add_object(ctx, *it->get_oid(), &(*it), rebuild_ctx->alt_storage, rebuild_ctx->next_uid);
-    i_info("re-adding mail oid:(%s) with uid: %d to mailbox %s (%s) ", it->get_oid()->c_str(), rebuild_ctx->next_uid, mailbox_guid.c_str(), ctx->box->name );
+    i_debug("re-adding mail oid:(%s) with uid: %d to mailbox %s (%s) ", it->get_oid()->c_str(), rebuild_ctx->next_uid, mailbox_guid.c_str(), ctx->box->name );
 
     if (sync_add_objects_ret < 0) {
       i_error("sync_add_object: oid(%s), alt_storage(%d),uid(%d)", it->get_oid()->c_str(),
@@ -462,11 +464,22 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
         std::string pool_name = r_storage->s->get_pool_name();
         
         if( r_storage->config->get_object_search_method() == 1) {
-            mail_list = r_storage->s->find_mails_async(nullptr, 
+            librmb::RadosMetadata filter(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX, "INBOX");
+            
+            long milli_time, seconds, useconds;
+            struct timeval start_time, end_time;
+            gettimeofday(&start_time, NULL);
+            
+            mail_list = r_storage->s->find_mails_async(&filter, 
                                                        pool_name,
                                                        r_storage->config->get_object_search_threads(),
                                                        &cb);
-            i_info("multithreading done");
+            gettimeofday(&end_time, NULL);
+            seconds = end_time.tv_sec - start_time.tv_sec; //seconds
+            useconds = end_time.tv_usec - start_time.tv_usec; //milliseconds
+            milli_time = ((seconds) * 1000 + useconds/1000.0);
+
+            i_info("multithreading done : took: %ld ms", (milli_time));
         }else{
           i_info("Ceph connection established using namespace: %s",r_storage->s->get_namespace().c_str());
           i_info("Loading mails... ");
