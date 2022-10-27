@@ -180,7 +180,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   return 0;
 }
 
-static int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
+int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
   FUNC_START();
   struct rbox_mail *rmail = (struct rbox_mail *)_mail;
   struct index_mail_data *data = &rmail->imail.data;

@@ -5,6 +5,7 @@ dovecot-rados-plugin-config.h
 .project
 .cproject
 .autotools
+**/cscope*
 
 # http://www.gnu.org/software/automake
 
