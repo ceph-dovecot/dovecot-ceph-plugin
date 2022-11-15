@@ -77,6 +77,12 @@ class RadosStorageMock : public RadosStorage {
 
   MOCK_METHOD0(create_anker, int());
 
+
+  MOCK_METHOD1(ceph_index_append,int(const std::string &oid));
+  MOCK_METHOD1(ceph_index_append,int(const std::set<std::string> &oids));
+  MOCK_METHOD1(ceph_index_overwrite,int(const std::set<std::string> &oids));
+  MOCK_METHOD0(ceph_index_read,std::set<std::string>());
+  MOCK_METHOD1(ceph_index_delete,int(const std::set<std::string> &oids));
 };
 
 class RadosStorageMetadataMock : public RadosStorageMetadataModule {

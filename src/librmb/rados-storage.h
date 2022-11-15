@@ -154,6 +154,35 @@ class RadosStorage {
    * @return linux errorcode or 0 if successful
    * */
   virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
+
+  /**
+   * append oid to index object
+  */
+  virtual int ceph_index_append(const std::string &oid) = 0;
+
+  /**
+   * append oids to index object
+  */
+  virtual int ceph_index_append(const std::set<std::string> &oids) = 0;
+
+  /**
+   * overwrite ceph index object
+  */
+  virtual int ceph_index_overwrite(const std::set<std::string> &oids) = 0;
+
+  /**
+   * get the ceph index object as list of oids
+   * 32
+  */
+  virtual std::set<std::string> ceph_index_read() = 0;
+
+
+  /**
+   * remove oids from index object
+  */
+  virtual int ceph_index_delete(const std::set<std::string> &oids) = 0;
+
+
   /*! read the complete mail object into bufferlist
    *
    * @param[in] oid unique object identifier

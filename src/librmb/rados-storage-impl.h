@@ -77,7 +77,12 @@ class RadosStorageImpl : public RadosStorage {
 
   void free_rados_mail(librmb::RadosMail *mail) override;
 
-  
+  int ceph_index_append(const std::string &oid)  override;
+  int ceph_index_append(const std::set<std::string> &oids)  override;
+  int ceph_index_overwrite(const std::set<std::string> &oids)  override;
+  std::set<std::string> ceph_index_read() override;
+  int ceph_index_delete(const std::set<std::string> &oids) override;
+
  private:
   int create_connection(const std::string &poolname);
 

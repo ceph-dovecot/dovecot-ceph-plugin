@@ -221,7 +221,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
           uint32_t pseed;
           int r = sscanf(pg.c_str(), "%llu.%x", (long long unsigned *)&ppool, &pseed);
           
-          librados::NObjectIterator iter= io_ctx->nobjects_begin(pseed, filter);
+          librados::NObjectIterator iter= io_ctx->nobjects_begin(pseed);
           int count = 0;
           while (iter != librados::NObjectIterator::__EndObjectIterator) {
             std::string oid = iter->get_oid();
@@ -546,4 +546,20 @@ void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
     delete mail;
     mail = nullptr;
   }
+}
+int RadosStorageImpl::ceph_index_append(const std::string &oid) {
+  return 0;
+}
+int RadosStorageImpl::ceph_index_append(const std::set<std::string> &oids) {
+  return 0;
+}
+int RadosStorageImpl::ceph_index_overwrite(const std::set<std::string> &oids) {
+  return 0;
+}
+std::set<std::string> RadosStorageImpl::ceph_index_read() {
+  std::set<std::string> empty;
+  return empty;
+}
+int RadosStorageImpl::ceph_index_delete(const std::set<std::string> &oids) {
+  return 0;
 }
