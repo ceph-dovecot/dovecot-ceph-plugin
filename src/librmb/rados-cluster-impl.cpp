@@ -82,12 +82,11 @@ std::vector<std::string> RadosClusterImpl::list_pgs_for_pool(std::string &pool_n
       std::cout << " is connected NO" << std::endl;
       connect();
     }
-    
-    const string pool = "mail_storage";
+
     const string cmd =
     "{"
     "\"prefix\": \"pg ls-by-pool\", "
-    "\"poolstr\": \"" + pool + "\""
+    "\"poolstr\": \"" + pool_name + "\""
     "}";      
     
     std::cout << "cmd: " << cmd << std::endl;
@@ -226,6 +225,18 @@ int RadosClusterImpl::io_ctx_create(const string &pool, librados::IoCtx *io_ctx)
     ret = RadosClusterImpl::cluster->ioctx_create(pool.c_str(), *io_ctx);
   }
   return ret;
+}
+int RadosClusterImpl::recovery_index_io_ctx(const std::string &pool, 
+  librados::IoCtx *io_ctx) {
+    if(!is_connected()) {
+      return -1;
+    }
+    // pool exists? else create
+    int ret = pool_create(pool);
+    if (ret == 0) {
+      ret = RadosClusterImpl::cluster->ioctx_create(pool.c_str(), *io_ctx);
+    }
+    return ret;      
 }
 
 int RadosClusterImpl::get_config_option(const char *option, string *value) {

@@ -277,6 +277,7 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
     return oid_list;
 }
 librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
+librados::IoCtx &RadosStorageImpl::get_recovery_io_ctx() { return recovery_io_ctx; }
 
 int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &clustername,
                                       const std::string &rados_username) {
@@ -301,6 +302,12 @@ int RadosStorageImpl::open_connection(const string &poolname) {
 int RadosStorageImpl::create_connection(const std::string &poolname) {
   // pool exists? else create
   int err = cluster->io_ctx_create(poolname, &io_ctx);
+  if (err < 0) {
+    return err;
+  }
+
+  //TODO: FIX poolname path!
+  err = cluster->recovery_index_io_ctx("mail_storage_alt", &recovery_io_ctx);
   if (err < 0) {
     return err;
   }
@@ -548,9 +555,15 @@ void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
   }
 }
 int RadosStorageImpl::ceph_index_append(const std::string &oid) {
-  return 0;
+  
+  librados::bufferlist bl;
+  bl.append(oid+",");
+  return get_recovery_io_ctx().append(
+    get_namespace(),bl, bl.length());
 }
 int RadosStorageImpl::ceph_index_append(const std::set<std::string> &oids) {
+  
+
   return 0;
 }
 int RadosStorageImpl::ceph_index_overwrite(const std::set<std::string> &oids) {

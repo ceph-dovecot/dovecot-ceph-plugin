@@ -32,6 +32,8 @@ using librmb::RadosStorageMetadataModule;
 class RadosStorageMock : public RadosStorage {
  public:
   MOCK_METHOD0(get_io_ctx, librados::IoCtx &());
+  MOCK_METHOD0(get_recovery_io_ctx, librados::IoCtx &());
+
   MOCK_METHOD3(stat_mail, int(const std::string &oid, uint64_t *psize, time_t *pmtime));
   MOCK_METHOD1(set_namespace, void(const std::string &nspace));
   MOCK_METHOD0(get_namespace, std::string());
@@ -140,6 +142,8 @@ class RadosClusterMock : public RadosCluster {
 
   MOCK_METHOD0(deinit, void());
   MOCK_METHOD1(pool_create, int(const std::string &pool));
+  MOCK_METHOD2(recovery_index_io_ctx, int(const std::string &pool,librados::IoCtx *io_ctx));
+
   MOCK_METHOD2(io_ctx_create, int(const std::string &pool, librados::IoCtx *io_ctx));
   MOCK_METHOD2(get_config_option, int(const char *option, std::string *value));
   MOCK_METHOD0(is_connected, bool());

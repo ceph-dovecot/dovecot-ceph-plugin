@@ -33,6 +33,8 @@ class RadosStorageImpl : public RadosStorage {
   virtual ~RadosStorageImpl();
 
   librados::IoCtx &get_io_ctx() override;
+  librados::IoCtx &get_recovery_io_ctx() override;
+
   int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) override;
   void set_namespace(const std::string &_nspace) override;
   std::string get_namespace() override { return nspace; }
@@ -92,6 +94,8 @@ class RadosStorageImpl : public RadosStorage {
   int max_object_size;
   std::string nspace;
   librados::IoCtx io_ctx;
+  librados::IoCtx recovery_io_ctx;
+
   bool io_ctx_created;
   std::string pool_name;
   enum rbox_ceph_aio_wait_method wait_method;

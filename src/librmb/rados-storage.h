@@ -35,6 +35,13 @@ class RadosStorage {
    * if connected, return the valid ioCtx
    */
   virtual librados::IoCtx &get_io_ctx() = 0;
+
+  /*!
+   * if connected, return the valid ioCtx for recovery index
+   */
+  virtual librados::IoCtx &get_recovery_io_ctx() = 0;
+
+
   /*! get the object size and object save date
    * @param[in] oid unique ident for the object
    * @param[out] psize size of the object
@@ -49,7 +56,19 @@ class RadosStorage {
    * */
   virtual std::string get_namespace() = 0;
   /*! get the pool name
-   * @return copy of the current pool name
+   * @return copy of the current p
+
+TEST_F(StorageTest, scanForPg) {
+  
+librmbtest::RadosClusterMock mock_test = librmbtest::RadosClusterMock();
+mock.
+librmb::RadosStorageImpl underTest = librmbtest::RadosStorageImpl(mock_test);
+
+underTest.ceph_index_append()
+underTest.ceph_index_add("dkfkjdf")
+
+}
+ ool name
    * */
   virtual std::string get_pool_name() = 0;
 
