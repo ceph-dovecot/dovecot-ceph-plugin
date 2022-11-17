@@ -65,6 +65,8 @@ class RmbCommands {
 
   void set_output_path(librmb::CmdLineParser *parser);
 
+  int overwrite_ceph_object_index(std::set<std::string> &mail_oids);
+
  private:
   std::map<std::string, std::string> *opts;
   librmb::RadosStorage *storage;

@@ -463,6 +463,21 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
 
             i_debug("multithreading done : took: %ld ms", (milli_time));
         }
+        else if( r_storage->config->get_object_search_method() == 2){
+                    
+          long milli_time, seconds, useconds;
+          struct timeval start_time, end_time;
+          gettimeofday(&start_time, NULL);
+          
+          mail_list = r_storage->s->ceph_index_read();
+
+          gettimeofday(&end_time, NULL);
+          seconds = end_time.tv_sec - start_time.tv_sec; 
+          useconds = end_time.tv_usec - start_time.tv_usec; 
+          milli_time = ((seconds) * 1000 + useconds/1000.0);
+
+          i_debug("processing ceph index done : took: %ld ms", (milli_time));
+        }
         else {
           librados::NObjectIterator iter_guid  = r_storage->s->find_mails(nullptr);
           while (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
@@ -480,6 +495,20 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
             i_debug("Found mails for mailbox_guid: %s: mails : %ld", it->first.c_str(), it->second.size());
           }
         #endif        
+
+        if( r_storage->config->get_object_search_method() == 2){
+          //TODO: make this more efficient : restore the valid objects
+          std::set<std::string> valid_objects;
+          for(std::map<std::string, std::list<librmb::RadosMail>>::iterator boxes = rados_mails.begin(); boxes != rados_mails.end(); ++boxes) {
+            for (librmb::RadosMail const& m : boxes->second) {              
+                valid_objects.insert(*m.get_oid());
+            }                  
+          } 
+          
+          r_storage->s->ceph_index_overwrite(valid_objects);
+
+          i_info("unique objects %d", valid_objects.size());
+        }
       }
 
       ret = rbox_sync_index_rebuild((struct rbox_mailbox *)box, force, rados_mails);

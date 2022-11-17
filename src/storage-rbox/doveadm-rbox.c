@@ -34,6 +34,7 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_rename_alloc, "rmb rename", "new username"},
     {cmd_rmb_revert_log_alloc, "rmb revert", "path to save_log"},
     {cmd_rmb_check_indices_alloc, "rmb check indices", "-d"},
+    {cmd_rmb_create_ceph_index_alloc, "rmb create ceph index", "-d"},
     {cmd_rmb_mailbox_delete_alloc, "rmb mailbox delete", "-r <mailbox> [...]"}};
 
 struct doveadm_cmd doveadm_cmd_rbox[] = {{(void *)cmd_rmb_config_show, "rmb config show", NULL},

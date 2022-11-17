@@ -17,6 +17,10 @@ struct check_indices_cmd_context {
   bool delete_not_referenced_objects;
 };
 
+struct create_ceph_index_cmd_context {
+  struct doveadm_mail_cmd_context ctx;
+};
+
 struct delete_cmd_context {
   struct doveadm_mail_cmd_context ctx;
   ARRAY_TYPE(const_string) mailboxes;
@@ -53,6 +57,7 @@ extern int cmd_rmb_version(int argc, char *argv[]);
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);
+extern struct doveadm_mail_cmd_context *cmd_rmb_create_ceph_index_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_mailbox_delete_alloc(void);
 
 #endif  // SRC_DOVEADM_RBOX_PLUGIN_H_
