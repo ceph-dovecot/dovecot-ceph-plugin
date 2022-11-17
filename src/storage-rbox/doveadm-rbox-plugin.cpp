@@ -773,13 +773,14 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   return 0;
 }
 
-static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, struct mail_user *user) {
   int ret = 0;
+  struct create_ceph_index_cmd_context *ctx = (struct create_ceph_index_cmd_context *)_ctx;
+  std::set<std::string> mail_objects;
 
-  if (user->namespaces != NULL) {
+  if (user->namespaces != NULL && !ctx->full_refresh) {
     struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
-    std::set<std::string> mail_objects;
-
+    
     for (; ns != NULL; ns = ns->next) {
       struct mailbox_list_iterate_context *iter;
       const struct mailbox_info *info;
@@ -798,7 +799,7 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *ctx, s
         }
       }
     } // end of for
-    std::cout << "found " << mail_objects.size() << " mails in namespace" << std::endl;
+    
     // open connection to storage and save index for this user!
 
     RboxDoveadmPlugin plugin;
@@ -823,6 +824,13 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *ctx, s
       delete ms;
       return -1;
     }
+
+    if(mail_objects.empty()){
+      i_info("refreshing the index with full object search!!!!");
+      mail_objects = rmb_cmds.load_objects();
+    }
+    
+    i_info("found %d mails in namespace",mail_objects.size());
     if(rmb_cmds.overwrite_ceph_object_index(mail_objects) < 0){
       i_error(" Error overwriting ceph object index");
       delete ms;
@@ -1135,7 +1143,8 @@ static bool cmd_create_ceph_index_parse_arg(struct doveadm_mail_cmd_context *_ct
   struct create_ceph_index_cmd_context *ctx = (struct create_ceph_index_cmd_context *)_ctx;
 
   switch (c) {
-    case 'd':      
+    case 'r':      
+      ctx->full_refresh = true;
       break;
     default:
       break;

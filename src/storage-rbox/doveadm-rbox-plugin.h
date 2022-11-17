@@ -19,6 +19,7 @@ struct check_indices_cmd_context {
 
 struct create_ceph_index_cmd_context {
   struct doveadm_mail_cmd_context ctx;
+  bool full_refresh;
 };
 
 struct delete_cmd_context {

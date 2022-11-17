@@ -505,7 +505,9 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
             }                  
           } 
           
-          r_storage->s->ceph_index_overwrite(valid_objects);
+          if(r_storage->s->ceph_index_overwrite(valid_objects) < 0 ) {
+            i_warning("ceph index object could not be overwritten");
+          }
 
           i_info("unique objects %d", valid_objects.size());
         }
