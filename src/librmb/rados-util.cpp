@@ -364,4 +364,26 @@ static std::vector<std::string> RadosUtils::split(std::string str_to_split, char
   return tokens;
 }
 
+
+  static std::string RadosUtils::convert_to_ceph_index(const std::set<std::string> &list){
+    std::ostringstream str;
+    std::copy(list.begin(), list.end(), std::ostream_iterator<string>(str, ","));
+    return str.str().substr(0,str.str().length() -1);
+  }
+
+  static std::string RadosUtils::convert_to_ceph_index(const std::string &str) {
+    return str;
+  }
+
+  static std::set<std::string>  RadosUtils::ceph_index_to_set(const std::string &str) {
+    std::set<std::string> index;
+    std::stringstream ss(str);
+
+    while (ss.good()) {
+        std::string substr;
+        getline(ss, substr, ',');
+        index.insert(substr);
+    }
+    return index;
+  }
 }  // namespace librmb

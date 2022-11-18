@@ -468,9 +468,9 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
           long milli_time, seconds, useconds;
           struct timeval start_time, end_time;
           gettimeofday(&start_time, NULL);
-          
+          i_info("looking for ceph_index_read...");
           mail_list = r_storage->s->ceph_index_read();
-
+        i_info("found mails____");
           gettimeofday(&end_time, NULL);
           seconds = end_time.tv_sec - start_time.tv_sec; 
           useconds = end_time.tv_usec - start_time.tv_usec; 

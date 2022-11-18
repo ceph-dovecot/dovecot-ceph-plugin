@@ -547,32 +547,47 @@ bool RadosStorageImpl::save_mail(RadosMail *mail) {
   }
   return save_mail(&write_op_xattr, mail);
 }
+
 librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
+
 void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
   if (mail != nullptr) {
     delete mail;
     mail = nullptr;
   }
 }
-int RadosStorageImpl::ceph_index_append(const std::string &oid) {
-  
-  librados::bufferlist bl;
-  bl.append(oid+",");
-  return get_recovery_io_ctx().append(
-    get_namespace(),bl, bl.length());
-}
-int RadosStorageImpl::ceph_index_append(const std::set<std::string> &oids) {
-  
 
-  return 0;
+int RadosStorageImpl::ceph_index_append(const std::string &oid) {  
+  librados::bufferlist bl;
+  bl.append(RadosUtils::convert_to_ceph_index(oid));
+  return get_recovery_io_ctx().append( get_namespace(),bl, bl.length());
+}
+
+int RadosStorageImpl::ceph_index_append(const std::set<std::string> &oids) {
+  librados::bufferlist bl;
+  bl.append(RadosUtils::convert_to_ceph_index(oids));
+  return get_recovery_io_ctx().append( get_namespace(),bl, bl.length());
 }
 int RadosStorageImpl::ceph_index_overwrite(const std::set<std::string> &oids) {
-  return 0;
+  librados::bufferlist bl;
+  bl.append(RadosUtils::convert_to_ceph_index(oids));
+  return get_recovery_io_ctx().write_full( get_namespace(),bl);
 }
 std::set<std::string> RadosStorageImpl::ceph_index_read() {
-  std::set<std::string> empty;
-  return empty;
+  std::set<std::string> index;
+  librados::bufferlist bl;
+  size_t max = INT_MAX;
+  std::cout << " NAMESPACE: " << get_namespace() << std::endl;
+  int ret = get_recovery_io_ctx().read(get_namespace(),bl, max,0);
+
+
+  if(ret < 0){
+    return index;
+  }
+  index = RadosUtils::ceph_index_to_set(bl.c_str());
+  return index;
 }
 int RadosStorageImpl::ceph_index_delete(const std::set<std::string> &oids) {
-  return 0;
+  return get_recovery_io_ctx().remove(get_namespace());
 }
+
