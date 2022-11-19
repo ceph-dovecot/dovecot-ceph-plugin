@@ -596,7 +596,13 @@ std::set<std::string> RadosStorageImpl::ceph_index_read() {
   std::set<std::string> index;
   librados::bufferlist bl;
   size_t max = INT_MAX;
-  std::cout << " NAMESPACE: " << get_namespace() << std::endl;
+  int64_t psize;
+  time_t pmtime;
+  get_recovery_io_ctx().stat(get_namespace(), &psize, &pmtime);
+  if(psize <=0){
+    return index;
+  }
+  //std::cout << " NAMESPACE: " << get_namespace() << " exist? " << exist << " size : " << psize << std::endl;
   int ret = get_recovery_io_ctx().read(get_namespace(),bl, max,0);
 
 

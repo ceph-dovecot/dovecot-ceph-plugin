@@ -470,7 +470,9 @@ int repair_namespace(struct mail_namespace *ns, bool force, struct rbox_storage 
           gettimeofday(&start_time, NULL);
           i_info("looking for ceph_index_read...");
           mail_list = r_storage->s->ceph_index_read();
-        i_info("found mails____");
+          if(mail_list.size() == 0){
+            i_warning("no mails found try doveadm create ceph index -r to create a ceph index for this mailbox");            
+          }
           gettimeofday(&end_time, NULL);
           seconds = end_time.tv_sec - start_time.tv_sec; 
           useconds = end_time.tv_usec - start_time.tv_usec; 

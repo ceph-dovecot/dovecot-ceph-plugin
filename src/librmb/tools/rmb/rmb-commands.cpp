@@ -431,7 +431,8 @@ std::set<std::string> RmbCommands::load_objects(){
   std::set<std::string> mail_list;
   librados::NObjectIterator iter_guid  =storage->find_mails(nullptr);
   while (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
-        mail_list.insert((*iter_guid).get_oid());            
+        mail_list.insert((*iter_guid).get_oid());       
+        iter_guid++;     
   } 
   return mail_list;
 }

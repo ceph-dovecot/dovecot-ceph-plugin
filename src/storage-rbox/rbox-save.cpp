@@ -895,9 +895,11 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
                 r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
       }else{
-        // ceph config schalter an oder aus!
-        r_storage->s->ceph_index_append(*r_ctx->rados_mail->get_oid());
 
+        if( r_storage->config->get_object_search_method() == 2){
+          // ceph config schalter an oder aus!
+          r_storage->s->ceph_index_append(*r_ctx->rados_mail->get_oid());
+        }
       }
       if (r_storage->save_log->is_open()) {
         r_storage->save_log->append(

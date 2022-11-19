@@ -780,51 +780,53 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
   struct create_ceph_index_cmd_context *ctx = (struct create_ceph_index_cmd_context *)_ctx;
   std::set<std::string> mail_objects;
 
-  if (user->namespaces != NULL && !ctx->full_refresh) {
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+
+  int open = open_connection_load_config(&plugin);
+  if (open < 0) {
+    i_error("Error opening rados connection. Errorcode: %d", open);
+    return open;
+  }
+  i_info("connection to rados open");
+  std::map<std::string, std::string> opts;
+  opts["namespace"] = user->username;
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+  std::string uid;
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module");
+    delete ms;
+    return -1;
+  }
+    
+  if (user->namespaces != NULL) {
     struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
     
-    for (; ns != NULL; ns = ns->next) {
-      struct mailbox_list_iterate_context *iter;
-      const struct mailbox_info *info;
+    if(!ctx->full_refresh){
+      for (; ns != NULL; ns = ns->next) {
+        struct mailbox_list_iterate_context *iter;
+        const struct mailbox_info *info;
+        
+        iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                        MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+        while ((info = mailbox_list_iter_next(iter)) != NULL) {
+          if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
       
-      iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
-                                                      MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
-      while ((info = mailbox_list_iter_next(iter)) != NULL) {
-        if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
-    
-          ret = iterate_list_objects(ns, info, mail_objects);
-    
-          if (ret < 0) {
-            ret = -1;
-            break;
+            ret = iterate_list_objects(ns, info, mail_objects);
+      
+            if (ret < 0) {
+              ret = -1;
+              break;
+            }
           }
         }
-      }
-    } // end of for
-    
-    // open connection to storage and save index for this user!
-
-    RboxDoveadmPlugin plugin;
-    plugin.read_plugin_configuration(user);
-
-    int open = open_connection_load_config(&plugin);
-    if (open < 0) {
-      i_error("Error opening rados connection. Errorcode: %d", open);
-      return open;
-    }
-    i_info("connection to rados open");
-    std::map<std::string, std::string> opts;
-    opts["namespace"] = user->username;
-    librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
-
-    std::string uid;
-    librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
-
-    librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
-    if (ms == nullptr) {
-      i_error(" Error initializing metadata module");
-      delete ms;
-      return -1;
+      } // end of for
+    }else{
+        mail_objects = rmb_cmds.load_objects();
     }
 
     if(mail_objects.empty()){
@@ -863,7 +865,9 @@ static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_
     mailbox_free(&box);
     return -1;
   }
-   
+  // lock box
+  mail_index_lock_sync(box->index, "LOCKED_FOR_INDEX_CREATION");
+
   mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, "ceph_index_creation");
 
   search_args = mail_search_build_init();
@@ -892,6 +896,8 @@ static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_
   if (mailbox_transaction_commit(&mailbox_transaction) < 0) {
     return -1;
   }
+  mail_index_unlock(box->index, "UNLOCKED_FOR_INDEX_CREATION");
+
   mailbox_free(&box);
   
   return 0;
@@ -1170,7 +1176,7 @@ struct doveadm_mail_cmd_context *cmd_rmb_create_ceph_index_alloc(void) {
   ctx->ctx.v.run = cmd_rmb_create_ceph_index_run;
   ctx->ctx.v.init = cmd_rmb_create_ceph_index_init;
   ctx->ctx.v.parse_arg = cmd_create_ceph_index_parse_arg;
-  ctx->ctx.getopt_args = "d";
+  ctx->ctx.getopt_args = "r";
   return &ctx->ctx;
 }
 
