@@ -54,8 +54,12 @@ class RadosStorageMock : public RadosStorage {
                                 librados::ObjectWriteOperation *op));
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD1(open_connection, int(const std::string &poolname));
+  MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &index_pool));
 
   MOCK_METHOD4(find_mails_async, std::set<std::string>(const RadosMetadata *attr, std::string &pool_name,int num_threads, void (*ptr)(std::string&)));
+
+  MOCK_METHOD4(open_connection,
+               int(const std::string &poolname, const std::string &index_pool, const std::string &clustername, const std::string &rados_username));
 
   MOCK_METHOD3(open_connection,
                int(const std::string &poolname, const std::string &clustername, const std::string &rados_username));
@@ -185,6 +189,8 @@ class RadosDovecotCephCfgMock : public RadosDovecotCephCfg {
   MOCK_METHOD0(get_config, std::map<std::string, std::string> *());
 
   MOCK_METHOD0(get_pool_name, std::string &());
+  MOCK_METHOD0(get_index_pool_name, std::string &());
+
   MOCK_METHOD0(is_update_attributes, bool());
 
   MOCK_METHOD2(update_metadata, void(const std::string &key, const char *value_));

@@ -58,6 +58,8 @@ class RadosDovecotCephCfg {
   virtual std::map<std::string, std::string> *get_config() = 0;
 
   virtual std::string &get_pool_name() = 0;
+  virtual std::string &get_index_pool_name() = 0;
+  
   virtual bool is_update_attributes() = 0;
 
   virtual void set_rbox_cfg_object_name(const std::string &value) = 0;

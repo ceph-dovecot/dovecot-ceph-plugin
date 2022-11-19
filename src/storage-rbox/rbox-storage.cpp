@@ -448,11 +448,14 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                             : librmb::WAIT_FOR_COMPLETE_AND_CB);
     /* open connection to primary and alternative storage */
     ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
+                                         rbox->storage->config->get_index_pool_name(), 
                                          rbox->storage->config->get_rados_cluster_name(),
                                          rbox->storage->config->get_rados_username());
 
     if (alt_storage) {
-      ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
+      ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, 
+                                                rbox->storage->config->get_index_pool_name(), 
+                                                rbox->storage->config->get_rados_cluster_name(),
                                                 rbox->storage->config->get_rados_username());
 
       rbox->storage->alt->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()

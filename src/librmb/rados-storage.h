@@ -145,6 +145,25 @@ underTest.ceph_index_add("dkfkjdf")
    * */
   virtual int open_connection(const std::string &poolname, const std::string &clustername,
                               const std::string &rados_username) = 0;
+
+  /*! open the rados connections with default cluster and username
+   * @param[in] poolname the poolname to connect to, in case this one does not exists, it will be created.
+   * @param[in] index_pool the poolname to store recovery index objects to.
+   * */
+  virtual int open_connection(const std::string &poolname, const std::string &index_pool) = 0;
+
+ /*! open the rados connection with given user and clustername
+   *
+   * @param[in] poolname the poolname to connect to, in case this one does not exists, it will be created.
+   * @param[in] index_pool the poolname to store recovery index objects to.
+   * @param[in] clustername custom clustername
+   * @param[in] rados_username custom username (client.xxx)
+   *
+   * @return linux error code or 0 if successful.
+   * */
+  virtual int open_connection(const std::string &poolname, const std::string &index_pool,
+                      const std::string &clustername,
+                      const std::string &rados_username) = 0;
   /*!
    * close the connection. (clean up structures to allow reconnect)
    */

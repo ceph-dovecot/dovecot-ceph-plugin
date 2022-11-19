@@ -88,15 +88,11 @@ std::vector<std::string> RadosClusterImpl::list_pgs_for_pool(std::string &pool_n
     "\"prefix\": \"pg ls-by-pool\", "
     "\"poolstr\": \"" + pool_name + "\""
     "}";      
-    
-    std::cout << "cmd: " << cmd << std::endl;
-    
+  
     librados::bufferlist inbl;
     librados::bufferlist outbl;
-    int res = RadosClusterImpl::cluster->mon_command(cmd, inbl, &outbl, nullptr);
-    std::cout << "inbl command " << inbl  <<std::endl;
-    std::cout << "outbl command " << outbl.c_str()  <<std::endl;
-
+    RadosClusterImpl::cluster->mon_command(cmd, inbl, &outbl, nullptr);
+    
     std::vector<std::string> list = RadosUtils::extractPgs(std::string(outbl.c_str()));
   
     for (auto const &token: list) {

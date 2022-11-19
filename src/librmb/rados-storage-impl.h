@@ -58,6 +58,12 @@ class RadosStorageImpl : public RadosStorage {
   std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads, void (*ptr)(std::string&)) override;
 
   int open_connection(const std::string &poolname) override;
+  int open_connection(const std::string &poolname, const std::string &index_pool) override;
+
+
+  int open_connection(const std::string &poolname, const std::string &index_pool,
+                      const std::string &clustername,
+                      const std::string &rados_username) override;
   int open_connection(const std::string &poolname, const std::string &clustername,
                       const std::string &rados_username) override;
   void close_connection() override;
@@ -86,7 +92,7 @@ class RadosStorageImpl : public RadosStorage {
   int ceph_index_delete(const std::set<std::string> &oids) override;
 
  private:
-  int create_connection(const std::string &poolname);
+  int create_connection(const std::string &poolname,const std::string &index_pool);
 
  private:
   RadosCluster *cluster;

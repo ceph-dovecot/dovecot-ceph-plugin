@@ -86,7 +86,9 @@ class RboxDoveadmPlugin {
 
   int open_connection() {
     return (config == nullptr) ? -1
-                               : storage->open_connection(config->get_pool_name(), config->get_rados_cluster_name(),
+                               : storage->open_connection(config->get_pool_name(), 
+                                                          config->get_index_pool_name(),
+                                                          config->get_rados_cluster_name(),
                                                           config->get_rados_username());
   }
 

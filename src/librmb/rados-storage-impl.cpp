@@ -279,7 +279,8 @@ std::set<std::string> RadosStorageImpl::find_mails_async(const RadosMetadata *at
 librados::IoCtx &RadosStorageImpl::get_io_ctx() { return io_ctx; }
 librados::IoCtx &RadosStorageImpl::get_recovery_io_ctx() { return recovery_io_ctx; }
 
-int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &clustername,
+int RadosStorageImpl::open_connection(const std::string &poolname, const std::string &index_pool,
+                                      const std::string &clustername,
                                       const std::string &rados_username) {
   if (cluster->is_connected() && io_ctx_created) {
     // cluster is already connected!
@@ -289,25 +290,43 @@ int RadosStorageImpl::open_connection(const std::string &poolname, const std::st
   if (cluster->init(clustername, rados_username) < 0) {
     return -1;
   }
-  return create_connection(poolname);
+  return create_connection(poolname, index_pool);
+}
+int RadosStorageImpl::open_connection(const std::string &poolname,
+                                      const std::string &clustername,
+                                      const std::string &rados_username) {
+  if (cluster->is_connected() && io_ctx_created) {
+    // cluster is already connected!
+    return 1;
+  }
+
+  if (cluster->init(clustername, rados_username) < 0) {
+    return -1;
+  }
+  return create_connection(poolname, poolname);
+}
+int RadosStorageImpl::open_connection(const string &poolname, const string &index_pool) {
+  if (cluster->init() < 0) {
+    return -1;
+  }
+  return create_connection(poolname, index_pool);
 }
 
 int RadosStorageImpl::open_connection(const string &poolname) {
   if (cluster->init() < 0) {
     return -1;
   }
-  return create_connection(poolname);
+  return create_connection(poolname, poolname);
 }
 
-int RadosStorageImpl::create_connection(const std::string &poolname) {
+int RadosStorageImpl::create_connection(const std::string &poolname, const std::string &index_pool){
   // pool exists? else create
   int err = cluster->io_ctx_create(poolname, &io_ctx);
   if (err < 0) {
     return err;
   }
 
-  //TODO: FIX poolname path!
-  err = cluster->recovery_index_io_ctx("mail_storage_alt", &recovery_io_ctx);
+  err = cluster->recovery_index_io_ctx(index_pool, &recovery_io_ctx);
   if (err < 0) {
     return err;
   }
