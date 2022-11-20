@@ -822,6 +822,9 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
               ret = -1;
               break;
             }
+
+            //append to index.
+
           }
         }
       } // end of for
