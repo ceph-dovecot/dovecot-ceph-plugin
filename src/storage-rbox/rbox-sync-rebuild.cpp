@@ -115,8 +115,7 @@ std::map<std::string, std::list<librmb::RadosMail>> load_rados_mail_metadata(
 
     int load_metadata_ret = r_storage->ms->get_storage()->load_metadata(&mail_object); 
     if (load_metadata_ret < 0 || !librmb::RadosUtils::validate_metadata(mail_object.get_metadata())) {    
-      i_warning("metadata for object : %s is not valid, skipping object ", mail_object.get_oid()->c_str());
-      //++iter;
+      i_debug("metadata for object : %s is not valid, skipping object ", mail_object.get_oid()->c_str());
       continue;
     }
     
