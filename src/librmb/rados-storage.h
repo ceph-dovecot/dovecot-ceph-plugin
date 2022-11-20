@@ -218,7 +218,7 @@ underTest.ceph_index_add("dkfkjdf")
   /**
    * remove oids from index object
   */
-  virtual int ceph_index_delete(const std::set<std::string> &oids) = 0;
+  virtual int ceph_index_delete() = 0;
 
 
   /*! read the complete mail object into bufferlist

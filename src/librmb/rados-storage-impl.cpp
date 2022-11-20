@@ -612,7 +612,7 @@ std::set<std::string> RadosStorageImpl::ceph_index_read() {
   index = RadosUtils::ceph_index_to_set(bl.c_str());
   return index;
 }
-int RadosStorageImpl::ceph_index_delete(const std::set<std::string> &oids) {
+int RadosStorageImpl::ceph_index_delete() {
   return get_recovery_io_ctx().remove(get_namespace());
 }
 

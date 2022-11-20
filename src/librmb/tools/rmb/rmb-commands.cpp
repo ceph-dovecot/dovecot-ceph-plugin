@@ -436,6 +436,13 @@ std::set<std::string> RmbCommands::load_objects(){
   } 
   return mail_list;
 }
+int RmbCommands::remove_ceph_object_index(){
+  return storage->ceph_index_delete();
+}
+int RmbCommands::append_ceph_object_index(const std::set<std::string> &mail_oids){
+  return storage->ceph_index_append(mail_oids);
+}
+
 int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms, std::list<librmb::RadosMail *> &mail_objects,
                               std::string &sort_string, bool load_metadata) {
   time_t begin = time(NULL);

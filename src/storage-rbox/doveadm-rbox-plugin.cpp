@@ -802,6 +802,11 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
     delete ms;
     return -1;
   }
+  if(rmb_cmds.remove_ceph_object_index() < 0){
+      i_error(" Error overwriting ceph object index");
+      delete ms;
+      return -1;
+  }
     
   if (user->namespaces != NULL) {
     struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
@@ -824,25 +829,26 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
             }
 
             //append to index.
-
+            i_info("found %d mails in namespace",mail_objects.size());
+            if(rmb_cmds.append_ceph_object_index(mail_objects) < 0){
+                i_error(" Error overwriting ceph object index");
+                delete ms;
+                return -1;
+            }
+            mail_objects.clear();
           }
         }
       } // end of for
     }else{
         mail_objects = rmb_cmds.load_objects();
+        if(rmb_cmds.overwrite_ceph_object_index(mail_objects) < 0){
+          i_error(" Error overwriting ceph object index");
+          delete ms;
+          return -1;
+        }
+        i_info("found %d mails in namespace",mail_objects.size());
     }
 
-    if(mail_objects.empty()){
-      i_info("refreshing the index with full object search!!!!");
-      mail_objects = rmb_cmds.load_objects();
-    }
-    
-    i_info("found %d mails in namespace",mail_objects.size());
-    if(rmb_cmds.overwrite_ceph_object_index(mail_objects) < 0){
-      i_error(" Error overwriting ceph object index");
-      delete ms;
-      return -1;
-    }
     i_info("index created");
 
     delete ms;

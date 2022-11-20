@@ -67,6 +67,8 @@ class RmbCommands {
 
   int overwrite_ceph_object_index(std::set<std::string> &mail_oids);
   std::set<std::string> load_objects();
+  int remove_ceph_object_index();
+  int append_ceph_object_index(const std::set<std::string> &mail_oids);
  private:
   std::map<std::string, std::string> *opts;
   librmb::RadosStorage *storage;
