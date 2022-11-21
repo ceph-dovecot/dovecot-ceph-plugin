@@ -1,4 +1,6 @@
 # Change Log
+## [0.0.44](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.44) (2022-11-21)
+- #349 additional recovery method (ceph index object)
 
 ## [0.0.43](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.43) (2022-10-27)
 - #346 segmentation fault (rbox_copy) if rbox_mail is null
