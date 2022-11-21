@@ -248,7 +248,8 @@ TEST_F(StorageTest, save_mail_fail_test) {
   std::string cluster = "ceph";
   std::string pool = "mail_storage";
   std::string suffix = "_u";
-
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
@@ -396,7 +397,8 @@ TEST_F(StorageTest, write_op_fails) {
   std::string cluster = "ceph";
   std::string pool = "mail_storage";
   std::string suffix = "_u";
-
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
@@ -633,7 +635,8 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   librmbtest::RadosStorageMetadataMock ms_mock;
   EXPECT_CALL(*ms_p_mock, get_storage()).WillRepeatedly(Return(&ms_mock));
   EXPECT_CALL(ms_mock, set_metadata(_, _)).WillRepeatedly(Return(0));
-  
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, is_write_chunks()).WillRepeatedly(Return(false));
   EXPECT_CALL(*cfg_mock, is_ceph_posix_bugfix_enabled()).WillRepeatedly(Return(false));
@@ -763,7 +766,8 @@ TEST_F(StorageTest, save_mail_cancel) {
   std::string cluster = "ceph";
   std::string pool = "mail_storage";  
   std::string suffix = "_u";
-
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));

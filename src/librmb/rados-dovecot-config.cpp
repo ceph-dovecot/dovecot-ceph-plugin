@@ -19,6 +19,7 @@ namespace librmb {
 
 RadosConfig::RadosConfig()
     : pool_name("rbox_pool_name"),
+      index_pool_name("rbox_index_pool_name"),
       rbox_cfg_object_name("rbox_cfg_object_name"),
       rbox_cluster_name("rbox_cluster_name"),
       rados_username("rados_user_name"),
@@ -34,7 +35,7 @@ RadosConfig::RadosConfig()
       rbox_object_search_threads("rbox_object_search_threads") {
         
   config[pool_name] = "mail_storage";
-
+  config[index_pool_name] = "object_recovery";
   config[rbox_cfg_object_name] = "rbox_cfg";
   config[rbox_cluster_name] = "ceph";
   config[rados_username] = "client.admin";
@@ -75,6 +76,8 @@ void RadosConfig::update_metadata(const std::string &key, const char *value_) {
 std::string RadosConfig::to_string() {
   std::stringstream ss;
   ss << "Dovecot configuration: (90-plugin.conf)" << std::endl;
+  ss << "  " << pool_name << "=" << config[pool_name] << std::endl;
+  ss << "  " << index_pool_name << "=" << config[index_pool_name] << std::endl;
   ss << "  " << rbox_cfg_object_name << "=" << config[rbox_cfg_object_name] << std::endl;
   ss << "  " << rbox_cluster_name << "=" << config[rbox_cluster_name] << std::endl;
   ss << "  " << rados_username << "=" << config[rados_username] << std::endl;

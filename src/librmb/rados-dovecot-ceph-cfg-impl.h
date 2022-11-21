@@ -40,6 +40,7 @@ class RadosDovecotCephCfgImpl : public RadosDovecotCephCfg {
 
   int get_chunk_size() override { return std::stoi(dovecot_cfg.get_chunk_size());}
   std::string &get_pool_name() override { return dovecot_cfg.get_pool_name(); }
+  std::string &get_index_pool_name() override { return dovecot_cfg.get_index_pool_name(); };
 
   std::string &get_key_prefix_keywords() override { return dovecot_cfg.get_key_prefix_keywords(); }
   void update_metadata(const std::string &key, const char *value_) override {

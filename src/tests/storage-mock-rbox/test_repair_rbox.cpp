@@ -207,7 +207,37 @@ TEST_F(StorageTest, extractPrimaryOsd) {
     EXPECT_EQ(6,list["4"].size());
 
 }
- 
+
+TEST_F(StorageTest,create_read_index) {
+
+  std::set<std::string> test_mails;
+  test_mails.insert("1");
+  test_mails.insert("2");
+  test_mails.insert("3");
+  test_mails.insert("4");
+  test_mails.insert("5");
+  std::string test_string = librmb::RadosUtils::convert_to_ceph_index(test_mails);
+  EXPECT_EQ("1,2,3,4,5,",test_string);
+
+  std::set<std::string> test_mails_read = librmb::RadosUtils::ceph_index_to_set(test_string);
+  EXPECT_EQ(5,test_mails_read.size());
+  auto my_vect = std::vector<std::string>(test_mails_read.begin(), test_mails_read.end()); // O[n]
+
+  EXPECT_EQ("1",my_vect[0]);
+  EXPECT_EQ("2",my_vect[1]);
+  EXPECT_EQ("3",my_vect[2]);
+  EXPECT_EQ("4",my_vect[3]);
+  EXPECT_EQ("5",my_vect[4]);
+  
+
+  std::string test_string1 = librmb::RadosUtils::convert_to_ceph_index("abd");
+  EXPECT_EQ("abd,",test_string1);
+
+
+}
+
+
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();

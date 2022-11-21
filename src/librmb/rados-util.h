@@ -196,6 +196,11 @@ class RadosUtils {
 
   static std::vector<std::string> split(std::string str_to_split, char delimiter);
 
+
+  static std::string convert_to_ceph_index(const std::set<std::string> &list);
+  static std::string convert_to_ceph_index(const std::string &str);
+
+  static std::set<std::string> ceph_index_to_set(const std::string &str);
 };
 
 }  // namespace librmb

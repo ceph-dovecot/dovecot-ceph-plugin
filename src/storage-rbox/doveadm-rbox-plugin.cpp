@@ -60,6 +60,7 @@ extern "C" {
 #include "rbox-storage.hpp"
 
 int check_namespace_mailboxes(const struct mail_namespace *ns, const std::list<librmb::RadosMail *> &mail_objects);
+static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_info *info, std::set<std::string> &object_list);
 
 class RboxDoveadmPlugin {
  public:
@@ -85,7 +86,9 @@ class RboxDoveadmPlugin {
 
   int open_connection() {
     return (config == nullptr) ? -1
-                               : storage->open_connection(config->get_pool_name(), config->get_rados_cluster_name(),
+                               : storage->open_connection(config->get_pool_name(), 
+                                                          config->get_index_pool_name(),
+                                                          config->get_rados_cluster_name(),
                                                           config->get_rados_username());
   }
 
@@ -772,6 +775,142 @@ static int cmd_rmb_check_indices_run(struct doveadm_mail_cmd_context *ctx, struc
   return 0;
 }
 
+static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, struct mail_user *user) {
+  int ret = 0;
+  struct create_ceph_index_cmd_context *ctx = (struct create_ceph_index_cmd_context *)_ctx;
+  std::set<std::string> mail_objects;
+
+  RboxDoveadmPlugin plugin;
+  plugin.read_plugin_configuration(user);
+
+  int open = open_connection_load_config(&plugin);
+  if (open < 0) {
+    i_error("Error opening rados connection. Errorcode: %d", open);
+    return open;
+  }
+  i_info("connection to rados open");
+  std::map<std::string, std::string> opts;
+  opts["namespace"] = user->username;
+  librmb::RmbCommands rmb_cmds(plugin.storage, plugin.cluster, &opts);
+
+  std::string uid;
+  librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+
+  librmb::RadosStorageMetadataModule *ms = rmb_cmds.init_metadata_storage_module(*cfg, &uid);
+  if (ms == nullptr) {
+    i_error(" Error initializing metadata module");
+    delete ms;
+    return -1;
+  }
+  if(rmb_cmds.remove_ceph_object_index() < 0){
+      i_error(" Error overwriting ceph object index");
+      delete ms;
+      return -1;
+  }
+    
+  if (user->namespaces != NULL) {
+    struct mail_namespace *ns = mail_namespace_find_inbox(user->namespaces);
+    
+    if(!ctx->full_refresh){
+      for (; ns != NULL; ns = ns->next) {
+        struct mailbox_list_iterate_context *iter;
+        const struct mailbox_info *info;
+        
+        iter = mailbox_list_iter_init(ns->list, "*", static_cast<enum mailbox_list_iter_flags>(
+                                                        MAILBOX_LIST_ITER_RAW_LIST | MAILBOX_LIST_ITER_RETURN_NO_FLAGS));
+        while ((info = mailbox_list_iter_next(iter)) != NULL) {
+          if ((info->flags & (MAILBOX_NONEXISTENT | MAILBOX_NOSELECT)) == 0) {
+      
+            ret = iterate_list_objects(ns, info, mail_objects);
+      
+            if (ret < 0) {
+              ret = -1;
+              break;
+            }
+
+            //append to index.
+            i_info("found %d mails in namespace",mail_objects.size());
+            if(rmb_cmds.append_ceph_object_index(mail_objects) < 0){
+                i_error(" Error overwriting ceph object index");
+                delete ms;
+                return -1;
+            }
+            mail_objects.clear();
+          }
+        }
+      } // end of for
+    }else{
+        mail_objects = rmb_cmds.load_objects();
+        if(rmb_cmds.overwrite_ceph_object_index(mail_objects) < 0){
+          i_error(" Error overwriting ceph object index");
+          delete ms;
+          return -1;
+        }
+        i_info("found %d mails in namespace",mail_objects.size());
+    }
+
+    i_info("index created");
+
+    delete ms;
+  }
+  return ret;
+}
+static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_info *info, std::set<std::string> &object_list){
+
+  struct mailbox_transaction_context *mailbox_transaction;
+  struct mail_search_context *search_ctx;
+  struct mail_search_args *search_args;
+  struct mail *mail;
+  struct mailbox *box = mailbox_alloc(ns->list, info->vname, MAILBOX_FLAG_READONLY);
+
+  if( box->virtual_vfuncs != NULL) {
+    i_info("skipping virtual box for object scan");
+    mailbox_free(&box);
+    return -1;
+  }
+
+ if (mailbox_open(box) < 0) {
+    i_error("Error opening mailbox %s", info->vname);
+    mailbox_free(&box);
+    return -1;
+  }
+  // lock box
+  mail_index_lock_sync(box->index, "LOCKED_FOR_INDEX_CREATION");
+
+  mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, "ceph_index_creation");
+
+  search_args = mail_search_build_init();
+  mail_search_build_add(search_args, SEARCH_ALL);
+
+  search_ctx = mailbox_search_init(mailbox_transaction, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
+  mail_search_args_unref(&search_args);
+  
+  while (mailbox_search_next(search_ctx, &mail)) {    
+    const struct obox_mail_index_record *obox_rec;
+    const void *rec_data;
+    mail_index_lookup_ext(mail->transaction->view, mail->seq, ((struct rbox_mailbox *)box)->ext_id, &rec_data, NULL);
+    obox_rec = static_cast<const struct obox_mail_index_record *>(rec_data);
+
+    if (obox_rec == nullptr) {
+      std::cerr << "no valid extended header for mail with uid: " << mail->uid << std::endl;
+      continue;
+    }    
+    std::string oid = guid_128_to_string(obox_rec->oid);
+    //TODO: add the oid to the ceph index!!!!
+    object_list.insert(oid);
+  }
+  if (mailbox_search_deinit(&search_ctx) < 0) {
+    return -1;
+  }
+  if (mailbox_transaction_commit(&mailbox_transaction) < 0) {
+    return -1;
+  }
+  mail_index_unlock(box->index, "UNLOCKED_FOR_INDEX_CREATION");
+
+  mailbox_free(&box);
+  
+  return 0;
+}
 static int i_strcmp_reverse_p(const char *const *s1, const char *const *s2) { return -strcmp(*s1, *s2); }
 static int get_child_mailboxes(struct mail_user *user, ARRAY_TYPE(const_string) * mailboxes, const char *name) {
   struct mailbox_list_iterate_context *iter;
@@ -932,6 +1071,11 @@ static void cmd_rmb_check_indices_init(struct doveadm_mail_cmd_context *ctx ATTR
     doveadm_mail_help_name("rmb check indices");
   }
 }
+static void cmd_rmb_create_ceph_index_init(struct doveadm_mail_cmd_context *ctx ATTR_UNUSED, const char *const args[]) {
+  if (args[0] != NULL) {
+    doveadm_mail_help_name("rmb create ceph index");
+  }
+}
 static void cmd_rmb_mailbox_delete_init(struct doveadm_mail_cmd_context *_ctx ATTR_UNUSED, const char *const args[]) {
   struct delete_cmd_context *ctx = (struct delete_cmd_context *)_ctx;
   const char *name;
@@ -1012,6 +1156,18 @@ static bool cmd_check_indices_parse_arg(struct doveadm_mail_cmd_context *_ctx, i
   return true;
 }
 
+static bool cmd_create_ceph_index_parse_arg(struct doveadm_mail_cmd_context *_ctx, int c) {
+  struct create_ceph_index_cmd_context *ctx = (struct create_ceph_index_cmd_context *)_ctx;
+
+  switch (c) {
+    case 'r':      
+      ctx->full_refresh = true;
+      break;
+    default:
+      break;
+  }
+  return true;
+}
 struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {
   struct check_indices_cmd_context *ctx;
   ctx = doveadm_mail_cmd_alloc(struct check_indices_cmd_context);
@@ -1019,6 +1175,17 @@ struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void) {
   ctx->ctx.v.init = cmd_rmb_check_indices_init;
   ctx->ctx.v.parse_arg = cmd_check_indices_parse_arg;
   ctx->ctx.getopt_args = "d";
+  return &ctx->ctx;
+}
+
+
+struct doveadm_mail_cmd_context *cmd_rmb_create_ceph_index_alloc(void) {
+  struct create_ceph_index_cmd_context *ctx;
+  ctx = doveadm_mail_cmd_alloc(struct create_ceph_index_cmd_context);
+  ctx->ctx.v.run = cmd_rmb_create_ceph_index_run;
+  ctx->ctx.v.init = cmd_rmb_create_ceph_index_init;
+  ctx->ctx.v.parse_arg = cmd_create_ceph_index_parse_arg;
+  ctx->ctx.getopt_args = "r";
   return &ctx->ctx;
 }
 

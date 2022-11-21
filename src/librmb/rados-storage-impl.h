@@ -33,6 +33,8 @@ class RadosStorageImpl : public RadosStorage {
   virtual ~RadosStorageImpl();
 
   librados::IoCtx &get_io_ctx() override;
+  librados::IoCtx &get_recovery_io_ctx() override;
+
   int stat_mail(const std::string &oid, uint64_t *psize, time_t *pmtime) override;
   void set_namespace(const std::string &_nspace) override;
   std::string get_namespace() override { return nspace; }
@@ -56,6 +58,12 @@ class RadosStorageImpl : public RadosStorage {
   std::set<std::string> find_mails_async(const RadosMetadata *attr, std::string &pool_name, int num_threads, void (*ptr)(std::string&)) override;
 
   int open_connection(const std::string &poolname) override;
+  int open_connection(const std::string &poolname, const std::string &index_pool) override;
+
+
+  int open_connection(const std::string &poolname, const std::string &index_pool,
+                      const std::string &clustername,
+                      const std::string &rados_username) override;
   int open_connection(const std::string &poolname, const std::string &clustername,
                       const std::string &rados_username) override;
   void close_connection() override;
@@ -77,9 +85,14 @@ class RadosStorageImpl : public RadosStorage {
 
   void free_rados_mail(librmb::RadosMail *mail) override;
 
-  
+  int ceph_index_append(const std::string &oid)  override;
+  int ceph_index_append(const std::set<std::string> &oids)  override;
+  int ceph_index_overwrite(const std::set<std::string> &oids)  override;
+  std::set<std::string> ceph_index_read() override;
+  int ceph_index_delete() override;
+
  private:
-  int create_connection(const std::string &poolname);
+  int create_connection(const std::string &poolname,const std::string &index_pool);
 
  private:
   RadosCluster *cluster;
@@ -87,6 +100,8 @@ class RadosStorageImpl : public RadosStorage {
   int max_object_size;
   std::string nspace;
   librados::IoCtx io_ctx;
+  librados::IoCtx recovery_io_ctx;
+
   bool io_ctx_created;
   std::string pool_name;
   enum rbox_ceph_aio_wait_method wait_method;
