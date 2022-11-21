@@ -89,7 +89,7 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
 
   for (; seq1 <= seq2; seq1++) {
     mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
-    /* TODO:  */
+
     const struct mail_index_record *rec;
     rec = mail_index_lookup(ctx->sync_view, seq1);
     if (rec == NULL) {
@@ -102,13 +102,11 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
       i_error("rbox_sync_object_expunge: connection to rados failed. alt_storage(%d)", alt_storage);
       return -1;
     }
-    if (alt_storage) {
-      r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
-    } else {
-      r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
-    }
-    /* END TODO*/
-
+    
+    r_storage->ms->get_storage()->set_io_ctx(alt_storage ? 
+                                             &r_storage->alt->get_io_ctx() : 
+                                             &r_storage->s->get_io_ctx() );
+    
     guid_128_t index_oid;
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
@@ -117,7 +115,8 @@ static int update_extended_metadata(struct rbox_sync_context *ctx, uint32_t seq1
       std::string ext_key = std::to_string(keyword_idx);
       if (remove) {
         ret = r_storage->ms->get_storage()->remove_keyword_metadata(key_oid, ext_key);
-      } else {
+      } 
+      else {
         unsigned int count;
         const char *const *keywords = array_get(&ctx->sync_view->index->keywords, &count);
         if (keywords == NULL) {
@@ -150,12 +149,8 @@ static int move_to_alt(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t se
   }
   for (; seq1 <= seq2; seq1++) {
     guid_128_t index_oid;
-    if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)&ctx->rbox->box)->ext_id, &index_oid) >=
-        0) {
+    if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)&ctx->rbox->box)->ext_id, &index_oid) >= 0) {
       std::string oid = guid_128_to_string(index_oid);
-#ifdef DEBUG
-      i_debug("found oid: %s", oid.c_str());
-#endif
       ret = librmb::RadosUtils::move_to_alt(oid, r_storage->s, r_storage->alt, r_storage->ms, inverse);
       if (ret >= 0) {
         if (inverse) {
@@ -192,12 +187,11 @@ static int update_flags(struct rbox_sync_context *ctx, uint32_t seq1, uint32_t s
       i_error("update_flags: connection to rados failed (alt_storage(%d))", alt_storage);
       return -1;
     }
-    if (alt_storage) {
-      r_storage->ms->get_storage()->set_io_ctx(&r_storage->alt->get_io_ctx());
-    } else {
-      r_storage->ms->get_storage()->set_io_ctx(&r_storage->s->get_io_ctx());
-    }
-
+    
+    r_storage->ms->get_storage()->set_io_ctx( alt_storage ? 
+                                              &r_storage->alt->get_io_ctx() : 
+                                              &r_storage->s->get_io_ctx() );
+    
     guid_128_t index_oid;
     if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &index_oid) >= 0) {
       const char *oid = guid_128_to_string(index_oid);
@@ -273,30 +267,20 @@ static int rbox_sync_index(struct rbox_sync_context *ctx) {
     struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
 
     switch (sync_rec.type) {
-      case MAIL_INDEX_SYNC_TYPE_EXPUNGE:
-        i_debug("DELETE: rbox_sync_expunge!");
+      case MAIL_INDEX_SYNC_TYPE_EXPUNGE:        
         rbox_sync_expunge(ctx, seq1, seq2);
         break;
       case MAIL_INDEX_SYNC_TYPE_FLAGS:
-
         if (is_alternate_storage_set(sync_rec.add_flags) && is_alternate_pool_valid(box)) {
-          // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_TO_ALT;
-
           // move object from mail_storage to apternative_storage.
           int ret = move_to_alt(ctx, seq1, seq2, false);
-#ifdef DEBUG
-          i_debug("setting move to alt flag! %d", ret);
-#endif
           if (ret < 0) {
             i_error("Error moving  seq (%d) from alt storage", seq1);
           }
-        } else if (is_alternate_storage_set(sync_rec.remove_flags) && is_alternate_pool_valid(box)) {
+        } 
+        else if (is_alternate_storage_set(sync_rec.remove_flags) && is_alternate_pool_valid(box)) {
           // type = SDBOX_SYNC_ENTRY_TYPE_MOVE_FROM_ALT;
-
           int ret = move_to_alt(ctx, seq1, seq2, true);
-#ifdef DEBUG
-          i_debug("Removing alt flag! %d", ret);
-#endif
           if (ret < 0) {
             i_error("Error moving seq (%d) to alt storage", seq1);
           }
@@ -388,8 +372,8 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   i_array_init(&ctx->expunged_items, 32);
 
   int ret = 0;
-  bool success = false;
   if (rebuild) {
+    bool success = false;
     for (int i = 0; i < RBOX_REBUILD_COUNT; i++) {
       /* do a full resync and try again. */
       ret = rbox_storage_rebuild_in_context(rbox->storage, force_rebuild, true);
@@ -579,6 +563,7 @@ int rbox_sync(struct rbox_mailbox *rbox, enum rbox_sync_flags flags) {
 
 struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum mailbox_sync_flags flags) {
   FUNC_START();
+  
   struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
   int ret = 0;
 
@@ -587,30 +572,19 @@ struct mailbox_sync_context *rbox_storage_sync_init(struct mailbox *box, enum ma
       ret = -1;
     }
   }
-
+  
   if (mail_index_reset_fscked(box->index)) {
     rbox_set_mailbox_corrupted(box);
   }
+  
   if (ret == 0 && (index_mailbox_want_full_sync(&rbox->box, flags) || rbox->storage->corrupted_rebuild_count != 0)) {
     uint8_t rbox_sync_flags = 0x0;
     if ((flags & MAILBOX_SYNC_FLAG_FORCE_RESYNC) != 0) {
       rbox_sync_flags |= RBOX_SYNC_FLAG_FORCE_REBUILD;
-#ifdef DEBUG
-      i_debug("setting FORCE_REBUILD FLAG");
-#endif
     }
-#ifdef DEBUG
-    else {
-      i_debug("FLAG DOES NOT HAVE FORCE_REBUILD FLAG");
-    }
-#endif
     ret = rbox_sync(rbox, static_cast<enum rbox_sync_flags>(rbox_sync_flags));
   }
-#ifdef DEBUG
-  else {
-    i_debug("NO FLAG EVALUATION");
-  }
-#endif
+  
   FUNC_END();
   return index_mailbox_sync_init(box, flags, ret < 0);
 }

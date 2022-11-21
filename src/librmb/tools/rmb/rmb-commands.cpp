@@ -423,6 +423,26 @@ static void aio_cb(rados_completion_t cb, void *arg) {
   stat->mail_objects->push_back(stat->mail);
   delete stat;
 }
+
+int RmbCommands::overwrite_ceph_object_index(std::set<std::string> &mail_oids){
+    return storage->ceph_index_overwrite(mail_oids);
+}
+std::set<std::string> RmbCommands::load_objects(){
+  std::set<std::string> mail_list;
+  librados::NObjectIterator iter_guid  =storage->find_mails(nullptr);
+  while (iter_guid != librados::NObjectIterator::__EndObjectIterator) {
+        mail_list.insert((*iter_guid).get_oid());       
+        iter_guid++;     
+  } 
+  return mail_list;
+}
+int RmbCommands::remove_ceph_object_index(){
+  return storage->ceph_index_delete();
+}
+int RmbCommands::append_ceph_object_index(const std::set<std::string> &mail_oids){
+  return storage->ceph_index_append(mail_oids);
+}
+
 int RmbCommands::load_objects(librmb::RadosStorageMetadataModule *ms, std::list<librmb::RadosMail *> &mail_objects,
                               std::string &sort_string, bool load_metadata) {
   time_t begin = time(NULL);

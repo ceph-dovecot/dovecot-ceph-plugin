@@ -108,17 +108,10 @@ static const char *rbox_storage_find_root_dir(const struct mail_namespace *ns) {
   if (ns->owner != NULL && mail_user_get_home(ns->owner, &home) > 0) {
     const char *path = t_strconcat(home, "/rbox", NULL);
     if (access(path, R_OK | W_OK | X_OK) == 0) {
-#ifdef DEBUG
-      i_debug("rbox: root exists (%s)", path);
-#endif
       FUNC_END();
       return path;
     }
-#ifdef DEBUG
-    i_debug("rbox: access(%s, rwx): failed: %m", path);
-#endif
   }
-
   FUNC_END();
   return NULL;
 }
@@ -136,7 +129,6 @@ bool rbox_storage_autodetect(const struct mail_namespace *ns, struct mailbox_lis
 #ifdef DEBUG
       i_debug("rbox: couldn't find root dir");
 #endif
-
       FUNC_END();
       return FALSE;
     }
@@ -277,7 +269,6 @@ static int rbox_mailbox_alloc_index(struct rbox_mailbox *rbox) {
   i_zero(&hdr);
   guid_128_generate(hdr.mailbox_guid);
   mail_index_set_ext_init_data(rbox->box.index, rbox->hdr_ext_id, &hdr, sizeof(hdr));
-  // memcpy(rbox->mailbox_guid, hdr.mailbox_guid, sizeof(rbox->mailbox_guid));
 
   // register index record holding the mail guid
   rbox->ext_id = mail_index_ext_register(rbox->box.index, "obox", 0, sizeof(struct obox_mail_index_record), 1);
@@ -457,11 +448,14 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
                                             : librmb::WAIT_FOR_COMPLETE_AND_CB);
     /* open connection to primary and alternative storage */
     ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
+                                         rbox->storage->config->get_index_pool_name(), 
                                          rbox->storage->config->get_rados_cluster_name(),
                                          rbox->storage->config->get_rados_username());
 
     if (alt_storage) {
-      ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, rbox->storage->config->get_rados_cluster_name(),
+      ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, 
+                                                rbox->storage->config->get_index_pool_name(), 
+                                                rbox->storage->config->get_rados_cluster_name(),
                                                 rbox->storage->config->get_rados_username());
 
       rbox->storage->alt->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
@@ -629,7 +623,6 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   if (new_trans != NULL) {
     if (mail_index_transaction_commit(&new_trans) < 0) {
       mailbox_set_index_error(box);
-
       FUNC_END_RET("ret == -1");
       return -1;
     }

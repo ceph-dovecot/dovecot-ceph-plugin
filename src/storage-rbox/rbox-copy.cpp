@@ -119,6 +119,9 @@ static void set_mailbox_metadata(struct mail_save_context *ctx, std::list<librmb
                                                 guid_128_to_string(dest_rbox->mailbox_guid));
     metadata_update->push_back(metadata_mailbox_guid);
 
+    librmb::RadosMetadata metadata_mbn(rbox_metadata_key::RBOX_METADATA_RECEIVED_TIME, ctx->data.received_date);
+    metadata_update->push_back(metadata_mbn);        
+    
     if (r_storage->config->is_update_attributes()) {
       if (r_storage->config->is_updateable_attribute(rbox_metadata_key::RBOX_METADATA_ORIG_MAILBOX)) {
         // updates the plain text mailbox name
@@ -265,7 +268,9 @@ static int rbox_mail_storage_try_copy(struct mail_save_context **_ctx, struct ma
       return -1;
     }    
 
-    index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    if(!ctx->transaction->box->disable_reflink_copy_to) {
+      index_copy_cache_fields(ctx, mail, r_ctx->seq);
+    }
     if (ctx->dest_mail != NULL) {
       mail_set_seq_saving(ctx->dest_mail, r_ctx->seq);
     }

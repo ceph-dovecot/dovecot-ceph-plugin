@@ -115,7 +115,7 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
 
   EXPECT_CALL(*storage_mock, close_connection()).Times(0);
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
 
@@ -153,6 +153,8 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
   std::string pool = "mail_storage";
   std::string suffix = "_u";
 
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
@@ -273,7 +275,7 @@ TEST_F(StorageTest, save_mail_success) {
 
   EXPECT_CALL(*storage_mock, close_connection()).Times(1);
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage", _, "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
 
@@ -309,7 +311,8 @@ TEST_F(StorageTest, save_mail_success) {
   std::string cluster = "ceph";
   std::string pool = "mail_storage";
   std::string suffix = "_u";
-
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
+  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));

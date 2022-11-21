@@ -35,6 +35,13 @@ class RadosStorage {
    * if connected, return the valid ioCtx
    */
   virtual librados::IoCtx &get_io_ctx() = 0;
+
+  /*!
+   * if connected, return the valid ioCtx for recovery index
+   */
+  virtual librados::IoCtx &get_recovery_io_ctx() = 0;
+
+
   /*! get the object size and object save date
    * @param[in] oid unique ident for the object
    * @param[out] psize size of the object
@@ -49,7 +56,19 @@ class RadosStorage {
    * */
   virtual std::string get_namespace() = 0;
   /*! get the pool name
-   * @return copy of the current pool name
+   * @return copy of the current p
+
+TEST_F(StorageTest, scanForPg) {
+  
+librmbtest::RadosClusterMock mock_test = librmbtest::RadosClusterMock();
+mock.
+librmb::RadosStorageImpl underTest = librmbtest::RadosStorageImpl(mock_test);
+
+underTest.ceph_index_append()
+underTest.ceph_index_add("dkfkjdf")
+
+}
+ ool name
    * */
   virtual std::string get_pool_name() = 0;
 
@@ -126,6 +145,25 @@ class RadosStorage {
    * */
   virtual int open_connection(const std::string &poolname, const std::string &clustername,
                               const std::string &rados_username) = 0;
+
+  /*! open the rados connections with default cluster and username
+   * @param[in] poolname the poolname to connect to, in case this one does not exists, it will be created.
+   * @param[in] index_pool the poolname to store recovery index objects to.
+   * */
+  virtual int open_connection(const std::string &poolname, const std::string &index_pool) = 0;
+
+ /*! open the rados connection with given user and clustername
+   *
+   * @param[in] poolname the poolname to connect to, in case this one does not exists, it will be created.
+   * @param[in] index_pool the poolname to store recovery index objects to.
+   * @param[in] clustername custom clustername
+   * @param[in] rados_username custom username (client.xxx)
+   *
+   * @return linux error code or 0 if successful.
+   * */
+  virtual int open_connection(const std::string &poolname, const std::string &index_pool,
+                      const std::string &clustername,
+                      const std::string &rados_username) = 0;
   /*!
    * close the connection. (clean up structures to allow reconnect)
    */
@@ -154,6 +192,35 @@ class RadosStorage {
    * @return linux errorcode or 0 if successful
    * */
   virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
+
+  /**
+   * append oid to index object
+  */
+  virtual int ceph_index_append(const std::string &oid) = 0;
+
+  /**
+   * append oids to index object
+  */
+  virtual int ceph_index_append(const std::set<std::string> &oids) = 0;
+
+  /**
+   * overwrite ceph index object
+  */
+  virtual int ceph_index_overwrite(const std::set<std::string> &oids) = 0;
+
+  /**
+   * get the ceph index object as list of oids
+   * 32
+  */
+  virtual std::set<std::string> ceph_index_read() = 0;
+
+
+  /**
+   * remove oids from index object
+  */
+  virtual int ceph_index_delete() = 0;
+
+
   /*! read the complete mail object into bufferlist
    *
    * @param[in] oid unique object identifier
