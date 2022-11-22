@@ -1,4 +1,7 @@
 # Change Log
+## [0.0.45](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.45) (2022-11-22)
+- #349 bugfix doveadm rmb return code not set
+
 ## [0.0.44](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.44) (2022-11-21)
 - #349 additional recovery method (ceph index object)
 
