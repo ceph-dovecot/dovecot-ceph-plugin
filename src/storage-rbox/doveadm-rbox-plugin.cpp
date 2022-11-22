@@ -786,6 +786,7 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
   int open = open_connection_load_config(&plugin);
   if (open < 0) {
     i_error("Error opening rados connection. Errorcode: %d", open);
+    _ctx->exit_code = open;
     return open;
   }
   i_info("connection to rados open");
@@ -800,11 +801,13 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
   if (ms == nullptr) {
     i_error(" Error initializing metadata module");
     delete ms;
+    _ctx->exit_code = -1;
     return -1;
   }
   if(rmb_cmds.remove_ceph_object_index() < 0){
       i_error(" Error overwriting ceph object index");
       delete ms;
+      _ctx->exit_code = -1;
       return -1;
   }
     
@@ -833,6 +836,7 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
             if(rmb_cmds.append_ceph_object_index(mail_objects) < 0){
                 i_error(" Error overwriting ceph object index");
                 delete ms;
+                _ctx->exit_code = -1;
                 return -1;
             }
             mail_objects.clear();
@@ -848,11 +852,11 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
         }
         i_info("found %d mails in namespace",mail_objects.size());
     }
-
-    i_info("index created");
-
     delete ms;
   }
+  i_info("index created");
+  _ctx->exit_code = ret;
+
   return ret;
 }
 static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_info *info, std::set<std::string> &object_list){
