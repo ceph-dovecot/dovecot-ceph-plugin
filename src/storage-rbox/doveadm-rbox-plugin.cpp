@@ -856,6 +856,7 @@ static int cmd_rmb_create_ceph_index_run(struct doveadm_mail_cmd_context *_ctx, 
   }
   i_info("index created");
   _ctx->exit_code = ret;
+
   return ret;
 }
 static int iterate_list_objects(struct mail_namespace* ns, const struct mailbox_info *info, std::set<std::string> &object_list){
