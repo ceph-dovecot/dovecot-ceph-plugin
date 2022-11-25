@@ -85,6 +85,9 @@ class RadosStorageImpl : public RadosStorage {
 
  private:
   int create_connection(const std::string &poolname);
+  std::string& convert_set_to_string( const std::set<std::string> &oids );
+  std::set<std::string>& convert_string_to_set(std::string &buffer);
+  std::string to_string(ceph::bufferlist& object);
 
  private:
   RadosCluster *cluster;

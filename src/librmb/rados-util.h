@@ -195,8 +195,12 @@ class RadosUtils {
   static std::map<std::string, std::vector<std::string>> extractPgAndPrimaryOsd(const std::string& str);
 
   static std::vector<std::string> split(std::string str_to_split, char delimiter);
+  static std::string& convert_set_to_string( const std::set<std::string> &oids );
+  static std::set<std::string>& convert_string_to_set(std::string &buffer);
 
 };
+
+
 
 }  // namespace librmb
 

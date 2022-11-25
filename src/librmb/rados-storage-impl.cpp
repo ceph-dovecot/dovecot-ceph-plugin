@@ -56,6 +56,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
     return -1;
   }
 
+
+
   int ret_val = 0;
   uint64_t write_buffer_size = current_object->get_mail_size() -1;
 
@@ -119,7 +121,8 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   return ret_val;
 }
-
+// libmailrados -> librados. 
+//int write_full(const std::string& oid, bufferlist& bl);??????
 int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &buffer) {
   return get_io_ctx().write_full(oid, buffer);
 }
@@ -547,19 +550,100 @@ void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
     mail = nullptr;
   }
 }
+
+
+// int append(const std::string& oid, bufferlist& bl, size_t len);
 int RadosStorageImpl::ceph_index_append(const std::string &oid) {
-  return 0;
+  ceph::bufferlist buffer;
+  buffer.append(oid);
+  ceph::bufferlist &buffer_ref=buffer;
+  std::string buffer_context=to_string(buffer_ref);
+  return get_io_ctx().append(get_namespace(),buffer_ref, buffer_context.length());
 }
 int RadosStorageImpl::ceph_index_append(const std::set<std::string> &oids) {
-  return 0;
+  ceph::bufferlist buffer;
+  buffer.append(convert_set_to_string(oids));
+  ceph::bufferlist &buffer_ref=buffer;
+  std::string buffer_context=to_string(buffer_ref);
+  return get_io_ctx().append(get_namespace(),buffer_ref, buffer_context.length());
+  
 }
+
+//int write(const std::string& oid, bufferlist& bl, size_t len, uint64_t off);
 int RadosStorageImpl::ceph_index_overwrite(const std::set<std::string> &oids) {
-  return 0;
+  ceph::bufferlist buffer;
+  buffer.append(convert_set_to_string(oids));
+  ceph::bufferlist &buffer_ref=buffer;
+  std::string buffer_context=to_string(buffer_ref);
+  return get_io_ctx().write(get_namespace(),buffer_ref,buffer_context.length(),0);
 }
+
+//int read(const std::string& oid, bufferlist& bl, size_t len, uint64_t off);
 std::set<std::string> RadosStorageImpl::ceph_index_read() {
-  std::set<std::string> empty;
-  return empty;
+  if (!cluster->is_connected() || !io_ctx_created) {
+    std::set<std::string> empty_set={"This set is EMPTY!!!"};
+    return empty_set;
+  }
+  std::set<std::string> oid_list;
+  ceph::bufferlist buffer;
+  ceph::bufferlist &buffer_ref=buffer;
+  get_io_ctx().read(get_namespace(),buffer_ref,INT_MAX,0);
+  std::string buffer_context=to_string(buffer_ref);
+  std::string &buffer_cotext_ref=buffer_context;
+  oid_list=convert_string_to_set(buffer_cotext_ref);
+  return oid_list;
 }
+
+//int remove(const std::string& oid);
+//int remove(const std::string& oid, int flags);
 int RadosStorageImpl::ceph_index_delete(const std::set<std::string> &oids) {
-  return 0;
+   if (!cluster->is_connected() || !io_ctx_created) {
+    return -1;
+  }
+  ceph::bufferlist buffer;
+  buffer.append(convert_set_to_string(oids));
+  return get_io_ctx().remove(get_namespace());
+}
+static std::string& RadosStorageImpl::convert_set_to_string(const std::set<std::string> &oids ){
+  //  if (oids.size()==0)
+  // {
+  //   return "SET IS EMPTY";
+  // }
+  std::string oid_string="";
+  std::set<std::string>::iterator it;
+  for (it = oids.begin(); it != oids.end(); ++it) 
+  {
+    oid_string =oid_string + *it + "," ; 
+  }
+  if (oid_string.size() != 0)
+    {oid_string = oid_string.substr(0, oid_string.size()-1);}
+  return oid_string;
+}
+
+static std::set<std::string>& RadosStorageImpl::convert_string_to_set(std::string &buffer){
+  // if(buffer.length()==0){
+  //   std::set<std::string> empty_set={"This set is EMPTY!!!"};
+  //   return empty_set;
+  // }
+  std::set<std::string> oid_list;
+  buffer +=",";
+  std::string delimiter=",";
+  //-1*delimiter.size() makes first start equal to zero;
+  int start, end = -1*delimiter.size();
+  do {
+    //end + delimiter.size() is equal to the index of next start;
+    start = end + delimiter.size();
+    //end gets equal to index of next seperator;
+    end = buffer.find(delimiter, start);
+    //end-start is equal to length of substr;
+    oid_list.insert(buffer.substr(start, end - start)); 
+  }while (end != buffer.size()-1);
+  return oid_list;
+}
+
+
+std::string RadosStorageImpl::to_string(ceph::bufferlist& object) {
+    std::ostringstream ss;
+    ss << object;
+    return ss.str();
 }

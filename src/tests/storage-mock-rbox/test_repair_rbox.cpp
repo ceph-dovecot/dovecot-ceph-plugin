@@ -157,6 +157,29 @@ TEST_F(StorageTest, scanForPg) {
   EXPECT_EQ(20,list2.size());
 
 }
+
+
+
+TEST_F(StorageTest,ConvertStringToStringSet){
+  std::string string_test_sample="10a,10b,a1,b2";
+  std::string &string_test_sample_ref= string_test_sample;
+  std::set<std::string> expected_set={"10a","10b","a1","b2"};
+  std::set<std::string> returend_set=librmb::RadosUtils::convert_string_to_set(string_test_sample_ref);
+  EXPECT_EQ(expected_set,returend_set);
+  string_test_sample="";
+  expected_set={};
+  returend_set=librmb::RadosUtils::convert_string_to_set(string_test_sample_ref);
+  EXPECT_EQ(expected_set,returend_set);
+
+}
+TEST_F(StorageTest,ConvertStringSetToString){
+  std::set<std::string> set_test_sample={"10a","10b","a1","b2"};
+  std::set<std::string> &set_test_sample_ref=set_test_sample;
+  EXPECT_EQ("10a,10b,a1,b2",librmb::RadosUtils::convert_set_to_string(set_test_sample_ref));
+  set_test_sample={};
+  EXPECT_EQ("",librmb::RadosUtils::convert_set_to_string(set_test_sample_ref));
+
+}
 TEST_F(StorageTest, extractPrimaryOsd) {
   
     const std::string lsByPoolOutPut =

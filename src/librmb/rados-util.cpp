@@ -364,4 +364,42 @@ static std::vector<std::string> RadosUtils::split(std::string str_to_split, char
   return tokens;
 }
 
+static std::string& RadosUtils::convert_set_to_string(const std::set<std::string> &oids ){
+  //  if (oids.size()==0)
+  // {
+  //   return "SET IS EMPTY";
+  // }
+  std::string oid_string="";
+  std::set<std::string>::iterator it;
+  for (it = oids.begin(); it != oids.end(); ++it) 
+  {
+    oid_string =oid_string + *it + "," ; 
+  }
+  if (oid_string.size() != 0)
+    {oid_string = oid_string.substr(0, oid_string.size()-1);}
+  return oid_string;
+}
+
+
+
+static std::set<std::string>& RadosUtils::convert_string_to_set(std::string &buffer){
+  // if(buffer.length()==0){
+  //   std::set<std::string> empty_set={"This set is EMPTY!!!"};
+  //   return empty_set;
+  // }
+  std::set<std::string> oid_list;
+  buffer +=",";
+  std::string delimiter=",";
+  //-1*delimiter.size() makes first start equal to zero;
+  int start, end = -1*delimiter.size();
+  do {
+    //end + delimiter.size() is equal to the index of next start;
+    start = end + delimiter.size();
+    //end gets equal to index of next seperator;
+    end = buffer.find(delimiter, start);
+    //end-start is equal to length of substr;
+    oid_list.insert(buffer.substr(start, end - start)); 
+  }while (end != buffer.size()-1);
+  return oid_list;
+}
 }  // namespace librmb

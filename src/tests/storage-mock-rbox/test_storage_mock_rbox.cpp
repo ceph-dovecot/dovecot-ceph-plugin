@@ -794,7 +794,16 @@ TEST_F(StorageTest, save_mail_cancel) {
 }
 
 
-TEST_F(StorageTest, deinit) {}
+// TEST_F(StorageTest, deinit) {
+//   librmbtest::RadosClusterMock mock_test= librmbtest::RadosClusterMock();
+//   librmb::RadosCluster cluster_test=librmb::RadosCluster();
+//   librmb::RadosStorageImpl underTest=librmb:: RadosStorageImpl(cluster_test);
+//   underTest.ceph_index_append("fsdgfsdagsd");
+//   underTest.ceph_index_append();
+//   underTest.ceph_index_overwrite();
+//   underTest.ceph_index_read();
+//   underTest.ceph_index_delete();
+// }
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
