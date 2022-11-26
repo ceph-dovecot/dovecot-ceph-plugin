@@ -576,6 +576,13 @@ void RadosStorageImpl::free_rados_mail(librmb::RadosMail *mail) {
   }
 }
 
+uint64_t RadosStorageImpl::ceph_index_size(){
+  uint64_t psize;
+  time_t pmtime;
+  get_recovery_io_ctx().stat(get_namespace(), &psize, &pmtime);
+  return psize;
+}
+
 int RadosStorageImpl::ceph_index_append(const std::string &oid) {  
   librados::bufferlist bl;
   bl.append(RadosUtils::convert_to_ceph_index(oid));

@@ -85,6 +85,7 @@ class RadosStorageImpl : public RadosStorage {
 
   void free_rados_mail(librmb::RadosMail *mail) override;
 
+  uint64_t ceph_index_size() override;
   int ceph_index_append(const std::string &oid)  override;
   int ceph_index_append(const std::set<std::string> &oids)  override;
   int ceph_index_overwrite(const std::set<std::string> &oids)  override;
