@@ -367,6 +367,9 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
   rebuild = (hdr->flags & MAIL_INDEX_HDR_FLAG_FSCKD) != 0;
 #endif
 
+  //TODO: check ceph index size, if threshold size has been reached, stat mails
+  //      and repair mailbox
+  
   ctx = i_new(struct rbox_sync_context, 1);
   ctx->rbox = rbox;
   i_array_init(&ctx->expunged_items, 32);

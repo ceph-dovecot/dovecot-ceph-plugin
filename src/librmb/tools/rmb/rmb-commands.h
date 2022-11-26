@@ -66,7 +66,7 @@ class RmbCommands {
   void set_output_path(librmb::CmdLineParser *parser);
 
   int overwrite_ceph_object_index(std::set<std::string> &mail_oids);
-  std::set<std::string> load_objects();
+  std::set<std::string> load_objects(librmb::RadosStorageMetadataModule *ms);
   int remove_ceph_object_index();
   int append_ceph_object_index(const std::set<std::string> &mail_oids);
  private:

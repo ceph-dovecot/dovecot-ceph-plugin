@@ -220,6 +220,10 @@ underTest.ceph_index_add("dkfkjdf")
   */
   virtual int ceph_index_delete() = 0;
 
+  /**
+   * returns the ceph index size
+  */
+  virtual uint64_t ceph_index_size() = 0;
 
   /*! read the complete mail object into bufferlist
    *
