@@ -37,11 +37,11 @@ struct rbox_storage {
   struct mail_storage storage;
 
   librmb::RadosCluster *cluster;
-  librmb::RadosStorage *s;
+  librmb::RadosStorageImpl *s;
   librmb::RadosDovecotCephCfg *config;
   librmb::RadosNamespaceManager *ns_mgr;
   librmb::RadosMetadataStorage *ms;
-  librmb::RadosStorage *alt;
+  librmb::RadosStorageImpl *alt;
   librmb::RadosSaveLog *save_log;
 
   uint32_t corrupted_rebuild_count;
@@ -76,6 +76,6 @@ extern int rbox_read_header(struct rbox_mailbox *mbox, struct rbox_index_header 
 extern int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update *update,
                                        struct mail_index_transaction *trans);
 extern int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDovecotCephCfg *config,
-                                                librmb::RadosNamespaceManager *ns_mgr, librmb::RadosStorage *storage);
+                                                librmb::RadosNamespaceManager *ns_mgr, librmb::RadosStorageImpl *storage);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_STORAGE_HPP_

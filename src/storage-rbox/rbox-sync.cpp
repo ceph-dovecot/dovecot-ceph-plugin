@@ -447,7 +447,7 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
     FUNC_END();
     return ret_remove;
   }
-  librmb::RadosStorage *rados_storage = item->alt_storage ? r_storage->alt : r_storage->s;
+  librmb::RadosStorageImpl *rados_storage = item->alt_storage ? r_storage->alt : r_storage->s;
   ret_remove = rados_storage->get_io_ctx().remove(oid);
   if (ret_remove < 0) {
     if(ret_remove == -ETIMEDOUT) {

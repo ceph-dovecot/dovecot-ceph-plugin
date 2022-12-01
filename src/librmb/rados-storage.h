@@ -30,11 +30,12 @@ namespace librmb {
 class RadosStorage {
  public:
   virtual ~RadosStorage() {}
-
-  /*!
-   * if connected, return the valid ioCtx
-   */
-  virtual librados::IoCtx &get_io_ctx() = 0;
+/***SARA: we do not use librados HERE anymore SO there is no need to consider connectio.*/
+  // /*!
+  //  * if connected, return the valid ioCtx
+  //  */
+  // virtual librados::IoCtx &get_io_ctx() = 0;
+  
   /*! get the object size and object save date
    * @param[in] oid unique ident for the object
    * @param[out] psize size of the object
@@ -76,8 +77,9 @@ class RadosStorage {
    *
    * @return <0 in case of failure
    * */
-  virtual int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
-                                       const uint64_t &max_write) = 0;
+  /***SARA: It is a private method implimented on rados-storage-impl.*/
+  // virtual int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
+  //                                      const uint64_t &max_write) = 0;
 
   /*! deletes a mail object from rados
    * @param[in] mail pointer to valid mail object
@@ -153,7 +155,7 @@ class RadosStorage {
    *
    * @return linux errorcode or 0 if successful
    * */
-  virtual int save_mail(const std::string &oid, librados::bufferlist &buffer) = 0;
+  virtual int save_mail(const std::string &oid, std::string &buffer) = 0;
 
   /**
    * append oid to index object
@@ -189,7 +191,7 @@ class RadosStorage {
    * @param[out] buffer valid ptr to bufferlist.
    * @return linux errorcode or 0 if successful
    * */
-  virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
+  virtual int read_mail(const std::string &oid, std::string *buffer) = 0;
   /*! move a object from the given namespace to the other, updates the metadata given in to_update list
    *
    * @param[in] src_oid unique identifier of source object
@@ -225,7 +227,14 @@ class RadosStorage {
    * @return false in case of error.
    *
    */
-  virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;
+
+
+  /***SARA: There is no usage of it at stodage_box not at all. 
+   * And it is called twice on RadosUtils::copy_to_alt but this method is never used. 
+   * However,even copy_to_all does not need a save method with ObjectWriteOperation object.*/
+  // virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;
+  
+  
   /*! create a new RadosMail
    * create new rados Mail Object.
    *  return pointer to mail object or nullptr

@@ -43,9 +43,7 @@ class RadosStorageImpl : public RadosStorage {
   int get_max_write_size_bytes() override { return max_write_size * 1024 * 1024; }
   int get_max_object_size() override {return max_object_size;}
 
-  int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
-                               const uint64_t &max_write) override;
-
+  
   int delete_mail(RadosMail *mail) override;
   int delete_mail(const std::string &oid) override;
 
@@ -64,15 +62,15 @@ class RadosStorageImpl : public RadosStorage {
 
   bool wait_for_rados_operations(const std::list<librmb::RadosMail *> &object_list) override;
 
-  int read_mail(const std::string &oid, librados::bufferlist *buffer) override;
+  int read_mail(const std::string &oid, std::string *buffer) override;
   int move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
            std::list<RadosMetadata> &to_update, bool delete_source) override;
   int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
            std::list<RadosMetadata> &to_update) override;
 
-  int save_mail(const std::string &oid, librados::bufferlist &buffer) override;
+  int save_mail(const std::string &oid, std::string &buffer) override;
   bool save_mail(RadosMail *mail) override;
-  bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) override;
+  // bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) override;
   librmb::RadosMail *alloc_rados_mail() override;
 
   void free_rados_mail(librmb::RadosMail *mail) override;
@@ -84,6 +82,8 @@ class RadosStorageImpl : public RadosStorage {
   int ceph_index_delete(const std::set<std::string> &oids) override;
 
  private:
+  int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
+                               const uint64_t &max_write) override;
   int create_connection(const std::string &poolname);
   std::string& convert_set_to_string( const std::set<std::string> &oids );
   std::set<std::string>& convert_string_to_set(std::string &buffer);
