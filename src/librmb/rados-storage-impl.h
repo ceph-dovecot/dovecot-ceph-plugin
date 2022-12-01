@@ -70,6 +70,7 @@ class RadosStorageImpl : public RadosStorage {
 
   int save_mail(const std::string &oid, std::string &buffer) override;
   bool save_mail(RadosMail *mail) override;
+  /***SARA*/
   // bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) override;
   librmb::RadosMail *alloc_rados_mail() override;
 
@@ -82,6 +83,8 @@ class RadosStorageImpl : public RadosStorage {
   int ceph_index_delete(const std::set<std::string> &oids) override;
 
  private:
+ /***SARA:This method exsited on RadosStorage.
+  *  BUT it can be a private method here because it is only used in RadosStorageImpl.cpp*/
   int split_buffer_and_exec_op(RadosMail *current_object, librados::ObjectWriteOperation *write_op_xattr,
                                const uint64_t &max_write) override;
   int create_connection(const std::string &poolname);

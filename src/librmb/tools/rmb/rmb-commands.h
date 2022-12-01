@@ -69,6 +69,7 @@ class RmbCommands {
   std::set<std::string> load_objects();
  private:
   std::map<std::string, std::string> *opts;
+  /****SARA:RadosStorage is replaced by RadosStorageImpl in this way we can remove get_IoCtx from RadosStorage*/
   librmb::RadosStorageImpl *storage;
   librmb::RadosCluster *cluster;
   bool is_debug;

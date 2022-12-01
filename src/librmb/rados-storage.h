@@ -229,7 +229,7 @@ class RadosStorage {
    */
 
 
-  /***SARA: There is no usage of it at stodage_box not at all. 
+  /****SARA: There is no usage of it at stodage_box not at all. 
    * And it is called twice on RadosUtils::copy_to_alt but this method is never used. 
    * However,even copy_to_all does not need a save method with ObjectWriteOperation object.*/
   // virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;

@@ -126,7 +126,7 @@ class RadosUtils {
    * @return linux error code or 0 if sucessful
    */
   
-  /***SARA: there is no use of this method. 
+  /****SARA: there is no use of this method. 
    * Also it invokes save_mail from RadosStorage that does not exsit anymore*/
   // static int copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorage *primary, RadosStorage *alt_storage,
   //                        RadosMetadataStorage *metadata, bool inverse);

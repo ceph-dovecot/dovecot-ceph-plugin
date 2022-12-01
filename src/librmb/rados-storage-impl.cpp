@@ -510,8 +510,7 @@ int RadosStorageImpl::copy(std::string &src_oid, const char *src_ns, std::string
 // to wait for completion and free resources.
 
 /***SARA: There is no usage of it at stodage_box not at all. 
-   * And it is called twice on RadosUtils::copy_to_alt but this method is never used. 
-   * However,even copy_to_all does not need a save method with ObjectWriteOperation object.*/
+   * And it is called twice on RadosUtils::copy_to_alt but this method is never used.*/
 // bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr, 
 //                                  RadosMail *mail) {
                                    
