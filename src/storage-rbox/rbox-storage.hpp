@@ -37,7 +37,7 @@ struct rbox_storage {
   struct mail_storage storage;
 
   librmb::RadosCluster *cluster;
-  /****SARA:RadosStorage is replaced by RadosStorageImpl */
+  /****SARA:RadosStorage is replaced by RadosStorageImpl ****/
   librmb::RadosStorageImpl *s;
   librmb::RadosDovecotCephCfg *config;
   librmb::RadosNamespaceManager *ns_mgr;

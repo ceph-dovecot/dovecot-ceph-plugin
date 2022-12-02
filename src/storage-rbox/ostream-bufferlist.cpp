@@ -69,11 +69,7 @@ static ssize_t o_stream_buffer_sendv(struct ostream_private *stream, const struc
   }
 
   if (bstream->execute_write_ops) {
-    librados::ObjectWriteOperation write_op;
-    write_op.write(val, *bstream->buf);
-
-    bstream->rados_storage->aio_operate(&bstream->rados_storage->get_io_ctx(), *bstream->rados_mail->get_oid(),
-                                        bstream->rados_mail->get_completion(), &write_op);
+      bstream->rados_storage->append(&bstream->rados_mail->get_oid(),&bstream->buf,INT_MAX);
   }
   return ret;
 }

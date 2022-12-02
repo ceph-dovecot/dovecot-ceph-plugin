@@ -192,7 +192,9 @@ TEST(librmb1, read_mail) {
   time_t save_date;
   int ret_stat = storage.stat_mail(*obj.get_oid(), &size, &save_date);
 
-  librados::bufferlist bl;
+  // librados::bufferlist bl;
+  std::string bl;
+
   int copy_mail_ret = storage.read_mail(*obj.get_oid(), &bl);
   char *buff = new char[copy_mail_ret + 1];
   memset(buff, 1, size + 1);
@@ -713,7 +715,8 @@ TEST(librmb, increment_add_to_non_existing_key) {
   librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
-  ceph::bufferlist mail_buf;
+  // ceph::bufferlist mail_buf;
+  std::string mail_buf;
   storage.save_mail(*obj2.get_oid(), mail_buf);
 
   long val = 10;  // value to add
@@ -799,7 +802,8 @@ TEST(librmb, increment_add_to_existing_key) {
   librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
-  ceph::bufferlist mail_buf;
+  // ceph::bufferlist mail_buf;
+  std::string mail_buf;
   storage.save_mail(*obj2.get_oid(), mail_buf);
   long val = 10;  // value to add
   int ret = librmb::RadosUtils::osd_add(&storage.get_io_ctx(), *obj2.get_oid(), key, val);
@@ -845,7 +849,9 @@ TEST(librmb, increment_sub_from_existing_key) {
   librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
-  ceph::bufferlist mail_buf;
+  // ceph::bufferlist mail_buf;
+  std::string mail_buf;
+
   storage.save_mail(*obj2.get_oid(), mail_buf);
 
   long val = 10;  // value to add
@@ -909,7 +915,8 @@ TEST(librmb, rmb_load_objects) {
   librmb::RadosMail obj2;
   obj2.set_oid("myobject");
 
-  ceph::bufferlist mail_buf;
+  // ceph::bufferlist mail_buf;
+  std::string mail_buf;
   storage.save_mail(*obj2.get_oid(), mail_buf);
 
   std::list<librmb::RadosMail *> mail_objects;
@@ -1242,7 +1249,8 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file) {
   EXPECT_EQ(true, log_file.open());
   log_file.append(librmb::RadosSaveLogEntry("abc", "t1", "rmb_tool_tests", "save"));
   EXPECT_EQ(true, log_file.close());
-  librados::bufferlist bl;
+  // librados::bufferlist bl;
+  std::string bl;
   EXPECT_EQ(0, storage.save_mail("abc", bl));
 
   std::map<std::string, std::list<librmb::RadosSaveLogEntry>> moved_items;
@@ -1306,8 +1314,8 @@ TEST(librmb, delete_objects_via_rmb_tool_and_save_log_file_invalid_entry) {
       librmb::RadosSaveLogEntry("abc2", "t1", "2,2,2rmb_tool_tests", "save"));  // -> stop processing (invalid entry)!
   log_file.append(librmb::RadosSaveLogEntry("abc2", "t1", "rmb_tool_tests", "save"));
   EXPECT_EQ(true, log_file.close());
-  librados::bufferlist bl;
-
+  // librados::bufferlist bl;
+std::string bl;
   EXPECT_EQ(0, storage.save_mail("abc2", bl));
   cluster.deinit();
 
@@ -1343,7 +1351,8 @@ TEST(librmb, move_object_delete_with_save_log) {
   log_file.append(librmb::RadosSaveLogEntry("abc3", "t1", "rmb_tool_tests",
                                             "mv:t1:abc3:t1;M=123:B=INBOX:U=1:G=0246da2269ac1f5b3e1700009c60b9f7"));
   EXPECT_EQ(true, log_file.close());
-  librados::bufferlist bl;
+  // librados::bufferlist bl;
+  std::string bl;
   EXPECT_EQ(0, storage.save_mail("abc3", bl));
   cluster.deinit();
 

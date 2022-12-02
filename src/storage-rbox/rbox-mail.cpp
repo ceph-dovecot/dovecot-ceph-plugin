@@ -439,7 +439,7 @@ static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer,
   return ret;
 }
 
-static int read_mail_from_storage(librmb::RadosStorage *rados_storage, 
+static int read_mail_from_storage(librmb::RadosStorageImpl *rados_storage, 
                                   struct rbox_mail *rmail,
                                   uint64_t *psize,
                                   time_t *save_date) {
@@ -452,13 +452,10 @@ static int read_mail_from_storage(librmb::RadosStorage *rados_storage,
     read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
     read_mail->stat(psize, save_date, &stat_err);
 
-    //TODO: refactore to use operate instead of aio_operate.
-    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    int ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
+  
+    int ret = rados_storage->get_io_ctx().operate(*rmail->rados_mail->get_oid(),read_mail,
                                                   rmail->rados_mail->get_mail_buffer());
-    completion->wait_for_complete_and_cb();
-    ret = completion->get_return_value();
-    completion->release();
+   
     delete read_mail;
 
     return ret;

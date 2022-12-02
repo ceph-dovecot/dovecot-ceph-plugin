@@ -70,6 +70,7 @@ class RadosStorageImpl : public RadosStorage {
 
   int save_mail(const std::string &oid, std::string &buffer) override;
   bool save_mail(RadosMail *mail) override;
+  int save_mail_write_chunk(librmb::RadosMail *rados_mail,const unit64_t chunk_size) override;
   /***SARA*/
   // bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) override;
   librmb::RadosMail *alloc_rados_mail() override;

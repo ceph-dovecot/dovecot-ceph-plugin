@@ -121,7 +121,64 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
 
   return ret_val;
 }
+int RadosStorageImpl::save_mail_write_chunk(librmb::RadosMail *rados_mail,const unit64_t max_write) {
+  int ret_val = 0;
+  uint64_t write_buffer_size = rados_mail->get_mail_size() -1;
 
+  assert(max_write > 0);
+
+  if (write_buffer_size == 0 || max_write == 0) {
+    ret_val = -1;
+    i_debug("write_buffer_size == 0 or max_write <=0 < -1" );
+    return ret_val;
+  }
+
+  uint64_t rest = write_buffer_size % max_write;
+  int div = write_buffer_size / max_write + (rest > 0 ? 1 : 0);
+  for (int i = 0; i < div; ++i) {
+    
+    librados::bufferlist tmp_buffer;
+    
+    int offset = i * max_write;
+    uint64_t length = max_write;
+
+    if (write_buffer_size < ((i + 1) * length)) {
+      length = rest;
+    }
+
+    if (i == 0) {
+      librmb::RadosMetadataStorage metadata;
+      librados::ObjectWriteOperation write_op;
+      metadata.get_storage()->save_metadata(write_op,rados_mail);
+
+      tmp_buffer.substr_of(*rados_mail->get_mail_buffer(), offset, length);
+
+      write_op.write(0,tmp_buffer);
+      ret_val = this->get_io_ctx().operate(*rados_mail->get_oid(), &write_op);
+    } else {
+      i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
+      if(offset + length > write_buffer_size){
+        i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
+        return -1;
+      }else{
+        tmp_buffer.substr_of(*rados_mail->get_mail_buffer(), offset, length);
+      }      
+      i_debug("tmp_buffer %d ",tmp_buffer.length());
+      ret_val = this->get_io_ctx().append(*rados_mail->get_oid(), tmp_buffer, length); 
+    }
+    i_debug("append mail (operate) return value: %d",ret_val);
+    if(ret_val < 0){
+      ret_val = -1;
+      break;
+    }
+  }
+  i_debug("freeing mailbuffer");
+  // free mail's buffer cause we don't need it anymore
+  librados::bufferlist *mail_buffer = rados_mail->get_mail_buffer();
+  delete mail_buffer;
+
+  return ret_val;
+}
 int RadosStorageImpl::save_mail(const std::string &oid, std::string &buffer) {
   librados::bufferlist& ceph_buffer;
   ceph_buffer.append(oid,buffer);

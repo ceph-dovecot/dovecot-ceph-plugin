@@ -242,8 +242,8 @@ int RadosUtils::move_to_alt(std::string &oid, RadosStorageImplImpl *primary, Rad
   return ret;
 }
 
-/****SARA: there is no use of this method. 
-   * Also it invokes save_mail from RadosStorage that does not exsit anymore*/
+/****SARA : there is no use of this method. 
+   * Also it invokes save_mail from RadosStorage that does not exsit anymore****/
 // int RadosUtils::copy_to_alt(std::string &src_oid, std::string &dest_oid, RadosStorageImpl *primary,
 //                             RadosStorageImpl *alt_storage, RadosMetadataStorage *metadata, bool inverse) {
 //   int ret = 0;

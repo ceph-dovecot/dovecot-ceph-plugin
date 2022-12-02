@@ -99,8 +99,11 @@ class RadosStorage {
    * @param[in] c valid pointer to a completion.
    * @param[in] op the prepared write operation
    * */
-  virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
-                          librados::ObjectWriteOperation *op) = 0;
+  /***SARA: this method should be deleted to make this AIP independent from CEPH classes.*/
+  // virtual int aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
+  //                         librados::ObjectWriteOperation *op) = 0;
+
+  
   /*! search for mails based on given Filter
    * @param[in] attr a list of filter attributes
    *
@@ -227,8 +230,6 @@ class RadosStorage {
    * @return false in case of error.
    *
    */
-
-
   /****SARA: There is no usage of it at stodage_box not at all. 
    * And it is called twice on RadosUtils::copy_to_alt but this method is never used. 
    * However,even copy_to_all does not need a save method with ObjectWriteOperation object.*/
@@ -244,7 +245,8 @@ class RadosStorage {
    * @param[in] mail ptr to valid mail object
    * */
   virtual void free_rados_mail(librmb::RadosMail *mail) = 0;
-
+/*save mail from chunks, metadata and main mail save process is done once*/
+  virtual int save_mail_write_chunk(librmb::RadosMail *rados_mail,const unit64_t chunk_size)=0;
 
 };
 
