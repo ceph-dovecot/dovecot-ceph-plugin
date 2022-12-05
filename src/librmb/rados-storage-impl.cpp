@@ -57,7 +57,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   }
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size();
+  uint64_t write_buffer_size = current_object->get_mail_size() -1;
 
   assert(max_write > 0);
 
