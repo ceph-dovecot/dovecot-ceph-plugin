@@ -506,19 +506,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
 
-    /* duplicate code: get_attribute 
-      librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
-      read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
-      read_mail->stat(&psize, &save_date, &stat_err);
-
-      librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-      ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
-                                                    rmail->rados_mail->get_mail_buffer());
-      completion->wait_for_complete_and_cb();
-      ret = completion->get_return_value();
-      completion->release();
-      delete read_mail;
-    */
     if (ret < 0) {
       if (ret == -ENOENT) {
         // This can happen, if we have more then 2 processes running at the same time.
@@ -533,7 +520,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       } 
       else if(ret == -ETIMEDOUT) {
-        int max_retry = 10;
+        int max_retry = 10; //TODO FIX 
         for(int i=0;i<max_retry;i++){
           ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
           if(ret >= 0){
@@ -543,6 +530,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
           i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
           // wait random time before try again!!
           usleep(((rand() % 5) + 1) * 10000);
+          // clear the read buffer in case of timeout
+          rmail->rados_mail->get_mail_buffer()->clear();
         }
       
         if(ret <0){          
@@ -582,6 +571,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
+    i_debug("reading stream for oid: %s, phy: %d, buffer: %d", rmail->rados_mail->get_oid()->c_str(),
+                                                               physical_size, 
+                                                               rmail->rados_mail->get_mail_buffer()->length());
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
       FUNC_END_RET("ret == -1");
       delete rmail->rados_mail->get_mail_buffer();
