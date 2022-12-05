@@ -900,8 +900,8 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
           r_storage->s->ceph_index_append(*r_ctx->rados_mail->get_oid());
           uint64_t index_size = r_storage->s->ceph_index_size();
           // WARN if index reaches 80% of max object size
-          if((r_storage->s->get_max_object_size() / index_size) > 80) {
-            i_warning("ceph_index file(%d) close to exceed max_object size(%d), recalc index !",r_storage->s->get_max_object_size(), index_size );
+          if( ((index_size/r_storage->s->get_max_object_size()) * 100) > 80) {
+            i_warning("ceph_index file(%d) close to exceed max_object size(%d), recalc index !", index_size, r_storage->s->get_max_object_size() );
           }
         }
       }
