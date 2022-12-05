@@ -784,7 +784,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 // clean stream if still open
 #if DOVECOT_PREREQ(2, 3)    
     int ret = 0;
-
+    //#355 we need to write zipl trailer even the stream is empty!
     if (r_ctx->ctx.data.output != r_ctx->output_stream ) {
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */

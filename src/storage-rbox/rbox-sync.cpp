@@ -50,24 +50,24 @@ static void rbox_sync_expunge(struct rbox_sync_context *ctx, uint32_t seq1, uint
   FUNC_START();
   struct mailbox *box = &ctx->rbox->box;
   uint32_t uid = -1;
+  uint32_t seq;
 
-  for (; seq1 <= seq2; seq1++) {
-    mail_index_lookup_uid(ctx->sync_view, seq1, &uid);
-    if (!mail_index_transaction_is_expunged(ctx->trans, seq1)) {
+  for (seq = seq1; seq <= seq2; seq++) {
+    mail_index_lookup_uid(ctx->sync_view, seq, &uid);
+    const struct mail_index_record *rec;
+    rec = mail_index_lookup(ctx->sync_view, seq);
+    if (rec == NULL) {
+      i_error("rbox_sync_expunge: mail_index_lookup failed! for %d uid(%d)", seq1, uid);
+      continue;  // skip further processing.
+    }
+    if (!mail_index_transaction_is_expunged(ctx->trans, seq)) {
       /* todo load flags and set alt_storage flag */
-      const struct mail_index_record *rec;
-      rec = mail_index_lookup(ctx->sync_view, seq1);
-      if (rec == NULL) {
-        i_error("rbox_sync_expunge: mail_index_lookup failed! for %d uid(%d)", seq1, uid);
-        continue;  // skip further processing.
-      }
-
-      mail_index_expunge(ctx->trans, seq1);
+      mail_index_expunge(ctx->trans, seq);
 
       struct expunged_item *item = p_new(default_pool, struct expunged_item, 1);
       i_zero(item);
       item->uid = uid;
-      if (rbox_get_oid_from_index(ctx->sync_view, seq1, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
+      if (rbox_get_oid_from_index(ctx->sync_view, seq, ((struct rbox_mailbox *)box)->ext_id, &item->oid) < 0) {
         // continue anyway
       } else {
         item->alt_storage = is_alternate_storage_set(rec->flags) && is_alternate_pool_valid(box);
@@ -409,6 +409,7 @@ int rbox_sync_begin(struct rbox_mailbox *rbox, struct rbox_sync_context **ctx_r,
     }
   }
   if (ret <= 0) {
+    index_storage_expunging_deinit(&ctx->rbox->box);  
     array_delete(&ctx->expunged_items, array_count(&ctx->expunged_items) - 1, 1);
     array_free(&ctx->expunged_items);
     i_free(ctx);
@@ -475,6 +476,8 @@ static int rbox_sync_object_expunge(struct rbox_sync_context *ctx, struct expung
             item->alt_storage);
     }
   }
+ // directly notify
+  mailbox_sync_notify(box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);    
 
   FUNC_END();
   return ret_remove;
@@ -493,17 +496,12 @@ static void rbox_sync_expunge_rbox_objects(struct rbox_sync_context *ctx) {
       T_BEGIN {
         item = items[i];
         rbox_sync_object_expunge(ctx, item);
-        // directly notify
-        if (ctx->rbox->box.v.sync_notify != NULL) {
-          ctx->rbox->box.v.sync_notify(&ctx->rbox->box, item->uid, MAILBOX_SYNC_TYPE_EXPUNGE);
-        }
       }
       T_END;
     }
   }
-  if (ctx->rbox->box.v.sync_notify != NULL){
-      ctx->rbox->box.v.sync_notify(&ctx->rbox->box, 0, static_cast<mailbox_sync_type>(0));
-  }
+  mailbox_sync_notify(&ctx->rbox->box, 0, 0);
+  
   FUNC_END();
 }
 
@@ -530,7 +528,7 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
   }
-
+  i_info("EXPUNGE: calling deinit");
   index_storage_expunging_deinit(&ctx->rbox->box);
 
   if (array_is_created(&ctx->expunged_items)) {
@@ -544,7 +542,6 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
     }
     array_free(&ctx->expunged_items);
   }
-
   i_free(ctx);
   FUNC_END();
   return ret;
