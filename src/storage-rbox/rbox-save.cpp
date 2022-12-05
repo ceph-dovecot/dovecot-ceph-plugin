@@ -476,7 +476,7 @@ int save_mail_async(RadosStorage *rados_storage,
   librados::AioCompletion *completion = librados::Rados::aio_create_completion();
   
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size() -1; // write buffer size needs to be length -1
+  uint64_t write_buffer_size = current_object->get_mail_size(); 
 
   assert(max_write > 0);
 
@@ -563,7 +563,7 @@ int save_mail_sync(RadosStorage *rados_storage,
                              const uint64_t &max_write) {
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size() -1; // write buffer size needs to be length -1
+  uint64_t write_buffer_size = current_object->get_mail_size(); 
 
   assert(max_write > 0);
 
@@ -788,13 +788,12 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
     if (r_ctx->ctx.data.output != r_ctx->output_stream ) {
       /* e.g. zlib plugin had changed this. make sure we
              successfully write the trailer. */
-      i_info("check state2 %ld",r_ctx->ctx.data.output);
-
+      i_debug("check state2 %ld",r_ctx->ctx.data.output);
       ret = o_stream_finish(r_ctx->ctx.data.output);
     } else if(r_ctx->ctx.data.output != NULL) {
       //TODO: check for error in the stream before using flush
       /* no plugins - flush the output so far */
-
+      i_debug("no plugins flish the output so far %ld",r_ctx->ctx.data.output);
       ret = o_stream_flush(r_ctx->ctx.data.output);
 
     }
