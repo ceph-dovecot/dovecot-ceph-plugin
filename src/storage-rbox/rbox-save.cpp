@@ -484,7 +484,7 @@ int save_mail_write_append(RadosStorage *rados_storage,
     return ret_val;
   }
 
-  ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), write_op_xattr);
+  ret_val = rados_storage->execute_operation(*current_object->get_oid(), write_op_xattr);
 
   if(ret_val< 0){
     i_debug("write metadata did not work: %d",ret_val);
