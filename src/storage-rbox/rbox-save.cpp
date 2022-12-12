@@ -510,18 +510,25 @@ int save_mail_write_append(RadosStorage *rados_storage,
 
     if (div == 1) {
       write_op.write(0, *current_object->get_mail_buffer());
-      ret_val = rados_storage->get_io_ctx().operate(*current_object->get_oid(), &write_op);
-    
+      ret_val = rados_storage->execute_operation(*current_object->get_oid(), &write_op) ? 0 : -1;
     } else {
       i_debug("write chunk size %d, offset=%d,lenght=%d",write_buffer_size,offset,length);      
       if(offset + length > write_buffer_size){
         i_error("offset and length (%d) is bigger then write_buffer size (%d)", (offset+length), write_buffer_size);
         return -1;
       }else{
-        tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+        i_debug("trying to get substring of : mailsize %d, offset: %d, length %d",
+            current_object->get_mail_buffer()->length(), offset, length );        
+        if(offset + length > current_object->get_mail_buffer()->length() ){
+           i_debug("new offset : %d",current_object->get_mail_buffer()->length()-offset);
+           tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset,current_object->get_mail_buffer()->length() - offset );
+        }else{
+          tmp_buffer.substr_of(*current_object->get_mail_buffer(), offset, length);
+        }
+       
       }      
       i_debug("tmp_buffer %d ",tmp_buffer.length());
-      ret_val = rados_storage->get_io_ctx().append(*current_object->get_oid(), tmp_buffer, length); 
+      ret_val = rados_storage->append_to_object(*current_object->get_oid(), tmp_buffer, length) ? 0 : -1; 
     }
     i_debug("append mail (append) return value: %d",ret_val);
     if(ret_val < 0){
@@ -635,13 +642,9 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
           if(config_chunk_size > r_storage->s->get_max_write_size_bytes()){
             config_chunk_size = r_storage->s->get_max_write_size_bytes();
           }
-          i_debug("max chunk write size: %d ", config_chunk_size );
-          uint32_t write_method = r_storage->config->get_write_method();
 
-          int ret = 0;
-          i_debug("write method: %d",write_method);
-          ret = save_mail_write_append(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);
-           
+          int ret = save_mail_write_append(r_storage->s,r_ctx->rados_mail, &write_op, config_chunk_size);
+
           r_ctx->failed = ret < 0;
           i_debug("SAVE_MAIL result: %d", r_ctx->failed);        
       }

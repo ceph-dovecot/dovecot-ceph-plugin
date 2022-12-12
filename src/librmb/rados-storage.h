@@ -268,6 +268,11 @@ underTest.ceph_index_add("dkfkjdf")
    *
    */
   virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;
+
+  virtual bool execute_operation(std::string &oid, librados::ObjectWriteOperation *write_op_xattr) = 0;
+
+  virtual bool append_to_object(std::string &oid, librados::bufferlist &bufferlist, int length) = 0;
+
   /*! create a new RadosMail
    * create new rados Mail Object.
    *  return pointer to mail object or nullptr
