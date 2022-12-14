@@ -44,8 +44,9 @@ extern int read_mail_from_storage(librmb::RadosStorage *rados_storage,
 
 extern bool check_is_zlib(librados::bufferlist* mail_buffer);
 extern int zlib_header_length(librados::bufferlist* mail_buffer);
+extern uint32_t zlib_trailer_msg_length(librados::bufferlist* mail_buffer, int physical_size);
 
-extern int header_FNAME_FCOMMENT_size(const unsigned char *data);
+extern int header_dynamic_size(const unsigned char *data);
 extern int header_extra_size(const unsigned char *data);
 
 #endif  // SRC_STORAGE_RBOX_RBOX_MAIL_H_

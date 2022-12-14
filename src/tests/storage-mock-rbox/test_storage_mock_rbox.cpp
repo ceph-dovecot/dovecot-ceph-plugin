@@ -12,7 +12,7 @@
 #include "../storage-mock-rbox/TestCase.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-
+#include <fstream>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
 #pragma GCC diagnostic ignored "-Wundef"            // turn off warnings for Dovecot :-(
@@ -41,7 +41,7 @@ extern "C" {
 
 #include "rbox-storage.hpp"
 #include "rbox-save.h"
-
+#include "rbox-mail.h"
 #include "../mocks/mock_test.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
 #include "../../storage-rbox/istream-bufferlist.h"
@@ -76,6 +76,69 @@ TEST_F(StorageTest, create_rados_mail) {
     delete mail;
   }
 }
+
+TEST_F(StorageTest, test_gzip_read_valid) {
+
+  std::streampos size;
+  char *message;
+
+  librados::bufferlist bl;
+  char buffer[256];
+  char *val = getcwd(buffer, sizeof(buffer));
+  if (val) {
+      std::cout << buffer << std::endl;
+  }
+  std::ifstream fileReader("/src/tests/storage-mock-rbox/testdata/gzip_valid_trailer.mail",std::ios::binary|std::ios::ate);
+  if (fileReader){
+    auto fileSize = fileReader.tellg();
+    fileReader.seekg(std::ios::beg);
+    std::string content(fileSize,0);
+    fileReader.read(&content[0],fileSize);
+    bl.append(content);
+  }   
+  bool test = check_is_zlib(&bl);
+  ASSERT_EQ(true, test);
+
+  int header_length = zlib_header_length(&bl);
+  ASSERT_EQ(11, header_length);
+
+  uint32_t trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(118536, trailer_msg_length);
+}
+TEST_F(StorageTest, test_gzip_read_invalid) {
+
+  std::streampos size;
+  char *message;
+
+
+  librados::bufferlist bl;
+
+  std::ifstream fileReader("/src/tests/storage-mock-rbox/testdata/gzip_invalid_trailer.mail",std::ios::binary|std::ios::ate);
+  if (fileReader){
+    auto fileSize = fileReader.tellg();
+    fileReader.seekg(std::ios::beg);
+    std::string content(fileSize,0);
+    fileReader.read(&content[0],fileSize);
+    bl.append(content);
+  }   
+  bool test = check_is_zlib(&bl);
+  ASSERT_EQ(true, test);
+
+  int header_length = zlib_header_length(&bl);
+  ASSERT_EQ(11, header_length);
+
+  uint32_t trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(true, trailer_msg_length > 118536);
+
+  // FIX Trailer by adding 0x00 as last byte.
+  bl.append(0x00);
+
+  trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(118536, trailer_msg_length);
+  
+}
+
+
 /**
  * Error test:
  * - open_connection to rados will fail with -1 .

@@ -160,6 +160,12 @@ bool RadosStorageImpl::append_to_object(std::string &oid, librados::bufferlist &
   }
   return get_io_ctx().append(oid, bufferlist, length) >=0 ? true : false;
 }
+int RadosStorageImpl::read_operate(const std::string &oid, librados::ObjectReadOperation *read_operation, librados::bufferlist *bufferlist) {
+if (!cluster->is_connected() || !io_ctx_created) {
+    return -1;
+  }
+  return get_io_ctx().operate(oid, read_operation, bufferlist);
+}
 
 int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
                                   librados::ObjectWriteOperation *op) {

@@ -58,6 +58,7 @@ class RadosStorageMock : public RadosStorage {
   MOCK_METHOD1(find_mails, librados::NObjectIterator(const RadosMetadata *attr));
   MOCK_METHOD1(open_connection, int(const std::string &poolname));
   MOCK_METHOD2(open_connection, int(const std::string &poolname, const std::string &index_pool));
+  MOCK_METHOD3(read_operate, int(const std::string &oid, librados::ObjectReadOperation *read_operation,librados::bufferlist *bufferlist));
 
   MOCK_METHOD4(find_mails_async, std::set<std::string>(const RadosMetadata *attr, std::string &pool_name,int num_threads, void (*ptr)(std::string&)));
 

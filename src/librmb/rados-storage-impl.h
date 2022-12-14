@@ -94,7 +94,8 @@ class RadosStorageImpl : public RadosStorage {
 
   bool execute_operation(std::string &oid, librados::ObjectWriteOperation *write_op_xattr) override;
   bool append_to_object(std::string &oid, librados::bufferlist &bufferlist, int length) override;
-  
+  int read_operate(const std::string &oid, librados::ObjectReadOperation *read_operation, librados::bufferlist *bufferlist) override;
+
  private:
   int create_connection(const std::string &poolname,const std::string &index_pool);
 
