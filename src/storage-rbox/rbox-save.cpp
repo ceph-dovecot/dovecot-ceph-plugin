@@ -613,7 +613,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
 
       if (!zlib_plugin_active) {
         // write \0 to ceph (length()+1) if stream is not binary
-        r_ctx->rados_mail->set_mail_size(r_ctx->output_stream->offset + 1);
+        r_ctx->rados_mail->set_mail_size(r_ctx->output_stream->offset);
 
       } else {
         // binary stream, do not modify the length of stream.
