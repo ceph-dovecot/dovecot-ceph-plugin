@@ -528,7 +528,6 @@ int rbox_sync_finish(struct rbox_sync_context **_ctx, bool success) {
   } else {
     mail_index_sync_rollback(&ctx->index_sync_ctx);
   }
-  i_info("EXPUNGE: calling deinit");
   index_storage_expunging_deinit(&ctx->rbox->box);
 
   if (array_is_created(&ctx->expunged_items)) {

@@ -1,9 +1,11 @@
 # Change Log
 ## [0.0.47](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.47) (2022-12-05)
 - #355 fix gzip trailer when stream is empty
--      fix save_method 1+2 buffersize (1 byte short) 
+       fix save_method 1+2 buffersize (1 byte short) 
+       bugfix-355-fix-buffersize-write-method
 
 
+## [0.0.46](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.45) (2022-11-22)
 - #349 bugfix doveadm rmb create ceph index validate object metadata
 
 ## [0.0.45](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.45) (2022-11-22)

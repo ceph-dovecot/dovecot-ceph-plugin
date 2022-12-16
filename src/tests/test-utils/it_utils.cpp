@@ -82,10 +82,12 @@ void ItUtils::add_mail(const char *message, const char *mailbox, struct mail_nam
   std::string pool = "mail_storage";
   std::string suffix = "_u";
 
+  EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
+  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
 
   storage->ns_mgr->set_config(cfg_mock);
   storage->config = cfg_mock;
