@@ -100,9 +100,7 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
   delete storage->s;
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
 
-  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
- 
+
   librados::IoCtx test_ioctx;
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
@@ -111,9 +109,13 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
   EXPECT_CALL(*storage_mock, set_namespace(_)).Times(1);
   EXPECT_CALL(*storage_mock, get_namespace()).Times(0);
 
-  EXPECT_CALL(*storage_mock, delete_mail(Matcher<librmb::RadosMail*>(_))).Times(0);
+  EXPECT_CALL(*storage_mock, delete_mail(Matcher<librmb::RadosMail*>(_))).Times(1);
 
   EXPECT_CALL(*storage_mock, close_connection()).Times(0);
+
+  EXPECT_CALL(*storage_mock, execute_operation(_,_)).WillRepeatedly(Return(false));
+  EXPECT_CALL(*storage_mock, append_to_object(_,_,_)).WillRepeatedly(Return(false));
+
 
   EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
       .Times(AtLeast(1))
@@ -126,7 +128,6 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
   EXPECT_CALL(*storage_mock, get_max_write_size_bytes())
       .Times(AtLeast(1))
       .WillRepeatedly(Return(10));
-      
 
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
@@ -205,21 +206,14 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
     } else {
       ret = 0;
     }
-  
-    i_info("ok done.");
+    i_info("ok done. %d",ret);
     EXPECT_GE(ret, -1);
   }
+  i_info("unref stream!");
   i_stream_unref(&input);
+  i_info("mailbox free!");
   mailbox_free(&box);
 
-  if (test_obj->get_mail_buffer() != nullptr) {
-    delete test_obj->get_mail_buffer();
-  }
-  delete test_obj;
-  if (test_obj2->get_mail_buffer() != nullptr) {
-    delete test_obj2->get_mail_buffer();
-  }
-  delete test_obj2;
 }
  
 /**
@@ -260,9 +254,10 @@ TEST_F(StorageTest, save_mail_success) {
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
 
-  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
   EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
   librados::IoCtx io_ctx;
+  EXPECT_CALL(*storage_mock, execute_operation(_,_)).WillRepeatedly(Return(true));
+  EXPECT_CALL(*storage_mock, append_to_object(_,_,_)).WillRepeatedly(Return(true));
 
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(io_ctx));
 
@@ -312,7 +307,6 @@ TEST_F(StorageTest, save_mail_success) {
   std::string pool = "mail_storage";
   std::string suffix = "_u";
   EXPECT_CALL(*cfg_mock, get_index_pool_name()).WillRepeatedly(ReturnRef(pool));
-  EXPECT_CALL(*cfg_mock, get_object_search_method()).WillRepeatedly(Return(0));
   EXPECT_CALL(*cfg_mock, get_rados_username()).WillRepeatedly(ReturnRef(user));
   EXPECT_CALL(*cfg_mock, get_rados_cluster_name()).WillRepeatedly(ReturnRef(cluster));
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
@@ -364,12 +358,13 @@ TEST_F(StorageTest, save_mail_success) {
       ret = 0;
     }
   
-    i_info("ok done.");
+    i_info("ok done. %d",ret);
     EXPECT_GE(ret, 0);
   }
   i_stream_unref(&input);
+  i_info("stream unref");
   mailbox_free(&box);
-i_info("mailbox free done");
+  i_info("mailbox free done");
   
   i_info("next delete test_obj");
   delete test_obj;

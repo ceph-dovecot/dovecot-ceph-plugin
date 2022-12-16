@@ -12,7 +12,7 @@
 #include "../storage-mock-rbox/TestCase.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-
+#include <fstream>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"           // turn off warnings for Dovecot :-(
 #pragma GCC diagnostic ignored "-Wundef"            // turn off warnings for Dovecot :-(
@@ -41,7 +41,7 @@ extern "C" {
 
 #include "rbox-storage.hpp"
 #include "rbox-save.h"
-
+#include "rbox-mail.h"
 #include "../mocks/mock_test.h"
 #include "rados-dovecot-ceph-cfg-impl.h"
 #include "../../storage-rbox/istream-bufferlist.h"
@@ -76,6 +76,69 @@ TEST_F(StorageTest, create_rados_mail) {
     delete mail;
   }
 }
+
+TEST_F(StorageTest, test_gzip_read_valid) {
+
+  std::streampos size;
+  char *message;
+
+  librados::bufferlist bl;
+  char buffer[256];
+  char *val = getcwd(buffer, sizeof(buffer));
+  if (val) {
+      std::cout << buffer << std::endl;
+  }
+  std::ifstream fileReader("/src/tests/storage-mock-rbox/testdata/gzip_valid_trailer.mail",std::ios::binary|std::ios::ate);
+  if (fileReader){
+    auto fileSize = fileReader.tellg();
+    fileReader.seekg(std::ios::beg);
+    std::string content(fileSize,0);
+    fileReader.read(&content[0],fileSize);
+    bl.append(content);
+  }   
+  bool test = check_is_zlib(&bl);
+  ASSERT_EQ(true, test);
+
+  int header_length = zlib_header_length(&bl);
+  ASSERT_EQ(11, header_length);
+
+  uint32_t trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(118536, trailer_msg_length);
+}
+TEST_F(StorageTest, test_gzip_read_invalid) {
+
+  std::streampos size;
+  char *message;
+
+
+  librados::bufferlist bl;
+
+  std::ifstream fileReader("/src/tests/storage-mock-rbox/testdata/gzip_invalid_trailer.mail",std::ios::binary|std::ios::ate);
+  if (fileReader){
+    auto fileSize = fileReader.tellg();
+    fileReader.seekg(std::ios::beg);
+    std::string content(fileSize,0);
+    fileReader.read(&content[0],fileSize);
+    bl.append(content);
+  }   
+  bool test = check_is_zlib(&bl);
+  ASSERT_EQ(true, test);
+
+  int header_length = zlib_header_length(&bl);
+  ASSERT_EQ(11, header_length);
+
+  uint32_t trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(true, trailer_msg_length > 118536);
+
+  // FIX Trailer by adding 0x00 as last byte.
+  bl.append(0x00);
+
+  trailer_msg_length = zlib_trailer_msg_length(&bl,bl.length());
+  ASSERT_EQ(118536, trailer_msg_length);
+  
+}
+
+
 /**
  * Error test:
  * - open_connection to rados will fail with -1 .
@@ -112,7 +175,7 @@ TEST_F(StorageTest, mail_save_to_inbox_storage_mock_no_rados_available) {
 
   librmbtest::RadosStorageMock *storage_mock = new librmbtest::RadosStorageMock();
   // first call to open_connection will fail!
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillOnce(Return(-1));
 
@@ -210,7 +273,7 @@ TEST_F(StorageTest, save_mail_fail_test) {
   librados::IoCtx test_ioctx;
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
 
@@ -222,9 +285,9 @@ TEST_F(StorageTest, save_mail_fail_test) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(65000));
 
-
-  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(true));//failed = false
+  EXPECT_CALL(*storage_mock, execute_operation(_,_)).WillRepeatedly(Return(true));
+  // save will fail.
+  EXPECT_CALL(*storage_mock, append_to_object(_,_,_)).WillRepeatedly(Return(false));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
   test_obj->set_mail_buffer(nullptr);
@@ -306,14 +369,7 @@ TEST_F(StorageTest, save_mail_fail_test) {
   i_stream_unref(&input);
   mailbox_free(&box);
 
-  if (test_obj->get_mail_buffer() != nullptr) {
-    delete test_obj->get_mail_buffer();
-  }
-  delete test_obj;
-  if (test_obj2->get_mail_buffer() != nullptr) {
-    delete test_obj2->get_mail_buffer();
-  }
-  delete test_obj2;
+ 
 }
 /**
  * Error test:
@@ -355,7 +411,7 @@ TEST_F(StorageTest, write_op_fails) {
   librados::IoCtx test_ioctx;
   EXPECT_CALL(*storage_mock, get_io_ctx()).WillRepeatedly(ReturnRef(test_ioctx));
 
-  EXPECT_CALL(*storage_mock, open_connection("mail_storage", "ceph", "client.admin"))
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(0));
   
@@ -368,12 +424,9 @@ TEST_F(StorageTest, write_op_fails) {
       .Times(AtLeast(1))
       .WillRepeatedly(Return(65000));
 
-
-  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
-
-
-  EXPECT_CALL(*storage_mock, read_mail(_, _)).WillRepeatedly(Return(-2));
+  EXPECT_CALL(*storage_mock, execute_operation(_,_)).WillRepeatedly(Return(false));
+  // save will fail.
+  EXPECT_CALL(*storage_mock, append_to_object(_,_,_)).WillRepeatedly(Return(true));
 
   librmb::RadosMail *test_obj = new librmb::RadosMail();
   test_obj->set_mail_buffer(nullptr);
@@ -472,20 +525,9 @@ TEST_F(StorageTest, write_op_fails) {
     EXPECT_GE(ret, -1);
     
   }
-  i_info("unref");
   i_stream_unref(&input);
-  i_info("pre mailbox freed");
   mailbox_free(&box);
-  i_info("mailbox freed");
-  if (test_obj->get_mail_buffer() != nullptr) {
-    delete test_obj->get_mail_buffer();
-  }
-  delete test_obj;
-  if (test_obj2->get_mail_buffer() != nullptr) {
-    delete test_obj2->get_mail_buffer();
-  }
-  delete test_obj2;
-  i_info("done");
+ 
   SUCCEED() << "should be ok here";
 
 }
@@ -571,21 +613,20 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
       .WillOnce(Return(test_obj_save))
       .WillOnce(Return(test_obj_save2));
 
-  EXPECT_CALL(*storage_mock, aio_operate(_,_,_,_)).Times(AtLeast(1)).WillRepeatedly(Return(0));
-  EXPECT_CALL(*storage_mock, wait_for_write_operations_complete(_,_)).WillRepeatedly(Return(false));//failed = false
 
+  EXPECT_CALL(*storage_mock, open_connection("mail_storage",_, "ceph", "client.admin"))
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(0));
+
+
+  EXPECT_CALL(*storage_mock, execute_operation(_,_)).WillRepeatedly(Return(true));
+  EXPECT_CALL(*storage_mock, append_to_object(_,_,_)).WillRepeatedly(Return(true));
+
+  i_info("adding mail");
   // testdata
   testutils::ItUtils::add_mail(message, mailbox, StorageTest::s_test_mail_user->namespaces, storage_mock);
-
-  if (test_obj_save->get_mail_buffer() != nullptr) {
-    delete test_obj_save->get_mail_buffer();
-  }
-  delete test_obj_save;
-  if (test_obj_save2->get_mail_buffer() != nullptr) {
-    delete test_obj_save2->get_mail_buffer();
-  }
-  delete test_obj_save2;
-
+  i_info("adding mail done");
+  
   search_args = mail_search_build_init();
   sarg = mail_search_build_add(search_args, SEARCH_ALL);
   ASSERT_NE(sarg, nullptr);
@@ -650,12 +691,11 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
-  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
   
   storage->ns_mgr->set_config(cfg_mock);
 
   storage->config = cfg_mock;
-  
+  i_info("mailbox open");
   if (mailbox_open(box) < 0) {
     i_error("######################### Opening mailbox %s failed: %s", mailbox, mailbox_get_last_internal_error(box, NULL));
     FAIL() << " Forcing a resync on mailbox INBOX Failed";
@@ -668,7 +708,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   memset(reason, '\0', sizeof(reason));
   desttrans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
 #endif
-
+  i_info("mailbox search init ");
   search_ctx = mailbox_search_init(desttrans, search_args, NULL, static_cast<mail_fetch_field>(0), NULL);
   mail_search_args_unref(&search_args);
   int ret2 = 0;
@@ -694,7 +734,7 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   i_info("closing mailbox");
   // mail should be marked as expunged!!!
   mailbox_free(&box);
-
+    i_info("mailbox closed freeing buffer");
   if (test_object->get_mail_buffer() != nullptr) {
     delete test_object->get_mail_buffer();
   }
@@ -704,6 +744,8 @@ TEST_F(StorageTest, mock_copy_failed_due_to_rados_err) {
   }
   delete test_object2;
   i_info("#########################done.");
+
+  
 }
 
 
@@ -773,7 +815,6 @@ TEST_F(StorageTest, save_mail_cancel) {
   EXPECT_CALL(*cfg_mock, get_pool_name()).WillRepeatedly(ReturnRef(pool));
   EXPECT_CALL(*cfg_mock, get_user_suffix()).WillRepeatedly(ReturnRef(suffix));
   EXPECT_CALL(*cfg_mock, get_write_method()).WillRepeatedly(Return(1));
-  EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
 
   storage->ns_mgr->set_config(cfg_mock);
   

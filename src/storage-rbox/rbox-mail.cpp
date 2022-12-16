@@ -452,13 +452,9 @@ static int read_mail_from_storage(librmb::RadosStorage *rados_storage,
     read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
     read_mail->stat(psize, save_date, &stat_err);
 
-    //TODO: refactore to use operate instead of aio_operate.
-    librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-    int ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
+    int ret = rados_storage->read_operate(*rmail->rados_mail->get_oid(), read_mail,
                                                   rmail->rados_mail->get_mail_buffer());
-    completion->wait_for_complete_and_cb();
-    ret = completion->get_return_value();
-    completion->release();
+    
     delete read_mail;
 
     return ret;
@@ -506,19 +502,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
 
     ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
 
-    /* duplicate code: get_attribute 
-      librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
-      read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
-      read_mail->stat(&psize, &save_date, &stat_err);
-
-      librados::AioCompletion *completion = librados::Rados::aio_create_completion();
-      ret = rados_storage->get_io_ctx().aio_operate(*rmail->rados_mail->get_oid(), completion, read_mail,
-                                                    rmail->rados_mail->get_mail_buffer());
-      completion->wait_for_complete_and_cb();
-      ret = completion->get_return_value();
-      completion->release();
-      delete read_mail;
-    */
     if (ret < 0) {
       if (ret == -ENOENT) {
         // This can happen, if we have more then 2 processes running at the same time.
@@ -533,7 +516,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       } 
       else if(ret == -ETIMEDOUT) {
-        int max_retry = 10;
+        int max_retry = 10; //TODO FIX 
         for(int i=0;i<max_retry;i++){
           ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
           if(ret >= 0){
@@ -543,6 +526,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
           i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
           // wait random time before try again!!
           usleep(((rand() % 5) + 1) * 10000);
+          // clear the read buffer in case of timeout
+          rmail->rados_mail->get_mail_buffer()->clear();
         }
       
         if(ret <0){          
@@ -582,11 +567,33 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       return -1;
     }
 
+    i_debug("reading stream for oid: %s, phy: %d, buffer: %d", rmail->rados_mail->get_oid()->c_str(),
+                                                               physical_size, 
+                                                               rmail->rados_mail->get_mail_buffer()->length());
+    // validates if object is in zlib format (first 2 byte)
+    bool isGzip = check_is_zlib(rmail->rados_mail->get_mail_buffer());
+    if(isGzip) {
+      uint32_t result = zlib_trailer_msg_length(rmail->rados_mail->get_mail_buffer(),physical_size);
+      
+      // get mails real physical size and compare against trailer length
+      uoff_t real_physical_size;
+      rbox_mail_get_physical_size(_mail, &real_physical_size);
+      // in case we have corrupt trailer, 
+      if(result-real_physical_size > zlib_header_length(rmail->rados_mail->get_mail_buffer())) {
+          i_warning("zlib size check failed %d trailer not as expected, fixing by adding 0x00 to msb",(result-real_physical_size));
+          rmail->rados_mail->get_mail_buffer()->append(0x00);
+          physical_size+=1;                 
+      }
+    }
+  
     if (get_mail_stream(rmail, rmail->rados_mail->get_mail_buffer(), physical_size, &input) < 0) {
+      i_debug("get mail failed");
       FUNC_END_RET("ret == -1");
       delete rmail->rados_mail->get_mail_buffer();
       return -1;
     }
+    
+    i_debug("get mail failed retval of get_mail_stream %d",ret);
 
     data->stream = input;
     index_mail_set_read_buffer_size(_mail, input);
@@ -594,6 +601,82 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
   ret = index_mail_init_stream(&rmail->imail, hdr_size, body_size, stream_r);
   FUNC_END();
   return ret;
+}
+uint32_t zlib_trailer_msg_length(librados::bufferlist* mail_buffer, int physical_size) {
+    unsigned char gzip_size[] = {
+                        mail_buffer->c_str()[physical_size-1], 
+                        mail_buffer->c_str()[physical_size-2],
+                        mail_buffer->c_str()[physical_size-3],
+                        mail_buffer->c_str()[physical_size-4]
+                        };        
+    uint32_t result = (gzip_size[0] << 24 | gzip_size[1] << 16 | gzip_size[2] << 8 | gzip_size[3]);
+    
+    i_debug("length of message(%d) last byte of trailer %d / %d / %d / %d sizeof(char %d), sizeof(unsingned int: %d) ",
+      result,
+      gzip_size[0], gzip_size[1], gzip_size[2], gzip_size[3],
+      sizeof(char), sizeof(unsigned int));
+    return result;
+
+}
+bool check_is_zlib(librados::bufferlist* mail_buffer) {
+
+    unsigned char magic1 = mail_buffer->c_str()[0];
+    unsigned char magic2 = mail_buffer->c_str()[1];
+
+    i_debug("checking for z_lib header magic bytes check %x : %x compared to %x : %x",
+        magic1,magic2,
+        0x1f,0x8b);   
+
+    if(magic1 == 0x1f && magic2 == 0x8b){
+      i_debug("magic bytes 0x1f 0x8b found");
+      return true;
+    }                        
+    i_debug("magic bytes 0x1f 0x8b not found");
+    return false;
+}
+
+int zlib_header_length(librados::bufferlist* mail_buffer) {
+    
+    int header_length = 11;    
+    const unsigned char FLG=mail_buffer->c_str()[3];
+
+    switch (FLG){
+        //ETEXT
+        case (unsigned char) 0x01:
+            header_length=10;
+            break;
+        case (unsigned char) 0x02:
+            header_length=10 + 2;
+            break;
+        //FXTERA
+        case (unsigned char) 0x04:
+            header_length=header_extra_size(mail_buffer->c_str());
+            break;
+        case (unsigned char) 0x08:
+            header_length=header_dynamic_size(mail_buffer->c_str());
+            break;
+        case (unsigned char) 0x10:
+            header_length=header_dynamic_size(mail_buffer->c_str());
+            break;
+    default:
+        break;
+    }             
+  i_debug("found header Type %x header size is %d", FLG, header_length);
+
+  return header_length;
+}
+int header_dynamic_size(const unsigned char *data){
+
+    int i=10 - 1;
+    do{
+        i++;
+    }while(data[i]!=(unsigned char) 0 );
+    return i++;
+}
+
+int header_extra_size(const unsigned char *data){
+    int extera_part_size= int(data[10] + data[11]);
+    return 10 + 2 + extera_part_size;
 }
 
 // guid is saved in the obox header, and should be available when rbox_mail does exist. (rbox_get_index_record)

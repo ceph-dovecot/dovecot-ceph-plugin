@@ -232,6 +232,16 @@ underTest.ceph_index_add("dkfkjdf")
    * @return linux errorcode or 0 if successful
    * */
   virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
+
+  /*! read the complete mail object into bufferlist
+   *
+   * @param[in] oid unique object identifier
+   * @param[in] read_operation read operation
+   * @param[out] buffer valid ptr to bufferlist.
+   * @return linux errorcode or 0 if successful
+   * */
+  virtual int read_operate(const std::string &oid, librados::ObjectReadOperation *read_operation, librados::bufferlist *bufferlist) = 0;
+
   /*! move a object from the given namespace to the other, updates the metadata given in to_update list
    *
    * @param[in] src_oid unique identifier of source object
@@ -268,6 +278,11 @@ underTest.ceph_index_add("dkfkjdf")
    *
    */
   virtual bool save_mail(librados::ObjectWriteOperation *write_op_xattr, RadosMail *mail) = 0;
+
+  virtual bool execute_operation(std::string &oid, librados::ObjectWriteOperation *write_op_xattr) = 0;
+
+  virtual bool append_to_object(std::string &oid, librados::bufferlist &bufferlist, int length) = 0;
+
   /*! create a new RadosMail
    * create new rados Mail Object.
    *  return pointer to mail object or nullptr

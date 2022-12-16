@@ -57,7 +57,7 @@ int RadosStorageImpl::split_buffer_and_exec_op(RadosMail *current_object,
   }
 
   int ret_val = 0;
-  uint64_t write_buffer_size = current_object->get_mail_size() -1;
+  uint64_t write_buffer_size = current_object->get_mail_size();
 
   assert(max_write > 0);
 
@@ -145,6 +145,26 @@ int RadosStorageImpl::delete_mail(const std::string &oid) {
     return -1;
   }
   return get_io_ctx().remove(oid);
+}
+
+bool RadosStorageImpl::execute_operation(std::string &oid, librados::ObjectWriteOperation *write_op_xattr) {
+  if (!cluster->is_connected() || !io_ctx_created) {
+    return false;
+  }
+  return get_io_ctx().operate(oid, write_op_xattr) >=0 ? true : false;
+}
+
+bool RadosStorageImpl::append_to_object(std::string &oid, librados::bufferlist &bufferlist, int length) {
+  if (!cluster->is_connected() || !io_ctx_created) {
+    return false;
+  }
+  return get_io_ctx().append(oid, bufferlist, length) >=0 ? true : false;
+}
+int RadosStorageImpl::read_operate(const std::string &oid, librados::ObjectReadOperation *read_operation, librados::bufferlist *bufferlist) {
+if (!cluster->is_connected() || !io_ctx_created) {
+    return -1;
+  }
+  return get_io_ctx().operate(oid, read_operation, bufferlist);
 }
 
 int RadosStorageImpl::aio_operate(librados::IoCtx *io_ctx_, const std::string &oid, librados::AioCompletion *c,
