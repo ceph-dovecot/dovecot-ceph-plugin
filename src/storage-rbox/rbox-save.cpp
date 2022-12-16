@@ -468,6 +468,7 @@ static void clean_up_write_finish(struct mail_save_context *_ctx) {
   FUNC_END();
 }
 
+
 int save_mail_write_append(RadosStorage *rados_storage,
                              RadosMail *current_object,
                              librados::ObjectWriteOperation *write_op_xattr,
