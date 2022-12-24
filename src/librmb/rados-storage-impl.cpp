@@ -568,23 +568,87 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
 }
 // if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
 // to wait for completion and free resources.
-bool RadosStorageImpl::save_mail(RadosMail *mail) {
-  if (!cluster->is_connected() || !io_ctx_created) {
+// bool RadosStorageImpl::save_mail(RadosMail *mail) {
+//   if (!cluster->is_connected() || !io_ctx_created) {
+//     return false;
+//   }
+//   // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
+//   librados::ObjectWriteOperation write_op_xattr;  // = new librados::ObjectWriteOperation();
+
+//   // set metadata
+//   for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
+//        it != mail->get_metadata()->end(); ++it) {
+//     write_op_xattr.setxattr(it->first.c_str(), it->second);
+//   }
+
+//   if (mail->get_extended_metadata()->size() > 0) {
+//     write_op_xattr.omap_set(*mail->get_extended_metadata());
+//   }
+//   return save_mail(&write_op_xattr, mail);
+// }
+
+
+/***SARA:this method is invoked by rbox_save_finish from rbox_save from Plugin part
+ * 1-compare email size with Max allowed object size
+ * 2-consider whether the email can be write in one chunk or it must be splited
+ * 3-save metadat***/
+
+bool  RadosStorageImpl::save_mail(RadosMail *mail){
+  /*1-compare email size with Max allowed object size*/
+   int object_size = mail->get_mail_size();
+   int max_object_size = this.get_max_object_size();
+   if( max_object_size < object_size ||object_size<0||max_object_size==0){
+    return false;
+   }
+  /*2-cosider whether the email can be write in one chunk or it must be splited*/
+  int max_write=get_max_write_size_bytes();
+  int buff_size=current_object->get_mail_buffer()->length();
+  if(buff_size<0||max_write==0){
     return false;
   }
-  // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-  librados::ObjectWriteOperation write_op_xattr;  // = new librados::ObjectWriteOperation();
 
-  // set metadata
-  for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
-       it != mail->get_metadata()->end(); ++it) {
-    write_op_xattr.setxattr(it->first.c_str(), it->second);
-  }
+  uint64_t rest = buff_size % max_write;
+  int div =  buff_size / max_write + (rest > 0 ? 1 : 0);
 
-  if (mail->get_extended_metadata()->size() > 0) {
-    write_op_xattr.omap_set(*mail->get_extended_metadata());
+  for (int i = 0; i <div; i++) {
+
+    librados::bufferlist tmp_buffer;
+    
+    int offset = i * max_write;
+    uint64_t length = max_write;
+    bool ret_val=false;
+    if (buff_size < ((i+1) * length)) {
+      length = rest;
+    }
+    if(i==0){
+      /*start step3:save metadata*/
+      librados::ObjectWriteOperation write_op;
+      librmb::RadosMetadataStorageImpl ms= new librmb::RadosMetadataStorageImpl();
+     
+      ms->get_storage()->save_metadata(&write_op,mail);
+      time_t save_date = mail->get_rados_save_date();
+      write_op.mtime(&save_date);  
+      /*End step3;*/
+
+      /*start create first chunk*/
+      tmp_buffer.substr_of(mail->get_mail_buffer(),offset,length);
+      write_op.write(0, mail->get_mail_buffer());
+      /*End*/
+
+      /*Save metadata and first chunk together in a common write_op
+      If (div==1) so after this step quick this loop. */
+      ret_val =execute_operation(mail->get_oid(), &write_op);
+    }
+    else {      
+      if(offset + length > write_buffer_size){
+        return false;
+      }else{
+        tmp_buffer.substr_of(mail->get_mail_buffer(),offset,length);
+        ret_val =append_to_object(mail->get_oid(),tmp_buffer,length);
+      }
+    }      
   }
-  return save_mail(&write_op_xattr, mail);
+  return ret_val;
 }
 
 librmb::RadosMail *RadosStorageImpl::alloc_rados_mail() { return new librmb::RadosMail(); }
