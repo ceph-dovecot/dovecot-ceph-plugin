@@ -25,6 +25,7 @@
 
 #include "encoding.h"
 #include "limits.h"
+#include "rados-metadata-storage-impl.h"
 
 using std::pair;
 using std::string;
@@ -594,20 +595,21 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
  * 3-save metadat***/
 
 bool  RadosStorageImpl::save_mail(RadosMail *mail){
+  bool ret_val=false;
   /*1-compare email size with Max allowed object size*/
    int object_size = mail->get_mail_size();
-   int max_object_size = this.get_max_object_size();
+   int max_object_size = this->get_max_object_size();
    if( max_object_size < object_size ||object_size<0||max_object_size==0){
     return false;
    }
   /*2-cosider whether the email can be write in one chunk or it must be splited*/
   int max_write=get_max_write_size_bytes();
-  int buff_size=current_object->get_mail_buffer()->length();
+  int buff_size=mail->get_mail_buffer()->length();
   if(buff_size<0||max_write==0){
     return false;
   }
 
-  uint64_t rest = buff_size % max_write;
+  int rest = buff_size % max_write;
   int div =  buff_size / max_write + (rest > 0 ? 1 : 0);
 
   for (int i = 0; i <div; i++) {
@@ -615,16 +617,15 @@ bool  RadosStorageImpl::save_mail(RadosMail *mail){
     librados::bufferlist tmp_buffer;
     
     int offset = i * max_write;
-    uint64_t length = max_write;
-    bool ret_val=false;
+    int length = max_write;
+    
     if (buff_size < ((i+1) * length)) {
       length = rest;
     }
     if(i==0){
       /*start step3:save metadata*/
       librados::ObjectWriteOperation write_op;
-      librmb::RadosMetadataStorageImpl ms= new librmb::RadosMetadataStorageImpl();
-     
+      librmb::RadosMetadataStorageImpl* ms=new librmb::RadosMetadataStorageImpl();   
       ms->get_storage()->save_metadata(&write_op,mail);
       time_t save_date = mail->get_rados_save_date();
       write_op.mtime(&save_date);  
@@ -637,14 +638,14 @@ bool  RadosStorageImpl::save_mail(RadosMail *mail){
 
       /*Save metadata and first chunk together in a common write_op
       If (div==1) so after this step quick this loop. */
-      ret_val =execute_operation(mail->get_oid(), &write_op);
+      ret_val =execute_operation(*mail->get_oid(), &write_op);
     }
     else {      
-      if(offset + length > write_buffer_size){
+      if(offset + length > buff_size){
         return false;
       }else{
         tmp_buffer.substr_of(mail->get_mail_buffer(),offset,length);
-        ret_val =append_to_object(mail->get_oid(),tmp_buffer,length);
+        ret_val =append_to_object(*mail->get_oid(),tmp_buffer,length);
       }
     }      
   }

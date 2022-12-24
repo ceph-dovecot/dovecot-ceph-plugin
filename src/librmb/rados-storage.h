@@ -21,6 +21,7 @@
 #include "rados-mail.h"
 #include "rados-types.h"
 
+
 namespace librmb {
 /** class RadosStorage
  *  brief an abstract Rados Storage

@@ -650,11 +650,12 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       //     r_ctx->failed = ret < 0;
       //     i_debug("SAVE_MAIL result: %d", r_ctx->failed);        
       // }
+      struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
       uint32_t config_chunk_size = r_storage->config->get_chunk_size();
       if(config_chunk_size > r_storage->s->get_max_write_size_bytes()){
         config_chunk_size = r_storage->s->get_max_write_size_bytes();
       }
-      r_ctx->failed=RadosStorageImpl::save_mail(r_ctx->rados_mail);
+      r_ctx->failed=r_storage->s->save_mail(r_ctx->rados_mail);
       if (r_ctx->failed) {
         i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
                 r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
