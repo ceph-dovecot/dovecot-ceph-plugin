@@ -123,7 +123,7 @@ TEST_F(StorageTest, move_mail_test) {
   if (mailbox_sync(box, static_cast<mailbox_sync_flags>(0)) < 0) {
     FAIL() << "sync failed";
   }
-
+  
   struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
   librados::NObjectIterator iter(r_storage->s->get_io_ctx().nobjects_begin());
   std::vector<librmb::RadosMail *> objects;
@@ -133,8 +133,9 @@ TEST_F(StorageTest, move_mail_test) {
     r_storage->ms->get_storage()->load_metadata(obj);
     objects.push_back(obj);
     iter++;
+    iter++;
   }
-
+ 
   // compare objects
   ASSERT_EQ(1, (int)objects.size());
   librmb::RadosMail *mail1 = objects[0];

@@ -125,14 +125,39 @@ int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &bu
   return get_io_ctx().write_full(oid, buffer);
 }
 
-int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *buffer) {
-  if (!cluster->is_connected() || !io_ctx_created) {
-    return -1;
-  }
-  size_t max = INT_MAX;
-  return get_io_ctx().read(oid, *buffer, max, 0);
-}
+// int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *buffer) {
+//   if (!cluster->is_connected() || !io_ctx_created) {
+//     return -1;
+//   }
+//   size_t max = INT_MAX;
+//   return get_io_ctx().read(oid, *buffer, max, 0);
+// }
 
+librmb::RadosMail* RadosStorageImpl::read_mail(const std::string &oid){
+  RadosMail* mail=this->alloc_rados_mail();
+  mail->set_oid(oid);
+  mail->set_mail_buffer(new librados::bufferlist());
+
+  int ret=0;
+  int stat_err = 0;
+  int read_err = 0;
+  uint64_t psize;
+  time_t save_date;
+
+  
+  librados::ObjectReadOperation *read_op = new librados::ObjectReadOperation();
+  read_op->read(0, INT_MAX, mail->get_mail_buffer(), &read_err);
+  read_op->stat(&psize, &save_date, &stat_err);
+  ret=this->get_io_ctx().operate(oid, read_op, mail->get_mail_buffer());
+  mail->set_ret_read_op(ret);
+  if(ret<0){
+    return nullptr;
+  }
+  mail->set_mail_size(psize);
+  mail->set_rados_save_date(&save_date);
+
+  return mail;
+}
 int RadosStorageImpl::delete_mail(RadosMail *mail) {
   int ret = -1;
 

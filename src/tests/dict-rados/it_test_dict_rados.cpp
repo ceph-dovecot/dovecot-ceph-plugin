@@ -87,17 +87,21 @@ TEST_F(DictTest, iterate) {
   int i;
 
   struct dict_transaction_context *ctx = dict_transaction_begin(target);
+  std::cout<<"CTX IS INITIALIZED CORRECTLY"<<i;
   i = 0;
   for (auto k = OMAP_ITERATE_KEYS; *k != NULL; k++) {
     dict_set(ctx, *k, OMAP_ITERATE_VALUES[i++]);
+    std::cout<<"FOR LOOP WORKS CORRECTLY"<<i;
   }
   ASSERT_EQ(dict_transaction_commit(&ctx, &error_r), 1);
 
   struct dict_iterate_context *iter = dict_iterate_init_multiple(target, OMAP_ITERATE_KEY, dict_iterate_flags(0));
+  
 
   i = 0;
   const char *kr;
   const char *vr;
+  std::cout<<dict_iterate(iter, &kr, &vr)<<"FALSE IS EQUAL TO 0";
   while (dict_iterate(iter, &kr, &vr)) {
     EXPECT_STREQ(vr, OMAP_ITERATE_RESULTS[i]);
     i++;

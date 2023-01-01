@@ -232,7 +232,8 @@ underTest.ceph_index_add("dkfkjdf")
    * @param[out] buffer valid ptr to bufferlist.
    * @return linux errorcode or 0 if successful
    * */
-  virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
+  // virtual int read_mail(const std::string &oid, librados::bufferlist *buffer) = 0;
+  virtual librmb::RadosMail* read_mail(const std::string &oid)=0;
 
   /*! read the complete mail object into bufferlist
    *

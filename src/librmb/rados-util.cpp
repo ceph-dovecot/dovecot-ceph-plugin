@@ -257,10 +257,10 @@ namespace librmb {
     mail.set_mail_buffer(bl);
 
     if (inverse) {
-      ret = alt_storage->read_mail(src_oid, mail.get_mail_buffer());
+      ret = alt_storage->read_mail(src_oid)->get_ret_read_op();
       metadata->get_storage()->set_io_ctx(&alt_storage->get_io_ctx());
     } else {
-      ret = primary->read_mail(src_oid, mail.get_mail_buffer());
+      ret = primary->read_mail(src_oid)->get_ret_read_op();
     }
 
     if (ret < 0) {

@@ -43,12 +43,14 @@ class RadosMail {
   void set_mail_size(const int _size) { object_size = _size; }
   void set_active_op(int num_write_op) { this->active_op = num_write_op; }
   void set_rados_save_date(const time_t& _save_date) { this->save_date_rados = _save_date; }
+  void set_ret_read_op(int ret_read_op){this->ret_read_op=ret_read_op;}
 
   string* get_oid() { return &this->oid; }
   int get_mail_size() { return this->object_size; }
 
   time_t get_rados_save_date() { return this->save_date_rados; }
   uint8_t get_guid_ref() { return *this->guid; }
+  int get_ret_read_op(){return this->ret_read_op;}
   /*!
    * @return ptr to internal buffer .
    */
@@ -116,6 +118,7 @@ class RadosMail {
 
  private:
   string oid;
+  
   uint8_t guid[GUID_128_SIZE] = {};
   int object_size;  // byte
   AioCompletion* completion;
@@ -132,6 +135,7 @@ class RadosMail {
   bool deprecated_uid;
   bool restored;
   bool lost_object; // is this a lost object for re-sync.
+  int ret_read_op;
 };
 
 }  // namespace librmb

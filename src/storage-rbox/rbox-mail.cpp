@@ -438,27 +438,27 @@ static int get_mail_stream(struct rbox_mail *mail, librados::bufferlist *buffer,
 
   return ret;
 }
-
-static int read_mail_from_storage(librmb::RadosStorage *rados_storage, 
-                                  struct rbox_mail *rmail,
-                                  uint64_t *psize,
-                                  time_t *save_date) {
+/***SARA::Replaced with:RadosMail* read_mail(std::string & oid) which is written in RadosStorage.h***/
+// static int read_mail_from_storage(librmb::RadosStorage *rados_storage, 
+//                                   struct rbox_mail *rmail,
+//                                   uint64_t *psize,
+//                                   time_t *save_date) {
     
-    int stat_err = 0;
-    int read_err = 0;
+//     int stat_err = 0;
+//     int read_err = 0;
 
-    /* duplicate code: get_attribute */
-    librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
-    read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
-    read_mail->stat(psize, save_date, &stat_err);
+//     /* duplicate code: get_attribute */
+//     librados::ObjectReadOperation *read_mail = new librados::ObjectReadOperation();
+//     read_mail->read(0, INT_MAX, rmail->rados_mail->get_mail_buffer(), &read_err);
+//     read_mail->stat(psize, save_date, &stat_err);
 
-    int ret = rados_storage->read_operate(*rmail->rados_mail->get_oid(), read_mail,
-                                                  rmail->rados_mail->get_mail_buffer());
+//     int ret = rados_storage->read_operate(*rmail->rados_mail->get_oid(), read_mail,
+//                                                   rmail->rados_mail->get_mail_buffer());
     
-    delete read_mail;
+//     delete read_mail;
 
-    return ret;
-}
+//     return ret;
+// }
 
 static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, struct message_size *hdr_size,
                                 struct message_size *body_size, struct istream **stream_r) {
@@ -482,26 +482,22 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     if (alt_storage) {
       rados_storage->set_namespace(rados_storage->get_namespace());
     }
-
+ 
     /* Pop3 and virtual box needs this. it looks like rbox_index_mail_set_seq is not called. */
-    if (rmail->rados_mail == nullptr) {
-      // make sure that mail_object is initialized,
-      // else create and load guid from index.
-      rmail->rados_mail = rados_storage->alloc_rados_mail();
-      if (rbox_get_index_record(_mail) < 0) {
-        i_error("Error rbox_get_index uid(%d)", _mail->uid);
-        FUNC_END();
-        return -1;
-      }
-    }
-    // create mail buffer!
-    rmail->rados_mail->set_mail_buffer(new librados::bufferlist());
-
-    uint64_t psize;
-    time_t save_date;
-
-    ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
-
+    // if (rmail->rados_mail == nullptr) {
+    //   // make sure that mail_object is initialized,
+    //   // else create and load guid from index.
+    //   rmail->rados_mail = rados_storage->alloc_rados_mail();
+    //   if (rbox_get_index_record(_mail) < 0) {
+    //     i_error("Error rbox_get_index uid(%d)", _mail->uid);
+    //     FUNC_END();
+    //     return -1;
+    //   }
+    // }
+    const std::string mail_oid=guid_128_to_string(rmail->index_oid);
+    rmail->rados_mail=rados_storage->read_mail(mail_oid);
+    ret=rmail->rados_mail->get_ret_read_op();
+    
     if (ret < 0) {
       if (ret == -ENOENT) {
         // This can happen, if we have more then 2 processes running at the same time.
@@ -518,7 +514,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       else if(ret == -ETIMEDOUT) {
         int max_retry = 10; //TODO FIX 
         for(int i=0;i<max_retry;i++){
-          ret = read_mail_from_storage(rados_storage, rmail,&psize,&save_date);
+          rmail->rados_mail=rados_storage->read_mail(mail_oid);
+          ret=rmail->rados_mail->get_ret_read_op();
           if(ret >= 0){
             i_error("READ TIMEOUT %d reading mail object %s ", ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
             break;
@@ -527,7 +524,7 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
           // wait random time before try again!!
           usleep(((rand() % 5) + 1) * 10000);
           // clear the read buffer in case of timeout
-          rmail->rados_mail->get_mail_buffer()->clear();
+          delete rmail->rados_mail;
         }
       
         if(ret <0){          
@@ -544,9 +541,9 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         return -1;
       }
     }
-    int physical_size = psize;
-    rmail->rados_mail->set_mail_size(psize);
-    rmail->rados_mail->set_rados_save_date(save_date);
+    int physical_size = rmail->rados_mail->get_mail_size();
+    // rmail->rados_mail->set_mail_size(psize);
+    // rmail->rados_mail->set_rados_save_date(save_date);
 
     if (physical_size == 0) {
       i_error(
