@@ -611,16 +611,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       i_error("ERROR, mailsize is <= 0 ");
     } 
     else {
-
-      if (!zlib_plugin_active) {
-        // write \0 to ceph (length()+1) if stream is not binary
-        r_ctx->rados_mail->set_mail_size(r_ctx->output_stream->offset);
-
-      } else {
-        // binary stream, do not modify the length of stream.
-        r_ctx->rados_mail->set_mail_size(r_ctx->output_stream->offset);
-      }
-
+      r_ctx->rados_mail->set_mail_size(r_ctx->output_stream->offset);
       rbox_save_mail_set_metadata(r_ctx, r_ctx->rados_mail);
       /***SARA: save metadata and mail buffer is moved to RadosStorage API
        * the only functionality which is needed here is initializing RadosMail object by r_ctx ***/
@@ -651,10 +642,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
       //     i_debug("SAVE_MAIL result: %d", r_ctx->failed);        
       // }
       struct rbox_storage *r_storage = (struct rbox_storage *)&r_ctx->mbox->storage->storage;
-      uint32_t config_chunk_size = r_storage->config->get_chunk_size();
-      if(config_chunk_size > r_storage->s->get_max_write_size_bytes()){
-        config_chunk_size = r_storage->s->get_max_write_size_bytes();
-      }
+    
       r_ctx->failed=r_storage->s->save_mail(r_ctx->rados_mail);
       if (r_ctx->failed) {
         i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),

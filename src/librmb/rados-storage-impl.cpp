@@ -125,18 +125,12 @@ int RadosStorageImpl::save_mail(const std::string &oid, librados::bufferlist &bu
   return get_io_ctx().write_full(oid, buffer);
 }
 
-// int RadosStorageImpl::read_mail(const std::string &oid, librados::bufferlist *buffer) {
-//   if (!cluster->is_connected() || !io_ctx_created) {
-//     return -1;
-//   }
-//   size_t max = INT_MAX;
-//   return get_io_ctx().read(oid, *buffer, max, 0);
-// }
-
-librmb::RadosMail* RadosStorageImpl::read_mail(const std::string &oid){
-  RadosMail* mail=this->alloc_rados_mail();
-  mail->set_oid(oid);
-  mail->set_mail_buffer(new librados::bufferlist());
+int RadosStorageImpl::read_mail(const std::string &oid, librmb::RadosMail** mail){
+  assert((*mail) != nullptr);
+  // librmb::RadosMail* mail_ptr;
+  (*mail)=this->alloc_rados_mail();
+  (*mail)->set_oid(oid);
+  (*mail)->set_mail_buffer(new librados::bufferlist());
 
   int ret=0;
   int stat_err = 0;
@@ -146,17 +140,32 @@ librmb::RadosMail* RadosStorageImpl::read_mail(const std::string &oid){
 
   
   librados::ObjectReadOperation *read_op = new librados::ObjectReadOperation();
-  read_op->read(0, INT_MAX, mail->get_mail_buffer(), &read_err);
+  read_op->read(0, INT_MAX, (*mail)->get_mail_buffer(), &read_err);
   read_op->stat(&psize, &save_date, &stat_err);
-  ret=this->get_io_ctx().operate(oid, read_op, mail->get_mail_buffer());
-  mail->set_ret_read_op(ret);
-  if(ret<0){
-    return nullptr;
+  ret=this->get_io_ctx().operate(oid, read_op, (*mail)->get_mail_buffer());
+  
+  if(ret == -ETIMEDOUT) {
+    int max_retry = 10; //TODO FIX 
+    for(static int i=0;i<max_retry;i++){
+      ret =read_mail(oid,mail);
+      if(ret >= 0){
+        break;
+      }
+      usleep(((rand() % 5) + 1) * 10000);
+      delete (*mail);
+      (*mail)=nullptr;
+    }
   }
-  mail->set_mail_size(psize);
-  mail->set_rados_save_date(&save_date);
-
-  return mail;
+  if(ret<0){
+    delete (*mail);
+    (*mail)=nullptr;
+    return ret;
+  }
+  
+  (*mail)->set_mail_size(psize);
+  (*mail)->set_rados_save_date(&save_date);
+  
+  return ret;
 }
 int RadosStorageImpl::delete_mail(RadosMail *mail) {
   int ret = -1;
@@ -592,29 +601,7 @@ bool RadosStorageImpl::save_mail(librados::ObjectWriteOperation *write_op_xattr,
   } 
   return ret == 0;
 }
-// if save_async = true, don't forget to call wait_for_rados_operations e.g. wait_for_write_operations_complete
-// to wait for completion and free resources.
-// bool RadosStorageImpl::save_mail(RadosMail *mail) {
-//   if (!cluster->is_connected() || !io_ctx_created) {
-//     return false;
-//   }
-//   // delete write_op_xattr is called after operation completes (wait_for_rados_operations)
-//   librados::ObjectWriteOperation write_op_xattr;  // = new librados::ObjectWriteOperation();
-
-//   // set metadata
-//   for (std::map<std::string, librados::bufferlist>::iterator it = mail->get_metadata()->begin();
-//        it != mail->get_metadata()->end(); ++it) {
-//     write_op_xattr.setxattr(it->first.c_str(), it->second);
-//   }
-
-//   if (mail->get_extended_metadata()->size() > 0) {
-//     write_op_xattr.omap_set(*mail->get_extended_metadata());
-//   }
-//   return save_mail(&write_op_xattr, mail);
-// }
-
-
-/***SARA:this method is invoked by rbox_save_finish from rbox_save from Plugin part
+/***SARA:this method is invoked by  from rbox_save from Plugin part
  * 1-compare email size with Max allowed object size
  * 2-consider whether the email can be write in one chunk or it must be splited
  * 3-save metadat***/
@@ -650,8 +637,9 @@ bool  RadosStorageImpl::save_mail(RadosMail *mail){
     if(i==0){
       /*start step3:save metadata*/
       librados::ObjectWriteOperation write_op;
-      librmb::RadosMetadataStorageImpl* ms=new librmb::RadosMetadataStorageImpl();   
-      ms->get_storage()->save_metadata(&write_op,mail);
+      librados::IoCtx *io_ctx_=&this->get_io_ctx();
+      librmb::RadosMetadataStorageDefault SMM (io_ctx_);
+      SMM.save_metadata(&write_op,mail);
       time_t save_date = mail->get_rados_save_date();
       write_op.mtime(&save_date);  
       /*End step3;*/
@@ -664,6 +652,9 @@ bool  RadosStorageImpl::save_mail(RadosMail *mail){
       /*Save metadata and first chunk together in a common write_op
       If (div==1) so after this step quick this loop. */
       ret_val =execute_operation(*mail->get_oid(), &write_op);
+      if(!ret_val){
+        return ret_val;
+      }
     }
     else {      
       if(offset + length > buff_size){
@@ -671,8 +662,12 @@ bool  RadosStorageImpl::save_mail(RadosMail *mail){
       }else{
         tmp_buffer.substr_of(mail->get_mail_buffer(),offset,length);
         ret_val =append_to_object(*mail->get_oid(),tmp_buffer,length);
+        if(!ret_val){
+          return ret_val;
+        }
       }
-    }      
+    }  
+    delete &tmp_buffer;    
   }
   return ret_val;
 }

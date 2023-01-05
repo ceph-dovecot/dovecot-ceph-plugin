@@ -250,41 +250,41 @@ namespace librmb {
       return 0;
     }
 
-    RadosMail mail;
-    mail.set_oid(src_oid);
+    RadosMail* mail;
+    mail->set_oid(src_oid);
 
     librados::bufferlist *bl = new librados::bufferlist();
-    mail.set_mail_buffer(bl);
+    mail->set_mail_buffer(bl);
 
     if (inverse) {
-      ret = alt_storage->read_mail(src_oid)->get_ret_read_op();
+      ret = alt_storage->read_mail(src_oid,&mail);
       metadata->get_storage()->set_io_ctx(&alt_storage->get_io_ctx());
     } else {
-      ret = primary->read_mail(src_oid)->get_ret_read_op();
+      ret = primary->read_mail(src_oid,&mail);
     }
 
     if (ret < 0) {
       metadata->get_storage()->set_io_ctx(&primary->get_io_ctx());
       return ret;
     }
-    mail.set_mail_size(mail.get_mail_buffer()->length());
+    mail->set_mail_size(mail->get_mail_buffer()->length());
 
     // load the metadata;
-    ret = metadata->get_storage()->load_metadata(&mail);
+    ret = metadata->get_storage()->load_metadata(mail);
     if (ret < 0) {
       return ret;
     }
 
-    mail.set_oid(dest_oid);
+    mail->set_oid(dest_oid);
 
-    librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
-    metadata->get_storage()->save_metadata(&write_op, &mail);
+    // librados::ObjectWriteOperation write_op;  // = new librados::ObjectWriteOperation();
+    // metadata->get_storage()->save_metadata(&write_op, &mail);
 
     bool success;
     if (inverse) {
-      success = primary->save_mail(&write_op, &mail);
+      success = primary->save_mail(mail);
     } else {
-      success = alt_storage->save_mail(&write_op, &mail);
+      success = alt_storage->save_mail(mail);
     }
 
     if (!success) {

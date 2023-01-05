@@ -73,7 +73,7 @@ class RadosStorageImpl : public RadosStorage {
   bool wait_for_rados_operations(const std::list<librmb::RadosMail *> &object_list) override;
 
   // int read_mail(const std::string &oid, librados::bufferlist *buffer) override;
-  librmb::RadosMail* read_mail(const std::string &oid) override;
+  int read_mail(const std::string &oid,librmb::RadosMail** mail) override;
   int move(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,
            std::list<RadosMetadata> &to_update, bool delete_source) override;
   int copy(std::string &src_oid, const char *src_ns, std::string &dest_oid, const char *dest_ns,

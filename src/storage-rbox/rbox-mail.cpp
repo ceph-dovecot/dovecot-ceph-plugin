@@ -495,8 +495,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     //   }
     // }
     const std::string mail_oid=guid_128_to_string(rmail->index_oid);
-    rmail->rados_mail=rados_storage->read_mail(mail_oid);
-    ret=rmail->rados_mail->get_ret_read_op();
+    ret=rados_storage->read_mail(mail_oid,&(rmail->rados_mail));
+    
     
     if (ret < 0) {
       if (ret == -ENOENT) {
@@ -510,28 +510,6 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
         FUNC_END_RET("ret == -1");
         delete rmail->rados_mail->get_mail_buffer();
         return -1;
-      } 
-      else if(ret == -ETIMEDOUT) {
-        int max_retry = 10; //TODO FIX 
-        for(int i=0;i<max_retry;i++){
-          rmail->rados_mail=rados_storage->read_mail(mail_oid);
-          ret=rmail->rados_mail->get_ret_read_op();
-          if(ret >= 0){
-            i_error("READ TIMEOUT %d reading mail object %s ", ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
-            break;
-          }
-          i_warning("READ TIMEOUT retry(%d) %d reading mail object %s ",i, ret,rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
-          // wait random time before try again!!
-          usleep(((rand() % 5) + 1) * 10000);
-          // clear the read buffer in case of timeout
-          delete rmail->rados_mail;
-        }
-      
-        if(ret <0){          
-          delete rmail->rados_mail->get_mail_buffer();
-          FUNC_END();
-          return -1;
-        }
       } 
       else {
         i_error("reading mail return code(%d), oid(%s),namespace(%s), alt_storage(%d)", ret,
