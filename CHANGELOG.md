@@ -1,4 +1,7 @@
 # Change Log
+## [0.0.48](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.48) (2023-01-26)
+- cleanup ceph-index in case of mailbox INBOX delete
+
 ## [0.0.47](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.47) (2022-12-05)
 - #355 fix gzip trailer when stream is empty
        fix save_method 1+2 buffersize (1 byte short) 

@@ -957,11 +957,21 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
     return ret;
   }
   if (r_storage->config->is_user_mapping()) {  //
-
     struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
     ret = check_users_mailbox_delete_ns_object(rbox->storage->storage.user, r_storage->config, r_storage->ns_mgr,
                                                r_storage->s);
   }
+  
+  if( r_storage->config->get_object_search_method() == 2 &&
+      strcpy(box->name,'INBOX') == 0 ){    
+        
+    if(r_storage->s->ceph_index_delete()<1){
+      i_warning("ceph_index delete failed, ceph index still exists");
+    }else {
+      i_debug("rbox_storage_mailbox_delete: deleting ceph index: %d", ret);  
+    }  
+  }
+
 
   FUNC_END();
   return ret;
