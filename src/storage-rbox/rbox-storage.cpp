@@ -954,6 +954,7 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
     i_debug("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
     return ret;
   }
+
   i_debug("clean: deleting mailbox %s check if ceph index need to be deleted. %ld , %d, compare %d box='%s' with '%s'",
             box->name, r_storage->config, 
             r_storage->config->get_object_search_method(), 
@@ -973,12 +974,14 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
   if (!r_storage->config->is_rbox_check_empty_mailboxes()) {
     return ret;
   }
+
   if (r_storage->config->is_user_mapping()) {  //
     struct rbox_mailbox *rbox = (struct rbox_mailbox *)box;
     ret = check_users_mailbox_delete_ns_object(rbox->storage->storage.user, r_storage->config, r_storage->ns_mgr,
                                                r_storage->s);
   }
   
+
   FUNC_END();
   return ret;
 }

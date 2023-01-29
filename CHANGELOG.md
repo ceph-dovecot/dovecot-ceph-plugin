@@ -1,4 +1,5 @@
 # Change Log
+
 ## [0.0.49](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.49) (2023-01-29)
 - fix: cleanup ceph-index in case of mailbox INBOX delete
 
