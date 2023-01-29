@@ -939,21 +939,38 @@ int check_users_mailbox_delete_ns_object(struct mail_user *user, librmb::RadosDo
 
 int rbox_storage_mailbox_delete(struct mailbox *box) {
   FUNC_START();
+  
   int ret = index_storage_mailbox_delete(box);
   if (ret < 0) {
     i_debug("while processing index_storage_mailbox_delete: %d", ret);
     return ret;
   }
-  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
-  // 90 plugin konfigurierbar!
-  read_plugin_configuration(box);
-  if (!r_storage->config->is_rbox_check_empty_mailboxes()) {
-    return ret;
-  }
 
+  struct rbox_storage *r_storage = (struct rbox_storage *)box->storage;
+  read_plugin_configuration(box);
+  
   ret = rbox_open_rados_connection(box, false);
   if (ret < 0) {
     i_debug("rbox_storage_mailbox_delete: Opening rados connection : %d", ret);
+    return ret;
+  }
+  i_debug("clean: deleting mailbox %s check if ceph index need to be deleted. %ld , %d, compare %d box='%s' with '%s'",
+            box->name, r_storage->config, 
+            r_storage->config->get_object_search_method(), 
+            strcmp(box->name,"INBOX") == 0, 
+            box->name, "INBOX");
+
+  if( r_storage->config->get_object_search_method() == 2 &&
+      strcmp(box->name,"INBOX") == 0 ){    
+    int ceph_index_delete_ret = r_storage->s->ceph_index_delete(); 
+    if(ceph_index_delete_ret<0){
+      i_warning("ceph_index delete failed, ceph index still exists : ret = ", ceph_index_delete_ret);
+    }else {
+      i_debug("rbox_storage_mailbox_delete: deleting ceph index: %d", ret);  
+    }  
+  }
+
+  if (!r_storage->config->is_rbox_check_empty_mailboxes()) {
     return ret;
   }
   if (r_storage->config->is_user_mapping()) {  //
@@ -962,17 +979,6 @@ int rbox_storage_mailbox_delete(struct mailbox *box) {
                                                r_storage->s);
   }
   
-  if( r_storage->config->get_object_search_method() == 2 &&
-      strcpy(box->name,'INBOX') == 0 ){    
-        
-    if(r_storage->s->ceph_index_delete()<1){
-      i_warning("ceph_index delete failed, ceph index still exists");
-    }else {
-      i_debug("rbox_storage_mailbox_delete: deleting ceph index: %d", ret);  
-    }  
-  }
-
-
   FUNC_END();
   return ret;
 }
