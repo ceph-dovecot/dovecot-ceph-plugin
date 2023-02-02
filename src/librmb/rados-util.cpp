@@ -389,4 +389,14 @@ namespace librmb {
     }
     return index;
   }
+  
+  static double RadosUtils::object_size_percent(const double object_size, const double max_object_size) {
+      double ceph_index_size_percent = ( object_size / max_object_size ) * (double) 100.0;
+      return ceph_index_size_percent;
+  }
+
+  static bool RadosUtils::object_size_close_to_reach_max(const double object_size, const double max_object_size) {
+      return RadosUtils::object_size_percent(object_size, max_object_size) > 80;
+  }
+
 }  // namespace librmb
