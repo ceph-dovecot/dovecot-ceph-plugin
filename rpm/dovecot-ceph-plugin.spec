@@ -14,7 +14,7 @@
 Name:		dovecot-ceph-plugin
 Summary:	Dovecot Ceph RADOS plugins
 
-Version:	0.0.49
+Version:	0.0.50
 
 
 Release:	0%{?dist}

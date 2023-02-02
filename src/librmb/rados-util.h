@@ -201,6 +201,8 @@ class RadosUtils {
   static std::string convert_to_ceph_index(const std::string &str);
 
   static std::set<std::string> ceph_index_to_set(const std::string &str);
+  static double object_size_percent(const double object_size, const double max_object_size);
+  static bool object_size_close_to_reach_max(const double object_size, const double max_object_size);
 };
 
 }  // namespace librmb

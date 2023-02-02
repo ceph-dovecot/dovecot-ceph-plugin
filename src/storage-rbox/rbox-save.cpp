@@ -653,18 +653,18 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
         i_error("saved mail: %s failed. Metadata_count %ld, mail_size (%d)", r_ctx->rados_mail->get_oid()->c_str(),
                 r_ctx->rados_mail->get_metadata()->size(), r_ctx->rados_mail->get_mail_size());
       }else{
-
         if( r_storage->config->get_object_search_method() == 2){
           // ceph config schalter an oder aus!
-          r_storage->s->ceph_index_append(*r_ctx->rados_mail->get_oid());
-          uint64_t index_size = r_storage->s->ceph_index_size();                  
-          double ceph_index_size_percent = ((double)index_size / (double)r_storage->s->get_max_object_size()) *(double)100.0;
-          // WARN if index reaches 80% of max object size
-          if( ceph_index_size_percent > 0.80) {
-            i_warning("ceph_index file(%d) close to exceed max_object size(%d), recalc index !", index_size, r_storage->s->get_max_object_size() );
+          r_storage->s->ceph_index_append(*r_ctx->rados_mail->get_oid());                    
+          if( librmb::RadosUtils::object_size_close_to_reach_max(
+                                                                 (double)r_storage->s->ceph_index_size(), 
+                                                                 (double) r_storage->s->get_max_object_size())
+                                                                ) {
+            i_warning("ceph_index file(%d) close to exceed max_object size(%d) 80%, recalc index !", r_storage->s->ceph_index_size(), r_storage->s->get_max_object_size() );
           }
         }
       }
+
       if (r_storage->save_log->is_open()) {
         r_storage->save_log->append(
             librmb::RadosSaveLogEntry(*r_ctx->rados_mail->get_oid(), r_storage->s->get_namespace(),
