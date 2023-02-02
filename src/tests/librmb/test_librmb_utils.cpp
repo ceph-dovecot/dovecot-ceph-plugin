@@ -290,57 +290,6 @@ __attribute__((noreturn)) static void *write_to_save_file(void *threadid) {
 
   pthread_exit(NULL);
 }
-TEST(librmb, append_to_existing_file_multi_threading) {
-  std::string test_file_name = "test1.log";
-  int rc;
-  void *status;
-  pthread_attr_t attr;
-  pthread_t threads[5];
-  // Initialize and set thread joinable
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-  for (uintptr_t i = 0; i < 5; i++) {
-    rc = pthread_create(&threads[i], NULL, write_to_save_file, (void *)i);
-  }
-  sleep(1);
-  std::cout << " threads created " << std::endl;
-  // free attribute and wait for the other threads
-  pthread_attr_destroy(&attr);
-  for (int i = 0; i < 5; i++) {
-    rc = pthread_join(threads[i], &status);
-    if (rc) {
-      std::cout << "Error:unable to join," << rc << std::endl;
-      exit(-1);
-    }
-
-    std::cout << "Main: completed thread id :" << i;
-    std::cout << "  exiting with status :" << status << std::endl;
-  }
-  sleep(1);
-  int line_count = 0;
-  /** check content **/
-  std::ifstream read(test_file_name);
-  while (true) {
-    librmb::RadosSaveLogEntry entry;
-    read >> entry;
-
-    if (read.eof()) {
-      break;
-    }
-    EXPECT_EQ(entry.oid, "abc");
-    EXPECT_EQ(entry.ns, "ns_1");
-    EXPECT_EQ(entry.pool, "mail_storage");
-    EXPECT_EQ(entry.op, "save");
-    line_count++;
-  }
-  EXPECT_EQ(25, line_count);
-  read.close();
-  std::remove(test_file_name.c_str());
-
-  std::cout << " exiting main " << std::endl;
-  // pthread_exit(NULL);
-}
 
 TEST(librmb, test_mvn_option) {
   std::list<librmb::RadosMetadata *> metadata;
@@ -377,18 +326,33 @@ TEST(librmb, test_mvn_option) {
   std::remove(test_file_name.c_str());
 }
 
-/*TEST(librmb, test_if) {
-  int arr[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+TEST(librmb, test_max_object_size_calculation) {
+    
+    bool result = librmb::RadosUtils::object_size_close_to_reach_max(10.0,100.0);
+    EXPECT_EQ(result, false);
+    
+    result = librmb::RadosUtils::object_size_close_to_reach_max(81.0,100.0);
+    EXPECT_EQ(result, true);
 
-  for (int i = 0; i < 10; ++i) {
-    std::cout << " value: " << arr[i] << std::endl;
-  }
-  for (int i = 0; i < 10; i++) {
-    std::cout << " value: " << arr[i] << std::endl;
-  }
+    result = librmb::RadosUtils::object_size_close_to_reach_max(112820433.0
+                                                               ,134217728.0);
+    EXPECT_EQ(result, true);
 
-  EXPECT_EQ(1, 2);
-}*/
+    result = librmb::RadosUtils::object_size_close_to_reach_max(13646193.0
+                                                               ,134217728.0);
+    EXPECT_EQ(result, false);
+
+    result = librmb::RadosUtils::object_size_close_to_reach_max(13646226.0
+                                                               ,134217728.0);
+    EXPECT_EQ(result, false);
+
+    result = librmb::RadosUtils::object_size_close_to_reach_max(13646259.0
+                                                               ,134217728.0);
+    EXPECT_EQ(result, false);
+
+}
+
+
 TEST(librmb, mock_obj) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
