@@ -1,4 +1,6 @@
 # Change Log
+## [0.0.51](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.51) (2023-02-09)
+- fix: not escaped % in i_warning.
 
 ## [0.0.50](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.50) (2023-02-02)
 - fix: cleanup ceph-index size calculation

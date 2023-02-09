@@ -660,7 +660,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
                                                                  (double)r_storage->s->ceph_index_size(), 
                                                                  (double) r_storage->s->get_max_object_size())
                                                                 ) {
-            i_warning("ceph_index file(%d) close to exceed max_object size(%d) 80%, recalc index !", r_storage->s->ceph_index_size(), r_storage->s->get_max_object_size() );
+            i_warning("ceph index file (%lu) close to exceed max object size(%d) 80%%",r_storage->s->ceph_index_size(), r_storage->s->get_max_object_size());
           }
         }
       }
