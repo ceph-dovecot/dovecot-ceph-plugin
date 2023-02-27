@@ -142,6 +142,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     // make sure that mail_object is initialized,
     // else create and load guid from index.
     rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    rmail->last_seq = -1;
   }
   if(rmail->rados_mail->get_oid() == nullptr || rmail->rados_mail->get_oid()->empty()){
     if (rbox_get_index_record(mail) < 0) {
@@ -201,6 +202,7 @@ int rbox_mail_get_received_date(struct mail *_mail, time_t *date_r) {
     // else create and load guid from index.
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
     rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    rmail->last_seq = -1;
     if (rbox_get_index_record(_mail) < 0) {
       i_error("Error rbox_get_index uid(%d)", _mail->uid);
       FUNC_END();
@@ -272,6 +274,7 @@ static int rbox_mail_get_save_date(struct mail *_mail, time_t *date_r) {
     // else create and load guid from index.
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
     rmail->rados_mail = r_storage->s->alloc_rados_mail();
+    rmail->last_seq = -1;
     if (rbox_get_index_record(_mail) < 0) {
       i_error("Error rbox_get_index uid(%d)", _mail->uid);
       FUNC_END();
@@ -487,7 +490,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     if (rmail->rados_mail == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
-      rmail->rados_mail = rados_storage->alloc_rados_mail();   
+      rmail->rados_mail = rados_storage->alloc_rados_mail();  
+      rmail->last_seq = -1; 
     }
 
     if(rmail->rados_mail->get_oid() == nullptr || rmail->rados_mail->get_oid()->empty()){
@@ -874,7 +878,6 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
-  rmail_->last_seq = seq -1;
 
   if (rmail_->rados_mail == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
