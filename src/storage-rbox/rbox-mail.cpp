@@ -142,6 +142,8 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
     // make sure that mail_object is initialized,
     // else create and load guid from index.
     rmail->rados_mail = r_storage->s->alloc_rados_mail();
+  }
+  if(rmail->rados_mail->get_oid() == nullptr || rmail->rados_mail->get_oid()->empty()){
     if (rbox_get_index_record(mail) < 0) {
       i_error("Error rbox_get_index_record uid(%d)", mail->uid);
       FUNC_END();
@@ -155,9 +157,7 @@ static int rbox_mail_metadata_get(struct rbox_mail *rmail, enum rbox_metadata_ke
   int ret_load_metadata = r_storage->ms->get_storage()->load_metadata(rmail->rados_mail);
   if (ret_load_metadata < 0) {
     std::string metadata_key = librmb::rbox_metadata_key_to_char(key);
-    if (ret_load_metadata == -ENOENT) {
-      //i_debug("Errorcode: process %d returned with %d cannot get x_attr(%s,%c) from rados_object: %s",getpid(), ret_load_metadata,
-      //          metadata_key.c_str(), key, rmail->rados_mail != NULL ? rmail->rados_mail->to_string(" ").c_str() : " no rados_mail");
+    if (ret_load_metadata == -ENOENT) { 
       rbox_mail_set_expunged(rmail);
     } 
     else {    
@@ -489,8 +489,8 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
       // else create and load guid from index.
       rmail->rados_mail = rados_storage->alloc_rados_mail();   
     }
-    
-    if(rmail->rados_mail->get_oid() == nullptr){
+
+    if(rmail->rados_mail->get_oid() == nullptr || rmail->rados_mail->get_oid()->empty()){
        //reload get index_record.
        if (rbox_get_index_record(_mail) < 0) {
         i_error("Error rbox_get_index uid(%d)", _mail->uid);
