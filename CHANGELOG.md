@@ -1,4 +1,8 @@
 # Change Log
+
+## [0.0.52](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.52) (2023-02-27)
+- fix: some problems with virtual box and Spica
+
 ## [0.0.51](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.51) (2023-02-09)
 - fix: not escaped % in i_warning.
 
