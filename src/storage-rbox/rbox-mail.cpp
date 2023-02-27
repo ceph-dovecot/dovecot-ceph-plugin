@@ -874,6 +874,7 @@ static void rbox_index_mail_set_seq(struct mail *_mail, uint32_t seq, bool savin
 
   // close mail and set sequence
   index_mail_set_seq(_mail, seq, saving);
+  rmail_->last_seq = seq -1;
 
   if (rmail_->rados_mail == nullptr) {
     struct rbox_storage *r_storage = (struct rbox_storage *)_mail->box->storage;
