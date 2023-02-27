@@ -487,8 +487,12 @@ static int rbox_mail_get_stream(struct mail *_mail, bool get_body ATTR_UNUSED, s
     if (rmail->rados_mail == nullptr) {
       // make sure that mail_object is initialized,
       // else create and load guid from index.
-      rmail->rados_mail = rados_storage->alloc_rados_mail();
-      if (rbox_get_index_record(_mail) < 0) {
+      rmail->rados_mail = rados_storage->alloc_rados_mail();   
+    }
+    
+    if(rmail->rados_mail->get_oid() == nullptr){
+       //reload get index_record.
+       if (rbox_get_index_record(_mail) < 0) {
         i_error("Error rbox_get_index uid(%d)", _mail->uid);
         FUNC_END();
         return -1;
