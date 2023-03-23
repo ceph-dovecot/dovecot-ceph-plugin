@@ -1,5 +1,6 @@
 # Change Log
-
+## [1.0.0](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/1.0.0) (2023-03-23)
+- prod release
 ## [0.0.52](https://github.com/ceph-dovecot/dovecot-ceph-plugin/tree/0.0.52) (2023-02-27)
 - fix: some problems with virtual box and Spica
 
