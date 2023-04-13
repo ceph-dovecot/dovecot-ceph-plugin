@@ -1,4 +1,4 @@
-Ceph Plugins for Dovecot  [![Build Status](https://travis-ci.org/ceph-dovecot/dovecot-ceph-plugin.svg?branch=travis)](https://travis-ci.org/ceph-dovecot/dovecot-ceph-plugin)
+Ceph Plugins for Dovecot
 ========================
 
 The goal of this project is the creation of a storage plugin for Dovecot, which enables the storage of emails in Ceph RADOS objects. The focus is currently on a hybrid model where the emails are stored in RADOS objects, while all other metadata (lists, index, cache) are stored in a file system that is located locally on the Dovecot server or on shared CephFS volumes. The latter allows the operation of Dovecot completely on Ceph.
