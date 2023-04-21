@@ -83,19 +83,19 @@ If you are using CentOS make sure you also have the following package installed:
 
 <table border="0">
   <tr>
-    <td><img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Telekom_Logo_2013.svg"</td>
+    <td><img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Telekom_Logo_2013.svg" width="120" height="auto"></td>
     <td>The development of this software is sponsored by Deutsche Telekom. We would like to take this opportunity to thank Deutsche Telekom.</td>
   </tr>
   <tr>
-    <td><img src="https://www.tallence.com/fileadmin/user_upload/content/Mailing/tallence_logo-email.png"</td>
+    <td><img src="https://www.tallence.com/fileadmin/user_upload/content/Mailing/tallence_logo-email.png" width="700" height="auto"></td>
     <td><a href="https://www.tallence.com/">Tallence</a> carried out the initial development.</td>
   </tr>
   <tr>
-    <td><img src="https://avatars1.githubusercontent.com/u/20288092?v=4&s=100"</td>
+    <td><img src="https://www.42on.com/wp-content/uploads/2022/04/42on-logo-colour.svg" width="120" height="auto"></td>
     <td>Wido den Hollander from <a href="http://www.42on.com">42on.com</a> for all the help and ideas.</td>
   </tr>
   <tr>
-    <td><img src="https://upload.wikimedia.org/wikipedia/commons/3/37/Dovecot-logo.png"</td>
+    <td><img src="https://upload.wikimedia.org/wikipedia/commons/3/37/Dovecot-logo.png"></td>
     <td>This plugin borrows heavily from <a href="https://github.com/dovecot/core/">Dovecot</a> itself particularly for the automatic detection of dovecont-config (see m4/dovecot.m4). The lib-dict and lib-storage were also used as reference material for understanding the Dovecot dictionary and storage API.</td>
   </tr>
 </table>
