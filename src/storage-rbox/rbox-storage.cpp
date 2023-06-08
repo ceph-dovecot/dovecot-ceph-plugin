@@ -446,21 +446,28 @@ int rbox_open_rados_connection(struct mailbox *box, bool alt_storage) {
     rados_storage->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
                                             ? librmb::WAIT_FOR_SAFE_AND_CB
                                             : librmb::WAIT_FOR_COMPLETE_AND_CB);
+    i_debug("setting wait method to %s",
+            rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb() ? "WAIT_FOR_SAFE_AND_CB"
+                                                                      : "WAIT_FOR_COMPLETE_AND_CB");
     /* open connection to primary and alternative storage */
     ret = rados_storage->open_connection(rbox->storage->config->get_pool_name(),
                                          rbox->storage->config->get_index_pool_name(), 
                                          rbox->storage->config->get_rados_cluster_name(),
                                          rbox->storage->config->get_rados_username());
+    i_debug("rados_storage->open_connection() returned %d", ret);
 
     if (alt_storage) {
+      i_debug("alt_storage is active ");
       ret = rbox->storage->alt->open_connection(box->list->set.alt_dir, 
                                                 rbox->storage->config->get_index_pool_name(), 
                                                 rbox->storage->config->get_rados_cluster_name(),
                                                 rbox->storage->config->get_rados_username());
-
+      i_debug("rados_storage->alt->open_connection() returned %d", ret);
       rbox->storage->alt->set_ceph_wait_method(rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb()
                                                    ? librmb::WAIT_FOR_SAFE_AND_CB
                                                    : librmb::WAIT_FOR_COMPLETE_AND_CB);
+      i_debug("setting alt wait method to %s",
+              rbox->storage->config->is_ceph_aio_wait_for_safe_and_cb() ? "WAIT_FOR_SAFE_AND_CB" : "WAIT_FOR_COMPLETE_AND_CB");
     }
   } catch (std::exception &e) {    
     i_error("Exception: setting up ceph connection: %s",e.what());

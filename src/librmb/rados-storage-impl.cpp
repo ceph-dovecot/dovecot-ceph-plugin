@@ -319,9 +319,9 @@ int RadosStorageImpl::open_connection(const std::string &poolname,
     // cluster is already connected!
     return 1;
   }
-
-  if (cluster->init(clustername, rados_username) < 0) {
-    return -1;
+  int cluster_init_ret = cluster->init(clustername, rados_username);
+  if (cluster_init_ret < 0) {
+    return cluster_init_ret;
   }
   return create_connection(poolname, poolname);
 }
