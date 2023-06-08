@@ -163,7 +163,7 @@ TEST_F(StorageTest, save_mail_rados_connection_failed) {
   EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, is_write_chunks()).WillRepeatedly(Return(false));
   EXPECT_CALL(*cfg_mock, is_ceph_posix_bugfix_enabled()).WillRepeatedly(Return(false));
-  EXPECT_CALL(*cfg_mock, is_ceph_aio_wait_for_safe_and_cb()).WillOnce(Return(false));
+  EXPECT_CALL(*cfg_mock, is_ceph_aio_wait_for_safe_and_cb()).WillRepeatedly(Return(false));
   EXPECT_CALL(*cfg_mock, load_rados_config()).WillOnce(Return(0));
   EXPECT_CALL(*cfg_mock, is_mail_attribute(_)).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, is_user_mapping()).WillRepeatedly(Return(false));
@@ -314,7 +314,7 @@ TEST_F(StorageTest, save_mail_success) {
   EXPECT_CALL(*cfg_mock, is_config_valid()).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, is_write_chunks()).WillRepeatedly(Return(false));
   EXPECT_CALL(*cfg_mock, is_ceph_posix_bugfix_enabled()).WillRepeatedly(Return(false));
-  EXPECT_CALL(*cfg_mock, is_ceph_aio_wait_for_safe_and_cb()).WillOnce(Return(false));
+  EXPECT_CALL(*cfg_mock, is_ceph_aio_wait_for_safe_and_cb()).WillRepeatedly(Return(false));
   EXPECT_CALL(*cfg_mock, load_rados_config()).WillOnce(Return(0));
   EXPECT_CALL(*cfg_mock, is_mail_attribute(_)).WillRepeatedly(Return(true));
   EXPECT_CALL(*cfg_mock, get_chunk_size()).WillOnce(Return(100));
