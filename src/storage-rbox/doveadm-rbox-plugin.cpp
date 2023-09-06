@@ -442,7 +442,7 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
     i_error("Error opening mailbox %s", mailbox_name);
     return -1;
   }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   char reason[256];
   memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
@@ -526,7 +526,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
     }
     return ret;
   }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   ret = mail_storage_service_next(ctx->storage_service, cur_service_user, cur_mail_user, error_r);
 
 #else
@@ -534,7 +534,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
 #endif
   if (ret < 0) {
     *error_r = "User init failed";
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
     mail_storage_service_user_unref(&cur_service_user);
 #else
     mail_storage_service_user_free(&cur_service_user);
@@ -558,7 +558,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
   }
   mail_user_unref(cur_mail_user);
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   mail_storage_service_user_unref(&cur_service_user);
 #else
   mail_storage_service_user_free(&cur_service_user);
@@ -631,7 +631,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
     return -1;
   }
  
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   char reason[256];
   memset(reason, '\0', sizeof(reason));
   mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
@@ -945,7 +945,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
   uint8_t m_flags = 0;
   int ret = 0, ret2;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   if (ctx->unsafe)
     m_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
 #endif
@@ -968,13 +968,13 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     const char *name = *namep;
     ns = mail_namespace_find(user->namespaces, name);
     box = mailbox_alloc(ns->list, name, static_cast<enum mailbox_flags>(m_flags));
-#if DOVECOT_PREREQ(2, 3)
-    mailbox_set_reason(box, "doveadm rmb mailbox delete");
+#if DOVECOT_PREREQ(2, 3, 0)
+    //mailbox_set_reason(box, "doveadm rmb mailbox delete");
     struct mail_storage *storage = mailbox_get_storage(box);
 #endif
     ret2 = ctx->require_empty ? mailbox_delete_empty(box) : mailbox_delete(box);
     if (ret2 < 0) {
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
       i_error("Can't delete mailbox %s: %s", name, mailbox_get_last_internal_error(box, NULL));
 #else
       i_error("Can't delete mailbox %s %d", name, ret2);
@@ -984,7 +984,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     }
     if (ctx->subscriptions) {
       if (mailbox_set_subscribed(box, FALSE) < 0) {
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
         i_error("Can't unsubscribe mailbox %s: %s", name, mail_storage_get_last_internal_error(storage, NULL));
 #else
         i_error("Can't unsubscribe mailbox %s ", name);
@@ -1203,7 +1203,7 @@ static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, 
     case 'e':
       ctx->require_empty = TRUE;
       break;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
     case 'Z':
       ctx->unsafe = TRUE;
       break;
