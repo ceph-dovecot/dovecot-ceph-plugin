@@ -1230,6 +1230,114 @@ struct config_options {
   char *pool_name;
 };
 
+#if DOVECOT_PREREQ(2, 3, 20)
+
+static int cmd_rmb_config_show_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  std::map<std::string, std::string> opts;
+  opts["print_cfg"] = "true";
+  return cmd_rmb_config(opts);
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_show(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_show_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_config_create_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    RboxDoveadmPlugin plugin;
+    plugin.read_doveadm_plugin_configuration();
+    int open = plugin.open_connection();
+    if (open < 0) {
+        i_error("Error opening rados connection. Errorcode: %d", open);
+        return -1;
+    }
+    librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+    int ret = cfg->load_cfg();
+    if (ret < 0) {
+        ret = cfg->save_cfg();
+        if (ret < 0) {
+            i_error("error creating configuration %d", ret);
+            return -1;
+        }
+        std::cout << "config created" << std::endl;
+    } else {
+        std::cout << "config already exist" << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_create(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_create_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_config_update_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    if (str_array_length(ctx->args) < 2) {
+        i_error("usage: dovecot rmb config update key=value");
+        return -1;
+    }
+  
+    const char *update = ctx->args[1];
+    if (update == NULL) {
+        i_error("no update param given");
+        return -1;
+    }
+    std::map<std::string, std::string> opts;
+    opts["update"] = update;
+    int ret = cmd_rmb_config(opts);
+    return ret;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_update(void) {
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_update_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_lspools_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    return librmb::RmbCommands::RmbCommands::lspools(); 
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_lspools(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+  
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_lspools_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_version_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
+    return 0;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_version(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_version_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+#else
 int cmd_rmb_config_show(int argc, char *argv[]) {
   std::map<std::string, std::string> opts;
   opts["print_cfg"] = "true";
@@ -1280,3 +1388,4 @@ int cmd_rmb_version(int argc, char *argv[]) {
   std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
   return 0;
 }
+#endif
