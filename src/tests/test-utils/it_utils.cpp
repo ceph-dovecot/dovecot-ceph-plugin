@@ -24,7 +24,7 @@ using ::testing::ReturnRef;
 
 #pragma GCC diagnostic pop
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
 #else
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_error(box, error_r)

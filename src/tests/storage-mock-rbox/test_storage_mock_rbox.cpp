@@ -53,7 +53,7 @@ using ::testing::Return;
 using ::testing::ReturnRef;
 #pragma GCC diagnostic pop
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_internal_error(box, error_r)
 #else
 #define mailbox_get_last_internal_error(box, error_r) mailbox_get_last_error(box, error_r)
@@ -95,7 +95,7 @@ TEST_F(StorageTest, test_gzip_read_valid) {
     std::string content(fileSize,0);
     fileReader.read(&content[0],fileSize);
     bl.append(content);
-  }   
+  }
   bool test = check_is_zlib(&bl);
   ASSERT_EQ(true, test);
 

@@ -442,7 +442,7 @@ static int restore_index_entry(struct mail_user *user, const char *mailbox_name,
     i_error("Error opening mailbox %s", mailbox_name);
     return -1;
   }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   char reason[256];
   memset(reason, '\0', sizeof(reason));
   struct mailbox_transaction_context *trans = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
@@ -526,7 +526,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
     }
     return ret;
   }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   ret = mail_storage_service_next(ctx->storage_service, cur_service_user, cur_mail_user, error_r);
 
 #else
@@ -534,7 +534,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
 #endif
   if (ret < 0) {
     *error_r = "User init failed";
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
     mail_storage_service_user_unref(&cur_service_user);
 #else
     mail_storage_service_user_free(&cur_service_user);
@@ -558,7 +558,7 @@ static int doveadm_rmb_mail_next_user(struct doveadm_mail_cmd_context *ctx,
   }
   mail_user_unref(cur_mail_user);
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   mail_storage_service_user_unref(&cur_service_user);
 #else
   mail_storage_service_user_free(&cur_service_user);
@@ -631,7 +631,7 @@ static int iterate_mailbox(const struct mail_namespace *ns, const struct mailbox
     return -1;
   }
  
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   char reason[256];
   memset(reason, '\0', sizeof(reason));
   mailbox_transaction = mailbox_transaction_begin(box, MAILBOX_TRANSACTION_FLAG_EXTERNAL, reason);
@@ -945,7 +945,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
   const ARRAY_TYPE(const_string) *mailboxes = &ctx->mailboxes;
   uint8_t m_flags = 0;
   int ret = 0, ret2;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   if (ctx->unsafe)
     m_flags |= MAILBOX_FLAG_DELETE_UNSAFE;
 #endif
@@ -968,13 +968,13 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     const char *name = *namep;
     ns = mail_namespace_find(user->namespaces, name);
     box = mailbox_alloc(ns->list, name, static_cast<enum mailbox_flags>(m_flags));
-#if DOVECOT_PREREQ(2, 3)
-    mailbox_set_reason(box, "doveadm rmb mailbox delete");
+#if DOVECOT_PREREQ(2, 3, 0)
+    //mailbox_set_reason(box, "doveadm rmb mailbox delete");
     struct mail_storage *storage = mailbox_get_storage(box);
 #endif
     ret2 = ctx->require_empty ? mailbox_delete_empty(box) : mailbox_delete(box);
     if (ret2 < 0) {
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
       i_error("Can't delete mailbox %s: %s", name, mailbox_get_last_internal_error(box, NULL));
 #else
       i_error("Can't delete mailbox %s %d", name, ret2);
@@ -984,7 +984,7 @@ static int cmd_mailbox_delete_run(struct doveadm_mail_cmd_context *_ctx, struct 
     }
     if (ctx->subscriptions) {
       if (mailbox_set_subscribed(box, FALSE) < 0) {
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
         i_error("Can't unsubscribe mailbox %s: %s", name, mail_storage_get_last_internal_error(storage, NULL));
 #else
         i_error("Can't unsubscribe mailbox %s ", name);
@@ -1203,7 +1203,7 @@ static bool cmd_mailbox_delete_parse_arg(struct doveadm_mail_cmd_context *_ctx, 
     case 'e':
       ctx->require_empty = TRUE;
       break;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
     case 'Z':
       ctx->unsafe = TRUE;
       break;
@@ -1230,6 +1230,114 @@ struct config_options {
   char *pool_name;
 };
 
+#if DOVECOT_PREREQ(2, 3, 20)
+
+static int cmd_rmb_config_show_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+  std::map<std::string, std::string> opts;
+  opts["print_cfg"] = "true";
+  return cmd_rmb_config(opts);
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_show(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_show_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_config_create_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    RboxDoveadmPlugin plugin;
+    plugin.read_doveadm_plugin_configuration();
+    int open = plugin.open_connection();
+    if (open < 0) {
+        i_error("Error opening rados connection. Errorcode: %d", open);
+        return -1;
+    }
+    librmb::RadosCephConfig *cfg = (static_cast<librmb::RadosDovecotCephCfgImpl *>(plugin.config))->get_rados_ceph_cfg();
+    int ret = cfg->load_cfg();
+    if (ret < 0) {
+        ret = cfg->save_cfg();
+        if (ret < 0) {
+            i_error("error creating configuration %d", ret);
+            return -1;
+        }
+        std::cout << "config created" << std::endl;
+    } else {
+        std::cout << "config already exist" << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_create(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_create_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_config_update_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    if (str_array_length(ctx->args) < 2) {
+        i_error("usage: dovecot rmb config update key=value");
+        return -1;
+    }
+  
+    const char *update = ctx->args[1];
+    if (update == NULL) {
+        i_error("no update param given");
+        return -1;
+    }
+    std::map<std::string, std::string> opts;
+    opts["update"] = update;
+    int ret = cmd_rmb_config(opts);
+    return ret;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_config_update(void) {
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_config_update_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_lspools_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    return librmb::RmbCommands::RmbCommands::lspools(); 
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_lspools(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+  
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_lspools_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+static int cmd_rmb_version_run(struct doveadm_mail_cmd_context *ctx, struct mail_user *user) {
+    std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
+    return 0;
+}
+
+struct doveadm_mail_cmd_context *cmd_rmb_version(void)
+{
+    struct doveadm_mail_cmd_context *ctx;
+
+    ctx = doveadm_mail_cmd_alloc(struct doveadm_mail_cmd_context);
+    ctx->v.run = cmd_rmb_version_run;
+    doveadm_print_init(DOVEADM_PRINT_TYPE_FLOW);
+    return ctx;
+}
+
+#else
 int cmd_rmb_config_show(int argc, char *argv[]) {
   std::map<std::string, std::string> opts;
   opts["print_cfg"] = "true";
@@ -1280,3 +1388,4 @@ int cmd_rmb_version(int argc, char *argv[]) {
   std::cout << "Plugin version:: " << PACKAGE_VERSION << std::endl;
   return 0;
 }
+#endif

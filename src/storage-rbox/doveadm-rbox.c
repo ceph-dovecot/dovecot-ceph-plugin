@@ -37,11 +37,36 @@ static struct doveadm_mail_cmd rmb_commands[] = {
     {cmd_rmb_create_ceph_index_alloc, "rmb create ceph index", "-d"},
     {cmd_rmb_mailbox_delete_alloc, "rmb mailbox delete", "-r <mailbox> [...]"}};
 
+#if DOVECOT_PREREQ(2, 3, 20)
+struct doveadm_cmd_ver2 doveadm_cmd_rbox[] = {
+    {
+        .name       = "rmb config show",
+        .mail_cmd 	= cmd_rmb_config_show, 
+	},
+    {
+        .name       = "rmb config create",
+        .mail_cmd 	= cmd_rmb_config_create, 
+	},
+    {
+        .name       = "rmb config update",
+        .mail_cmd	= cmd_rmb_config_update,
+        .usage  	= "key=value",
+    },
+    {
+        .name        = "rmb lspools",
+        .mail_cmd	= cmd_rmb_lspools, 
+    },{
+        .name        = "rmb version",
+        .mail_cmd	= cmd_rmb_version, 
+    },
+};
+#else
 struct doveadm_cmd doveadm_cmd_rbox[] = {{(void *)cmd_rmb_config_show, "rmb config show", NULL},
                                          {(void *)cmd_rmb_config_create, "rmb config create", NULL},
                                          {(void *)cmd_rmb_config_update, "rmb config update", "key=value"},
                                          {(void *)cmd_rmb_lspools, "rmb lspools", ""},
                                          {(void *)cmd_rmb_version, "rmb version", ""}};
+#endif
 
 void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   unsigned int i;
@@ -50,6 +75,10 @@ void doveadm_rbox_plugin_init(struct module *module ATTR_UNUSED) {
   }
 
   for (i = 0; i < N_ELEMENTS(doveadm_cmd_rbox); i++)
+#if DOVECOT_PREREQ(2, 3, 20)
+    doveadm_register_cmd_ver2(&doveadm_cmd_rbox[i]);
+#else 
     doveadm_register_cmd(&doveadm_cmd_rbox[i]);
+#endif
 }
 void doveadm_rbox_plugin_deinit(void) {}

@@ -27,7 +27,7 @@ struct delete_cmd_context {
   ARRAY_TYPE(const_string) mailboxes;
   bool recursive;
   bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   bool unsafe;
 #endif
   bool subscriptions;
@@ -50,11 +50,19 @@ extern struct doveadm_mail_cmd_context *cmd_rmb_rename_alloc(void);
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_revert_log_alloc(void);
 
+#if DOVECOT_PREREQ(2, 3, 20)
+extern struct doveadm_mail_cmd_context * cmd_rmb_config_show(void);
+extern struct doveadm_mail_cmd_context * cmd_rmb_config_create(void);
+extern struct doveadm_mail_cmd_context * cmd_rmb_config_update(void);
+extern struct doveadm_mail_cmd_context * cmd_rmb_lspools(void);
+extern struct doveadm_mail_cmd_context * cmd_rmb_version(void);
+#else
 extern int cmd_rmb_config_show(int argc, char *argv[]);
 extern int cmd_rmb_config_create(int argc, char *argv[]);
 extern int cmd_rmb_config_update(int argc, char *argv[]);
 extern int cmd_rmb_lspools(int argc, char *argv[]);
 extern int cmd_rmb_version(int argc, char *argv[]);
+#endif
 
 extern struct doveadm_mail_cmd_context *cmd_rmb_save_log_alloc(void);
 extern struct doveadm_mail_cmd_context *cmd_rmb_check_indices_alloc(void);

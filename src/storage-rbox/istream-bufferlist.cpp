@@ -56,7 +56,7 @@ struct istream *i_stream_create_from_bufferlist(librados::bufferlist *data, cons
   bstream->istream.iostream.destroy = rbox_istream_destroy;
   bstream->bl = data;
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   i_stream_create(&bstream->istream, NULL, -1, ISTREAM_CREATE_FLAG_NOOP_SNAPSHOT);
 #else
   i_stream_create(&bstream->istream, NULL, -1);

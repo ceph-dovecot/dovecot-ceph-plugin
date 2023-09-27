@@ -39,7 +39,7 @@ class rbox_save_context {
         output_stream(NULL),
         rados_storage(_rados_storage),
         rados_mail(NULL),
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
         highest_pop3_uidl_seq(0),
 #endif
         have_pop3_uidls(0),
@@ -75,7 +75,7 @@ class rbox_save_context {
   std::list<librmb::RadosMail *> rados_mails;
   /** current mail in the context **/
   librmb::RadosMail *rados_mail;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 0)
   unsigned int highest_pop3_uidl_seq : 1;
 #endif
   unsigned int have_pop3_uidls : 1;
