@@ -49,7 +49,7 @@ extern "C" {
 #include "../librmb/rados-guid-generator.h"
 #include "../librmb/rados-util.h"
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 #define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r, error_r)
 #else
 #define dict_lookup(dict, pool, key, value_r, error_r) dict_lookup(dict, pool, key, value_r)
@@ -143,11 +143,15 @@ int rados_dict_init(struct dict *driver, const char *uri, const struct dict_sett
     }
   }
 
-  string username(set->username);
+
+  string username("");
+#if !DOVECOT_PREREQ(2, 3, 19)
+  username = set->username;
   if (username.find(DICT_USERNAME_SEPARATOR) != string::npos) {
     /* escape user name */
     username = dict_escape_string(username.c_str());
   }
+#endif
 
   dict = i_new(struct rados_dict, 1);
   dict->cluster = new librmb::RadosClusterImpl();
@@ -197,7 +201,7 @@ void rados_dict_deinit(struct dict *_dict) {
 
 static void rados_lookup_complete_callback(rados_completion_t comp, void *arg);
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 void rados_dict_wait(struct dict *_dict)
 #else
 int rados_dict_wait(struct dict *_dict)
@@ -207,7 +211,7 @@ int rados_dict_wait(struct dict *_dict)
   // JRSE: not required with remote update? = > yes due to async lookup
   dict->d->wait_for_completions();
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   return;
 #else
   return 0;
@@ -307,7 +311,7 @@ void rados_dict_lookup_async(struct dict *_dict, const char *key, dict_lookup_ca
   }
 }
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r, const char **error_r) {
 #else
 int rados_dict_lookup(struct dict *_dict, pool_t pool, const char *key, const char **value_r) {
@@ -529,7 +533,7 @@ void rados_dict_set_timestamp(struct dict_transaction_context *_ctx, const struc
 void (*transaction_commit)(struct dict_transaction_context *ctx, bool async,
                            dict_transaction_commit_callback_t *callback, void *context);
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 void rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool async,
                                    dict_transaction_commit_callback_t *callback, void *context)
 #else
@@ -553,7 +557,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   ret =
       ctx->atomic_inc_not_found ? RADOS_COMMIT_RET_NOTFOUND : (failed ? RADOS_COMMIT_RET_FAILED : RADOS_COMMIT_RET_OK);
   if (callback != nullptr) {
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
     struct dict_commit_result result = {static_cast<dict_commit_ret>(ret), nullptr};  // TODO(p.mauritius): text?
     callback(&result, ctx->context);
 #else
@@ -564,7 +568,7 @@ int rados_dict_transaction_commit(struct dict_transaction_context *_ctx, bool as
   delete ctx;
   ctx = NULL;
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   return;
 #else
   return ret;
@@ -863,7 +867,7 @@ bool rados_dict_iterate(struct dict_iterate_context *ctx, const char **key_r, co
   return TRUE;
 }
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 int rados_dict_iterate_deinit(struct dict_iterate_context *ctx, const char **error_r)
 #else
 int rados_dict_iterate_deinit(struct dict_iterate_context *ctx)

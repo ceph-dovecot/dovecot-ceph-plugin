@@ -27,7 +27,7 @@ struct delete_cmd_context {
   ARRAY_TYPE(const_string) mailboxes;
   bool recursive;
   bool require_empty;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   bool unsafe;
 #endif
   bool subscriptions;

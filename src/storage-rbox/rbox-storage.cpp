@@ -26,7 +26,7 @@ extern "C" {
 #include "guid.h"
 #include "mailbox-list-fs.h"
 #include "macros.h"
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 #include "index-pop3-uidl.h"
 #endif
 
@@ -611,7 +611,7 @@ int rbox_mailbox_create_indexes(struct mailbox *box, const struct mailbox_update
   }
   mail_index_view_close(&view);
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (box->inbox_user && box->creating) {
     /* initialize pop3-uidl header when creating mailbox
        (not on mailbox_update()) */
@@ -1031,6 +1031,7 @@ struct mailbox_vfuncs rbox_mailbox_vfuncs = {index_storage_is_readonly,
                                              index_storage_search_deinit,
                                              index_storage_search_next_nonblock,
                                              index_storage_search_next_update_seq,
+					     index_storage_search_next_match_mail,
                                              rbox_save_alloc,
                                              rbox_save_begin,
                                              rbox_save_continue,
