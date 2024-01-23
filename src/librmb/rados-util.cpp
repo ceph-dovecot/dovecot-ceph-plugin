@@ -23,6 +23,7 @@
 #include <cctype>
 #include <algorithm>
 #include "encoding.h"
+#include <iterator>
 
 namespace librmb {
 
