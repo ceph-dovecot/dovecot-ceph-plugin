@@ -147,7 +147,7 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
   const char *path;
 
   *flags_r = static_cast<mailbox_info_flags>(0);
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (*list->set.maildir_name != '\0' && !list->set.iter_from_index_dir) {
 #else
   if (*list->set.maildir_name != '\0') {
@@ -168,7 +168,7 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
      We're here also when iterating from index directory, because even
      though maildir_name is set, it's not used for index directory.
   */
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (!list->set.iter_from_index_dir &&
 #else
   if (
@@ -260,7 +260,7 @@ int rbox_fs_list_get_mailbox_flags(struct mailbox_list *list, const char *dir, c
     return 1;
   }
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (list->v.is_internal_name == NULL || list->set.iter_from_index_dir) {
 #else
   if (list->v.is_internal_name == NULL) {

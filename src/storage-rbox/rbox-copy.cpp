@@ -292,7 +292,7 @@ int rbox_mail_storage_copy(struct mail_save_context *ctx, struct mail *mail) {
 #endif
   r_ctx->finished = TRUE;
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (ctx->data.keywords != NULL) {
     /* keywords gets unreferenced twice: first in
        mailbox_save_cancel()/_finish() and second time in

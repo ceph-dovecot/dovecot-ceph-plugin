@@ -40,7 +40,7 @@ extern "C" {
 
 #pragma GCC diagnostic pop
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 #else
 #define mail_storage_service_next(ctx, user, mail_user_r, error_r) mail_storage_service_next(ctx, user, mail_user_r)
 #define unlink_directory(dir, flags, error_r) unlink_directory(dir, flags)
@@ -102,7 +102,7 @@ void StorageTest::SetUpTestCase() {
   input.userdb_fields = userdb_fields;
   input.username = username;
   input.no_userdb_lookup = TRUE;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   input.debug = TRUE;
 #endif
 
@@ -133,7 +133,7 @@ void StorageTest::SetUpTestCase() {
 
 void StorageTest::TearDownTestCase() {
   mail_user_unref(&s_test_mail_user);
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   mail_storage_service_user_unref(&test_service_user);
 
   const char *error;

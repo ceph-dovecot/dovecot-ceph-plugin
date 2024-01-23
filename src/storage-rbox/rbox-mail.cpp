@@ -32,7 +32,7 @@ extern "C" {
 #include "debug-helper.h"
 #include "limits.h"
 #include "macros.h"
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 #include "index-pop3-uidl.h"
 #endif
 }
@@ -801,14 +801,14 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         *value_r = "";
         return 0;
       }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       if (!index_pop3_uidl_can_exist(_mail)) {
         *value_r = "";
         return 0;
       }
 #endif
       ret = rbox_get_cached_metadata(mail, rbox_metadata_key::RBOX_METADATA_POP3_UIDL, MAIL_CACHE_POP3_UIDL, value_r);
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       if (ret == 0) {
         index_pop3_uidl_update_exists(&mail->imail.mail.mail, (*value_r)[0] != '\0');
       }
@@ -820,7 +820,7 @@ static int rbox_mail_get_special(struct mail *_mail, enum mail_fetch_field field
         *value_r = "";
         return 0;
       }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       if (!index_pop3_uidl_can_exist(_mail)) {
         /* we're assuming that if there's a POP3 order, there's
            also a UIDL */
@@ -915,7 +915,7 @@ struct mail_vfuncs rbox_mail_vfuncs = {rbox_mail_close,
                                        rbox_mail_get_stream,
                                        index_mail_get_binary_stream,
                                        rbox_mail_get_special,
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
                                        index_mail_get_backend_mail,
 #else
     index_mail_get_real_mail,

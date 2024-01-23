@@ -30,7 +30,7 @@ extern "C" {
 #include "rbox-sync.h"
 #include "rados-types.h"
 #include "debug-helper.h"
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
 #include "index-pop3-uidl.h"
 #endif
 }
@@ -269,7 +269,7 @@ int rbox_save_continue(struct mail_save_context *_ctx) {
     return -1;
   }
 
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
   if (index_storage_save_continue(_ctx, r_ctx->input, _ctx->dest_mail) < 0) {
     r_ctx->failed = TRUE;
     FUNC_END();
@@ -334,7 +334,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_UIDL, mdata->pop3_uidl);
       mail_object->add_metadata(xattr);
       r_ctx->have_pop3_uidls = TRUE;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
 #endif
     }
@@ -344,7 +344,7 @@ static int rbox_save_mail_set_metadata(struct rbox_save_context *r_ctx, librmb::
       RadosMetadata xattr(rbox_metadata_key::RBOX_METADATA_POP3_ORDER, mdata->pop3_order);
       mail_object->add_metadata(xattr);
       r_ctx->have_pop3_orders = TRUE;
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       r_ctx->highest_pop3_uidl_seq = I_MAX(r_ctx->highest_pop3_uidl_seq, r_ctx->seq);
 #endif
     }
@@ -557,7 +557,7 @@ int rbox_save_finish(struct mail_save_context *_ctx) {
   bool zlib_plugin_active = false;
 
 // clean stream if still open
-#if DOVECOT_PREREQ(2, 3)    
+#if DOVECOT_PREREQ(2, 3, 19)    
     int ret = 0;
     //#355 we need to write zipl trailer even the stream is empty!
     if (r_ctx->ctx.data.output != r_ctx->output_stream ) {
@@ -715,7 +715,7 @@ static int rbox_save_assign_uids(struct rbox_save_context *r_ctx, const ARRAY_TY
           return -1;
         }
       }
-#if DOVECOT_PREREQ(2, 3)
+#if DOVECOT_PREREQ(2, 3, 19)
       if (r_ctx->highest_pop3_uidl_seq == n + 1) {
         index_pop3_uidl_set_max_uid(&r_ctx->mbox->box, r_ctx->trans, uid);
       }
